@@ -1,0 +1,238 @@
+// src/components/admin/subjects/subjects-table.tsx
+import { headers as nextHeaders } from "next/headers";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { SearchInput } from "@/components/ui/SearchInput";
+import { SortButton } from "@/components/ui/SortButton";
+import { Pagination } from "@/components/Pagination";
+import { SubjectActions } from "./subject-actions";
+import { UniversityFilter } from "../majors/UniversityFilter";
+import { MajorFilter } from "./MajorFilter";
+
+// ------- API rows -------
+export interface SubjectRow {
+  id: string;
+  name: string;
+  code: string | null;
+  creditHours: number | null;
+  semester: number | null;
+  year: number | null;
+  description: string | null;
+  isActive: boolean;
+  createdAt: string; // ISO
+  updatedAt: string; // ISO
+  major: {
+    id: string;
+    name: string;
+    code: string | null;
+    university: { id: string; name: string; code: string | null };
+  };
+  chaptersCount: number;
+}
+
+interface PaginationMeta { page: number; pageSize: number; total: number; totalPages: number }
+interface ListResponse { data: SubjectRow[]; pagination: PaginationMeta }
+
+type UniversityOption = { id: string; name: string; code: string | null };
+type MajorOption = { id: string; name: string; code: string | null };
+
+function buildQuery(params: Record<string, string | number | undefined>): string {
+  const usp = new URLSearchParams();
+  Object.entries(params).forEach(([k, v]) => { if (v !== undefined) usp.set(k, String(v)); });
+  return usp.toString();
+}
+
+async function getApiBase(): Promise<string> {
+  const envBase = process.env.NEXT_PUBLIC_BASE_URL?.replace(/\/$/, "");
+  if (envBase && envBase.length > 0) return envBase;
+  const h = await nextHeaders();
+  const proto = h.get("x-forwarded-proto") ?? "http";
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
+  return `${proto}://${host}`;
+}
+
+async function fetchSubjects(args: {
+  page: number; pageSize: number; sortBy: "name" | "createdAt" | "code"; sortOrder: "asc" | "desc";
+  query: string; universityId?: string; majorId?: string;
+}): Promise<ListResponse> {
+  const qs = buildQuery(args);
+  const base = await getApiBase();
+  const res = await fetch(`${base}/api/v1/admin/subjects?${qs}`, {
+    next: { revalidate: 3600, tags: ["subjects"] },
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    const info = body || `status=${res.status}`;
+    throw new Error(`فشل تحميل المقررات: ${info}`);
+  }
+  return (await res.json()) as ListResponse;
+}
+
+async function fetchUniversitiesForFilter(): Promise<UniversityOption[]> {
+  const base = await getApiBase();
+  const qs = buildQuery({ page: 1, pageSize: 1000, sortBy: "name", sortOrder: "asc" });
+  const res = await fetch(`${base}/api/v1/admin/universities?${qs}`, {
+    next: { revalidate: 3600, tags: ["universities"] },
+  });
+  if (!res.ok) return [];
+  const payload = (await res.json()) as { data: UniversityOption[]; pagination: PaginationMeta };
+  return payload.data.map((u) => ({ id: u.id, name: u.name, code: u.code ?? null }));
+}
+
+async function fetchMajorsForFilter(universityId?: string): Promise<MajorOption[]> {
+  const base = await getApiBase();
+  const qs = buildQuery({
+    page: 1, pageSize: 1000, sortBy: "name", sortOrder: "asc",
+    universityId: universityId ?? undefined,
+  });
+  const res = await fetch(`${base}/api/v1/admin/majors?${qs}`, {
+    next: { revalidate: 3600, tags: ["majors"] },
+  });
+  if (!res.ok) return [];
+  const payload = (await res.json()) as {
+    data: Array<{ id: string; name: string; code: string | null }>;
+    pagination: PaginationMeta;
+  };
+  return payload.data.map((m) => ({ id: m.id, name: m.name, code: m.code ?? null }));
+}
+
+export async function SubjectsTable({
+  searchParams,
+}: {
+  searchParams?: {
+    page?: string;
+    query?: string;
+    sortBy?: string;
+    sortOrder?: string;
+    universityId?: string;
+    majorId?: string;
+  };
+}) {
+  const currentPage = Number(searchParams?.page ?? 1) || 1;
+  const perPage = 10;
+  const searchQuery = searchParams?.query ?? "";
+  const selectedUniversityId = searchParams?.universityId || undefined;
+  const selectedMajorId = searchParams?.majorId || undefined;
+
+  const sortBy: "name" | "createdAt" | "code" = ((): "name" | "createdAt" | "code" => {
+    const s = searchParams?.sortBy;
+    return s === "name" || s === "code" ? s : "createdAt";
+  })();
+  const sortOrder: "asc" | "desc" = searchParams?.sortOrder === "asc" ? "asc" : "desc";
+
+  const [universities, majors, { data: subjects, pagination }] = await Promise.all([
+    fetchUniversitiesForFilter(),
+    fetchMajorsForFilter(selectedUniversityId),
+    fetchSubjects({
+      page: currentPage,
+      pageSize: perPage,
+      sortBy,
+      sortOrder,
+      query: searchQuery,
+      universityId: selectedUniversityId,
+      majorId: selectedMajorId,
+    }),
+  ]);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center gap-3">
+        <SearchInput placeholder="ابحث عن مقرر..." />
+        <div className="flex items-center gap-2">
+          <UniversityFilter
+            options={universities}
+            value={selectedUniversityId ?? "__all__"}
+            placeholder="تصفية حسب الجامعة"
+          />
+          <MajorFilter
+            options={majors}
+            value={selectedMajorId ?? "__all__"}
+            placeholder="تصفية حسب التخصص"
+            disabled={!selectedUniversityId} // لا تظهر إلا بعد اختيار جامعة
+          />
+          <SortButton sortBy="name" currentSort={sortBy} sortOrder={sortOrder}>الاسم</SortButton>
+          <SortButton sortBy="code" currentSort={sortBy} sortOrder={sortOrder}>الرمز</SortButton>
+          <SortButton sortBy="createdAt" currentSort={sortBy} sortOrder={sortOrder}>التاريخ</SortButton>
+        </div>
+      </div>
+
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>المقرر</TableHead>
+              <TableHead>التخصص</TableHead>
+              <TableHead>الجامعة</TableHead>
+              <TableHead>الرمز</TableHead>
+              <TableHead>الحالة</TableHead>
+              <TableHead>تاريخ الإنشاء</TableHead>
+              <TableHead className="text-left">الإجراءات</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {subjects.map((subject) => (
+              <TableRow key={subject.id}>
+                <TableCell>
+                  <div className="flex items-center space-x-3 space-x-reverse">
+                    <Avatar className="h-8 w-8">
+                      <AvatarFallback className="bg-primary/10 text-primary">
+                        {subject.name.charAt(0)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <div className="font-medium">{subject.name}</div>
+                      {subject.description && (
+                        <div className="text-xs text-muted-foreground line-clamp-1">
+                          {subject.description}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </TableCell>
+
+                <TableCell>
+                  <div className="text-sm font-medium">{subject.major.name}</div>
+                  <div className="text-xs text-muted-foreground">{subject.major.code ?? ""}</div>
+                </TableCell>
+
+                <TableCell>
+                  <div className="text-sm">{subject.major.university.name}</div>
+                </TableCell>
+
+                <TableCell>
+                  <code className="text-sm bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">
+                    {subject.code ?? "غير محدد"}
+                  </code>
+                </TableCell>
+
+                <TableCell>
+                  <Badge variant={subject.isActive ? "default" : "secondary"}>
+                    {subject.isActive ? "نشط" : "غير نشط"}
+                  </Badge>
+                </TableCell>
+
+                <TableCell>
+                  <div className="text-sm text-muted-foreground arabic-numbers">
+                    {new Date(subject.createdAt).toLocaleDateString("ar-SA")}
+                  </div>
+                </TableCell>
+
+                <TableCell className="text-left">
+                  <SubjectActions subject={subject} />
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+
+      <Pagination
+        currentPage={pagination.page}
+        totalPages={pagination.totalPages}
+        totalItems={pagination.total}
+        pageSize={pagination.pageSize}
+      />
+    </div>
+  );
+}

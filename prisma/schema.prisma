@@ -1,0 +1,757 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// -----------------
+// Enums
+// -----------------
+enum QuestionType {
+  multiple_choice
+  true_false
+  short_answer
+  essay
+}
+
+enum DifficultyLevel {
+  easy
+  medium
+  hard
+}
+
+enum UserRole {
+  admin
+  editor
+  moderator
+}
+
+// Content language tag per record
+enum ContentLanguage {
+  ar
+  en
+}
+
+// Exams & Attachments
+enum ExamTerm {
+  first
+  second
+  summer
+}
+
+enum ExamSession {
+  regular
+  makeup
+  special
+}
+
+enum AttachmentKind {
+  image
+  pdf
+  solution
+  other
+}
+
+// SEO
+// ✅ SEO
+enum SeoOwnerType {
+  university
+  major
+  subject
+  chapter
+  exam
+
+  // ✅ NEW: Blog
+  blog_post
+  blog_topic
+  blog_tag
+}
+
+// ✅ Attachments
+enum AttachmentOwnerType {
+  question
+  quiz
+  chapter
+  scoreubject
+
+  // ✅ NEW: Blog
+  blog_post
+}
+
+// Site is monolingual Arabic for SEO output, keep enum to allow future EN if needed
+enum Locale {
+  ar
+  en
+}
+
+// -----------------
+// Users (NextAuth)
+// -----------------
+model User {
+  id            String    @id @default(uuid())
+  name          String?
+  email         String    @unique
+  password      String
+  emailVerified DateTime?
+  image         String?
+  role          UserRole  @default(admin)
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+
+  // Relations
+  accounts            Account[]
+  sessions            Session[]
+  universitiesCreated University[]        @relation("UniversityCreatedBy")
+  majorsCreated       Major[]             @relation("MajorCreatedBy")
+  subjectsCreated     Subject[]           @relation("SubjectCreatedBy")
+  chaptersCreated     Chapter[]           @relation("ChapterCreatedBy")
+  questionsCreated    Question[]          @relation("QuestionCreatedBy")
+  quizzesCreated      Quiz[]              @relation("QuizCreatedBy")
+  quizAttempts        QuizAttempt[]
+  examsCreated        ExamPaper[]         @relation("ExamPaperCreatedBy")
+  blogPostsCreated    BlogPost[]          @relation("BlogPostCreatedBy")
+  blogPostsUpdated    BlogPost[]          @relation("BlogPostUpdatedBy")
+  blogPostViewEvents  BlogPostViewEvent[] @relation("BlogPostViewUser")
+
+  @@map("users")
+}
+
+// -----------------
+// Universities
+enum InstitutionType {
+  university
+  school
+  academy
+}
+
+model University {
+  id        String   @id @default(uuid())
+  name      String
+  code      String?  @unique
+  city      String?
+  region    String?
+  logoUrl   String?
+  isActive  Boolean  @default(true)
+  createdBy String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // 🔒 الآن إلزامية مع قيم افتراضية
+  countryCode     String          @default("SA")
+  institutionType InstitutionType @default(university)
+
+  creator User?   @relation("UniversityCreatedBy", fields: [createdBy], references: [id])
+  majors  Major[]
+
+  @@index([countryCode, institutionType, isActive])
+  @@map("universities")
+}
+
+// -----------------
+// Majors/Programs
+// -----------------
+model Major {
+  id            String   @id @default(uuid())
+  universityId  String
+  name          String
+  code          String?
+  degreeType    String?
+  durationYears Int?
+  isActive      Boolean  @default(true)
+  createdBy     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  university University @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  creator    User?      @relation("MajorCreatedBy", fields: [createdBy], references: [id])
+  subjects   Subject[]
+
+  @@unique([universityId, code])
+  @@map("majors")
+}
+
+// -----------------
+// Subjects/Courses
+// -----------------
+model Subject {
+  id          String   @id @default(uuid())
+  majorId     String
+  name        String
+  code        String?
+  creditHours Int?
+  semester    Int?
+  year        Int?
+  description String?
+  isActive    Boolean  @default(true)
+  createdBy   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  major    Major       @relation(fields: [majorId], references: [id], onDelete: Cascade)
+  creator  User?       @relation("SubjectCreatedBy", fields: [createdBy], references: [id])
+  chapters Chapter[]
+  Quiz     Quiz[]
+  exams    ExamPaper[]
+
+  @@unique([majorId, code])
+  @@map("subjects")
+}
+
+// -----------------
+// Chapters/Topics
+// -----------------
+model Chapter {
+  id                 String   @id @default(uuid())
+  subjectId          String
+  name               String
+  chapterNumber      Int?
+  description        String?
+  learningObjectives String[]
+  isActive           Boolean  @default(true)
+  createdBy          String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  // Relations
+  subject           Subject             @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  creator           User?               @relation("ChapterCreatedBy", fields: [createdBy], references: [id])
+  questions         Question[]
+  quizAttempts      QuizAttempt[]
+  sessionProgress   SessionProgress[]
+  platformAnalytics PlatformAnalytics[] @relation("MostPopularChapter")
+
+  @@unique([subjectId, chapterNumber])
+  @@map("chapters")
+}
+
+// -----------------
+// Questions
+// -----------------
+model Question {
+  id              String          @id @default(uuid())
+  chapterId       String
+  questionText    String
+  questionType    QuestionType    @default(multiple_choice)
+  difficultyLevel DifficultyLevel @default(medium)
+  points          Int             @default(1)
+  explanation     String?
+  imageUrl        String?
+  tags            String[]
+  isActive        Boolean         @default(true)
+  language        ContentLanguage @default(ar)
+  createdBy       String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  // Relations
+  chapter       Chapter          @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  creator       User?            @relation("QuestionCreatedBy", fields: [createdBy], references: [id])
+  options       QuestionOption[]
+  userAnswers   UserAnswer[]
+  quizQuestions QuizQuestion[]
+  examMappings  ExamQuestion[]
+
+  @@map("questions")
+}
+
+// -----------------
+// Question options
+// -----------------
+model QuestionOption {
+  id          String   @id @default(uuid())
+  questionId  String
+  optionText  String
+  isCorrect   Boolean  @default(false)
+  optionOrder Int?
+  createdAt   DateTime @default(now())
+
+  // Relations
+  question    Question     @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  userAnswers UserAnswer[]
+
+  @@map("question_options")
+}
+
+// -----------------
+// Quizzes (generated quizzes)
+// -----------------
+model Quiz {
+  id             String   @id @default(uuid())
+  title          String
+  description    String?
+  timeLimit      Int      @default(30)
+  totalQuestions Int
+  totalPoints    Int      @default(0)
+  isActive       Boolean  @default(true)
+  createdBy      String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  creator   User?          @relation("QuizCreatedBy", fields: [createdBy], references: [id])
+  questions QuizQuestion[]
+  attempts  QuizAttempt[]
+  subjectId String?
+  subject   Subject?       @relation(fields: [subjectId], references: [id])
+
+  @@map("quizzes")
+}
+
+// -----------------
+// Quiz questions junction
+// -----------------
+model QuizQuestion {
+  id            String @id @default(uuid())
+  quizId        String
+  questionId    String
+  questionOrder Int
+  points        Int    @default(1)
+
+  // Relations
+  quiz     Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  question Question @relation(fields: [questionId], references: [id])
+
+  @@unique([quizId, questionId])
+  @@unique([quizId, questionOrder])
+  @@map("quiz_questions")
+}
+
+// -----------------
+// ExamPaper (official past papers)
+// -----------------
+model ExamPaper {
+  id          String          @id @default(uuid())
+  subjectId   String
+  year        Int
+  term        ExamTerm
+  session     ExamSession     @default(regular)
+  code        String?
+  source      String?
+  fileUrl     String?
+  pagesCount  Int?
+  isPublished Boolean         @default(true)
+  language    ContentLanguage @default(ar)
+  createdBy   String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  // Relations
+  subject   Subject        @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  creator   User?          @relation("ExamPaperCreatedBy", fields: [createdBy], references: [id])
+  questions ExamQuestion[]
+
+  @@unique([subjectId, year, term, session, code])
+  @@index([subjectId, year, term])
+  @@map("exam_papers")
+}
+
+// -----------------
+// ExamQuestion (link Question <-> ExamPaper)
+// -----------------
+model ExamQuestion {
+  id             String @id @default(uuid())
+  examPaperId    String
+  questionId     String
+  questionNumber Int
+  page           Int?
+  points         Int    @default(1)
+
+  // Relations
+  examPaper ExamPaper @relation(fields: [examPaperId], references: [id], onDelete: Cascade)
+  question  Question  @relation(fields: [questionId], references: [id])
+
+  @@unique([examPaperId, questionNumber])
+  @@unique([examPaperId, questionId])
+  @@index([questionId])
+  @@map("exam_questions")
+}
+
+// -----------------
+// Attachment (polymorphic)
+// -----------------
+model Attachment {
+  id                  String               @id @default(uuid())
+  ownerType           AttachmentOwnerType
+  ownerId             String
+  kind                AttachmentKind
+  url                 String
+  title               String?
+  meta                Json?
+  createdAt           DateTime             @default(now())
+  blogPostAttachments BlogPostAttachment[] @relation("BlogPostAttachmentFile")
+
+  @@index([ownerType, ownerId])
+  @@map("attachments")
+}
+
+// -----------------
+// Anonymous session tracking
+// -----------------
+model AnonymousSession {
+  id                 String              @id @default(uuid())
+  sessionToken       String              @unique
+  ipAddress          String?
+  userAgent          String?
+  country            String?
+  city               String?
+  createdAt          DateTime            @default(now())
+  lastActivity       DateTime            @default(now())
+  expiresAt          DateTime
+  blogPostViewEvents BlogPostViewEvent[] @relation("BlogPostViewSession")
+
+  // Relations
+  quizAttempts    QuizAttempt[]
+  sessionProgress SessionProgress[]
+
+  @@map("anonymous_sessions")
+}
+
+// -----------------
+// Quiz attempts
+// -----------------
+model QuizAttempt {
+  id             String    @id @default(uuid())
+  userId         String?
+  sessionId      String?
+  quizId         String?
+  chapterId      String?
+  totalQuestions Int
+  correctAnswers Int       @default(0)
+  score          Decimal?
+  timeSpent      Int?
+  ipAddress      String?
+  userAgent      String?
+  startedAt      DateTime  @default(now())
+  completedAt    DateTime?
+  isCompleted    Boolean   @default(false)
+
+  // Relations
+  user             User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
+  anonymousSession AnonymousSession? @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  quiz             Quiz?             @relation(fields: [quizId], references: [id])
+  chapter          Chapter?          @relation(fields: [chapterId], references: [id])
+  userAnswers      UserAnswer[]
+
+  @@map("quiz_attempts")
+}
+
+// -----------------
+// User answers
+// -----------------
+model UserAnswer {
+  id               String   @id @default(uuid())
+  quizAttemptId    String
+  questionId       String
+  selectedOptionId String?
+  answerText       String?
+  isCorrect        Boolean?
+  timeSpent        Int?
+  createdAt        DateTime @default(now())
+
+  // Relations
+  quizAttempt    QuizAttempt     @relation(fields: [quizAttemptId], references: [id], onDelete: Cascade)
+  question       Question        @relation(fields: [questionId], references: [id])
+  selectedOption QuestionOption? @relation(fields: [selectedOptionId], references: [id])
+
+  @@map("user_answers")
+}
+
+// -----------------
+// Session-based progress tracking
+// -----------------
+model SessionProgress {
+  id                     String    @id @default(uuid())
+  sessionId              String
+  chapterId              String
+  totalAttempts          Int       @default(0)
+  bestScore              Decimal?
+  averageScore           Decimal?
+  totalQuestionsAnswered Int       @default(0)
+  correctAnswers         Int       @default(0)
+  lastAttemptAt          DateTime?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+
+  // Relations
+  anonymousSession AnonymousSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  chapter          Chapter          @relation(fields: [chapterId], references: [id])
+
+  @@unique([sessionId, chapterId])
+  @@map("session_progress")
+}
+
+// -----------------
+// Analytics
+// -----------------
+model PlatformAnalytics {
+  id                     String   @id @default(uuid())
+  date                   DateTime @unique
+  totalQuizAttempts      Int      @default(0)
+  uniqueSessions         Int      @default(0)
+  totalQuestionsAnswered Int      @default(0)
+  averageSessionDuration Int?
+  mostPopularChapterId   String?
+  createdAt              DateTime @default(now())
+
+  // Relations
+  mostPopularChapter Chapter? @relation("MostPopularChapter", fields: [mostPopularChapterId], references: [id])
+
+  @@map("platform_analytics")
+}
+
+// -----------------
+// NextAuth tables
+// -----------------
+model Account {
+  id                String   @id @default(uuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(uuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@id([identifier, token])
+  @@map("verification_tokens")
+}
+
+// -----------------
+// SEO Meta (polymorphic)
+// -----------------
+model SeoMeta {
+  id              String       @id @default(uuid())
+  ownerType       SeoOwnerType
+  ownerId         String
+  locale          Locale       @default(ar)
+  slug            String
+  metaTitle       String?
+  metaDescription String?
+  ogTitle         String?
+  ogDescription   String?
+  ogImageUrl      String?
+  canonicalUrl    String?
+  noindex         Boolean      @default(false)
+  nofollow        Boolean      @default(false)
+  schemaJson      Json?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@unique([ownerType, ownerId, locale])
+  @@index([ownerType, ownerId])
+  @@index([slug, locale])
+  @@map("seo_meta")
+}
+
+// -----------------
+// Blog
+// -----------------
+
+enum BlogPostStatus {
+  draft
+  published
+  archived
+}
+
+model BlogPost {
+  id          String  @id @default(uuid())
+  title       String
+  excerpt     String? // ملخص يظهر في القوائم/SEO fallback
+  content     Json // محتوى المحرر (TipTap/EditorJS...الخ)
+  contentText String? // نص مبسّط (اختياري) للاستخدام في previews لاحقًا
+  contentHtml String? @db.Text // ✅ NEW: HTML جاهز للـ SEO/OG/Preview
+
+  status        BlogPostStatus @default(draft)
+  publishedAt   DateTime?
+  coverImageUrl String? // صورة غلاف سريعة للقوائم (اختياري)
+
+  // اختيارية حسب كلامك (لاحقًا تخصيص حسب الجلسة)
+  countryCode String?
+
+  // اللغة الآن عربي، لكن نتركها للتوسع
+  language ContentLanguage @default(ar)
+
+  // علاقات (Primary/Secondary)
+  primaryTopicId String
+  primaryTopic   BlogTopic @relation("BlogPrimaryTopic", fields: [primaryTopicId], references: [id], onDelete: Restrict)
+
+  secondaryTopics BlogPostSecondaryTopic[]
+  tags            BlogPostTag[]
+  attachments     BlogPostAttachment[]
+
+  viewEvents BlogPostViewEvent[]
+  viewsCount Int                 @default(0)
+
+  // تدقيق (من جدول User الموجود)
+  createdBy String?
+  updatedBy String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  creator User? @relation("BlogPostCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+  updater User? @relation("BlogPostUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
+
+  @@index([status, publishedAt])
+  @@index([primaryTopicId])
+  @@index([countryCode])
+  @@map("blog_posts")
+}
+
+model BlogTopic {
+  id          String  @id @default(uuid())
+  name        String // اسم الموضوع
+  description String?
+  isActive    Boolean @default(true)
+
+  // اختياري للتخصيص لاحقًا
+  countryCode String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // علاقات
+  primaryPosts   BlogPost[]               @relation("BlogPrimaryTopic")
+  secondaryPosts BlogPostSecondaryTopic[]
+
+  @@unique([name])
+  @@index([isActive])
+  @@index([countryCode])
+  @@map("blog_topics")
+}
+
+model BlogTag {
+  id          String  @id @default(uuid())
+  name        String // اسم الوسم
+  description String?
+  isActive    Boolean @default(true)
+
+  // اختياري للتخصيص لاحقًا
+  countryCode String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // علاقات
+  posts BlogPostTag[]
+
+  @@unique([name])
+  @@index([isActive])
+  @@index([countryCode])
+  @@map("blog_tags")
+}
+
+// ✅ Secondary topics (Post ↔ Topic) — حل الـ Primary/Secondary
+model BlogPostSecondaryTopic {
+  postId    String
+  topicId   String
+  createdAt DateTime @default(now())
+
+  post  BlogPost  @relation(fields: [postId], references: [id], onDelete: Cascade)
+  topic BlogTopic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@id([postId, topicId])
+  @@index([topicId])
+  @@map("blog_post_secondary_topics")
+}
+
+// ✅ Tags (Post ↔ Tag)
+model BlogPostTag {
+  postId    String
+  tagId     String
+  createdAt DateTime @default(now())
+
+  post BlogPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tag  BlogTag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([postId, tagId])
+  @@index([tagId])
+  @@map("blog_post_tags")
+}
+
+// ✅ Attachments (Post ↔ Attachment)
+// ملاحظة: Attachment نفسه polymorphic، لكن هذا الجدول يسمح بـ ordering/caption...الخ
+model BlogPostAttachment {
+  id           String  @id @default(uuid())
+  postId       String
+  attachmentId String
+  sortOrder    Int     @default(0)
+  caption      String?
+
+  createdAt DateTime @default(now())
+
+  post       BlogPost   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  attachment Attachment @relation("BlogPostAttachmentFile", fields: [attachmentId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, attachmentId])
+  @@index([postId, sortOrder])
+  @@map("blog_post_attachments")
+}
+
+enum BlogViewTrigger {
+  dwell // بقى 8 ثوانٍ
+  scroll // وصل 30% سكرول
+}
+
+model BlogPostViewEvent {
+  id      String          @id @default(uuid())
+  postId  String
+  trigger BlogViewTrigger
+
+  // ✅ ربط اختياري مع المستخدم/الجلسة
+  userId    String?
+  sessionId String?
+
+  // معلومات إضافية (اختيارية - مفيدة للتحليل)
+  dwellSeconds  Int?
+  scrollPercent Int?
+  referrer      String?
+  path          String?
+
+  createdAt DateTime @default(now())
+
+  post    BlogPost          @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user    User?             @relation("BlogPostViewUser", fields: [userId], references: [id], onDelete: SetNull)
+  session AnonymousSession? @relation("BlogPostViewSession", fields: [sessionId], references: [id], onDelete: SetNull)
+
+  @@index([postId, createdAt])
+  @@index([sessionId, createdAt])
+  @@index([userId, createdAt])
+  @@map("blog_post_view_events")
+}
