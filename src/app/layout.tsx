@@ -10,6 +10,8 @@ import { SessionProvider } from "@/providers/session-provider";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { baseMetadata, organizationJsonLd, websiteJsonLd } from "@/lib/seo";
+import { SpeedInsights } from "@vercel/speed-insights/next"; // ✅ أضف هذا
+
 
 const cairo = Cairo({ subsets: ["arabic", "latin"], display: "swap" });
 
@@ -40,8 +42,11 @@ export default async function RootLayout({
         <SessionProvider session={session}>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
             {children}
+                {/* ✅ Speed Insights هنا */}
+            <SpeedInsights />
           </ThemeProvider>
         </SessionProvider>
+        
       </body>
     </html>
   );
