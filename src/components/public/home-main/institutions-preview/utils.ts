@@ -66,10 +66,9 @@ export function buildInstitutionHref(
 
 /**
  * مصدر صورة محلي (اختياري) في حال لم توجد logoUrl
- * ضع صورة افتراضية في: public/images/institutions/default.webp
+ * ضع صورة افتراضية في: public/images/institutions/default.svg
  */
 export function getFallbackImageSrc(code?: string | null) {
-  const c = (code || "").toLowerCase().trim();
-  // إن كان عندك صور حسب الكود يمكنك فعلًا إنشاءها، وإلا سيستخدم default
-  return c ? `/images/institutions/${c}.webp` : `/images/institutions/default.webp`;
+  // Phase 1: use one guaranteed local placeholder until real hosted logos are enabled.
+  return "/images/institutions/default.svg";
 }

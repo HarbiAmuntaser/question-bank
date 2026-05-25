@@ -23,7 +23,7 @@ export function FeaturesGrid({ copy, allowMotion = true }: Props) {
   const canAnimate = allowMotion && !reduceMotion;
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-20">
+    <div className="mt-10 grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-3 lg:mt-20 lg:gap-8">
       {copy.features.map((f, i) => {
         const FeatureIcon = ICON_MAP[f.icon] ?? ICON_MAP.book;
 
@@ -37,7 +37,7 @@ export function FeaturesGrid({ copy, allowMotion = true }: Props) {
             className="group"
           >
             <div className="h-full border-2 hover:border-primary/50 transition-all duration-300 shadow-lg hover:shadow-xl bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl">
-              <div className="p-8 text-center h-full flex flex-col">
+              <div className="flex h-full flex-col p-5 text-center sm:p-6 lg:p-8">
                 <div
                   className={`w-16 h-16 ${f.bgColor} rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300`}
                 >

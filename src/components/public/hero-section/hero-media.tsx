@@ -67,7 +67,7 @@ export function HeroMedia({
           transition={{ duration: isSmallScreen ? 0.45 : 0.8 }}
           className="relative"
         >
-          <div className="relative w-full h-[420px] sm:h-[500px] lg:h-[600px] rounded-3xl overflow-hidden shadow-2xl">
+          <div className="relative h-[260px] w-full overflow-hidden rounded-2xl shadow-xl sm:h-[360px] sm:rounded-3xl md:h-[420px] lg:h-[560px] lg:shadow-2xl xl:h-[600px]">
             <div className={`absolute inset-0 bg-gradient-to-br ${slide.gradient} opacity-20`} aria-hidden />
 
             <Image
@@ -84,14 +84,14 @@ export function HeroMedia({
 
             <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" aria-hidden />
 
-            <div className="absolute bottom-6 right-6 left-6">
-              <div className="flex items-center gap-4 text-white">
-                <div className={`p-4 rounded-2xl bg-gradient-to-r ${slide.gradient} shadow-lg`} aria-hidden>
-                  <SlideIcon className="h-8 w-8" />
+            <div className="absolute bottom-4 left-4 right-4 sm:bottom-6 sm:left-6 sm:right-6">
+              <div className="flex items-center gap-3 text-white sm:gap-4">
+                <div className={`rounded-2xl bg-gradient-to-r ${slide.gradient} p-3 shadow-lg sm:p-4`} aria-hidden>
+                  <SlideIcon className="h-6 w-6 sm:h-8 sm:w-8" />
                 </div>
-                <div>
-                  <h3 className="text-xl font-bold">{slide.subtitle}</h3>
-                  <p className="text-white/80">
+                <div className="min-w-0">
+                  <h3 className="line-clamp-1 text-base font-bold sm:text-xl">{slide.subtitle}</h3>
+                  <p className="line-clamp-1 text-sm text-white/80 sm:text-base">
                     {lang === "ar" ? "تعلم مع أفضل المنصات التعليمية" : "Learn with the best tools"}
                   </p>
                 </div>

@@ -11,7 +11,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import Link from "next/link";
 import Image from "next/image";
 import { Search, Users, BookOpen, Trophy, GraduationCap, Star } from "lucide-react";
@@ -112,8 +111,16 @@ export function UniversityGrid({
   if (loading) {
     return (
       <section className="py-16 px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-center py-20">
-          <LoadingSpinner />
+        <div className="mx-auto grid max-w-7xl grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3 lg:gap-8">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <div key={index} className="overflow-hidden rounded-lg border-2 bg-white/90 shadow-lg dark:bg-gray-800/90">
+              <div className="h-44 animate-pulse bg-muted sm:h-48" />
+              <div className="space-y-5 p-6">
+                <div className="h-6 w-4/5 animate-pulse rounded bg-muted" />
+                <div className="h-11 w-full animate-pulse rounded-xl bg-muted sm:h-12" />
+              </div>
+            </div>
+          ))}
         </div>
       </section>
     );
@@ -191,7 +198,7 @@ export function UniversityGrid({
                 <div className="relative h-48 overflow-hidden">
                   <div className="absolute inset-0 bg-gradient-to-br from-green-600/20 via-blue-600/20 to-purple-600/20" aria-hidden />
                   <Image
-                    src={u.logoUrl ? u.logoUrl : `/images/universities/${(u.code ?? "default").toLowerCase()}.jpg`}
+                    src="/images/institutions/default.svg"
                     alt={u.name}
                     fill
                     className="object-cover group-hover:scale-110 transition-transform duration-500"

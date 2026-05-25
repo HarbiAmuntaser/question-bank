@@ -19,13 +19,13 @@ type Props = {
 
 export function InstitutionPreviewCard({
   name,
-  logoUrl,
   code,
   city,
   region,
   href,
 }: Props) {
-  const imageSrc = logoUrl || getFallbackImageSrc(code);
+  // Phase 1: keep institution imagery local and stable until hosted logos are ready.
+  const imageSrc = getFallbackImageSrc(code);
 
   const location = [city, region].filter(Boolean).join(" • ");
 

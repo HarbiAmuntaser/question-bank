@@ -105,7 +105,7 @@ useEffect(() => {
   setSelectedSubject("all");
 }, [selectedMajor]);
   return (
-    <section className="py-8 md:py-12">
+    <section className="py-8 md:py-12" dir="rtl">
       <div className="container px-4 md:px-6">
         <div className="text-center mb-10">
           <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">تصفح الاختبارات</h1>
@@ -115,14 +115,14 @@ useEffect(() => {
         </div>
 
         {/* فلاتر */}
-        <div className="mb-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="mb-8 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input placeholder="بحث عن اختبار..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-9" />
+            <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+            <Input placeholder="بحث عن اختبار..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="h-12 rounded-xl pr-10 text-right" />
           </div>
 
           <Select value={selectedUniversity} onValueChange={setSelectedUniversity}>
-            <SelectTrigger><SelectValue placeholder="الجامعة" /></SelectTrigger>
+            <SelectTrigger className="h-12 rounded-xl text-right"><SelectValue placeholder="الجامعة" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">جميع الجامعات</SelectItem>
               {universities.map((u) => (<SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>))}
@@ -130,7 +130,7 @@ useEffect(() => {
           </Select>
 
           <Select value={selectedMajor} onValueChange={setSelectedMajor} disabled={dynamicMajors.length === 0 && selectedUniversity !== "all"}>
-            <SelectTrigger><SelectValue placeholder="التخصص" /></SelectTrigger>
+            <SelectTrigger className="h-12 rounded-xl text-right"><SelectValue placeholder="التخصص" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">جميع التخصصات</SelectItem>
               {dynamicMajors.map((m) => (<SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>))}
@@ -138,7 +138,7 @@ useEffect(() => {
           </Select>
 
           <Select value={selectedDegreeType} onValueChange={setSelectedDegreeType}>
-            <SelectTrigger><SelectValue placeholder="نوع الدرجة" /></SelectTrigger>
+            <SelectTrigger className="h-12 rounded-xl text-right"><SelectValue placeholder="نوع الدرجة" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">جميع أنواع الدرجات</SelectItem>
               {degreeTypes.map((t) => (<SelectItem key={t} value={t}>{t}</SelectItem>))}
@@ -146,7 +146,7 @@ useEffect(() => {
           </Select>
 
           <Select value={selectedSubject} onValueChange={setSelectedSubject} disabled={dynamicSubjects.length === 0 && (selectedUniversity !== "all" || selectedMajor !== "all")}>
-            <SelectTrigger><SelectValue placeholder="المادة" /></SelectTrigger>
+            <SelectTrigger className="h-12 rounded-xl text-right"><SelectValue placeholder="المادة" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">جميع المواد</SelectItem>
               {dynamicSubjects.map((s) => (<SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>))}
@@ -163,11 +163,11 @@ useEffect(() => {
             <p className="text-xl text-muted-foreground">لا توجد اختبارات مطابقة لمعايير البحث.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3 lg:gap-8">
             {quizzes.map((quiz) => (
-              <Card key={quiz.id} className="flex flex-col shadow-md hover:shadow-lg transition-shadow">
+              <Card key={quiz.id} className="flex flex-col border-2 bg-white/90 shadow-md transition-all duration-300 hover:border-primary/40 hover:shadow-xl dark:bg-gray-800/90">
                 <CardHeader>
-                  <CardTitle className="text-xl font-semibold">{quiz.title}</CardTitle>
+                  <CardTitle className="line-clamp-2 text-lg font-semibold sm:text-xl">{quiz.title}</CardTitle>
                   {quiz.title && <CardDescription className="text-gray-500 dark:text-gray-400 text-right" dir="rtl">{quiz.title}</CardDescription>}
                 </CardHeader>
                 <CardContent className="flex-grow space-y-2">
@@ -179,7 +179,7 @@ useEffect(() => {
                   <p className="text-sm text-muted-foreground">المادة: {quiz.subject?.name || quiz.chapter?.subject?.name || "غير محدد"}</p>
                 </CardContent>
                 <div className="p-6 pt-0">
-                  <Button asChild className="w-full"><Link href={`/quiz/${quiz.id}`}>ابدأ الاختبار</Link></Button>
+                  <Button asChild className="h-11 w-full rounded-xl"><Link href={`/quiz/${quiz.id}`}>ابدأ الاختبار</Link></Button>
                 </div>
               </Card>
             ))}

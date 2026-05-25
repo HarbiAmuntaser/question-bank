@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800" role="img" aria-labelledby="title desc">
+  <title id="title">Learning hero image</title>
+  <desc id="desc">Abstract local illustration for the student learning hero.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#dcfce7"/>
+      <stop offset="0.55" stop-color="#eff6ff"/>
+      <stop offset="1" stop-color="#ccfbf1"/>
+    </linearGradient>
+    <linearGradient id="card" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#16a34a"/>
+      <stop offset="1" stop-color="#06b6d4"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="800" fill="url(#bg)"/>
+  <circle cx="1020" cy="150" r="130" fill="#22c55e" opacity=".16"/>
+  <circle cx="180" cy="650" r="180" fill="#3b82f6" opacity=".12"/>
+  <rect x="210" y="155" width="780" height="490" rx="40" fill="#fff" opacity=".92"/>
+  <rect x="280" y="225" width="320" height="230" rx="24" fill="url(#card)"/>
+  <rect x="650" y="245" width="230" height="28" rx="14" fill="#14532d" opacity=".78"/>
+  <rect x="650" y="305" width="270" height="22" rx="11" fill="#166534" opacity=".34"/>
+  <rect x="650" y="350" width="210" height="22" rx="11" fill="#166534" opacity=".24"/>
+  <rect x="650" y="430" width="180" height="58" rx="18" fill="#16a34a"/>
+  <circle cx="440" cy="305" r="70" fill="#fff" opacity=".95"/>
+  <path d="M405 320h70l-35 45z" fill="#16a34a"/>
+  <path d="M365 285l75-42 75 42-75 42z" fill="#065f46"/>
+</svg>

@@ -33,9 +33,8 @@ export function UniversityHero({ university }: UniversityHeroProps) {
             {/* الشعار + معلومات أساسية */}
             <div className="flex items-center gap-4 sm:gap-6">
               <Avatar className="h-20 w-20 sm:h-24 sm:w-24">
-                {university.logoUrl ? (
-                  <AvatarImage src={university.logoUrl} alt={university.name} />
-                ) : null}
+                {/* Phase 1: use a local logo placeholder until hosted institution logos are ready. */}
+                <AvatarImage src="/images/institutions/default.svg" alt={university.name} />
                 <AvatarFallback className="bg-primary/10 text-primary font-bold text-2xl">
                   {firstLetter}
                 </AvatarFallback>

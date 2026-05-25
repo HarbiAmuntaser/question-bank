@@ -63,11 +63,11 @@ export function QuestionOptions({ question, answer, onAnswerChange, dir }: Props
   const currentLen = (answer?.textAnswer ?? "").length;
 
   const rowClass = cn(
-    "flex items-center gap-2 cursor-pointer p-3 rounded-lg border hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors",
+    "flex min-h-12 cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800",
     dir === "rtl" ? "flex-row-reverse text-right" : "flex-row text-left"
   );
 
-  const inputClass = "h-4 w-4";
+  const inputClass = "h-5 w-5";
 
   // تحسين وصولية: fieldset + legend
   if (question.questionType === "multiple_choice") {

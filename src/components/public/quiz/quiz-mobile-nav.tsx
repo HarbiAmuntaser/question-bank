@@ -32,13 +32,13 @@ export function QuizMobileNav({
     <div className="lg:hidden">
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetTrigger asChild>
-          <Button variant="outline" className="w-full flex items-center gap-2">
+          <Button variant="outline" className="flex h-11 w-full items-center gap-2">
             <ListChecks className="h-4 w-4" />
             فهرس الأسئلة
           </Button>
         </SheetTrigger>
 
-        <SheetContent side="bottom" className="max-h-[80vh] overflow-y-auto">
+        <SheetContent side="bottom" className="max-h-[82vh] overflow-y-auto pb-6">
           <SheetHeader>
             <SheetTitle>التنقل بين الأسئلة</SheetTitle>
           </SheetHeader>

@@ -133,15 +133,15 @@ export function QuizTimer({ initialTime, onTimeUp, onTimeUpdate }: QuizTimerProp
   }, [shouldAnnounce, timeRemaining]);
 
   return (
-    <Card className={`${bgClass} transition-colors duration-300`} role="timer" aria-live="polite">
-      <CardContent className="p-4">
+    <Card className={`${bgClass} w-full transition-colors duration-300 sm:w-auto`} role="timer" aria-live="polite">
+      <CardContent className="p-3 sm:p-4">
         {shouldAnnounce && srMessage ? (
           <div aria-live="assertive" className="sr-only">
             {srMessage}
           </div>
         ) : null}
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between gap-3 sm:justify-start">
           <div className="flex items-center gap-2">
             {timeRemaining <= 300 ? (
               <AlertTriangle className={`h-5 w-5 ${colorClass}`} aria-hidden />
@@ -151,7 +151,7 @@ export function QuizTimer({ initialTime, onTimeUp, onTimeUpdate }: QuizTimerProp
             <span className="text-sm font-medium text-gray-700 dark:text-gray-300">الوقت المتبقي</span>
           </div>
 
-          <div className={`text-2xl font-bold tabular-nums ${colorClass}`} aria-label={`الوقت المتبقي ${formatTime(timeRemaining)}`}>
+          <div className={`text-xl font-bold tabular-nums sm:text-2xl ${colorClass}`} aria-label={`الوقت المتبقي ${formatTime(timeRemaining)}`}>
             {formatTime(timeRemaining)}
           </div>
         </div>

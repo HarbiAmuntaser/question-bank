@@ -1,11 +1,22 @@
 // file: src/components/public/home-main/institutions-preview/states.tsx
 
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
-
 export function PreviewLoading() {
   return (
-    <div className="flex items-center justify-center py-12 sm:py-14">
-      <LoadingSpinner />
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3 lg:gap-8" aria-hidden>
+      {Array.from({ length: 3 }).map((_, index) => (
+        <div
+          key={index}
+          // Skeleton mirrors the final card footprint to reduce CLS while client data loads.
+          className="overflow-hidden rounded-lg border-2 bg-white/90 shadow-md dark:bg-gray-800/90"
+        >
+          <div className="h-36 animate-pulse bg-muted sm:h-44" />
+          <div className="space-y-4 p-6">
+            <div className="h-6 w-3/4 animate-pulse rounded bg-muted" />
+            <div className="h-4 w-1/2 animate-pulse rounded bg-muted" />
+            <div className="h-11 w-full animate-pulse rounded-xl bg-muted sm:h-12" />
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

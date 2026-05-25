@@ -108,25 +108,25 @@ const { browseTypeHref, browseAcademiesHref, browseSchoolsHref } = buildHeroLink
 
   return (
     <section
-      className="relative min-h-[90vh] flex items-center justify-center overflow-hidden bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900"
+      className="relative flex items-center justify-center overflow-hidden bg-gradient-to-br from-gray-50 via-white to-gray-100 py-8 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 sm:py-10 lg:min-h-[86vh] lg:py-0"
       aria-label={lang === "ar" ? "القسم التعريفي الرئيسي" : "Hero section"}
     >
 <HeroBackground animate={allowHeavyMotion} />
 
       <div
-        className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12"
+        className="relative mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-12"
         onMouseEnter={() => setPaused(true)}
         onMouseLeave={() => setPaused(false)}
         onFocus={() => setPaused(true)}
         onBlur={() => setPaused(false)}
       >
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+        <div className="grid grid-cols-1 items-center gap-8 lg:grid-cols-2 lg:gap-12">
           {/* جانب النص */}
           <motion.div
             initial={reduceMotion ? false : { opacity: 0, x: -50 }}
             animate={reduceMotion ? {} : { opacity: 1, x: 0 }}
             transition={{ duration: 0.8 }}
-            className="text-center lg:text-right space-y-8"
+            className="space-y-6 text-center lg:space-y-8 lg:text-right"
           >
             {/* شارة أعلى */}
             {!reduceMotion && (
@@ -153,18 +153,19 @@ const { browseTypeHref, browseAcademiesHref, browseSchoolsHref } = buildHeroLink
                 animate={reduceMotion ? {} : { opacity: 1, y: 0 }}
                 exit={reduceMotion ? {} : { opacity: 0, y: -30 }}
                 transition={{ duration: 0.6 }}
-                className="space-y-4"
+                // Stable height keeps the hero from jumping when slide copy changes.
+                className="min-h-[210px] space-y-3 sm:min-h-[220px] sm:space-y-4 lg:min-h-[300px]"
                 aria-live="polite"
               >
-                <h1 className="text-4xl sm:text-5xl lg:text-7xl font-bold leading-tight">
+                <h1 className="text-3xl font-bold leading-tight sm:text-4xl lg:text-6xl xl:text-7xl">
                   <span className={`bg-gradient-to-r ${slide.gradient} bg-clip-text text-transparent`}>
                     {slide.title}
                   </span>
                 </h1>
-                <h2 className="text-xl sm:text-2xl lg:text-3xl font-semibold text-gray-700 dark:text-gray-300">
+                <h2 className="text-lg font-semibold text-gray-700 dark:text-gray-300 sm:text-2xl lg:text-3xl">
                   {slide.subtitle}
                 </h2>
-                <p className="text-lg sm:text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto lg:mx-0 leading-relaxed">
+                <p className="mx-auto max-w-2xl text-base leading-relaxed text-gray-600 dark:text-gray-400 sm:text-lg lg:mx-0 lg:text-xl">
                   {slide.description}
                 </p>
               </motion.div>

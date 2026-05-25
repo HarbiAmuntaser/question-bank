@@ -1,13 +1,24 @@
 // file: src/components/public/university-grid/states.tsx
 
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Search } from "lucide-react";
 
 export function GridLoading() {
   return (
-    <section className="py-14">
-      <div className="flex items-center justify-center py-16" role="status" aria-busy="true">
-        <LoadingSpinner />
+    <section className="py-14" role="status" aria-busy="true">
+      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-4 px-4 sm:grid-cols-2 sm:gap-6 sm:px-6 lg:grid-cols-3 lg:gap-8 lg:px-8">
+        {Array.from({ length: 6 }).map((_, index) => (
+          <div
+            key={index}
+            // Keep loading cards the same size as real cards to avoid layout shift.
+            className="overflow-hidden rounded-lg border-2 bg-white/90 shadow-lg dark:bg-gray-800/90"
+          >
+            <div className="h-44 animate-pulse bg-muted sm:h-48" />
+            <div className="space-y-5 p-6">
+              <div className="h-6 w-4/5 animate-pulse rounded bg-muted" />
+              <div className="h-11 w-full animate-pulse rounded-xl bg-muted sm:h-12" />
+            </div>
+          </div>
+        ))}
       </div>
     </section>
   );

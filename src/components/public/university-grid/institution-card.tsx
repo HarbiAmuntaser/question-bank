@@ -20,13 +20,12 @@ type Props = {
 export function InstitutionGridCard({
   name,
   href,
-  logoUrl,
-  code,
   badgeText,
   badgeAria,
   ctaText,
 }: Props) {
-  const imgSrc = logoUrl || `/images/universities/${(code ?? "default").toLowerCase()}.jpg`;
+  // Phase 1: one local placeholder avoids external logo misses and image 404s.
+  const imgSrc = "/images/institutions/default.svg";
 
   return (
     <Card className="h-full border-2 hover:border-primary/50 transition-all duration-300 shadow-lg hover:shadow-2xl bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm overflow-hidden">
