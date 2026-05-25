@@ -2,7 +2,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { motion, useReducedMotion } from "framer-motion";
 
 import type { UniversityWithStats } from "@/types/student";
 import { studentGet } from "@/lib/student-client";
@@ -25,7 +24,7 @@ import {
  * ✅ نوع محلي يطابق ما ترسله الـ API فعليًا (بدون any)
  * إذا كانت هذه الحقول موجودة في الداتا، الأفضل لاحقًا تضيفها داخل UniversityWithStats نفسه.
  */
-type UniversityPreviewItem = UniversityWithStats & {
+export type UniversityPreviewItem = UniversityWithStats & {
   code?: string | null;
   logoUrl?: string | null;
   city?: string | null;
@@ -42,17 +41,17 @@ function getErrorMessage(err: unknown) {
 export function InstitutionsPreviewSection({
   cc,
   type,
+  initialItems,
 }: {
   cc: string;
   type: InstType;
+  initialItems?: UniversityPreviewItem[];
 }) {
-  const reduceMotion = useReducedMotion();
-
   const ccNorm = useMemo(() => normalizeCountryCode(cc), [cc]);
   const typeNorm = useMemo(() => normalizeType(type), [type]);
 
-  const [items, setItems] = useState<UniversityPreviewItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [items, setItems] = useState<UniversityPreviewItem[]>(initialItems ?? []);
+  const [loading, setLoading] = useState(initialItems === undefined);
   const [error, setError] = useState<string | null>(null);
 
   const listHref = useMemo(
@@ -62,6 +61,14 @@ export function InstitutionsPreviewSection({
   const base = useMemo(() => `/${ccNorm}/${typeNorm}`, [ccNorm, typeNorm]);
 
   useEffect(() => {
+    // Server-provided data makes homepage previews render useful HTML immediately.
+    if (initialItems !== undefined) {
+      setItems(initialItems);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
     const ac = new AbortController();
     let active = true;
 
@@ -103,7 +110,7 @@ export function InstitutionsPreviewSection({
       active = false;
       ac.abort();
     };
-  }, [ccNorm, typeNorm]);
+  }, [ccNorm, typeNorm, initialItems]);
 
   const title = getTypeLabel(typeNorm);
 
@@ -126,9 +133,7 @@ export function InstitutionsPreviewSection({
             className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6 xl:grid-cols-3 xl:gap-8"
             aria-live="polite"
           >
-            {items.map((u, index) => {
-              const canAnimate = !reduceMotion;
-
+            {items.map((u) => {
               const href = buildInstitutionHref(base, {
                 id: u.id,
                 code: u.code ?? null,
@@ -137,13 +142,9 @@ export function InstitutionsPreviewSection({
               });
 
               return (
-                <motion.div
+                <div
                   key={u.id}
                   // ✅ بدون Wrapper وبدون any
-                  initial={canAnimate ? { opacity: 0, y: 10 } : false}
-                  animate={canAnimate ? { opacity: 1, y: 0 } : undefined}
-                  transition={canAnimate ? { delay: 0.04 * index } : undefined}
-                  whileHover={canAnimate ? { y: -4 } : undefined}
                   className="group"
                 >
                   <InstitutionPreviewCard
@@ -154,7 +155,7 @@ export function InstitutionsPreviewSection({
                     region={u.region ?? null}
                     href={href}
                   />
-                </motion.div>
+                </div>
               );
             })}
           </div>

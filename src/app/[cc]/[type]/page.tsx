@@ -2,15 +2,15 @@
 
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Suspense } from "react";
 
 import { PublicHeader } from "@/components/public/public-header/public-header";
 import { PublicFooter } from "@/components/public/public-footer";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 import { normalizeCountry, isSupportedType } from "@/lib/route-helpers";
 import type { CountryCode, InstitutionType } from "@/config/regions";
 import { UniversityGrid } from "@/components/public/university-grid/university-grid";
+import type { UniversityGridItem } from "@/components/public/university-grid/types";
+import { fetchJSON } from "@/lib/server/student-fetch";
 
 // ISR للصفحة نفسها (الواجهة) — محتوى الشبكة يجلب Client-side
 export const revalidate = 600;
@@ -40,6 +40,28 @@ function localeFor(cc: CountryCode) {
 }
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://bank.example.com";
+
+async function fetchInitialInstitutions(cc: CountryCode, type: InstitutionType) {
+  const params = new URLSearchParams({
+    limit: "200",
+    withMajors: "0",
+    cc,
+    type,
+    sort: "name",
+  });
+
+  try {
+    const result = await fetchJSON<UniversityGridItem[]>(
+      `/api/v1/student/universities?${params.toString()}`,
+      undefined,
+      600,
+    );
+
+    return result.ok && Array.isArray(result.data) ? result.data : [];
+  } catch {
+    return [];
+  }
+}
 
 export async function generateMetadata({ params }: { params: Promise<PageParams> }): Promise<Metadata> {
   const p = await params; // ✅ Next 15
@@ -96,6 +118,7 @@ export default async function TypeListPage({ params }: { params: Promise<PagePar
   }
 
   const type = typeRaw as InstitutionType;
+  const initialItems = await fetchInitialInstitutions(cc, type);
 
   // Breadcrumb JSON-LD (بدون any)
   const breadcrumbJsonLd: Record<string, unknown> = {
@@ -128,15 +151,7 @@ export default async function TypeListPage({ params }: { params: Promise<PagePar
 
       <main>
         <section className="container py-10">
-          <Suspense
-            fallback={
-              <div className="flex justify-center items-center py-24" role="status" aria-busy="true">
-                <LoadingSpinner />
-              </div>
-            }
-          >
-            <UniversityGrid cc={cc} type={type} lang="ar" showViewAll={false} showSearch />
-          </Suspense>
+          <UniversityGrid cc={cc} type={type} lang="ar" initialItems={initialItems} showViewAll={false} showSearch />
         </section>
       </main>
 

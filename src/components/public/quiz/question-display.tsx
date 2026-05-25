@@ -76,6 +76,8 @@ export function QuestionDisplay({ question, questionNumber, answer, onAnswerChan
                 className="object-contain"
                 sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                 priority={false}
+                // DB-hosted question images stay runtime-safe without disabling all image optimization.
+                unoptimized={question.imageUrl.startsWith("http")}
               />
             </div>
           </figure>

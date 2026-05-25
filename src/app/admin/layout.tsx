@@ -5,6 +5,8 @@ import { authOptions } from "@/lib/auth"
 import { AdminHeader } from "@/components/admin/admin-header"
 import { AdminSidebar } from "@/components/admin/admin-sidebar"
 import { Toaster } from "@/components/ui/toaster"
+import { SessionProvider } from "@/providers/session-provider"
+
 export default async function AdminLayout({
   children,
 }: {
@@ -17,17 +19,19 @@ export default async function AdminLayout({
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900" dir="rtl">
-      <AdminSidebar />
-      <div className="lg:pr-64">
-        <AdminHeader />
-        <main className="py-6">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">{children}                  <Toaster />
-</div>
-
-          
-        </main>
+    <SessionProvider session={session}>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900" dir="rtl">
+        <AdminSidebar />
+        <div className="lg:pr-64">
+          <AdminHeader />
+          <main className="py-6">
+            <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+              {children}
+              <Toaster />
+            </div>
+          </main>
+        </div>
       </div>
-    </div>
+    </SessionProvider>
   )
 }

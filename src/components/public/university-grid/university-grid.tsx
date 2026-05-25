@@ -14,7 +14,6 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
-import { motion, useReducedMotion } from "framer-motion";
 
 import { studentGet } from "@/lib/student-client";
 import { getUniversityGridTexts } from "@/content/university-grid";
@@ -32,24 +31,24 @@ import { GridFooter } from "./section-footer";
 export function UniversityGrid({
   cc,
   type,
+  initialItems,
   showSearch = true,
   showViewAll = false,
 }: {
   cc: string;
   type: InstType;
   lang?: string;
+  initialItems?: UniversityGridItem[];
   showSearch?: boolean;
   showViewAll?: boolean;
 }) {
-  const reduceMotion = useReducedMotion();
-
   const ccNorm = useMemo(() => normalizeCountryCode(cc), [cc]);
   const typeNorm = useMemo(() => normalizeType(type), [type]);
 
   const ui = useMemo(() => getUniversityGridTexts(ccNorm, typeNorm), [ccNorm, typeNorm]);
 
-  const [items, setItems] = useState<UniversityGridItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [items, setItems] = useState<UniversityGridItem[]>(initialItems ?? []);
+  const [loading, setLoading] = useState(initialItems === undefined);
   const [error, setError] = useState<string | null>(null);
 
   const [query, setQuery] = useState("");
@@ -59,6 +58,16 @@ export function UniversityGrid({
   const listHref = useMemo(() => buildListHref(ccNorm, typeNorm), [ccNorm, typeNorm]);
 
   useEffect(() => {
+    const q = debouncedQuery.trim();
+
+    // Use server-rendered initial data for the default list and fetch only for searches.
+    if (initialItems !== undefined && !q) {
+      setItems(initialItems);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
     const ac = new AbortController();
     let active = true;
 
@@ -75,7 +84,6 @@ export function UniversityGrid({
           sort: "name",
         });
 
-        const q = debouncedQuery.trim();
         if (q) params.set("q", q);
 
         const data = await studentGet<UniversityGridItem[]>(
@@ -106,9 +114,7 @@ export function UniversityGrid({
       active = false;
       ac.abort();
     };
-  }, [ccNorm, typeNorm, debouncedQuery]);
-
-  const canAnimate = !reduceMotion;
+  }, [ccNorm, typeNorm, debouncedQuery, initialItems]);
 
   if (loading) return <GridLoading />;
   if (error) return <GridError message={error} />;
@@ -137,18 +143,12 @@ export function UniversityGrid({
             className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6 xl:grid-cols-3 xl:gap-8"
             aria-live="polite"
           >
-            {items.map((u, index) => {
+            {items.map((u) => {
               const href = buildUniversityHref(base, u);
 
-              // حركة بسيطة جداً
-              const Wrapper = canAnimate ? motion.div : "div";
-
               return (
-                <Wrapper
+                <div
                   key={u.id}
-                  initial={canAnimate ? { opacity: 0, y: 10 } : undefined}
-                  animate={canAnimate ? { opacity: 1, y: 0 } : undefined}
-                  transition={canAnimate ? { delay: Math.min(0.04 * index, 0.25) } : undefined}
                   className="group"
                 >
                   <InstitutionGridCard
@@ -160,7 +160,7 @@ export function UniversityGrid({
                     badgeAria={ui.badgeAria}
                     ctaText={ui.ctaExplore}
                   />
-                </Wrapper>
+                </div>
               );
             })}
           </div>
