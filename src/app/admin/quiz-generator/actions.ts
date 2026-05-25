@@ -2,6 +2,7 @@
 "use server";
 
 import { cookies } from "next/headers";
+import { getRequestOrigin } from "@/lib/server/request-origin";
 
 export interface QuizGenerationSettings {
   title: string;
@@ -13,15 +14,8 @@ export interface QuizGenerationSettings {
   selectedChapters: string[];
 }
 
-function apiBase() {
-  if (process.env.NEXT_PUBLIC_BASE_URL) return process.env.NEXT_PUBLIC_BASE_URL!;
-  if (process.env.NEXT_PUBLIC_APP_URL) return process.env.NEXT_PUBLIC_APP_URL!;
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
-  return "http://localhost:3000";
-}
-
 async function apiFetch(path: string, init?: RequestInit) {
-  const base = apiBase();
+  const base = await getRequestOrigin();
   const jar = await cookies();           // ✅ Next 15: await cookies()
   const cookieHeader = jar.toString();
 

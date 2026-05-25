@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { headers as nextHeaders } from "next/headers";
+import { getRequestOrigin } from "@/lib/server/request-origin";
 
 // -------- Helpers --------
 function buildQuery(params: Record<string, string | number | undefined>) {
@@ -13,13 +13,8 @@ function buildQuery(params: Record<string, string | number | undefined>) {
 }
 
 async function getApiBase(): Promise<string> {
-  const envBase = process.env.NEXT_PUBLIC_BASE_URL?.replace(/\/$/, "");
-  if (envBase && envBase.length > 0) return envBase;
+  return getRequestOrigin();
 
-  const h = await nextHeaders(); // ✅ يجب انتظار headers()
-  const proto = h.get("x-forwarded-proto") ?? "http";
-  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
-  return `${proto}://${host}`;
 }
 
 async function readJsonSafe(res: Response) {

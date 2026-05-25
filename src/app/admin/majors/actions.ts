@@ -1,8 +1,8 @@
 // src/app/admin/majors/actions.ts
 "use server";
 
-import { headers as nextHeaders, } from "next/headers";
 import { revalidatePath, revalidateTag } from "next/cache";
+import { getRequestOrigin } from "@/lib/server/request-origin";
 
 function normalize(v: FormDataEntryValue | null): string | null {
   const s = (v ?? "").toString().trim();
@@ -10,12 +10,7 @@ function normalize(v: FormDataEntryValue | null): string | null {
 }
 
 async function getBase(): Promise<string> {
-  const env = process.env.NEXT_PUBLIC_BASE_URL?.replace(/\/$/, "");
-  if (env) return env;
-  const h = await nextHeaders();
-  const proto = h.get("x-forwarded-proto") ?? "http";
-  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
-  return `${proto}://${host}`;
+  return getRequestOrigin();
 }
 
 export async function createMajorAction(formData: FormData) {

@@ -3,20 +3,14 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { QuizzesListing } from "@/components/public/quizzes-listing";
+import { getRequestOrigin } from "@/lib/server/request-origin";
 
 export const revalidate = 300; // 5 دقائق ISR
 
 // ——— Helpers
-function baseUrl() {
-  return (
-    process.env.NEXT_PUBLIC_BASE_URL ||
-    process.env.NEXT_PUBLIC_APP_URL ||
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000")
-  );
-}
-
 async function fetchJSON<T>(url: string, init?: RequestInit): Promise<T> {
-  const abs = url.startsWith("http") ? url : `${baseUrl()}${url}`;
+  const base = await getRequestOrigin();
+  const abs = url.startsWith("http") ? url : `${base}${url}`;
   const res = await fetch(abs, { ...init, next: { revalidate: 300, ...(init as any)?.next } });
   if (!res.ok) throw new Error(`Failed to fetch ${abs} (${res.status})`);
   const body = await res.json();

@@ -1,7 +1,7 @@
 // src/components/admin/universities/universities-table.tsx
 import { UniversitiesFilters } from "@/components/admin/universities/universities-filters";
 
-import { headers as nextHeaders } from "next/headers";
+import { getRequestOrigin } from "@/lib/server/request-origin";
 import {
   Table,
   TableBody,
@@ -57,12 +57,7 @@ function buildQuery(params: Record<string, string | number | undefined>) {
 }
 
 async function getApiBase(): Promise<string> {
-  const envBase = process.env.NEXT_PUBLIC_BASE_URL?.replace(/\/$/, "");
-  if (envBase && envBase.length > 0) return envBase;
-  const h = await nextHeaders(); // ✅ يجب الانتظار
-  const proto = h.get("x-forwarded-proto") ?? "http";
-  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
-  return `${proto}://${host}`;
+  return getRequestOrigin();
 }
 
 

@@ -1,6 +1,6 @@
 // src/components/admin/majors/majors-table.tsx
 
-import { headers as nextHeaders } from "next/headers";
+import { getRequestOrigin } from "@/lib/server/request-origin";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -50,12 +50,7 @@ function buildQuery(params: Record<string, string | number | undefined>): string
 }
 
 async function getApiBase(): Promise<string> {
-  const envBase = process.env.NEXT_PUBLIC_BASE_URL?.replace(/\/$/, "");
-  if (envBase && envBase.length > 0) return envBase;
-  const h = await nextHeaders();
-  const proto = h.get("x-forwarded-proto") ?? "http";
-  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
-  return `${proto}://${host}`;
+  return getRequestOrigin();
 }
 
 async function fetchMajors(args: {

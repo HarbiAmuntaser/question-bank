@@ -3,19 +3,15 @@
 
 
 import { revalidatePath, revalidateTag } from "next/cache";
+import { getRequestOrigin } from "@/lib/server/request-origin";
 
 // اجلب base URL آمن يعمل على السيرفر
-import { cookies, headers as nextHeaders } from "next/headers";
+import { cookies } from "next/headers";
 
 // ✅ اجلب base URL آمن يعمل على السيرفر (Next 15: headers() async)
 async function getApiBase() {
-  const envBase = process.env.NEXT_PUBLIC_BASE_URL?.replace(/\/$/, "");
-  if (envBase) return envBase;
+  return getRequestOrigin();
 
-  const h = await nextHeaders(); // ✅ لازم await
-  const proto = h.get("x-forwarded-proto") ?? "http";
-  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
-  return `${proto}://${host}`;
 }
 
 async function apiFetch(path: string, init: RequestInit = {}) {

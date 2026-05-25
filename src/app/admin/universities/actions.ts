@@ -5,7 +5,7 @@
 // تُستخدم من مكوّنات الواجهة (الحوارات والجداول) لتنفيذ CRUD ثم إعادة تفعيل الكاش.
 
 import { revalidatePath, revalidateTag } from "next/cache";
-import { headers as nextHeaders } from "next/headers";
+import { getRequestOrigin } from "@/lib/server/request-origin";
 
 // ------- أنواع موحّدة للاستجابات -------
 export type ActionResult = { success: boolean; message: string };
@@ -57,12 +57,7 @@ export interface UpdateUniversityInput {
 }
 
 async function getApiBase(): Promise<string> {
-  const envBase = process.env.NEXT_PUBLIC_BASE_URL?.replace(/\/$/, "");
-  if (envBase && envBase.length > 0) return envBase;
-  const h = await nextHeaders();
-  const proto = h.get("x-forwarded-proto") ?? "http";
-  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
-  return `${proto}://${host}`;
+  return getRequestOrigin();
 }
 
 function buildHeaders(): Headers {

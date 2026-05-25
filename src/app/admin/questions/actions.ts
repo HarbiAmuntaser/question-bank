@@ -3,19 +3,10 @@
 
 import { cookies } from "next/headers";
 import { revalidatePath, revalidateTag } from "next/cache";
-
-function apiBase() {
-  const envBase =
-    process.env.NEXT_PUBLIC_BASE_URL ||
-    process.env.NEXT_PUBLIC_APP_URL ||
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "");
-
-  if (envBase) return envBase.replace(/\/$/, "");
-  return "http://localhost:3000";
-}
+import { getRequestOrigin } from "@/lib/server/request-origin";
 
 async function apiFetch(path: string, init?: RequestInit) {
-  const base = apiBase();
+  const base = await getRequestOrigin();
   const jar = await cookies();
   const cookieHeader = jar.toString();
 

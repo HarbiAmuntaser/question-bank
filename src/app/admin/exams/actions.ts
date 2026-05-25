@@ -2,6 +2,7 @@
 "use server";
 
 import { cookies } from "next/headers";
+import { getRequestOrigin } from "@/lib/server/request-origin";
 
 export type ExamTerm = "first" | "second" | "summer";
 export type ExamSession = "regular" | "makeup" | "special";
@@ -28,16 +29,8 @@ export type ExamQuestionPayload = {
   points?: number | null;
 };
 
-function apiBase() {
-  return (
-    process.env.NEXT_PUBLIC_BASE_URL ||
-    process.env.NEXT_PUBLIC_APP_URL ||
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000")
-  );
-}
-
 async function apiFetch(path: string, init?: RequestInit) {
-  const base = apiBase();
+  const base = await getRequestOrigin();
   const jar = await cookies();
   const cookieHeader = jar.toString();
 

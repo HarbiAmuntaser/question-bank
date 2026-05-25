@@ -1,5 +1,6 @@
 import { Suspense } from "react"
 import { headers as nextHeaders } from "next/headers"
+import { getRequestOrigin } from "@/lib/server/request-origin"
 import { AnalyticsDashboard } from "@/components/admin/analytics-dashboard"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import type { AnalyticsData } from "@/types/analytics"
@@ -10,13 +11,7 @@ interface ApiResponse<T> {
 }
 
 async function getApiBase(): Promise<string> {
-  const envBase = process.env.NEXT_PUBLIC_BASE_URL?.replace(/\/$/, "")
-  if (envBase) return envBase
-
-  const h = await nextHeaders()
-  const proto = h.get("x-forwarded-proto") ?? "http"
-  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000"
-  return `${proto}://${host}`
+  return getRequestOrigin()
 }
 
 async function buildHeaders(): Promise<Headers> {
