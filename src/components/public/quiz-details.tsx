@@ -176,11 +176,11 @@ export async function QuizDetails({
   const shareText = `جرّب اختبار: ${quiz.title}`;
 
   return (
-    <div className="space-y-6">
-      <Card className="border-2 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm shadow-lg overflow-hidden">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl sm:text-3xl font-bold">{quiz.title}</CardTitle>
-          <CardDescription className="text-muted-foreground" dir="rtl">
+    <div className="space-y-6 lg:space-y-8">
+      <Card className="overflow-hidden border-2 bg-white/90 shadow-lg backdrop-blur-sm dark:bg-gray-800/90">
+        <CardHeader className="px-5 text-center sm:px-6">
+          <CardTitle className="text-2xl font-bold leading-tight sm:text-3xl">{quiz.title}</CardTitle>
+          <CardDescription className="text-sm leading-relaxed text-muted-foreground sm:text-base" dir="rtl">
             {quiz.description || "صفحة تفاصيل الاختبار قبل البدء."}
           </CardDescription>
 
@@ -194,13 +194,13 @@ export async function QuizDetails({
             {subject.code ? <Badge variant="secondary">{subject.code}</Badge> : null}
           </div>
 
-          <Separator className="my-4 max-w-md mx-auto" />
+          <Separator className="mx-auto my-4 max-w-md" />
 
-          <div className="flex flex-wrap justify-center gap-3 text-sm text-muted-foreground">
+          <div className="flex flex-wrap justify-center gap-3 text-sm leading-relaxed text-muted-foreground">
             <Link
               href={uniLink}
               prefetch={false}
-              className="hover:text-primary transition-colors flex items-center gap-2"
+              className="flex min-h-9 items-center gap-2 rounded-md px-1 transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
             >
               <GraduationCap className="h-4 w-4" aria-hidden />
               {uni.name}
@@ -209,7 +209,7 @@ export async function QuizDetails({
             <Link
               href={majorLink}
               prefetch={false}
-              className="hover:text-primary transition-colors flex items-center gap-2"
+              className="flex min-h-9 items-center gap-2 rounded-md px-1 transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
             >
               <ArrowRight className="h-4 w-4" aria-hidden />
               {major.name}
@@ -218,7 +218,7 @@ export async function QuizDetails({
             <Link
               href={subjectLink}
               prefetch={false}
-              className="hover:text-primary transition-colors flex items-center gap-2"
+              className="flex min-h-9 items-center gap-2 rounded-md px-1 transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
             >
               <Trophy className="h-4 w-4" aria-hidden />
               {subject.name}
@@ -228,7 +228,7 @@ export async function QuizDetails({
 
         <CardContent className="space-y-6 pb-6">
           {/* ✅ مشاركة */}
-          <div className="flex items-center justify-center gap-2 text-muted-foreground">
+          <div className="flex items-center justify-center gap-2 text-center leading-relaxed text-muted-foreground">
             <Share2 className="h-4 w-4" aria-hidden />
             <span className="text-sm">شارك رابط الاختبار مع زملائك</span>
           </div>
@@ -236,7 +236,7 @@ export async function QuizDetails({
 
           {/* ✅ ابدأ الاختبار */}
           <div className="flex justify-center">
-            <Button asChild className="w-full sm:w-auto h-11 rounded-xl">
+            <Button asChild className="h-11 w-full rounded-xl sm:w-auto">
               <Link href={`/quiz/${encodeURIComponent(quiz.id)}`} className="flex items-center gap-2">
                 <FileText className="h-4 w-4" aria-hidden />
                 ابدأ الاختبار
@@ -244,13 +244,13 @@ export async function QuizDetails({
             </Button>
           </div>
 
-          <div className="mt-2 flex flex-col sm:flex-row gap-3 justify-center">
-            <Button asChild variant="outline" className="w-full sm:w-auto h-11 rounded-xl">
+          <div className="mt-2 flex flex-col justify-center gap-3 sm:flex-row">
+            <Button asChild variant="outline" className="h-11 w-full rounded-xl sm:w-auto">
               <Link href={subjectLink} prefetch={false}>
                 الرجوع للمادة
               </Link>
             </Button>
-            <Button asChild variant="outline" className="w-full sm:w-auto h-11 rounded-xl">
+            <Button asChild variant="outline" className="h-11 w-full rounded-xl sm:w-auto">
               <Link href={majorLink} prefetch={false}>
                 الرجوع للتخصص
               </Link>

@@ -158,22 +158,22 @@ export async function MajorDetails({
   const subjects = Array.isArray(major.subjects) ? major.subjects : [];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 lg:space-y-8">
       {/* Header Card */}
-      <Card className="border-2 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm shadow-lg overflow-hidden">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl sm:text-3xl font-bold">{major.name}</CardTitle>
+      <Card className="overflow-hidden border-2 bg-white/90 shadow-lg backdrop-blur-sm dark:bg-gray-800/90">
+        <CardHeader className="px-5 text-center sm:px-6">
+          <CardTitle className="text-2xl font-bold leading-tight sm:text-3xl">{major.name}</CardTitle>
 
-          <CardDescription className="text-muted-foreground" dir="rtl">
+          <CardDescription className="text-sm leading-relaxed text-muted-foreground sm:text-base" dir="rtl">
             {major.degreeType ? major.degreeType : "تخصص"}
             {major.durationYears ? ` • ${major.durationYears} سنوات` : ""}
           </CardDescription>
 
-          <div className="flex flex-wrap items-center justify-center gap-3 text-sm text-muted-foreground mt-3">
+          <div className="mt-3 flex flex-wrap items-center justify-center gap-3 text-sm leading-relaxed text-muted-foreground">
             <Link
               href={uniLink}
               prefetch={false}
-              className="flex items-center gap-2 hover:text-primary transition-colors"
+              className="flex min-h-9 items-center gap-2 rounded-md px-1 transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
             >
               <UniversityIcon className="h-4 w-4" aria-hidden />
               <span>{major.university.name}</span>
@@ -182,9 +182,9 @@ export async function MajorDetails({
             {major.code ? <Badge variant="secondary">{major.code}</Badge> : null}
           </div>
 
-          <Separator className="my-4 max-w-md mx-auto" />
+          <Separator className="mx-auto my-4 max-w-md" />
 
-          <div className="flex justify-center gap-8 text-base sm:text-lg font-semibold">
+          <div className="flex justify-center gap-6 text-base font-semibold sm:gap-8 sm:text-lg">
             <div className="flex flex-col items-center">
               <span className="text-2xl sm:text-3xl font-bold arabic-numbers">
                 {major._count?.subjects ?? subjects.length}
@@ -213,7 +213,7 @@ export async function MajorDetails({
       </div>
 
       {subjects.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6 xl:grid-cols-3 xl:gap-8">
           {subjects.map((s) => {
             const chaptersCount = s._count?.chapters;
             const href = subjectHrefHier(ccNorm, typeNorm, canonicalUni, canonicalMajor, s);
@@ -221,10 +221,10 @@ export async function MajorDetails({
             return (
               <Card
                 key={s.id}
-                className="group border-2 hover:border-primary/50 transition-all duration-300 shadow-lg hover:shadow-2xl bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm overflow-hidden"
+                className="group flex h-full flex-col overflow-hidden border-2 bg-white/90 shadow-lg backdrop-blur-sm transition-all duration-300 hover:border-primary/40 hover:shadow-xl dark:bg-gray-800/90"
               >
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-base sm:text-lg line-clamp-2 group-hover:text-primary transition-colors">
+                  <CardTitle className="line-clamp-2 text-base font-semibold leading-snug transition-colors group-hover:text-primary sm:text-lg">
                     {s.name}
                   </CardTitle>
 
@@ -239,8 +239,8 @@ export async function MajorDetails({
                   </div>
                 </CardHeader>
 
-                <CardContent className="pt-0 space-y-4 pb-6">
-                  <p className="text-sm text-muted-foreground line-clamp-2">
+                <CardContent className="flex flex-1 flex-col justify-between gap-4 pt-0 pb-6">
+                  <p className="line-clamp-2 text-sm leading-relaxed text-muted-foreground">
                     {s.description || "لا يوجد وصف مختصر لهذه المادة حالياً."}
                   </p>
 
@@ -249,7 +249,7 @@ export async function MajorDetails({
                     <span>{s.year ? `السنة: ${s.year}` : "—"}</span>
                   </div>
 
-                  <Button asChild className="w-full h-11 rounded-xl">
+                  <Button asChild className="h-11 w-full rounded-xl text-sm sm:text-base">
                     <Link href={href} prefetch={false} className="flex items-center justify-center gap-2">
                       <Trophy className="h-4 w-4" aria-hidden />
                       استكشاف الاختبارات
@@ -267,7 +267,7 @@ export async function MajorDetails({
       )}
 
       <div className="pt-2">
-        <Button asChild variant="outline" className="w-full sm:w-auto h-11 rounded-xl">
+        <Button asChild variant="outline" className="h-11 w-full rounded-xl sm:w-auto">
           <Link href={uniLink} prefetch={false} className="flex items-center gap-2">
             <GraduationCap className="h-4 w-4" aria-hidden />
             الرجوع إلى الجامعة

@@ -111,7 +111,7 @@ export function UniversityGrid({
   if (loading) {
     return (
       <section className="py-16 px-4 sm:px-6 lg:px-8">
-        <div className="mx-auto grid max-w-7xl grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3 lg:gap-8">
+        <div className="mx-auto grid max-w-7xl grid-cols-1 gap-4 md:grid-cols-2 md:gap-6 xl:grid-cols-3 xl:gap-8">
           {Array.from({ length: 6 }).map((_, index) => (
             <div key={index} className="overflow-hidden rounded-lg border-2 bg-white/90 shadow-lg dark:bg-gray-800/90">
               <div className="h-44 animate-pulse bg-muted sm:h-48" />
@@ -184,17 +184,17 @@ export function UniversityGrid({
         )}
 
         {/* Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" aria-live="polite">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6 xl:grid-cols-3 xl:gap-8" aria-live="polite">
           {filtered.map((u, index) => (
             <motion.div
               key={u.id}
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.05 * index }}
-              whileHover={{ y: -8, scale: 1.02 }}
+              whileHover={{ y: -4 }}
               className="group"
             >
-              <Card className="h-full border-2 hover:border-primary/50 transition-all duration-300 shadow-lg hover:shadow-2xl bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm overflow-hidden">
+              <Card className="flex h-full flex-col overflow-hidden border-2 bg-white/90 shadow-lg backdrop-blur-sm transition-all duration-300 hover:border-primary/40 hover:shadow-xl dark:bg-gray-800/90">
                 <div className="relative h-48 overflow-hidden">
                   <div className="absolute inset-0 bg-gradient-to-br from-green-600/20 via-blue-600/20 to-purple-600/20" aria-hidden />
                   <Image

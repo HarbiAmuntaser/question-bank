@@ -30,7 +30,7 @@ export function InstitutionPreviewCard({
   const location = [city, region].filter(Boolean).join(" • ");
 
   return (
-    <Card className="h-full border-2 transition-all duration-300 shadow-md hover:shadow-xl bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm overflow-hidden hover:border-primary/40">
+    <Card className="flex h-full flex-col overflow-hidden border-2 bg-white/90 shadow-md backdrop-blur-sm transition-all duration-300 hover:border-primary/40 hover:shadow-xl dark:bg-gray-800/90">
       {/* صورة */}
       <div className="relative h-36 sm:h-44 overflow-hidden">
         <div
@@ -55,12 +55,12 @@ export function InstitutionPreviewCard({
       </div>
 
       <CardHeader className="pb-3">
-        <CardTitle className="text-lg sm:text-xl font-bold leading-snug hover:text-primary transition-colors">
+        <CardTitle className="line-clamp-2 text-lg font-bold leading-snug transition-colors hover:text-primary sm:text-xl">
           {name}
         </CardTitle>
       </CardHeader>
 
-      <CardContent className="space-y-4">
+      <CardContent className="flex flex-1 flex-col justify-between gap-4">
         {/* ✅ بدل الإحصاءات: سطر خفيف للموقع/المنطقة إن وجد */}
         {location ? (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -74,7 +74,7 @@ export function InstitutionPreviewCard({
         {/* زر الاستكشاف */}
         <Button
           asChild
-          className="w-full h-11 sm:h-12 rounded-xl shadow-sm bg-gradient-to-r from-green-600 to-emerald-500 hover:from-green-700 hover:to-emerald-600"
+          className="h-11 w-full rounded-xl bg-gradient-to-r from-green-600 to-emerald-500 text-sm shadow-sm hover:from-green-700 hover:to-emerald-600 sm:h-12 sm:text-base"
         >
           <Link href={href} prefetch={false} className="flex items-center justify-center gap-2">
             <GraduationCap className="h-5 w-5" aria-hidden />

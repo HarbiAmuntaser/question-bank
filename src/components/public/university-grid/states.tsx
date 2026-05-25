@@ -5,7 +5,7 @@ import { Search } from "lucide-react";
 export function GridLoading() {
   return (
     <section className="py-14" role="status" aria-busy="true">
-      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-4 px-4 sm:grid-cols-2 sm:gap-6 sm:px-6 lg:grid-cols-3 lg:gap-8 lg:px-8">
+      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-4 px-4 sm:px-6 md:grid-cols-2 md:gap-6 xl:grid-cols-3 xl:gap-8 lg:px-8">
         {Array.from({ length: 6 }).map((_, index) => (
           <div
             key={index}

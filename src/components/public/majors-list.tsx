@@ -49,22 +49,22 @@ export function MajorsList({ majors, cc, type, universitySlug }: MajorsListProps
 
   // ✅ نفس نمط بطاقات الصفحة الرئيسية: خفيف ومرتب للجوال/آيباد
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6 xl:grid-cols-3 xl:gap-8">
       {majors.map((major) => (
         <Card
           key={major.id}
-          className="group border-2 hover:border-primary/50 transition-all duration-300 shadow-lg hover:shadow-2xl bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm overflow-hidden"
+          className="group flex h-full flex-col overflow-hidden border-2 bg-white/90 shadow-lg backdrop-blur-sm transition-all duration-300 hover:border-primary/40 hover:shadow-xl dark:bg-gray-800/90"
         >
           <CardHeader className="pb-3">
             <div className="flex items-start gap-4">
-              <Avatar className="h-11 w-11">
+              <Avatar className="h-11 w-11 shrink-0">
                 <AvatarFallback className="bg-primary/10 text-primary font-bold">
                   {(major.name?.trim()?.charAt(0) || "T").toUpperCase()}
                 </AvatarFallback>
               </Avatar>
 
               <div className="flex-1 min-w-0">
-                <CardTitle className="text-base sm:text-lg line-clamp-2 group-hover:text-primary transition-colors">
+                <CardTitle className="line-clamp-2 text-base font-semibold leading-snug transition-colors group-hover:text-primary sm:text-lg">
                   {major.name}
                 </CardTitle>
 
@@ -79,7 +79,7 @@ export function MajorsList({ majors, cc, type, universitySlug }: MajorsListProps
             </div>
           </CardHeader>
 
-          <CardContent className="pt-0 pb-6">
+          <CardContent className="flex flex-1 flex-col justify-between gap-4 pt-0 pb-6">
             <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
               {major.durationYears ? (
                 <div className="flex items-center">
@@ -91,8 +91,8 @@ export function MajorsList({ majors, cc, type, universitySlug }: MajorsListProps
               )}
             </div>
 
-            <Button asChild className="w-full h-11 rounded-xl">
-              <Link href={hrefFor(major)} prefetch={false}>
+            <Button asChild className="h-11 w-full rounded-xl text-sm sm:text-base">
+              <Link href={hrefFor(major)} prefetch={false} className="focus-visible:outline-none">
                 استكشف المقررات
               </Link>
             </Button>

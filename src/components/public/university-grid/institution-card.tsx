@@ -28,7 +28,7 @@ export function InstitutionGridCard({
   const imgSrc = "/images/institutions/default.svg";
 
   return (
-    <Card className="h-full border-2 hover:border-primary/50 transition-all duration-300 shadow-lg hover:shadow-2xl bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm overflow-hidden">
+    <Card className="flex h-full flex-col overflow-hidden border-2 bg-white/90 shadow-lg backdrop-blur-sm transition-all duration-300 hover:border-primary/40 hover:shadow-xl dark:bg-gray-800/90">
       {/* صورة */}
       <div className="relative h-44 sm:h-48 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-green-600/20 via-blue-600/20 to-purple-600/20" aria-hidden />
@@ -49,15 +49,15 @@ export function InstitutionGridCard({
       </div>
 
       <CardHeader className="pb-3">
-        <CardTitle className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white group-hover:text-primary transition-colors">
+        <CardTitle className="line-clamp-2 text-lg font-bold leading-snug text-gray-900 transition-colors group-hover:text-primary dark:text-white sm:text-xl">
           {name}
         </CardTitle>
       </CardHeader>
 
-      <CardContent className="pb-6">
+      <CardContent className="mt-auto pb-6">
         <Button
           asChild
-          className="w-full h-11 sm:h-12 rounded-xl shadow-lg bg-gradient-to-r from-green-600 to-emerald-500 hover:from-green-700 hover:to-emerald-600"
+          className="h-11 w-full rounded-xl bg-gradient-to-r from-green-600 to-emerald-500 text-sm shadow-lg hover:from-green-700 hover:to-emerald-600 sm:h-12 sm:text-base"
         >
           <Link href={href} prefetch={false} className="flex items-center justify-center gap-2">
             <GraduationCap className="h-5 w-5" aria-hidden />

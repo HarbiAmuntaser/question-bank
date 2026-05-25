@@ -163,15 +163,15 @@ useEffect(() => {
             <p className="text-xl text-muted-foreground">لا توجد اختبارات مطابقة لمعايير البحث.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3 lg:gap-8">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6 xl:grid-cols-3 xl:gap-8">
             {quizzes.map((quiz) => (
               <Card key={quiz.id} className="flex flex-col border-2 bg-white/90 shadow-md transition-all duration-300 hover:border-primary/40 hover:shadow-xl dark:bg-gray-800/90">
-                <CardHeader>
+                <CardHeader className="pb-3">
                   <CardTitle className="line-clamp-2 text-lg font-semibold sm:text-xl">{quiz.title}</CardTitle>
                   {quiz.title && <CardDescription className="text-gray-500 dark:text-gray-400 text-right" dir="rtl">{quiz.title}</CardDescription>}
                 </CardHeader>
-                <CardContent className="flex-grow space-y-2">
-                  <p className="text-sm text-muted-foreground line-clamp-2">{quiz.description}</p>
+                <CardContent className="flex-grow space-y-2.5">
+                  <p className="line-clamp-2 text-sm leading-relaxed text-muted-foreground">{quiz.description}</p>
                   <div className="flex items-center text-sm text-muted-foreground"><BookOpen className="h-4 w-4 mr-1" /><span>{quiz._count?.questions ?? 0} أسئلة</span></div>
                   <div className="flex items-center text-sm text-muted-foreground"><Clock className="h-4 w-4 mr-1" /><span>{quiz.timeLimit} دقيقة</span></div>
                   <p className="text-sm text-muted-foreground">الجامعة: {quiz.university?.name || "غير محدد"}</p>
