@@ -11,14 +11,37 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { LogOut, User, Settings } from "lucide-react"
+import { LogOut, Menu, User, Settings } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet"
+import { AdminNavList } from "./admin-nav"
 
 export function AdminHeader() {
   const { data: session } = useSession()
 
   return (
     <div className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8">
+      <Sheet>
+        <SheetTrigger asChild>
+          <Button variant="ghost" size="icon" className="lg:hidden" aria-label="فتح قائمة الإدارة">
+            <Menu className="h-5 w-5" aria-hidden />
+          </Button>
+        </SheetTrigger>
+        <SheetContent side="right" className="w-80 max-w-[85vw] overflow-y-auto p-5" dir="rtl">
+          <SheetHeader className="mb-5 text-right">
+            <SheetTitle>بنك الأسئلة السعودي</SheetTitle>
+          </SheetHeader>
+          <nav aria-label="تنقل الإدارة">
+            <AdminNavList closeOnNavigate />
+          </nav>
+        </SheetContent>
+      </Sheet>
       <div className="flex flex-1 gap-x-4 self-stretch lg:gap-x-6">
         <div className="flex flex-1"></div>
         <div className="flex items-center gap-x-4 lg:gap-x-6">

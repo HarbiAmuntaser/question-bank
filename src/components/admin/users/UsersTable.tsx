@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Plus, Edit, Trash2 } from "lucide-react";
 import { listUsersAction, deleteUserAction } from "@/app/admin/users/actions";
 import { useToast } from "@/hooks/use-toast";
+import { TableSkeleton } from "@/components/ui/table-skeleton";
 import UserDialog from "./UserDialog";
 
 type Role = "admin" | "editor" | "moderator";
@@ -44,14 +45,18 @@ export default function UsersTable() {
 
   return (
     <div className="rounded-md border">
-      <div className="flex items-center justify-between p-4 border-b">
+      <div className="flex flex-col gap-3 p-4 border-b sm:flex-row sm:items-center sm:justify-between">
         <div className="font-medium">المستخدمون</div>
         <UserDialog onDone={load}>
           <Button className="gap-2"><Plus className="h-4 w-4" /> مستخدم جديد</Button>
         </UserDialog>
       </div>
 
-      <Table>
+      {loading ? (
+        <TableSkeleton columns={6} rows={5} />
+      ) : (
+        <div className="overflow-x-auto">
+      <Table className="min-w-[760px]">
         <TableHeader>
           <TableRow>
             <TableHead>الاسم</TableHead>
@@ -85,6 +90,8 @@ export default function UsersTable() {
           ))}
         </TableBody>
       </Table>
+        </div>
+      )}
     </div>
   );
 }

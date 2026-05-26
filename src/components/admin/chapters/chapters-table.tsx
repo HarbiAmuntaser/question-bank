@@ -10,6 +10,7 @@ import { ChapterActions } from "./chapter-actions";
 import { UniversityFilter } from "./UniversityFilter";
 import { MajorFilter } from "./MajorFilter";
 import { SubjectFilter } from "./SubjectFilter";
+import { AdminTableShell } from "@/components/admin/admin-table-shell";
 
 type UniOpt = { id: string; name: string; code: string | null };
 type MajorOpt = { id: string; name: string; code: string | null };
@@ -169,7 +170,7 @@ export async function ChaptersTable({
     <div className="space-y-4">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <SearchInput placeholder="ابحث عن فصل أو مقرر أو تخصص..." />
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <UniversityFilter
             options={universities}
             value={selectedUniversityId ?? "__all__"}
@@ -193,7 +194,7 @@ export async function ChaptersTable({
         </div>
       </div>
 
-      <div className="rounded-md border">
+      <AdminTableShell minWidth="min-w-[1120px]">
         <Table>
           <TableHeader>
             <TableRow>
@@ -257,7 +258,7 @@ export async function ChaptersTable({
             ))}
           </TableBody>
         </Table>
-      </div>
+      </AdminTableShell>
 
       <Pagination
         currentPage={pagination.page}

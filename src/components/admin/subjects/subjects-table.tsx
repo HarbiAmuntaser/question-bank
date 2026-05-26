@@ -9,6 +9,7 @@ import { Pagination } from "@/components/Pagination";
 import { SubjectActions } from "./subject-actions";
 import { UniversityFilter } from "../majors/UniversityFilter";
 import { MajorFilter } from "./MajorFilter";
+import { AdminTableShell } from "@/components/admin/admin-table-shell";
 
 // ------- API rows -------
 export interface SubjectRow {
@@ -132,9 +133,9 @@ export async function SubjectsTable({
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <SearchInput placeholder="ابحث عن مقرر..." />
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <UniversityFilter
             options={universities}
             value={selectedUniversityId ?? "__all__"}
@@ -152,7 +153,7 @@ export async function SubjectsTable({
         </div>
       </div>
 
-      <div className="rounded-md border">
+      <AdminTableShell minWidth="min-w-[920px]">
         <Table>
           <TableHeader>
             <TableRow>
@@ -220,7 +221,7 @@ export async function SubjectsTable({
             ))}
           </TableBody>
         </Table>
-      </div>
+      </AdminTableShell>
 
       <Pagination
         currentPage={pagination.page}

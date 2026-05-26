@@ -10,6 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Eye } from "lucide-react";
 import Link from "next/link";
+import { AdminTableShell } from "@/components/admin/admin-table-shell";
+import { TableSkeleton } from "@/components/ui/table-skeleton";
 
 type University = { id: string; name: string; code: string | null };
 type Major = { id: string; name: string; code: string | null; universityId: string };
@@ -214,7 +216,10 @@ export function ExamsList() {
       </Card>
 
       {/* جدول */}
-      <div className="rounded-md border">
+      {loading ? (
+        <TableSkeleton columns={9} rows={5} />
+      ) : (
+      <AdminTableShell minWidth="min-w-[1120px]">
         <Table>
           <TableHeader>
             <TableRow>
@@ -230,13 +235,7 @@ export function ExamsList() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {loading ? (
-              <TableRow>
-                <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
-                  جاري التحميل...
-                </TableCell>
-              </TableRow>
-            ) : error ? (
+            {error ? (
               <TableRow>
                 <TableCell colSpan={9} className="text-center py-8 text-destructive">
                   {error}
@@ -336,7 +335,8 @@ export function ExamsList() {
             </div>
           </div>
         )}
-      </div>
+      </AdminTableShell>
+      )}
     </div>
   );
 }

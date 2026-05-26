@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Eye, Edit, Trash2 } from "lucide-react";
 import { fetchQuizzesList, deleteQuizAction } from "@/app/admin/quizzes/actions";
 import { useToast } from "@/hooks/use-toast";
+import { TableSkeleton } from "@/components/ui/table-skeleton";
 
 type ListItem = {
   id: string;
@@ -87,9 +88,9 @@ export default function QuizzesTable() {
 
   return (
     <div className="rounded-md border">
-      <div className="flex items-center justify-between p-4 border-b">
+      <div className="flex flex-col gap-3 p-4 border-b sm:flex-row sm:items-center sm:justify-between">
         <div className="text-sm text-muted-foreground">إجمالي: {total}</div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => setParam("sortBy", "createdAt")}>الأحدث</Button>
           <Button variant="outline" size="sm" onClick={() => setParam("sortBy", "title")}>العنوان</Button>
           <Button variant="outline" size="sm" onClick={() => setParam("sortBy", "totalQuestions")}>عدد الأسئلة</Button>
@@ -97,7 +98,11 @@ export default function QuizzesTable() {
         </div>
       </div>
 
-      <Table>
+      {loading ? (
+        <TableSkeleton columns={7} rows={5} />
+      ) : (
+        <div className="overflow-x-auto">
+      <Table className="min-w-[860px]">
         <TableHeader>
           <TableRow>
             <TableHead>عنوان الاختبار</TableHead>
@@ -155,6 +160,8 @@ export default function QuizzesTable() {
           ))}
         </TableBody>
       </Table>
+        </div>
+      )}
 
       {/* ترقيم بسيط */}
       <div className="flex items-center justify-between p-4 border-t">

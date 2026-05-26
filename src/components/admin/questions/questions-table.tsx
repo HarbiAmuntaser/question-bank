@@ -8,6 +8,7 @@ import { Pagination } from "@/components/Pagination";
 import { SortButton } from "@/components/ui/SortButton";
 import { QuestionsFilters } from "./QuestionsFilters";
 import { QuestionActions } from "./question-actions";
+import { AdminTableShell } from "@/components/admin/admin-table-shell";
 
 type QuestionRow = {
   id: string;
@@ -134,9 +135,9 @@ export async function QuestionsTable({
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <QuestionsFilters />
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <SortButton sortBy="questionText" currentSort={sortBy} sortOrder={sortOrder}>السؤال</SortButton>
           <SortButton sortBy="points" currentSort={sortBy} sortOrder={sortOrder}>النقاط</SortButton>
           {/* <SortButton sortBy="difficultyLevel" currentSort={sortBy} sortOrder={sortOrder}>الصعوبة</SortButton> */}
@@ -144,7 +145,7 @@ export async function QuestionsTable({
         </div>
       </div>
 
-      <div className="rounded-md border">
+      <AdminTableShell minWidth="min-w-[1200px]">
         <Table>
           <TableHeader>
             <TableRow>
@@ -235,7 +236,7 @@ export async function QuestionsTable({
             })}
           </TableBody>
         </Table>
-      </div>
+      </AdminTableShell>
 
       <Pagination
         currentPage={pagination.page}

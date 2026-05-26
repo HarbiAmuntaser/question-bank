@@ -145,12 +145,12 @@ export default function SeoMetaPage() {
       </Card>
 
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <CardTitle>نتائج البحث</CardTitle>
             <CardDescription>يعرض آخر السجلات المحدثة.</CardDescription>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button variant="outline" onClick={reload}>
               تحديث
             </Button>
@@ -158,7 +158,7 @@ export default function SeoMetaPage() {
           </div>
         </CardHeader>
 
-        <CardContent className="overflow-x-auto">
+        <CardContent>
           {loading ? (
             <div className="p-6">
               <TableSkeleton />
@@ -168,7 +168,8 @@ export default function SeoMetaPage() {
           ) : rows.length === 0 ? (
             <div className="py-8 text-center text-muted-foreground">لا توجد بيانات.</div>
           ) : (
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto">
+            <table className="min-w-[900px] w-full text-sm">
               <thead>
                 <tr className="border-b text-muted-foreground text-xs uppercase tracking-wider">
                   <th className="py-3 text-left">المعرف</th>
@@ -206,11 +207,12 @@ export default function SeoMetaPage() {
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </CardContent>
 
         {pagination && rows.length > 0 && (
-          <div className="flex items-center justify-between p-4 text-sm text-muted-foreground">
+          <div className="flex flex-col gap-3 p-4 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
             <div>
               الصفحة {pagination.page} من {pagination.totalPages} (إجمالي {pagination.total})
             </div>

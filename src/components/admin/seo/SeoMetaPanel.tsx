@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
 import { deleteSeoMetaAction } from "@/app/admin/seo-meta/actions"
 import { SeoMetaDialog } from "./SeoMetaDialog"
+import { AdminTableShell } from "@/components/admin/admin-table-shell"
 
 type SeoMetaRecord = {
   id: string
@@ -63,7 +64,7 @@ export function SeoMetaPanel({
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
+      <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <CardTitle>بيانات SEO</CardTitle>
           <CardDescription>تحكم بعناصر الميتا لهذا العنصر</CardDescription>
@@ -74,7 +75,7 @@ export function SeoMetaPanel({
         {rows.length === 0 ? (
           <div className="py-8 text-center text-sm text-muted-foreground">لا توجد بيانات بعد.</div>
         ) : (
-          <div className="rounded-md border">
+          <AdminTableShell minWidth="min-w-[760px]">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -114,7 +115,7 @@ export function SeoMetaPanel({
                 ))}
               </TableBody>
             </Table>
-          </div>
+          </AdminTableShell>
         )}
       </CardContent>
 

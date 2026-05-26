@@ -9,6 +9,7 @@ import { SortButton } from "@/components/ui/SortButton";
 import { Pagination } from "@/components/Pagination";
 import { MajorActions } from "./major-actions";
 import { UniversityFilter } from "./UniversityFilter";
+import { AdminTableShell } from "@/components/admin/admin-table-shell";
 
 // ------- Types matching API -------
 export interface MajorRow {
@@ -129,9 +130,9 @@ export async function MajorsTable({
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <SearchInput placeholder="ابحث عن تخصص..." />
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <UniversityFilter
             options={universities}
             // ✅ نجعل القيمة مُتحكّم بها دومًا
@@ -150,7 +151,7 @@ export async function MajorsTable({
         </div>
       </div>
 
-      <div className="rounded-md border">
+      <AdminTableShell minWidth="min-w-[980px]">
         <Table>
           <TableHeader>
             <TableRow>
@@ -223,7 +224,7 @@ export async function MajorsTable({
             ))}
           </TableBody>
         </Table>
-      </div>
+      </AdminTableShell>
 
       <Pagination
         currentPage={pagination.page}

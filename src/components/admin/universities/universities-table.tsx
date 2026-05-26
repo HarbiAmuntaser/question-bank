@@ -16,6 +16,7 @@ import { SearchInput } from "@/components/ui/SearchInput";
 import { SortButton } from "@/components/ui/SortButton";
 import { Pagination } from "@/components/Pagination";
 import { UniversityActions } from "./university-actions";
+import { AdminTableShell } from "@/components/admin/admin-table-shell";
 
 // ------- Types (حسب استجابة الـAPI) -------
 export interface UniversityRow {
@@ -128,11 +129,11 @@ export async function UniversitiesTable({
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <SearchInput placeholder="ابحث عن جامعة..." />
                     <UniversitiesFilters />
 
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <SortButton sortBy="name" currentSort={sortBy} sortOrder={sortOrder}>
             الترتيب بالاسم
           </SortButton>
@@ -147,7 +148,7 @@ export async function UniversitiesTable({
         </div>
       </div>
 
-      <div className="rounded-md border">
+      <AdminTableShell minWidth="min-w-[980px]">
         <Table>
           <TableHeader>
             <TableRow>
@@ -232,7 +233,7 @@ export async function UniversitiesTable({
             ))}
           </TableBody>
         </Table>
-      </div>
+      </AdminTableShell>
 
       <Pagination
         currentPage={pagination.page}

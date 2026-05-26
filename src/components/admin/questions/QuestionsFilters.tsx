@@ -159,10 +159,10 @@ export function QuestionsFilters() {
   const disabledChapters = disabledSubjects || subjectId === "__all__";
 
   return (
-    <div className="flex flex-wrap gap-2 items-center">
+    <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
       {/* جامعة */}
       <Select value={universityId} onValueChange={onUniversityChange}>
-        <SelectTrigger className="w-56">
+        <SelectTrigger className="w-full sm:w-56">
           <SelectValue placeholder="اختر الجامعة" />
         </SelectTrigger>
         <SelectContent>
@@ -175,7 +175,7 @@ export function QuestionsFilters() {
 
       {/* تخصص */}
       <Select value={majorId} onValueChange={onMajorChange} disabled={disabledMajors}>
-        <SelectTrigger className="w-56">
+        <SelectTrigger className="w-full sm:w-56">
           <SelectValue placeholder="اختر التخصص" />
         </SelectTrigger>
         <SelectContent>
@@ -188,7 +188,7 @@ export function QuestionsFilters() {
 
       {/* مقرر */}
       <Select value={subjectId} onValueChange={onSubjectChange} disabled={disabledSubjects}>
-        <SelectTrigger className="w-56">
+        <SelectTrigger className="w-full sm:w-56">
           <SelectValue placeholder="اختر المقرر" />
         </SelectTrigger>
         <SelectContent>
@@ -201,7 +201,7 @@ export function QuestionsFilters() {
 
       {/* فصل */}
       <Select value={chapterId} onValueChange={onChapterChange} disabled={disabledChapters}>
-        <SelectTrigger className="w-56">
+        <SelectTrigger className="w-full sm:w-56">
           <SelectValue placeholder="اختر الفصل" />
         </SelectTrigger>
         <SelectContent>

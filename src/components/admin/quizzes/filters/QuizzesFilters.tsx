@@ -75,7 +75,7 @@ export function QuizzesFilters() {
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <div className="space-y-2">
           <Label>الجامعة</Label>
           <Select value={universityId} onValueChange={setUniversityId}>
