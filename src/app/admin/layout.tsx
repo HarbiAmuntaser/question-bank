@@ -6,7 +6,7 @@ import { AdminHeader } from "@/components/admin/admin-header"
 import { AdminSidebar } from "@/components/admin/admin-sidebar"
 import { Toaster } from "@/components/ui/toaster"
 import { SessionProvider } from "@/providers/session-provider"
-import { DirectionProvider } from "@radix-ui/react-direction"
+import { AdminDirectionProvider } from "@/components/admin/admin-direction-provider"
 
 export default async function AdminLayout({
   children,
@@ -21,7 +21,7 @@ export default async function AdminLayout({
 
   return (
     <SessionProvider session={session}>
-      <DirectionProvider dir="rtl">
+      <AdminDirectionProvider>
         <div className="min-h-screen bg-gray-50 text-right dark:bg-gray-900" dir="rtl">
           <AdminSidebar />
           <div className="lg:pr-64">
@@ -34,7 +34,7 @@ export default async function AdminLayout({
             </main>
           </div>
         </div>
-      </DirectionProvider>
+      </AdminDirectionProvider>
     </SessionProvider>
   )
 }
