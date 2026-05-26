@@ -8,7 +8,10 @@ import type { Prisma } from "@prisma/client";
 
 interface RouteParams { params: Promise<{ id: string }> }
 
-export async function GET(_req: Request, ctx: RouteParams) {
+export async function GET(req: Request, ctx: RouteParams) {
+  const auth = await verifyAdmin(req);
+  if (!auth.ok) return unauth();
+
   const { id } = await ctx.params;
   const m = await prisma.major.findUnique({
     where: { id },

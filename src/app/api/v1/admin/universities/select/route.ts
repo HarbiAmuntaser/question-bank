@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
-import { json, bad } from "@/lib/http";
+import { json, bad, unauth } from "@/lib/http";
+import { verifyAdmin } from "@/lib/admin-auth";
 import { unstable_cache } from "next/cache";
 
 export const dynamic = "force-dynamic";
@@ -37,6 +38,9 @@ const listUniversitiesForSelect = unstable_cache(
 );
 
 export async function GET(req: Request) {
+  const auth = await verifyAdmin(req);
+  if (!auth.ok) return unauth();
+
   const url = new URL(req.url);
   const q = url.searchParams.get("q");
   try {

@@ -8,6 +8,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { baseMetadata, organizationJsonLd, websiteJsonLd } from "@/lib/seo";
 import { SpeedInsights } from "@vercel/speed-insights/next"; // ✅ أضف هذا
+import { Analytics } from "@vercel/analytics/react";
 
 
 const cairo = Cairo({ subsets: ["arabic", "latin"], display: "swap" });
@@ -38,6 +39,7 @@ export default function RootLayout({
           {children}
                 {/* ✅ Speed Insights هنا */}
           <SpeedInsights />
+          <Analytics />
         </ThemeProvider>
         
       </body>

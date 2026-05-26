@@ -40,6 +40,9 @@ function parseSchemaJson(value: unknown): SchemaJsonParseResult {
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
+  const auth = await verifyAdmin(req);
+  if (!auth.ok) return unauth();
+
   const url = new URL(req.url);
   const get = (k: string) => url.searchParams.get(k) ?? undefined;
 

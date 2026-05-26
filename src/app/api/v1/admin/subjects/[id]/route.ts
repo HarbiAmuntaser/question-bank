@@ -10,7 +10,10 @@ import { updateSubjectSchema } from "@/validations/subject";
 // لتلافي تحذير Next.js عن params: نجعلها Promise وننتظرها
 type Ctx = { params: Promise<{ id: string }> };
 
-export async function GET(_req: Request, ctx: Ctx) {
+export async function GET(req: Request, ctx: Ctx) {
+  const auth = await verifyAdmin(req);
+  if (!auth.ok) return unauth();
+
   const { id } = await ctx.params;
 
   const s = await prisma.subject.findUnique({

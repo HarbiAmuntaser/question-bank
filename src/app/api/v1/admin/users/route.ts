@@ -21,7 +21,10 @@ const listUsersCached = unstable_cache(
   { revalidate: 3600, tags: ["users"] }
 );
 
-export async function GET() {
+export async function GET(req: Request) {
+  const auth = await verifyAdmin(req);
+  if (!auth.ok) return unauth();
+
   try {
     const payload = await listUsersCached();
     return json(payload, 200, { "cache-control": "public, s-maxage=3600, stale-while-revalidate=60" });

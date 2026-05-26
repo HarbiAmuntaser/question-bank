@@ -1,25 +1,36 @@
-// src/components/admin/seo/SeoMetaPanel.tsx
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
-import { useToast } from "@/hooks/use-toast"
-import { deleteSeoMetaAction } from "@/app/admin/seo-meta/actions"
-import { SeoMetaDialog } from "./SeoMetaDialog"
-import { AdminTableShell } from "@/components/admin/admin-table-shell"
+import { useState } from "react";
+
+import { deleteSeoMetaAction } from "@/app/admin/seo-meta/actions";
+import { AdminTableShell } from "@/components/admin/admin-table-shell";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useToast } from "@/hooks/use-toast";
+
+import { SeoMetaDialog } from "./SeoMetaDialog";
 
 type SeoMetaRecord = {
-  id: string
-  ownerType: string
-  ownerId: string
-  locale: string
-  slug: string
-  metaTitle?: string | null
-  updatedAt: string
-}
+  id: string;
+  ownerType: string;
+  ownerId: string;
+  locale: string;
+  slug: string;
+  metaTitle?: string | null;
+  updatedAt: string;
+};
 
 export function SeoMetaPanel({
   ownerType,
@@ -28,38 +39,41 @@ export function SeoMetaPanel({
   onChanged,
   allowOwnerChange = false,
 }: {
-  ownerType: string
-  ownerId: string
-  rows: SeoMetaRecord[]
-  onChanged: () => void
-  allowOwnerChange?: boolean
+  ownerType: string;
+  ownerId: string;
+  rows: SeoMetaRecord[];
+  onChanged: () => void;
+  allowOwnerChange?: boolean;
 }) {
-  const { toast } = useToast()
-  const [dialogOpen, setDialogOpen] = useState(false)
-  const [editing, setEditing] = useState<SeoMetaRecord | null>(null)
-  const [isDeleting, setIsDeleting] = useState<string | null>(null)
+  const { toast } = useToast();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editing, setEditing] = useState<SeoMetaRecord | null>(null);
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<SeoMetaRecord | null>(null);
 
   function openCreate() {
-    setEditing(null)
-    setDialogOpen(true)
+    setEditing(null);
+    setDialogOpen(true);
   }
 
   function openEdit(row: SeoMetaRecord) {
-    setEditing(row)
-    setDialogOpen(true)
+    setEditing(row);
+    setDialogOpen(true);
   }
 
-  async function handleDelete(row: SeoMetaRecord) {
-    if (!confirm("هل ترغب بحذف هذه البيانات؟")) return
-    setIsDeleting(row.id)
-    const res = await deleteSeoMetaAction(row.id)
-    setIsDeleting(null)
+  async function handleDelete() {
+    if (!deleteTarget) return;
+    const row = deleteTarget;
+    setDeleteTarget(null);
+    setIsDeleting(row.id);
+    const res = await deleteSeoMetaAction(row.id);
+    setIsDeleting(null);
     if (!res.success) {
-      toast({ title: "خطأ", description: res.message, variant: "destructive" })
-      return
+      toast({ title: "خطأ", description: res.message, variant: "destructive" });
+      return;
     }
-    toast({ title: "تم الحذف", description: res.message })
-    onChanged()
+    toast({ title: "تم الحذف", description: res.message });
+    onChanged();
   }
 
   return (
@@ -97,8 +111,8 @@ export function SeoMetaPanel({
                     <TableCell className="arabic-numbers">
                       {new Date(row.updatedAt).toLocaleString("ar-EG", { dateStyle: "short", timeStyle: "short" })}
                     </TableCell>
-                    <TableCell className="text-left space-x-2">
-                      <Button variant="ghost" size="sm" onClick={() => openEdit(row)}>
+                    <TableCell className="space-x-2 text-left">
+                      <Button variant="ghost" size="sm" aria-label="تعديل بيانات SEO" onClick={() => openEdit(row)}>
                         تعديل
                       </Button>
                       <Button
@@ -106,7 +120,8 @@ export function SeoMetaPanel({
                         size="sm"
                         className="text-destructive hover:text-destructive"
                         disabled={isDeleting === row.id}
-                        onClick={() => handleDelete(row)}
+                        aria-label="حذف بيانات SEO"
+                        onClick={() => setDeleteTarget(row)}
                       >
                         حذف
                       </Button>
@@ -128,6 +143,23 @@ export function SeoMetaPanel({
         onSaved={onChanged}
         lockOwner={!allowOwnerChange}
       />
+
+      <AlertDialog open={Boolean(deleteTarget)} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent dir="rtl" className="text-right">
+          <AlertDialogHeader>
+            <AlertDialogTitle>حذف بيانات SEO؟</AlertDialogTitle>
+            <AlertDialogDescription>
+              سيتم حذف هذه البيانات من لوحة الإدارة. لا يمكن التراجع عن هذه العملية.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
+              حذف
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
-  )
+  );
 }

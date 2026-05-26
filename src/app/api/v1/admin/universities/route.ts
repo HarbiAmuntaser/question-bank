@@ -57,6 +57,9 @@ const listUniversitiesCached = unstable_cache(
 // ---- GET /api/v1/admin/universities ----
 // ---- GET /api/v1/admin/universities ----
 export async function GET(req: Request) {
+  const auth = await verifyAdmin(req);
+  if (!auth.ok) return unauth();
+
   const url = new URL(req.url);
 
   // تحويل آمن + قيم افتراضية

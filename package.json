@@ -52,6 +52,7 @@
     "@tiptap/extension-youtube": "^3.16.0",
     "@tiptap/react": "^3.16.0",
     "@tiptap/starter-kit": "^3.16.0",
+    "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",
     "bcryptjs": "^3.0.2",
     "class-variance-authority": "^0.7.1",

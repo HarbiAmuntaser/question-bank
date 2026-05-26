@@ -14,7 +14,10 @@ type ChapterUpdateData = {
 };
 
 // قراءة فصل واحد (مع العلاقات)
-export async function GET(_req: Request, context: { params: Promise<{ id: string }> }) {
+export async function GET(req: Request, context: { params: Promise<{ id: string }> }) {
+  const auth = await verifyAdmin(req);
+  if (!auth.ok) return unauth();
+
   const { id } = await context.params;
 
   const c = await prisma.chapter.findUnique({

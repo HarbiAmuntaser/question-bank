@@ -18,6 +18,9 @@ async function ensureUploadDir() {
 }
 
 export async function GET(req: Request) {
+  const auth = await verifyAdmin(req)
+  if (!auth.ok) return unauth()
+
   const url = new URL(req.url)
   const parsed = listAttachmentsQuerySchema.safeParse({
     ownerType: url.searchParams.get("ownerType"),

@@ -142,6 +142,9 @@ const listChaptersCached = unstable_cache(
 );
 
 export async function GET(req: Request) {
+  const auth = await verifyAdmin(req);
+  if (!auth.ok) return unauth();
+
   const url = new URL(req.url);
   const q: Record<string, string | null> = {
     page: url.searchParams.get("page"),

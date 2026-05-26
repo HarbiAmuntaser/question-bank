@@ -15,7 +15,10 @@ type RouteContext = {
 };
 
 // GET /api/v1/admin/universities/[id]
-export async function GET(_req: Request, { params }: RouteContext) {
+export async function GET(req: Request, { params }: RouteContext) {
+  const auth = await verifyAdmin(req);
+  if (!auth.ok) return unauth();
+
   const { id } = await params;
 
   const u = await prisma.university.findUnique({

@@ -1,7 +1,7 @@
 // src/hooks/use-seo-meta.ts
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import {
   listSeoMetaAction,
   createSeoMetaAction,
@@ -14,7 +14,7 @@ export function useSeoMetaList(initialFilters?: {
   ownerId?: string
   locale?: string
   query?: string
-}) {
+}, initialData?: { rows: any[]; pagination?: any }) {
   const [filters, setFilters] = useState({
     ownerType: initialFilters?.ownerType ?? "",
     ownerId: initialFilters?.ownerId ?? "",
@@ -25,9 +25,10 @@ export function useSeoMetaList(initialFilters?: {
     sortBy: "updatedAt" as "updatedAt" | "createdAt" | "slug",
     sortOrder: "desc" as "asc" | "desc",
   })
-  const [loading, setLoading] = useState(true)
+  const skipInitialLoad = useRef(Boolean(initialData))
+  const [loading, setLoading] = useState(initialData === undefined)
   const [error, setError] = useState<string | null>(null)
-  const [data, setData] = useState<{ rows: any[]; pagination?: any }>({ rows: [] })
+  const [data, setData] = useState<{ rows: any[]; pagination?: any }>(initialData ?? { rows: [] })
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -52,6 +53,10 @@ export function useSeoMetaList(initialFilters?: {
   }, [filters])
 
   useEffect(() => {
+    if (skipInitialLoad.current) {
+      skipInitialLoad.current = false
+      return
+    }
     load()
   }, [load])
 

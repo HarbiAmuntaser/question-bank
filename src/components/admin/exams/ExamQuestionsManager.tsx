@@ -1,14 +1,25 @@
-// src/components/admin/exams/ExamQuestionsManager.tsx
 "use client";
 
 import { useMemo, useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Pencil, Plus, Trash2 } from "lucide-react";
+
+import { deleteExamQuestionAction } from "@/app/admin/exams/actions";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { deleteExamQuestionAction } from "@/app/admin/exams/actions";
+
 import { ExamQuestionDialog } from "./ExamQuestionDialog";
 
 type ExamQuestionRecord = {
@@ -44,6 +55,7 @@ export function ExamQuestionsManager({
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<ExamQuestionRecord | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<ExamQuestionRecord | null>(null);
 
   const orderedQuestions = useMemo(() => {
     return [...(questions ?? [])].sort((a, b) => a.questionNumber - b.questionNumber);
@@ -64,8 +76,10 @@ export function ExamQuestionsManager({
     setDialogOpen(true);
   }
 
-  async function handleDelete(row: ExamQuestionRecord) {
-    if (!confirm("هل ترغب بحذف هذا السؤال من الورقة؟")) return;
+  async function handleDelete() {
+    if (!deleteTarget) return;
+    const row = deleteTarget;
+    setDeleteTarget(null);
     setDeletingId(row.id);
     const res = await deleteExamQuestionAction(row.id);
     setDeletingId(null);
@@ -79,22 +93,24 @@ export function ExamQuestionsManager({
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between gap-4">
+      <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <CardTitle>أسئلة الامتحان</CardTitle>
           <CardDescription>إدارة الأسئلة المرتبطة بورقة الامتحان الحالية.</CardDescription>
         </div>
         <Button onClick={openCreateDialog} className="gap-2">
-          <Plus className="h-4 w-4" />
+          <Plus className="h-4 w-4" aria-hidden />
           إضافة سؤال
         </Button>
       </CardHeader>
       <CardContent>
         {orderedQuestions.length === 0 ? (
-          <div className="py-10 text-center text-sm text-muted-foreground">لا توجد أسئلة مرتبطة بهذه الورقة حتى الآن.</div>
+          <div className="py-10 text-center text-sm text-muted-foreground">
+            لا توجد أسئلة مرتبطة بهذه الورقة حتى الآن.
+          </div>
         ) : (
-          <div className="rounded-md border">
-            <Table>
+          <div className="overflow-x-auto rounded-md border">
+            <Table className="min-w-[760px]">
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-[70px]">#</TableHead>
@@ -113,7 +129,7 @@ export function ExamQuestionsManager({
                       <div className="font-medium leading-5">{q.question?.questionText ?? "سؤال غير متوفر"}</div>
                       <div className="text-xs text-muted-foreground">
                         {q.question?.chapter?.subject?.name}
-                        {q.question?.chapter?.name ? ` • ${q.question.chapter.name}` : ""}
+                        {q.question?.chapter?.name ? ` - ${q.question.chapter.name}` : ""}
                       </div>
                     </TableCell>
                     <TableCell>
@@ -121,25 +137,26 @@ export function ExamQuestionsManager({
                         {q.question?.difficultyLevel === "easy"
                           ? "سهل"
                           : q.question?.difficultyLevel === "hard"
-                          ? "صعب"
-                          : "متوسط"}
+                            ? "صعب"
+                            : "متوسط"}
                       </Badge>
                     </TableCell>
                     <TableCell className="arabic-numbers">{q.points ?? "-"}</TableCell>
                     <TableCell className="arabic-numbers">{q.page ?? "-"}</TableCell>
                     <TableCell className="text-left">
                       <div className="flex gap-2">
-                        <Button variant="ghost" size="sm" onClick={() => openEditDialog(q)}>
-                          <Pencil className="h-4 w-4" />
+                        <Button variant="ghost" size="sm" aria-label="تعديل سؤال الامتحان" onClick={() => openEditDialog(q)}>
+                          <Pencil className="h-4 w-4" aria-hidden />
                         </Button>
                         <Button
                           variant="ghost"
                           size="sm"
                           disabled={deletingId === q.id}
-                          onClick={() => handleDelete(q)}
+                          aria-label="حذف سؤال الامتحان"
+                          onClick={() => setDeleteTarget(q)}
                           className="text-destructive hover:text-destructive"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-4 w-4" aria-hidden />
                         </Button>
                       </div>
                     </TableCell>
@@ -167,6 +184,23 @@ export function ExamQuestionsManager({
           onChanged();
         }}
       />
+
+      <AlertDialog open={Boolean(deleteTarget)} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent dir="rtl" className="text-right">
+          <AlertDialogHeader>
+            <AlertDialogTitle>حذف السؤال من الورقة؟</AlertDialogTitle>
+            <AlertDialogDescription>
+              سيتم حذف ارتباط هذا السؤال بورقة الامتحان. لا يمكن التراجع عن هذه العملية.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
+              حذف
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }

@@ -81,7 +81,10 @@ const getExamCached = unstable_cache(
   { revalidate: 3600, tags: ["exams"] }
 );
 
-export async function GET(_: Request, ctx: { params: Promise<{ id: string }> }) {
+export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }) {
+  const auth = await verifyAdmin(req);
+  if (!auth.ok) return unauth();
+
   const { id } = await ctx.params;
   if (!id) return bad("missing_id");
 

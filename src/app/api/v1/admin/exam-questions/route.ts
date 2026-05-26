@@ -41,6 +41,9 @@ const questionInclude = {
 } as const
 
 export async function GET(req: Request) {
+  const auth = await verifyAdmin(req)
+  if (!auth.ok) return unauth()
+
   const url = new URL(req.url)
   const parsed = listExamQuestionsQuerySchema.safeParse({
     examPaperId: url.searchParams.get("examPaperId"),

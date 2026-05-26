@@ -14,7 +14,10 @@ type RouteContext = {
   params: Promise<RouteParams>;
 };
 
-export async function GET(_: Request, { params }: RouteContext) {
+export async function GET(req: Request, { params }: RouteContext) {
+  const auth = await verifyAdmin(req);
+  if (!auth.ok) return unauth();
+
   const { id } = await params;
 
   const u = await prisma.user.findUnique({

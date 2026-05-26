@@ -45,7 +45,10 @@ interface RouteParams {
 
 export const dynamic = "force-dynamic";
 
-export async function GET(_req: Request, ctx: RouteParams) {
+export async function GET(req: Request, ctx: RouteParams) {
+  const auth = await verifyAdmin(req);
+  if (!auth.ok) return unauth();
+
   const { id } = await ctx.params;
   const seo = await prisma.seoMeta.findUnique({ where: { id } });
   if (!seo) return notFound("seo_meta_not_found");
