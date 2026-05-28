@@ -1,5 +1,5 @@
 // src/components/admin/questions/questions-table.tsx
-import { getRequestOrigin } from "@/lib/server/request-origin";
+import { adminApiFetch } from "@/lib/server/admin-api-fetch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -48,10 +48,6 @@ function buildQuery(params: Record<string, string | number | undefined>) {
   return usp.toString();
 }
 
-async function getApiBase(): Promise<string> {
-  return getRequestOrigin();
-}
-
 async function fetchQuestions(args: {
   page: number;
   pageSize: number;
@@ -63,8 +59,7 @@ async function fetchQuestions(args: {
   chapterId?: string;
 }): Promise<ListResponse> {
   const qs = buildQuery(args);
-  const base = await getApiBase();
-  const res = await fetch(`${base}/api/v1/admin/questions?${qs}`, {
+  const res = await adminApiFetch(`/api/v1/admin/questions?${qs}`, {
     next: { revalidate: 3600, tags: ["questions"] },
   });
   if (!res.ok) {

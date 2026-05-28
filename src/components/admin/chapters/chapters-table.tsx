@@ -1,5 +1,5 @@
 // src/components/admin/chapters/chapters-table.tsx
-import { getRequestOrigin } from "@/lib/server/request-origin";
+import { adminApiFetch } from "@/lib/server/admin-api-fetch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -50,10 +50,6 @@ function buildQuery(params: Record<string, string | number | undefined>): string
   return usp.toString();
 }
 
-async function getApiBase(): Promise<string> {
-  return getRequestOrigin();
-}
-
 async function fetchChapters(args: {
   page: number;
   pageSize: number;
@@ -65,8 +61,7 @@ async function fetchChapters(args: {
   subjectId?: string;
 }): Promise<ListResponse> {
   const qs = buildQuery(args);
-  const base = await getApiBase();
-  const res = await fetch(`${base}/api/v1/admin/chapters?${qs}`, {
+  const res = await adminApiFetch(`/api/v1/admin/chapters?${qs}`, {
     next: { revalidate: 3600, tags: ["chapters"] },
   });
   if (!res.ok) {
@@ -77,9 +72,8 @@ async function fetchChapters(args: {
 }
 
 async function fetchUniversities(): Promise<UniOpt[]> {
-  const base = await getApiBase();
   const qs = buildQuery({ page: 1, pageSize: 1000, sortBy: "name", sortOrder: "asc" });
-  const res = await fetch(`${base}/api/v1/admin/universities?${qs}`, {
+  const res = await adminApiFetch(`/api/v1/admin/universities?${qs}`, {
     next: { revalidate: 3600, tags: ["universities"] },
   });
   if (!res.ok) return [];
@@ -88,7 +82,6 @@ async function fetchUniversities(): Promise<UniOpt[]> {
 }
 
 async function fetchMajors(universityId?: string): Promise<MajorOpt[]> {
-  const base = await getApiBase();
   const qs = buildQuery({
     page: 1,
     pageSize: 1000,
@@ -96,7 +89,7 @@ async function fetchMajors(universityId?: string): Promise<MajorOpt[]> {
     sortOrder: "asc",
     universityId,
   });
-  const res = await fetch(`${base}/api/v1/admin/majors?${qs}`, {
+  const res = await adminApiFetch(`/api/v1/admin/majors?${qs}`, {
     next: { revalidate: 3600, tags: ["majors"] },
   });
   if (!res.ok) return [];
@@ -106,7 +99,6 @@ async function fetchMajors(universityId?: string): Promise<MajorOpt[]> {
 }
 
 async function fetchSubjects(filters: { universityId?: string; majorId?: string }): Promise<SubjectOpt[]> {
-  const base = await getApiBase();
   const qs = buildQuery({
     page: 1,
     pageSize: 1000,
@@ -115,7 +107,7 @@ async function fetchSubjects(filters: { universityId?: string; majorId?: string 
     universityId: filters.universityId,
     majorId: filters.majorId,
   });
-  const res = await fetch(`${base}/api/v1/admin/subjects?${qs}`, {
+  const res = await adminApiFetch(`/api/v1/admin/subjects?${qs}`, {
     next: { revalidate: 3600, tags: ["subjects"] },
   });
   if (!res.ok) return [];

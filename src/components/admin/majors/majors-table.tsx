@@ -1,6 +1,6 @@
 // src/components/admin/majors/majors-table.tsx
 
-import { getRequestOrigin } from "@/lib/server/request-origin";
+import { adminApiFetch } from "@/lib/server/admin-api-fetch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -50,10 +50,6 @@ function buildQuery(params: Record<string, string | number | undefined>): string
   return usp.toString();
 }
 
-async function getApiBase(): Promise<string> {
-  return getRequestOrigin();
-}
-
 async function fetchMajors(args: {
   page: number;
   pageSize: number;
@@ -63,8 +59,7 @@ async function fetchMajors(args: {
   universityId?: string;
 }): Promise<ListResponse> {
   const qs = buildQuery(args);
-  const base = await getApiBase();
-  const res = await fetch(`${base}/api/v1/admin/majors?${qs}`, {
+  const res = await adminApiFetch(`/api/v1/admin/majors?${qs}`, {
     next: { revalidate: 3600, tags: ["majors"] },
   });
   if (!res.ok) {
@@ -76,9 +71,8 @@ async function fetchMajors(args: {
 }
 
 async function fetchUniversitiesForFilter(): Promise<UniversityOption[]> {
-  const base = await getApiBase();
   const qs = buildQuery({ page: 1, pageSize: 1000, sortBy: "name", sortOrder: "asc" });
-  const res = await fetch(`${base}/api/v1/admin/universities?${qs}`, {
+  const res = await adminApiFetch(`/api/v1/admin/universities?${qs}`, {
     next: { revalidate: 3600, tags: ["universities"] },
   });
   if (!res.ok) return [];

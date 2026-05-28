@@ -1,7 +1,7 @@
 // src/components/admin/universities/universities-table.tsx
 import { UniversitiesFilters } from "@/components/admin/universities/universities-filters";
 
-import { getRequestOrigin } from "@/lib/server/request-origin";
+import { adminApiFetch } from "@/lib/server/admin-api-fetch";
 import {
   Table,
   TableBody,
@@ -57,11 +57,6 @@ function buildQuery(params: Record<string, string | number | undefined>) {
   return usp.toString();
 }
 
-async function getApiBase(): Promise<string> {
-  return getRequestOrigin();
-}
-
-
 async function fetchUniversities({
   page,
   pageSize,
@@ -81,8 +76,7 @@ async function fetchUniversities({
   institutionType?: "" | "university" | "school" | "academy";
 }): Promise<ListResponse> {
   const qs = buildQuery({ page, pageSize, sortBy, sortOrder, query, countryCode, institutionType });
-  const base = await getApiBase();
-  const res = await fetch(`${base}/api/v1/admin/universities?${qs}`, {
+  const res = await adminApiFetch(`/api/v1/admin/universities?${qs}`, {
     next: { revalidate: 3600, tags: ["universities"] },
   });
   if (!res.ok) {
