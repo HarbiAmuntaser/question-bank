@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 
 import { CheckCircle, XCircle, ChevronLeft, ChevronRight, Info, RotateCcw } from "lucide-react";
 import { makeQuizKeys, safeJsonParse } from "@/components/public/quiz/storage";
+import { RichQuestionContent } from "@/components/shared/rich-question-content";
 import { detectDir, dirTextAlign } from "./text-direction";
 
 type Props = {
@@ -145,21 +146,21 @@ export default function QuizReview({ quiz, sessionId, onlyWrong }: Props) {
   const renderUserAnswer = () => {
     if (q.questionType === "multiple_choice") {
       const opt = q.options?.find((o: any) => o.id === current!.userChoiceId);
-      return opt ? opt.optionText : <span className="text-muted-foreground">لم يجب</span>;
+      return opt ? <RichQuestionContent content={opt.optionText} /> : <span className="text-muted-foreground">لم يجب</span>;
     }
     if (q.questionType === "true_false") {
       return current!.userText || <span className="text-muted-foreground">لم يجب</span>;
     }
-    return current!.userText ? current!.userText : <span className="text-muted-foreground">لم يجب</span>;
+    return current!.userText ? <RichQuestionContent content={current!.userText} /> : <span className="text-muted-foreground">لم يجب</span>;
   };
 
   const renderCorrectAnswer = () => {
     if (q.questionType === "multiple_choice" || q.questionType === "true_false") {
-      return current!.correctOption?.optionText ?? "-";
+      return <RichQuestionContent content={current!.correctOption?.optionText ?? "-"} />;
     }
     // للأسئلة المقالية/القصيرة: نعرض explanation إن وُجد
     return q.explanation ? (
-      <span>{q.explanation}</span>
+      <RichQuestionContent content={q.explanation} />
     ) : (
       <span className="text-muted-foreground">لا توجد إجابة نموذجية، قد تحتاج تصحيحاً يدوياً.</span>
     );
@@ -243,7 +244,7 @@ export default function QuizReview({ quiz, sessionId, onlyWrong }: Props) {
         <CardContent className="space-y-6">
           {/* Question text */}
           <div className={`prose prose-lg max-w-none dark:prose-invert ${align}`}>
-            <p className="leading-relaxed">{q.questionText}</p>
+            <RichQuestionContent content={q.questionText} />
           </div>
 
           {/* User answer */}
@@ -271,7 +272,8 @@ export default function QuizReview({ quiz, sessionId, onlyWrong }: Props) {
               {/* إن كان هناك explanation إضافي للأسئلة الموضوعية */}
               {q.explanation && q.questionType !== "essay" && q.questionType !== "short_answer" ? (
                 <div className="text-sm text-muted-foreground mt-2">
-                  <span className="font-medium">توضيح:</span> {q.explanation}
+                  <span className="font-medium">توضيح:</span>
+                  <RichQuestionContent content={q.explanation} className="mt-1" />
                 </div>
               ) : null}
             </div>

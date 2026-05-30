@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import type { QuestionWithOptions, QuizAnswer } from "@/types";
 import { cn } from "@/lib/utils";
+import { RichQuestionContent } from "@/components/shared/rich-question-content";
 import { detectTextDir, detectTextLang, type TextDir } from "./text-direction";
 
 type Props = {
@@ -92,9 +93,9 @@ export function QuestionOptions({ question, answer, onAnswerChange, dir }: Props
               />
 
               {/* خيار قد يكون بلغة مختلفة عن لغة السؤال */}
-              <span className="flex-1" dir={optDir}>
-                {option.optionText}
-              </span>
+              <div className="min-w-0 flex-1" dir={optDir}>
+                <RichQuestionContent content={option.optionText} className="space-y-2" />
+              </div>
             </label>
           );
         })}

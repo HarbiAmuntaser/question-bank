@@ -4,12 +4,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 
 type SettingsValue = {
   title: string;
   timeLimit: number;
   difficulty: "mixed" | "easy" | "medium" | "hard";
   randomize: boolean;
+  accessType: "inherit" | "free" | "paid";
+  isFreePreview: boolean;
 };
 
 export function QuizSettingsPanel({
@@ -78,6 +81,44 @@ export function QuizSettingsPanel({
             <Label htmlFor="randomize" className="text-sm">
               ترتيب الأسئلة عشوائياً
             </Label>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div className="space-y-2">
+          <Label htmlFor="accessType">نوع الوصول</Label>
+          <Select
+            value={value.accessType}
+            onValueChange={(v) =>
+              onChange({
+                ...value,
+                accessType: v as SettingsValue["accessType"],
+              })
+            }
+          >
+            <SelectTrigger id="accessType">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="inherit">يرث من الخطة</SelectItem>
+              <SelectItem value="free">مجاني</SelectItem>
+              <SelectItem value="paid">مدفوع</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex items-center gap-3 rounded-md border p-3">
+          <Switch
+            id="isFreePreview"
+            checked={value.isFreePreview}
+            onCheckedChange={(checked) => onChange({ ...value, isFreePreview: Boolean(checked) })}
+          />
+          <div className="space-y-1">
+            <Label htmlFor="isFreePreview">معاينة مجانية</Label>
+            <p className="text-xs text-muted-foreground">
+              يبقى الاختبار مفتوحاً حتى لو كان المقرر أو التخصص مدفوعاً.
+            </p>
           </div>
         </div>
       </div>

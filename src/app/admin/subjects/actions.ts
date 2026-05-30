@@ -1,7 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { getServerSession } from "next-auth";
+
+import { authOptions } from "@/lib/auth";
 import { getRequestOrigin } from "@/lib/server/request-origin";
+import { prisma } from "@/lib/prisma";
 
 // -------- Helpers --------
 function buildQuery(params: Record<string, string | number | undefined>) {
@@ -34,6 +38,14 @@ function adminHeaders(): HeadersInit {
   };
 }
 
+async function assertAdminSession() {
+  const session = await getServerSession(authOptions);
+  const role = (session?.user as { role?: string } | undefined)?.role;
+  if (!role || !["admin", "editor", "moderator"].includes(role)) {
+    throw new Error("unauthorized");
+  }
+}
+
 // -------- Types (خفيفة تكفي القوائم) --------
 export interface MajorOption {
   id: string;
@@ -44,32 +56,33 @@ export interface MajorOption {
 
 // يستعمله الحوار لملء قائمة التخصصات (اسم + جامعة)
 export async function getMajorsForSubjectDialogAction(): Promise<MajorOption[]> {
-  const base = await getApiBase();
-  const qs = buildQuery({ page: 1, pageSize: 1000, sortBy: "name", sortOrder: "asc" });
-
-  const res = await fetch(`${base}/api/v1/admin/majors?${qs}`, {
-    method: "GET",
-    headers: adminHeaders(),
-    next: { revalidate: 3600, tags: ["majors"] },
+  await assertAdminSession();
+  // Legacy helper kept bounded; new dialogs use searchable lookup comboboxes.
+  const rows = await prisma.major.findMany({
+    take: 50,
+    orderBy: { name: "asc" },
+    select: {
+      id: true,
+      name: true,
+      code: true,
+      university: {
+        select: {
+          id: true,
+          name: true,
+          code: true,
+        },
+      },
+    },
   });
 
-  if (!res.ok) {
-    // نرجع مصفوفة فارغة بدلاً من رمي خطأ كي لا نكسر الحوار
-    return [];
-  }
-
-  // payload: { data: Array<...>, pagination: {...} }
-  const payload = await readJsonSafe(res);
-  const rows = Array.isArray(payload?.data) ? payload.data : [];
-
-  return rows.map((m: any): MajorOption => ({
-    id: String(m.id),
-    name: String(m.name),
+  return rows.map((m): MajorOption => ({
+    id: m.id,
+    name: m.name,
     code: m.code ?? null,
     university: m.university
       ? {
-          id: String(m.university.id),
-          name: String(m.university.name),
+          id: m.university.id,
+          name: m.university.name,
           code: m.university.code ?? null,
         }
       : null,

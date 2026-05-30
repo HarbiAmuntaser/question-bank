@@ -121,90 +121,26 @@ export function QuestionDialog({ children, question, open, onOpenChange }: Quest
   }, [question]);
 
   const loadUniversities = useCallback(async (signal?: AbortSignal): Promise<UnivOption[]> => {
-    const res = await fetch(`/api/v1/admin/universities?page=1&pageSize=1000&sortBy=name&sortOrder=asc`, {
-      cache: "no-store",
-      signal,
-    });
-    if (!res.ok) return [];
-    const payload: unknown = await res.json().catch(() => ({}));
-    const rows = getArrayField(payload, "data");
-
-    return rows
-      .map((r) => {
-        if (!isRecord(r)) return null;
-        return {
-          id: asString(r.id),
-          name: asString(r.name),
-          code: asNullableString(r.code),
-        };
-      })
-      .filter((x): x is UnivOption => Boolean(x?.id && x.name));
+    if (signal?.aborted) return [];
+    return [];
   }, []);
 
   const loadMajors = useCallback(async (universityId: string, signal?: AbortSignal): Promise<MajorOption[]> => {
     if (!universityId) return [];
-    const res = await fetch(
-      `/api/v1/admin/majors?page=1&pageSize=1000&sortBy=name&sortOrder=asc&universityId=${encodeURIComponent(universityId)}`,
-      { cache: "no-store", signal }
-    );
-    if (!res.ok) return [];
-    const payload: unknown = await res.json().catch(() => ({}));
-    const rows = getArrayField(payload, "data");
-
-    return rows
-      .map((r) => {
-        if (!isRecord(r)) return null;
-        return {
-          id: asString(r.id),
-          name: asString(r.name),
-          code: asNullableString(r.code),
-        };
-      })
-      .filter((x): x is MajorOption => Boolean(x?.id && x.name));
+    if (signal?.aborted) return [];
+    return [];
   }, []);
 
   const loadSubjects = useCallback(async (majorId: string, signal?: AbortSignal): Promise<SubjectOption[]> => {
     if (!majorId) return [];
-    const res = await fetch(
-      `/api/v1/admin/subjects?page=1&pageSize=1000&sortBy=name&sortOrder=asc&majorId=${encodeURIComponent(majorId)}`,
-      { cache: "no-store", signal }
-    );
-    if (!res.ok) return [];
-    const payload: unknown = await res.json().catch(() => ({}));
-    const rows = getArrayField(payload, "data");
-
-    return rows
-      .map((r) => {
-        if (!isRecord(r)) return null;
-        return {
-          id: asString(r.id),
-          name: asString(r.name),
-          code: asNullableString(r.code),
-        };
-      })
-      .filter((x): x is SubjectOption => Boolean(x?.id && x.name));
+    if (signal?.aborted) return [];
+    return [];
   }, []);
 
   const loadChapters = useCallback(async (subjectId: string, signal?: AbortSignal): Promise<ChapterOption[]> => {
     if (!subjectId) return [];
-    const res = await fetch(
-      `/api/v1/admin/chapters?page=1&pageSize=1000&sortBy=chapterNumber&sortOrder=asc&subjectId=${encodeURIComponent(subjectId)}`,
-      { cache: "no-store", signal }
-    );
-    if (!res.ok) return [];
-    const payload: unknown = await res.json().catch(() => ({}));
-    const rows = getArrayField(payload, "data");
-
-    return rows
-      .map((r) => {
-        if (!isRecord(r)) return null;
-        return {
-          id: asString(r.id),
-          name: asString(r.name),
-          chapterNumber: asNullableNumber(r.chapterNumber),
-        };
-      })
-      .filter((x): x is ChapterOption => Boolean(x?.id && x.name));
+    if (signal?.aborted) return [];
+    return [];
   }, []);
 
   // فتح الحوار: init

@@ -2,7 +2,9 @@
 import { prisma } from "@/lib/prisma";
 import { json, bad, unauth } from "@/lib/http";
 import { verifyAdmin } from "@/lib/admin-auth";
-import { unstable_cache, revalidateTag } from "next/cache";
+import { CACHE_CONTROL } from "@/lib/cache-tags";
+import { revalidateQuizCache } from "@/lib/cache-invalidation";
+import { unstable_cache } from "next/cache";
 import { listQuizzesQuerySchema, quizGenerationSettingsSchema } from "@/validations/quiz";
 
 export const dynamic = "force-dynamic";
@@ -115,7 +117,7 @@ export async function GET(req: Request) {
   try {
     const payload = await listQuizzesCached(q);
     const headers = new Headers({
-      "cache-control": "public, s-maxage=3600, stale-while-revalidate=60",
+      "cache-control": CACHE_CONTROL.PRIVATE_NO_STORE,
     });
     return json(payload, { status: 200, headers });
   } catch (e) {
@@ -176,6 +178,8 @@ export async function POST(req: Request) {
       totalQuestions: picked.length,
       totalPoints,
       isActive: true,
+      accessType: s.accessType,
+      isFreePreview: s.isFreePreview,
       subjectId: quizSubjectId,
       questions: {
         create: picked.map((q, idx) => ({
@@ -189,6 +193,6 @@ export async function POST(req: Request) {
     },
   });
 
-  revalidateTag("quizzes");
+  revalidateQuizCache({ id: created.id, subjectId: created.subjectId });
   return json({ data: created, message: "تم إنشاء الاختبار بنجاح" }, { status: 201 });
 }

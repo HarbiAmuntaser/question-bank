@@ -17,10 +17,11 @@ import type { InstitutionType } from "@/config/regions";
 import { fetchJSON } from "@/lib/server/student-fetch";
 import { stripPrefix, encodeSlugPath } from "@/lib/public/slug-utils";
 
-import { GraduationCap, ArrowRight, Trophy, Share2, FileText } from "lucide-react";
+import { GraduationCap, ArrowRight, Trophy, Share2 } from "lucide-react";
 import { QuizShare } from "@/components/public/quiz-share";
+import { QuizDetailsAccessGate } from "@/components/public/subscription-access";
 
-export const revalidate = 60;
+export const revalidate = 21600;
 
 type SeoLite = { slug: string | null };
 
@@ -32,6 +33,8 @@ type QuizPreview = {
   totalQuestions: number;
   totalPoints: number;
   createdAt: string | Date;
+  accessType: "inherit" | "free" | "paid";
+  isFreePreview: boolean;
   seo?: SeoLite;
   context: {
     university: {
@@ -74,14 +77,18 @@ async function fetchQuizPreviewBySlugOrId(quizSlugPathRaw: string) {
 
   // 1) slug
   const bySlug = await fetchJSON<QuizPreview>(
-    `/api/v1/student/quizzes/preview/by-slug/${encodeSlugPath(quizSlugPath)}`
+    `/api/v1/student/quizzes/preview/by-slug/${encodeSlugPath(quizSlugPath)}`,
+    undefined,
+    21600,
   );
   if (bySlug.ok && bySlug.data) return { quiz: bySlug.data };
 
   // 2) fallback id
   if (!quizSlugPath.includes("/")) {
     const byId = await fetchJSON<QuizPreview>(
-      `/api/v1/student/quizzes/preview/by-id/${encodeURIComponent(quizSlugPath)}`
+      `/api/v1/student/quizzes/preview/by-id/${encodeURIComponent(quizSlugPath)}`,
+      undefined,
+      21600,
     );
     if (byId.ok && byId.data) return { quiz: byId.data };
   }
@@ -235,14 +242,15 @@ export async function QuizDetails({
           <QuizShare url={shareUrl} title={quiz.title} text={shareText} />
 
           {/* ✅ ابدأ الاختبار */}
-          <div className="flex justify-center">
-            <Button asChild className="h-11 w-full rounded-xl sm:w-auto">
-              <Link href={`/quiz/${encodeURIComponent(quiz.id)}`} className="flex items-center gap-2">
-                <FileText className="h-4 w-4" aria-hidden />
-                ابدأ الاختبار
-              </Link>
-            </Button>
-          </div>
+          <QuizDetailsAccessGate
+            quizId={quiz.id}
+            title={quiz.title}
+            href={`/quiz/${encodeURIComponent(quiz.id)}`}
+            accessType={quiz.accessType}
+            isFreePreview={quiz.isFreePreview}
+            subjectId={subject.id}
+            majorId={major.id}
+          />
 
           <div className="mt-2 flex flex-col justify-center gap-3 sm:flex-row">
             <Button asChild variant="outline" className="h-11 w-full rounded-xl sm:w-auto">

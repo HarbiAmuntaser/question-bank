@@ -1,8 +1,10 @@
 import { prisma } from "@/lib/prisma";
 import { json, bad, unauth } from "@/lib/http";
 import { verifyAdmin } from "@/lib/admin-auth";
+import { CACHE_CONTROL } from "@/lib/cache-tags";
+import { revalidateMajorCache } from "@/lib/cache-invalidation";
 import { listMajorsQuerySchema, createMajorSchema } from "@/validations/major";
-import { unstable_cache, revalidateTag } from "next/cache";
+import { unstable_cache } from "next/cache";
 import { Prisma } from "@prisma/client";
 
 
@@ -122,7 +124,7 @@ export async function GET(req: Request) {
 
   try {
     const payload = await listMajorsCached(q);
-    const headers = new Headers({ "cache-control": "public, s-maxage=3600, stale-while-revalidate=60" });
+    const headers = new Headers({ "cache-control": CACHE_CONTROL.PRIVATE_NO_STORE });
     return json(payload, { status: 200, headers });
   } catch {
     return bad("bad_query_params");
@@ -150,7 +152,7 @@ export async function POST(req: Request) {
       },
     });
 
-    revalidateTag("majors");
+    revalidateMajorCache({ id: created.id, universityId: created.universityId });
     return json({ data: created }, 201);
   } catch (e) {
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {

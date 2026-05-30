@@ -5,13 +5,14 @@ import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
 import { BookOpen, Clock, Search, Loader2 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { QuizAccessAction, type AccessStatus, type PublicQuizAccessItem } from "@/components/public/subscription-access";
 
 type QuizItem = {
   id: string; title: string; description: string | null; timeLimit: number; createdAt: string | Date;
+  accessType: "inherit" | "free" | "paid";
+  isFreePreview: boolean;
   _count: { questions: number };
   university?: { id: string; name: string } | null;
   major?: { id: string; name: string; degreeType: string | null; universityId: string } | null;
@@ -35,6 +36,8 @@ export function QuizzesListing({ initialQuizzes, universities, majors, subjects 
   const searchParams = useSearchParams();
 
   const [quizzes, setQuizzes] = useState<QuizItem[]>(initialQuizzes);
+  const [accessItems, setAccessItems] = useState<Record<string, AccessStatus>>({});
+  const [accessLoading, setAccessLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState(searchParams.get("searchTerm") || "");
   const [selectedUniversity, setSelectedUniversity] = useState(searchParams.get("universityId") || "all");
   const [selectedMajor, setSelectedMajor] = useState(searchParams.get("majorId") || "all");
@@ -104,6 +107,22 @@ useEffect(() => {
 useEffect(() => {
   setSelectedSubject("all");
 }, [selectedMajor]);
+
+  const refreshAccess = () => {
+    const ids = quizzes.map((quiz) => quiz.id).join(",");
+    if (!ids) {
+      setAccessItems({});
+      return;
+    }
+    setAccessLoading(true);
+    void fetch(`/api/v1/student/access/status?quizIds=${encodeURIComponent(ids)}`, { cache: "no-store" })
+      .then((res) => res.json())
+      .then((body) => setAccessItems(body?.data?.items ?? {}))
+      .catch(() => setAccessItems({}))
+      .finally(() => setAccessLoading(false));
+  };
+
+  useEffect(refreshAccess, [quizzes]);
   return (
     <section className="py-8 md:py-12" dir="rtl">
       <div className="container px-4 md:px-6">
@@ -179,7 +198,21 @@ useEffect(() => {
                   <p className="text-sm text-muted-foreground">المادة: {quiz.subject?.name || quiz.chapter?.subject?.name || "غير محدد"}</p>
                 </CardContent>
                 <div className="p-6 pt-0">
-                  <Button asChild className="h-11 w-full rounded-xl"><Link href={`/quiz/${quiz.id}`}>ابدأ الاختبار</Link></Button>
+                  <QuizAccessAction
+                    quiz={{
+                      id: quiz.id,
+                      title: quiz.title,
+                      description: quiz.description,
+                      timeLimit: quiz.timeLimit,
+                      accessType: quiz.accessType,
+                      isFreePreview: quiz.isFreePreview,
+                      href: `/quiz/${quiz.id}`,
+                      _count: quiz._count,
+                    } satisfies PublicQuizAccessItem}
+                    access={accessItems[quiz.id] ?? null}
+                    loading={accessLoading && quiz.accessType !== "free" && !quiz.isFreePreview}
+                    onRedeemed={refreshAccess}
+                  />
                 </div>
               </Card>
             ))}

@@ -28,6 +28,8 @@ type ListItem = {
   totalQuestions: number;
   timeLimit: number;
   isActive: boolean;
+  accessType: "inherit" | "free" | "paid";
+  isFreePreview: boolean;
   createdAt: string;
   _count: { questions: number; attempts: number };
 };

@@ -3,11 +3,13 @@
 import { prisma } from "@/lib/prisma";
 import { json, bad, unauth } from "@/lib/http";
 import { verifyAdmin } from "@/lib/admin-auth";
+import { CACHE_CONTROL } from "@/lib/cache-tags";
+import { revalidateUniversityCache } from "@/lib/cache-invalidation";
 import {
   listQuerySchema,
   createUniversitySchema,
 } from "@/validations/university";
-import { unstable_cache, revalidateTag } from "next/cache";
+import { unstable_cache } from "next/cache";
 
 export const dynamic = "force-dynamic";
 
@@ -111,7 +113,7 @@ export async function GET(req: Request) {
   ]);
 
   const headers = new Headers({
-    "cache-control": "public, s-maxage=3600, stale-while-revalidate=60",
+    "cache-control": CACHE_CONTROL.PRIVATE_NO_STORE,
   });
 
   return json(
@@ -155,7 +157,7 @@ export async function POST(req: Request) {
       },
     });
 
-    revalidateTag("universities");
+    revalidateUniversityCache({ id: created.id, countryCode: created.countryCode });
     return json({ data: created }, 201);
   } catch (e) {
     // إعادة رد JSON واضح بدل انهيار 500 غير مهيكل

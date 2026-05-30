@@ -12,6 +12,7 @@ export const listQuizzesQuerySchema = z.object({
 });
 
 const QuestionTypeEnum = z.enum(["multiple_choice", "true_false", "short_answer", "essay"]);
+const QuizAccessTypeEnum = z.enum(["inherit", "free", "paid"]);
 
 export const quizGenerationSettingsSchema = z.object({
   title: z.string().min(1, "title_required"),
@@ -21,4 +22,6 @@ export const quizGenerationSettingsSchema = z.object({
   questionTypes: z.array(QuestionTypeEnum).optional().default([]),
   randomize: z.boolean().default(true),
   selectedChapters: z.array(z.string().min(1)).min(1, "select_at_least_one_chapter"),
+  accessType: QuizAccessTypeEnum.default("inherit"),
+  isFreePreview: z.boolean().default(false),
 });

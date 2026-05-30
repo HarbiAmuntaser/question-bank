@@ -9,7 +9,8 @@ import { encodeSlugPath, stripPrefix } from "@/lib/public/slug-utils";
 import { QuizResults } from "@/components/public/quiz/result/quiz-results";
 import { PublicHeader } from "@/components/public/public-header/public-header";
 
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 type PageParams = { id: string };
 type SearchParams = { session?: string };
@@ -85,13 +86,17 @@ export default async function QuizResultsPage({
   if (!id || !sessionId) notFound();
 
   const quizRes = await fetchJSON<QuizWithQuestions>(
-    `/api/v1/student/quizzes/by-id/${encodeURIComponent(id)}`
+    `/api/v1/student/quizzes/by-id/${encodeURIComponent(id)}`,
+    { cache: "no-store" },
+    0
   );
   if (!quizRes.ok || !quizRes.data) notFound();
   const quiz = quizRes.data;
 
   const ctxRes = await fetchJSON<QuizContext>(
-    `/api/v1/student/quizzes/by-id-context/${encodeURIComponent(id)}`
+    `/api/v1/student/quizzes/by-id-context/${encodeURIComponent(id)}`,
+    { cache: "no-store" },
+    0
   );
   const backToSubjectUrl = ctxRes.ok ? buildSubjectUrlFromContext(ctxRes.data) : null;
 

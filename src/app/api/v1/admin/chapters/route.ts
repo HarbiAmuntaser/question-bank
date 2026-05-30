@@ -1,7 +1,9 @@
 import { prisma } from "@/lib/prisma";
 import { json, bad, unauth } from "@/lib/http";
 import { verifyAdmin } from "@/lib/admin-auth";
-import { unstable_cache, revalidateTag } from "next/cache";
+import { CACHE_CONTROL } from "@/lib/cache-tags";
+import { revalidateChapterCache } from "@/lib/cache-invalidation";
+import { unstable_cache } from "next/cache";
 import { listChaptersQuerySchema, createChapterSchema } from "@/validations/chapter";
 
 export const dynamic = "force-dynamic";
@@ -160,7 +162,7 @@ export async function GET(req: Request) {
   try {
     const payload = await listChaptersCached(q);
     const headers = new Headers({
-      "cache-control": "public, s-maxage=3600, stale-while-revalidate=60",
+      "cache-control": CACHE_CONTROL.PRIVATE_NO_STORE,
     });
     return json(payload, { status: 200, headers });
   } catch {
@@ -188,6 +190,6 @@ export async function POST(req: Request) {
     },
   });
 
-  revalidateTag("chapters");
+  revalidateChapterCache({ subjectId: created.subjectId });
   return json({ data: created }, 201);
 }

@@ -1,28 +1,45 @@
 // src/app/api/v1/student/majors/route.ts
 import { prisma } from "@/lib/prisma";
 import { json, bad } from "@/lib/http";
+import { cacheTags, CACHE_CONTROL, CACHE_TAGS, CACHE_TTL } from "@/lib/cache-tags";
+import { unstable_cache } from "next/cache";
 
 export const dynamic = "force-dynamic";
+
+const listMajorsCached = (universityId?: string) =>
+  unstable_cache(
+    async () =>
+      prisma.major.findMany({
+        where: { isActive: true, ...(universityId ? { universityId } : {}) },
+        orderBy: { name: "asc" },
+        select: {
+          id: true,
+          name: true,
+          code: true,
+          universityId: true,
+          degreeType: true,
+        },
+      }),
+    ["student-majors-list", universityId ?? ""],
+    {
+      revalidate: CACHE_TTL.publicStable,
+      tags: cacheTags(
+        "student-majors",
+        CACHE_TAGS.public.majors,
+        universityId ? CACHE_TAGS.public.majorsByUniversity(universityId) : null
+      ),
+    }
+  )();
 
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const universityId = searchParams.get("universityId") || undefined;
 
-    const data = await prisma.major.findMany({
-      where: { isActive: true, ...(universityId ? { universityId } : {}) },
-      orderBy: { name: "asc" },
-      select: {
-        id: true,
-        name: true,
-        code: true,
-        universityId: true,
-        degreeType: true,
-      },
-    });
+    const data = await listMajorsCached(universityId);
 
     const headers = new Headers({
-      "cache-control": "public, s-maxage=600, stale-while-revalidate=60",
+      "cache-control": CACHE_CONTROL.publicSMaxage(CACHE_TTL.publicStable),
     });
     return json({ data }, { status: 200, headers });
   } catch {

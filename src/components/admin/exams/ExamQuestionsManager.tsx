@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { RichQuestionContent } from "@/components/shared/rich-question-content";
 import { useToast } from "@/hooks/use-toast";
 
 import { ExamQuestionDialog } from "./ExamQuestionDialog";
@@ -126,7 +127,10 @@ export function ExamQuestionsManager({
                   <TableRow key={q.id}>
                     <TableCell className="arabic-numbers font-medium">{q.questionNumber}</TableCell>
                     <TableCell>
-                      <div className="font-medium leading-5">{q.question?.questionText ?? "سؤال غير متوفر"}</div>
+                      <RichQuestionContent
+                        content={q.question?.questionText ?? "سؤال غير متوفر"}
+                        className="font-medium leading-5"
+                      />
                       <div className="text-xs text-muted-foreground">
                         {q.question?.chapter?.subject?.name}
                         {q.question?.chapter?.name ? ` - ${q.question.chapter.name}` : ""}

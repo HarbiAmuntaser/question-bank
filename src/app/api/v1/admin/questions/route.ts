@@ -1,7 +1,9 @@
 import { prisma } from "@/lib/prisma";
 import { json, bad, unauth } from "@/lib/http";
 import { verifyAdmin } from "@/lib/admin-auth";
-import { unstable_cache, revalidateTag } from "next/cache";
+import { CACHE_CONTROL } from "@/lib/cache-tags";
+import { revalidateQuestionCache } from "@/lib/cache-invalidation";
+import { unstable_cache } from "next/cache";
 import type { Prisma } from "@prisma/client";
 import { listQuestionsQuerySchema, createQuestionSchema } from "@/validations/question";
 
@@ -163,7 +165,7 @@ export async function GET(req: Request) {
   try {
     const payload = await listQuestionsCached(q);
     const headers = new Headers({
-      "cache-control": "public, s-maxage=3600, stale-while-revalidate=60",
+      "cache-control": CACHE_CONTROL.PRIVATE_NO_STORE,
     });
     return json(payload, { status: 200, headers });
   } catch {
@@ -214,7 +216,11 @@ export async function POST(req: Request) {
     },
   });
 
-  revalidateTag("questions");
+  const chapter = await prisma.chapter.findUnique({
+    where: { id: created.chapterId },
+    select: { subjectId: true },
+  });
+  revalidateQuestionCache({ subjectId: chapter?.subjectId });
   return json({ data: created, message: "question_created" }, 201);
 }
 

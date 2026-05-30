@@ -1,8 +1,9 @@
 import { prisma } from "@/lib/prisma";
 import { json, bad, unauth, notFound } from "@/lib/http";
 import { verifyAdmin } from "@/lib/admin-auth";
+import { CACHE_CONTROL } from "@/lib/cache-tags";
+import { revalidateChapterCache } from "@/lib/cache-invalidation";
 import { updateChapterSchema } from "@/validations/chapter";
-import { revalidateTag } from "next/cache";
 
 type ChapterUpdateData = {
   name?: string;
@@ -40,7 +41,7 @@ export async function GET(req: Request, context: { params: Promise<{ id: string 
   });
 
   if (!c) return notFound("الفصل غير موجود");
-  return json({ data: c }, { status: 200, headers: { "cache-control": "public, s-maxage=3600" } });
+  return json({ data: c }, { status: 200, headers: { "cache-control": CACHE_CONTROL.PRIVATE_NO_STORE } });
 }
 
 export async function PUT(req: Request, context: { params: Promise<{ id: string }> }) {
@@ -69,7 +70,7 @@ export async function PUT(req: Request, context: { params: Promise<{ id: string 
     data.learningObjectives = Array.isArray(p.learningObjectives) ? p.learningObjectives : [];
 
   const updated = await prisma.chapter.update({ where: { id }, data });
-  revalidateTag("chapters");
+  revalidateChapterCache({ subjectId: updated.subjectId });
   return json({ data: updated });
 }
 
@@ -79,12 +80,17 @@ export async function DELETE(req: Request, context: { params: Promise<{ id: stri
   const auth = await verifyAdmin(req);
   if (!auth.ok) return unauth();
 
+  const target = await prisma.chapter.findUnique({
+    where: { id },
+    select: { subjectId: true },
+  });
+
   try {
     await prisma.chapter.delete({ where: { id } });
   } catch {
     return bad("فشل الحذف. تأكد من عدم وجود علاقات (أسئلة مرتبطة)");
   }
 
-  revalidateTag("chapters");
+  revalidateChapterCache({ subjectId: target?.subjectId });
   return json({ data: true });
 }

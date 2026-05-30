@@ -4,7 +4,7 @@ import { PublicHeader } from "@/components/public/public-header/public-header";
 import { PublicFooter } from "@/components/public/public-footer";
 
 // ISR للصفحة الرئيسية (تحمّل عالي)
-export const revalidate = 300; // 5 دقائق
+export const revalidate = 3600; // ساعة واحدة كبداية قبل رفع TTL أكثر.
 
 export default function HomePage() {
   // مكوناتك الحالية تتولى العرض؛ الربط عبر /api/v1/student/* سنضيفه داخلها لاحقًا.

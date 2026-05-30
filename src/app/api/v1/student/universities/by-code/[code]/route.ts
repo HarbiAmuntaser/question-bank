@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { json, bad } from "@/lib/http";
+import { CACHE_CONTROL, CACHE_TAGS, CACHE_TTL } from "@/lib/cache-tags";
 import { unstable_cache } from "next/cache";
 
 export const dynamic = "force-dynamic";
@@ -76,7 +77,14 @@ const getUniversityByCodeCached = (code: string, variants: string[]) =>
     },
     // ✅ keyParts ثابتة (نضيف code النظيفة فقط كثابت)
     ["student-university-detail-by-code", code],
-    { revalidate: 600, tags: ["student-universities", "student-university-detail"] }
+    {
+      revalidate: CACHE_TTL.publicLong,
+      tags: [
+        "student-universities",
+        "student-university-detail",
+        CACHE_TAGS.public.institutions,
+      ],
+    }
   )();
 
 export async function GET(_req: Request, ctx: { params: Promise<{ code: string }> }) {
@@ -91,7 +99,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ code: string }
     if (!data) return bad("not_found", undefined, 404);
 
     const headers = new Headers({
-      "cache-control": "public, s-maxage=600, stale-while-revalidate=60",
+      "cache-control": CACHE_CONTROL.publicSMaxage(CACHE_TTL.publicLong),
     });
     return json({ data }, { status: 200, headers });
   } catch {

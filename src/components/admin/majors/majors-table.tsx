@@ -71,16 +71,7 @@ async function fetchMajors(args: {
 }
 
 async function fetchUniversitiesForFilter(): Promise<UniversityOption[]> {
-  const qs = buildQuery({ page: 1, pageSize: 1000, sortBy: "name", sortOrder: "asc" });
-  const res = await adminApiFetch(`/api/v1/admin/universities?${qs}`, {
-    next: { revalidate: 3600, tags: ["universities"] },
-  });
-  if (!res.ok) return [];
-  const payload = (await res.json()) as {
-    data: Array<{ id: string; name: string; code: string | null }>;
-    pagination: PaginationMeta;
-  };
-  return payload.data.map((u) => ({ id: u.id, name: u.name, code: u.code ?? null }));
+  return [];
 }
 
 export async function MajorsTable({

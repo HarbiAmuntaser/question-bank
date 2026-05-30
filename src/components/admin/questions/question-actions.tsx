@@ -56,7 +56,7 @@ export function QuestionActions({ question }: QuestionActionsProps) {
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="h-8 w-8 p-0" disabled={isLoadingEdit}>
+          <Button variant="ghost" className="h-8 w-8 p-0" disabled={isLoadingEdit} aria-label="Open actions menu">
             <span className="sr-only">فتح القائمة</span>
             <MoreHorizontal className="h-4 w-4" />
           </Button>

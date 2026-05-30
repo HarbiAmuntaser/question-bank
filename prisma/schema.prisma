@@ -3,10 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
-
 }
 
 // -----------------
@@ -77,9 +76,9 @@ enum AttachmentOwnerType {
   question
   quiz
   chapter
-  scoreubject
+  subject
+  exam
 
-  // ✅ NEW: Blog
   blog_post
 }
 
@@ -104,19 +103,20 @@ model User {
   createdAt     DateTime  @default(now())
 
   // Relations
-  accounts            Account[]
-  sessions            Session[]
-  universitiesCreated University[]        @relation("UniversityCreatedBy")
-  majorsCreated       Major[]             @relation("MajorCreatedBy")
-  subjectsCreated     Subject[]           @relation("SubjectCreatedBy")
-  chaptersCreated     Chapter[]           @relation("ChapterCreatedBy")
-  questionsCreated    Question[]          @relation("QuestionCreatedBy")
-  quizzesCreated      Quiz[]              @relation("QuizCreatedBy")
-  quizAttempts        QuizAttempt[]
-  examsCreated        ExamPaper[]         @relation("ExamPaperCreatedBy")
-  blogPostsCreated    BlogPost[]          @relation("BlogPostCreatedBy")
-  blogPostsUpdated    BlogPost[]          @relation("BlogPostUpdatedBy")
-  blogPostViewEvents  BlogPostViewEvent[] @relation("BlogPostViewUser")
+  accounts                 Account[]
+  sessions                 Session[]
+  universitiesCreated      University[]        @relation("UniversityCreatedBy")
+  majorsCreated            Major[]             @relation("MajorCreatedBy")
+  subjectsCreated          Subject[]           @relation("SubjectCreatedBy")
+  chaptersCreated          Chapter[]           @relation("ChapterCreatedBy")
+  questionsCreated         Question[]          @relation("QuestionCreatedBy")
+  quizzesCreated           Quiz[]              @relation("QuizCreatedBy")
+  quizAttempts             QuizAttempt[]
+  examsCreated             ExamPaper[]         @relation("ExamPaperCreatedBy")
+  blogPostsCreated         BlogPost[]          @relation("BlogPostCreatedBy")
+  blogPostsUpdated         BlogPost[]          @relation("BlogPostUpdatedBy")
+  blogPostViewEvents       BlogPostViewEvent[] @relation("BlogPostViewUser")
+  subscriptionCodesCreated SubscriptionCode[]  @relation("SubscriptionCodeCreatedBy")
 
   @@map("users")
 }
@@ -168,9 +168,11 @@ model Major {
   updatedAt     DateTime @updatedAt
 
   // Relations
-  university University @relation(fields: [universityId], references: [id], onDelete: Cascade)
-  creator    User?      @relation("MajorCreatedBy", fields: [createdBy], references: [id])
-  subjects   Subject[]
+  university         University          @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  creator            User?               @relation("MajorCreatedBy", fields: [createdBy], references: [id])
+  subjects           Subject[]
+  paidAccessPlans    PaidAccessPlan[]    @relation("MajorPaidAccessPlans")
+  accessEntitlements AccessEntitlement[] @relation("MajorAccessEntitlements")
 
   @@unique([universityId, code])
   @@map("majors")
@@ -194,11 +196,13 @@ model Subject {
   updatedAt   DateTime @updatedAt
 
   // Relations
-  major    Major       @relation(fields: [majorId], references: [id], onDelete: Cascade)
-  creator  User?       @relation("SubjectCreatedBy", fields: [createdBy], references: [id])
-  chapters Chapter[]
-  Quiz     Quiz[]
-  exams    ExamPaper[]
+  major              Major               @relation(fields: [majorId], references: [id], onDelete: Cascade)
+  creator            User?               @relation("SubjectCreatedBy", fields: [createdBy], references: [id])
+  chapters           Chapter[]
+  Quiz               Quiz[]
+  exams              ExamPaper[]
+  paidAccessPlans    PaidAccessPlan[]    @relation("SubjectPaidAccessPlans")
+  accessEntitlements AccessEntitlement[] @relation("SubjectAccessEntitlements")
 
   @@unique([majorId, code])
   @@map("subjects")
@@ -283,16 +287,18 @@ model QuestionOption {
 // Quizzes (generated quizzes)
 // -----------------
 model Quiz {
-  id             String   @id @default(uuid())
+  id             String         @id @default(uuid())
   title          String
   description    String?
-  timeLimit      Int      @default(30)
+  timeLimit      Int            @default(30)
   totalQuestions Int
-  totalPoints    Int      @default(0)
-  isActive       Boolean  @default(true)
+  totalPoints    Int            @default(0)
+  isActive       Boolean        @default(true)
   createdBy      String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  isFreePreview  Boolean        @default(false)
+  accessType     QuizAccessType @default(inherit)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
 
   // Relations
   creator   User?          @relation("QuizCreatedBy", fields: [createdBy], references: [id])
@@ -407,8 +413,10 @@ model AnonymousSession {
   blogPostViewEvents BlogPostViewEvent[] @relation("BlogPostViewSession")
 
   // Relations
-  quizAttempts    QuizAttempt[]
-  sessionProgress SessionProgress[]
+  quizAttempts       QuizAttempt[]
+  sessionProgress    SessionProgress[]
+  accessEntitlements AccessEntitlement[]    @relation("AnonymousSessionEntitlements")
+  paymentRequests    ManualPaymentRequest[] @relation("AnonymousSessionPaymentRequests")
 
   @@map("anonymous_sessions")
 }
@@ -580,6 +588,166 @@ model SeoMeta {
   @@index([ownerType, ownerId])
   @@index([slug, locale])
   @@map("seo_meta")
+}
+
+//pay
+// -----------------
+// Manual Subscription / Paid Access
+// -----------------
+
+enum AccessScopeType {
+  major
+  subject
+}
+
+enum ContactMethod {
+  whatsapp
+  telegram
+}
+
+enum ManualPaymentStatus {
+  pending
+  contacted
+  paid
+  rejected
+  completed
+}
+
+enum QuizAccessType {
+  inherit
+  free
+  paid
+}
+
+model PaidAccessPlan {
+  id String @id @default(uuid())
+
+  scopeType AccessScopeType
+  majorId   String?
+  subjectId String?
+
+  title       String
+  description String?
+
+  price    Decimal? @db.Decimal(10, 2)
+  currency String?  @default("SAR")
+
+  isActive Boolean @default(true)
+
+  whatsappNumber   String?
+  telegramUsername String?
+  contactMessage   String?
+
+  defaultDurationDays Int?
+  defaultMaxUses      Int  @default(1)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  major   Major?   @relation("MajorPaidAccessPlans", fields: [majorId], references: [id], onDelete: Cascade)
+  subject Subject? @relation("SubjectPaidAccessPlans", fields: [subjectId], references: [id], onDelete: Cascade)
+
+  codes           SubscriptionCode[]
+  paymentRequests ManualPaymentRequest[]
+
+  @@index([scopeType])
+  @@index([majorId])
+  @@index([subjectId])
+  @@index([isActive])
+  @@map("paid_access_plans")
+}
+
+model SubscriptionCode {
+  id String @id @default(uuid())
+
+  codeHash    String  @unique
+  codePreview String?
+
+  planId String
+  plan   PaidAccessPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  durationDays Int?
+  startsAt     DateTime?
+  expiresAt    DateTime?
+
+  maxUses   Int @default(1)
+  usedCount Int @default(0)
+
+  isActive Boolean @default(true)
+  note     String?
+
+  createdBy String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  creator User? @relation("SubscriptionCodeCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+
+  entitlements AccessEntitlement[]
+
+  @@index([planId])
+  @@index([isActive])
+  @@index([expiresAt])
+  @@index([createdBy])
+  @@map("subscription_codes")
+}
+
+model AccessEntitlement {
+  id String @id @default(uuid())
+
+  anonymousSessionId String
+  anonymousSession   AnonymousSession @relation("AnonymousSessionEntitlements", fields: [anonymousSessionId], references: [id], onDelete: Cascade)
+
+  codeId String?
+  code   SubscriptionCode? @relation(fields: [codeId], references: [id], onDelete: SetNull)
+
+  scopeType AccessScopeType
+  majorId   String?
+  subjectId String?
+
+  startsAt  DateTime  @default(now())
+  expiresAt DateTime?
+  isActive  Boolean   @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  major   Major?   @relation("MajorAccessEntitlements", fields: [majorId], references: [id], onDelete: Cascade)
+  subject Subject? @relation("SubjectAccessEntitlements", fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@index([anonymousSessionId])
+  @@index([scopeType])
+  @@index([majorId])
+  @@index([subjectId])
+  @@index([expiresAt])
+  @@index([isActive])
+  @@map("access_entitlements")
+}
+
+model ManualPaymentRequest {
+  id String @id @default(uuid())
+
+  anonymousSessionId String?
+  anonymousSession   AnonymousSession? @relation("AnonymousSessionPaymentRequests", fields: [anonymousSessionId], references: [id], onDelete: SetNull)
+
+  planId String?
+  plan   PaidAccessPlan? @relation(fields: [planId], references: [id], onDelete: SetNull)
+
+  contactMethod ContactMethod?
+  contactValue  String?
+
+  message String?
+  pageUrl String?
+
+  status ManualPaymentStatus @default(pending)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([anonymousSessionId])
+  @@index([planId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("manual_payment_requests")
 }
 
 // -----------------

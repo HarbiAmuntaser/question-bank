@@ -3,7 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { json, bad, unauth } from "@/lib/http";
 import { verifyAdmin } from "@/lib/admin-auth";
-import { revalidateTag } from "next/cache";
+import { revalidateQuizCache } from "@/lib/cache-invalidation";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
@@ -49,6 +49,8 @@ const updateQuizSchema = z.object({
   description: z.string().nullable().optional(),
   timeLimit: z.coerce.number().int().min(1).max(180).optional(),
   isActive: z.boolean().optional(),
+  accessType: z.enum(["inherit", "free", "paid"]).optional(),
+  isFreePreview: z.boolean().optional(),
 });
 
 export async function PUT(req: Request, { params }: RouteContext) {
@@ -66,7 +68,7 @@ export async function PUT(req: Request, { params }: RouteContext) {
     data: parsed.data,
   });
 
-  revalidateTag("quizzes");
+  revalidateQuizCache({ id: updated.id, subjectId: updated.subjectId });
   return json({ data: updated, message: "تم تحديث الاختبار بنجاح" }, 200);
 }
 
@@ -76,7 +78,8 @@ export async function DELETE(req: Request, { params }: RouteContext) {
   const auth = await verifyAdmin(req);
   if (!auth.ok) return unauth();
 
+  const target = await prisma.quiz.findUnique({ where: { id }, select: { subjectId: true } });
   await prisma.quiz.delete({ where: { id } });
-  revalidateTag("quizzes");
+  revalidateQuizCache({ id, subjectId: target?.subjectId });
   return json({ message: "تم حذف الاختبار" }, 200);
 }

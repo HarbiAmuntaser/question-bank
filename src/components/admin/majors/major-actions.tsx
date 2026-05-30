@@ -33,7 +33,7 @@ export function MajorActions({ major }: MajorActionsProps) {
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="h-8 w-8 p-0">
+          <Button variant="ghost" className="h-8 w-8 p-0" aria-label="Open actions menu">
             <span className="sr-only">فتح القائمة</span>
             <MoreHorizontal className="h-4 w-4" />
           </Button>

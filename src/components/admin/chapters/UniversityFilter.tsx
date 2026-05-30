@@ -1,18 +1,17 @@
-// src/components/admin/chapters/UniversityFilter.tsx
 "use client";
 
-import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+
+import { AdminLookupCombobox } from "@/components/admin/admin-lookup-combobox";
 
 type Option = { id: string; name: string; code: string | null };
 
 export function UniversityFilter({
-  options,
   value,
   placeholder = "الجامعة",
   allValue = "__all__",
 }: {
-  options: Option[];
+  options?: Option[];
   value: string;
   placeholder?: string;
   allValue?: string;
@@ -20,15 +19,12 @@ export function UniversityFilter({
   const router = useRouter();
   const sp = useSearchParams();
   const pathname = usePathname();
+  const selectedValue = value === allValue ? "" : value;
 
-  const onChange = (val: string) => {
+  const onChange = (next: string) => {
     const params = new URLSearchParams(sp.toString());
-    if (val === allValue) {
-      params.delete("universityId");
-    } else {
-      params.set("universityId", val);
-    }
-    // عند تغيير الجامعة احذف التخصص والمقرر
+    if (next) params.set("universityId", next);
+    else params.delete("universityId");
     params.delete("majorId");
     params.delete("subjectId");
     params.delete("page");
@@ -36,18 +32,13 @@ export function UniversityFilter({
   };
 
   return (
-    <Select value={value} onValueChange={onChange}>
-      <SelectTrigger className="w-48">
-        <SelectValue placeholder={placeholder} />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value={allValue}>كل الجامعات</SelectItem>
-        {options.map((u) => (
-          <SelectItem key={u.id} value={u.id}>
-            {u.name}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <div className="w-full sm:w-48">
+      <AdminLookupCombobox
+        type="university"
+        value={selectedValue}
+        onValueChange={onChange}
+        placeholder={placeholder}
+      />
+    </div>
   );
 }

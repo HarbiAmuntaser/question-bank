@@ -3,6 +3,7 @@
 // src/app/api/v1/student/universities/[id]/route.ts
 import { prisma } from "@/lib/prisma";
 import { json, bad } from "@/lib/http";
+import { CACHE_CONTROL, CACHE_TAGS, CACHE_TTL } from "@/lib/cache-tags";
 import { unstable_cache } from "next/cache";
 
 export const dynamic = "force-dynamic";
@@ -12,8 +13,9 @@ type RouteContext = {
   params: Promise<RouteParams>;
 };
 
-const getUniversityDetailsCached = unstable_cache(
-  async (id: string) => {
+const getUniversityDetailsCached = (id: string) =>
+  unstable_cache(
+  async () => {
     // الجامعة + التخصصات + عدّ المواد لكل تخصص
     const university = await prisma.university.findUnique({
       where: { id, isActive: true },
@@ -57,9 +59,17 @@ const getUniversityDetailsCached = unstable_cache(
       },
     };
   },
-  ["student-university-detail"],
-  { revalidate: 600, tags: ["student-universities", "student-university-detail"] }
-);
+  ["student-university-detail", id],
+  {
+    revalidate: CACHE_TTL.publicLong,
+    tags: [
+      "student-universities",
+      "student-university-detail",
+      CACHE_TAGS.public.institutions,
+      CACHE_TAGS.public.institution(id),
+    ],
+  }
+)();
 
 export async function GET(_req: Request, { params }: RouteContext) {
   const { id } = await params;
@@ -70,7 +80,7 @@ export async function GET(_req: Request, { params }: RouteContext) {
     if (!data) return bad("not_found", undefined, 404);
 
     const headers = new Headers({
-      "cache-control": "public, s-maxage=600, stale-while-revalidate=60",
+      "cache-control": CACHE_CONTROL.publicSMaxage(CACHE_TTL.publicLong),
     });
     return json({ data }, { status: 200, headers });
   } catch {

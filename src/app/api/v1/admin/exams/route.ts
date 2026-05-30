@@ -2,6 +2,7 @@
 import { prisma } from "@/lib/prisma";
 import { json, bad, unauth } from "@/lib/http";
 import { verifyAdmin } from "@/lib/admin-auth";
+import { CACHE_CONTROL } from "@/lib/cache-tags";
 import { unstable_cache, revalidateTag } from "next/cache";
 import { listExamPapersQuerySchema, createExamPaperSchema } from "@/validations/exam";
 import type { Prisma } from "@prisma/client";
@@ -139,7 +140,7 @@ export async function GET(req: Request) {
   try {
     const payload = await listExamsCached(q);
     const headers = new Headers({
-      "cache-control": "public, s-maxage=3600, stale-while-revalidate=60",
+      "cache-control": CACHE_CONTROL.PRIVATE_NO_STORE,
     });
     return json(payload, { status: 200, headers });
   } catch {

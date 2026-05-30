@@ -32,6 +32,8 @@ export function QuizGenerator() {
     timeLimit: 30,
     difficulty: "mixed" as "mixed" | "easy" | "medium" | "hard",
     randomize: true,
+    accessType: "inherit" as "inherit" | "free" | "paid",
+    isFreePreview: false,
   });
 
   const [selectedChapters, setSelectedChapters] = useState<string[]>([]);
@@ -68,6 +70,8 @@ export function QuizGenerator() {
         questionTypes: [], // ⬅️ إلغاء فلتر النوع
         randomize: quizSettings.randomize,
         selectedChapters,
+        accessType: quizSettings.accessType,
+        isFreePreview: quizSettings.isFreePreview,
       });
 
       if (r.success) {
@@ -106,6 +110,8 @@ export function QuizGenerator() {
         questionTypes: [],                    // ⬅️ بدون فلترة النوع
         randomize: quizSettings.randomize,
         selectedChapters,
+        accessType: quizSettings.accessType,
+        isFreePreview: quizSettings.isFreePreview,
       });
 
       if (r.success) {
@@ -116,6 +122,8 @@ export function QuizGenerator() {
           timeLimit: 30,
           difficulty: "mixed",
           randomize: true,
+          accessType: "inherit",
+          isFreePreview: false,
         });
         setSelectedChapters([]);
         setPreviewData(null);
@@ -147,6 +155,8 @@ export function QuizGenerator() {
           questionTypes: [],
           randomize: quizSettings.randomize,
           selectedChapters,
+          accessType: quizSettings.accessType,
+          isFreePreview: quizSettings.isFreePreview,
         },
         "json",
       );

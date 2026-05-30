@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import type { QuestionWithOptions, QuizAnswer } from "@/types";
 import { Star } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { RichQuestionContent } from "@/components/shared/rich-question-content";
 
 import { detectTextDir, detectTextLang } from "./text-direction";
 import { QuestionOptions } from "./question-options";
@@ -62,7 +63,7 @@ export function QuestionDisplay({ question, questionNumber, answer, onAnswerChan
       <CardContent className="space-y-6">
         {/* نص السؤال */}
         <div className={cn("prose prose-lg max-w-none dark:prose-invert", dir === "rtl" ? "text-right" : "text-left")}>
-          <p className="text-gray-900 dark:text-gray-100 leading-relaxed">{question.questionText}</p>
+          <RichQuestionContent content={question.questionText} textClassName="text-gray-900 dark:text-gray-100" />
         </div>
 
         {/* صورة السؤال */}

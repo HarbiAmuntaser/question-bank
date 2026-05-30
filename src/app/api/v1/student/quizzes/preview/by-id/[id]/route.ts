@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { json, bad } from "@/lib/http";
+import { CACHE_CONTROL, CACHE_TAGS, CACHE_TTL } from "@/lib/cache-tags";
 import { unstable_cache } from "next/cache";
 
 export const dynamic = "force-dynamic";
@@ -24,6 +25,8 @@ const getPreviewCached = (id: string) =>
           totalQuestions: true,
           totalPoints: true,
           createdAt: true,
+          accessType: true,
+          isFreePreview: true,
           _count: { select: { questions: true } },
 
           subject: {
@@ -131,6 +134,8 @@ const getPreviewCached = (id: string) =>
         totalQuestions: quiz.totalQuestions ?? quiz._count?.questions ?? 0,
         totalPoints: quiz.totalPoints ?? 0,
         createdAt: quiz.createdAt,
+        accessType: quiz.accessType,
+        isFreePreview: quiz.isFreePreview,
         seo: { slug: quizSeo?.slug ?? null },
         context: {
           university: {
@@ -149,7 +154,10 @@ const getPreviewCached = (id: string) =>
       };
     },
     ["student-quiz-preview-by-id", id],
-    { revalidate: 300, tags: ["student-quizzes", "student-quiz-preview"] }
+    {
+      revalidate: CACHE_TTL.publicLong,
+      tags: ["student-quizzes", "student-quiz-preview", CACHE_TAGS.public.quizzes, CACHE_TAGS.public.quiz(id)],
+    }
   )();
 
 export async function GET(_req: Request, { params }: RouteContext) {
@@ -163,7 +171,7 @@ export async function GET(_req: Request, { params }: RouteContext) {
     if (!data) return bad("not_found", undefined, 404);
 
     const headers = new Headers({
-      "cache-control": "public, s-maxage=300, stale-while-revalidate=60",
+      "cache-control": CACHE_CONTROL.publicSMaxage(CACHE_TTL.publicLong),
     });
     return json({ data }, { status: 200, headers });
   } catch {

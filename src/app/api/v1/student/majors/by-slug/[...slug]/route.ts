@@ -1,6 +1,7 @@
 // file: src/app/api/v1/student/majors/by-slug/[...slug]/route.ts
 import { prisma } from "@/lib/prisma";
 import { json, bad } from "@/lib/http";
+import { CACHE_CONTROL, CACHE_TAGS, CACHE_TTL } from "@/lib/cache-tags";
 import { unstable_cache } from "next/cache";
 
 export const dynamic = "force-dynamic";
@@ -95,7 +96,10 @@ const getMajorDetailsCached = (id: string) =>
       };
     },
     ["student-major-detail-by-id", id],
-    { revalidate: 600, tags: ["student-majors", "student-major-detail"] }
+    {
+      revalidate: CACHE_TTL.publicLong,
+      tags: ["student-majors", "student-major-detail", CACHE_TAGS.public.majors, CACHE_TAGS.public.major(id)],
+    }
   )();
 
 export async function GET(
@@ -118,7 +122,7 @@ export async function GET(
     if (!data) return bad("not_found", undefined, 404);
 
     const headers = new Headers({
-      "cache-control": "public, s-maxage=600, stale-while-revalidate=60",
+      "cache-control": CACHE_CONTROL.publicSMaxage(CACHE_TTL.publicLong),
     });
     return json({ data }, { status: 200, headers });
   } catch {

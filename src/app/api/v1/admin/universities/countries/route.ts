@@ -2,6 +2,7 @@
 import { prisma } from "@/lib/prisma";
 import { json, bad, unauth } from "@/lib/http";
 import { verifyAdmin } from "@/lib/admin-auth";
+import { CACHE_CONTROL } from "@/lib/cache-tags";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +22,7 @@ export async function GET(req: Request) {
       .map((r) => r.countryCode)
       .filter(Boolean) as string[];
 
-    return json({ data: countries }, { status: 200, headers: { "cache-control": "public, s-maxage=3600" } });
+    return json({ data: countries }, { status: 200, headers: { "cache-control": CACHE_CONTROL.PRIVATE_NO_STORE } });
   } catch {
     return bad("failed_to_list_countries");
   }

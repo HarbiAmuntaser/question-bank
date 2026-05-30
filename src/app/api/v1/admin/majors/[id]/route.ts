@@ -2,8 +2,9 @@
 import { prisma } from "@/lib/prisma";
 import { json, bad, unauth, notFound } from "@/lib/http";
 import { verifyAdmin } from "@/lib/admin-auth";
+import { CACHE_CONTROL } from "@/lib/cache-tags";
+import { revalidateMajorCache } from "@/lib/cache-invalidation";
 import { updateMajorSchema } from "@/validations/major";
-import { revalidateTag } from "next/cache";
 import type { Prisma } from "@prisma/client";
 
 interface RouteParams { params: Promise<{ id: string }> }
@@ -24,7 +25,7 @@ export async function GET(req: Request, ctx: RouteParams) {
     },
   });
   if (!m) return notFound("التخصص غير موجود");
-  return json({ data: m }, { status: 200, headers: { "cache-control": "public, s-maxage=3600" } });
+  return json({ data: m }, { status: 200, headers: { "cache-control": CACHE_CONTROL.PRIVATE_NO_STORE } });
 }
 
 export async function PUT(req: Request, ctx: RouteParams) {
@@ -52,7 +53,7 @@ export async function PUT(req: Request, ctx: RouteParams) {
   if (Object.prototype.hasOwnProperty.call(p, "durationYears")) data.durationYears = p.durationYears ?? null;
 
   const updated = await prisma.major.update({ where: { id }, data });
-  revalidateTag("majors");
+  revalidateMajorCache({ id: updated.id, universityId: updated.universityId });
   return json({ data: updated });
 }
 
@@ -62,12 +63,17 @@ export async function DELETE(req: Request, ctx: RouteParams) {
 
   const { id } = await ctx.params;
 
+  const target = await prisma.major.findUnique({
+    where: { id },
+    select: { universityId: true },
+  });
+
   try {
     await prisma.major.delete({ where: { id } });
   } catch {
     return bad("فشل الحذف. تأكد من عدم وجود علاقات (مواد مرتبطة)");
   }
 
-  revalidateTag("majors");
+  revalidateMajorCache({ id, universityId: target?.universityId });
   return json({ data: true });
 }

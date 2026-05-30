@@ -25,7 +25,7 @@ import {
 
 import { fetchJSON } from "@/lib/server/student-fetch";
 
-export const revalidate = 300;
+export const revalidate = 21600;
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://bank.example.com";
 
@@ -90,11 +90,19 @@ type QuizPreview = {
 async function fetchUniversityBySlugOrCode(slugPathRaw: string): Promise<{ uni: University | null }> {
   const slugPath = stripPrefix(slugPathRaw, "جامعات");
 
-  const bySlug = await fetchJSON<University>(`/api/v1/student/universities/by-slug/${encodeSlugPath(slugPath)}`);
+  const bySlug = await fetchJSON<University>(
+    `/api/v1/student/universities/by-slug/${encodeSlugPath(slugPath)}`,
+    undefined,
+    21600
+  );
   if (bySlug.ok && bySlug.data) return { uni: bySlug.data };
 
   if (!slugPath.includes("/")) {
-    const byCode = await fetchJSON<University>(`/api/v1/student/universities/by-code/${encodeURIComponent(slugPath)}`);
+    const byCode = await fetchJSON<University>(
+      `/api/v1/student/universities/by-code/${encodeURIComponent(slugPath)}`,
+      undefined,
+      21600
+    );
     if (byCode.ok && byCode.data) return { uni: byCode.data };
   }
 
@@ -103,18 +111,26 @@ async function fetchUniversityBySlugOrCode(slugPathRaw: string): Promise<{ uni: 
 
 async function getSeoForUniversitySlug(slugPathRaw: string): Promise<SeoMeta | null> {
   const slugPath = stripPrefix(slugPathRaw, "جامعات");
-  const r = await fetchJSON<SeoMeta>(`/api/v1/student/seo/university/${encodeSlugPath(slugPath)}`);
+  const r = await fetchJSON<SeoMeta>(`/api/v1/student/seo/university/${encodeSlugPath(slugPath)}`, undefined, 21600);
   return r.ok ? r.data : null;
 }
 
 async function fetchMajorBySlugOrCode(majorSlugPathRaw: string): Promise<{ major: Major | null }> {
   const majorSlugPath = stripPrefix(majorSlugPathRaw, "تخصصات");
 
-  const bySlug = await fetchJSON<Major>(`/api/v1/student/majors/by-slug/${encodeSlugPath(majorSlugPath)}`);
+  const bySlug = await fetchJSON<Major>(
+    `/api/v1/student/majors/by-slug/${encodeSlugPath(majorSlugPath)}`,
+    undefined,
+    21600
+  );
   if (bySlug.ok && bySlug.data) return { major: bySlug.data };
 
   if (!majorSlugPath.includes("/")) {
-    const byCode = await fetchJSON<Major>(`/api/v1/student/majors/by-code/${encodeURIComponent(majorSlugPath)}`);
+    const byCode = await fetchJSON<Major>(
+      `/api/v1/student/majors/by-code/${encodeURIComponent(majorSlugPath)}`,
+      undefined,
+      21600
+    );
     if (byCode.ok && byCode.data) return { major: byCode.data };
   }
 
@@ -124,11 +140,19 @@ async function fetchMajorBySlugOrCode(majorSlugPathRaw: string): Promise<{ major
 async function fetchSubjectBySlugOrCode(subjectSlugPathRaw: string): Promise<{ subject: Subject | null }> {
   const subjectSlugPath = stripPrefix(subjectSlugPathRaw, "مواد");
 
-  const bySlug = await fetchJSON<Subject>(`/api/v1/student/subjects/by-slug/${encodeSlugPath(subjectSlugPath)}`);
+  const bySlug = await fetchJSON<Subject>(
+    `/api/v1/student/subjects/by-slug/${encodeSlugPath(subjectSlugPath)}`,
+    undefined,
+    21600
+  );
   if (bySlug.ok && bySlug.data) return { subject: bySlug.data };
 
   if (!subjectSlugPath.includes("/")) {
-    const byCode = await fetchJSON<Subject>(`/api/v1/student/subjects/by-code/${encodeURIComponent(subjectSlugPath)}`);
+    const byCode = await fetchJSON<Subject>(
+      `/api/v1/student/subjects/by-code/${encodeURIComponent(subjectSlugPath)}`,
+      undefined,
+      21600
+    );
     if (byCode.ok && byCode.data) return { subject: byCode.data };
   }
 
@@ -137,7 +161,7 @@ async function fetchSubjectBySlugOrCode(subjectSlugPathRaw: string): Promise<{ s
 
 async function getSeoForSubjectSlug(subjectSlugPathRaw: string): Promise<SeoMeta | null> {
   const subjectSlugPath = stripPrefix(subjectSlugPathRaw, "مواد");
-  const r = await fetchJSON<SeoMeta>(`/api/v1/student/seo/subject/${encodeSlugPath(subjectSlugPath)}`);
+  const r = await fetchJSON<SeoMeta>(`/api/v1/student/seo/subject/${encodeSlugPath(subjectSlugPath)}`, undefined, 21600);
   return r.ok ? r.data : null;
 }
 
@@ -145,13 +169,17 @@ async function fetchQuizPreviewBySlugOrId(quizSlugPathRaw: string): Promise<{ qu
   const quizSlugPath = stripPrefix(quizSlugPathRaw, "اختبارات");
 
   const bySlug = await fetchJSON<QuizPreview>(
-    `/api/v1/student/quizzes/preview/by-slug/${encodeSlugPath(quizSlugPath)}`
+    `/api/v1/student/quizzes/preview/by-slug/${encodeSlugPath(quizSlugPath)}`,
+    undefined,
+    21600
   );
   if (bySlug.ok && bySlug.data) return { quiz: bySlug.data };
 
   if (!quizSlugPath.includes("/")) {
     const byId = await fetchJSON<QuizPreview>(
-      `/api/v1/student/quizzes/preview/by-id/${encodeURIComponent(quizSlugPath)}`
+      `/api/v1/student/quizzes/preview/by-id/${encodeURIComponent(quizSlugPath)}`,
+      undefined,
+      21600
     );
     if (byId.ok && byId.data) return { quiz: byId.data };
   }
@@ -161,7 +189,7 @@ async function fetchQuizPreviewBySlugOrId(quizSlugPathRaw: string): Promise<{ qu
 
 async function getSeoForQuizSlug(quizSlugPathRaw: string): Promise<SeoMeta | null> {
   const quizSlugPath = stripPrefix(quizSlugPathRaw, "اختبارات");
-  const r = await fetchJSON<SeoMeta>(`/api/v1/student/seo/quiz/${encodeSlugPath(quizSlugPath)}`);
+  const r = await fetchJSON<SeoMeta>(`/api/v1/student/seo/quiz/${encodeSlugPath(quizSlugPath)}`, undefined, 21600);
   return r.ok ? r.data : null;
 }
 

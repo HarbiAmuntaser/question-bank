@@ -54,7 +54,17 @@ export async function fetchQuizById(id: string) {
   return { success: true, quiz: data?.data };
 }
 
-export async function updateQuizAction(id: string, payload: { title?: string; description?: string | null; timeLimit?: number; isActive?: boolean; }) {
+export async function updateQuizAction(
+  id: string,
+  payload: {
+    title?: string;
+    description?: string | null;
+    timeLimit?: number;
+    isActive?: boolean;
+    accessType?: "inherit" | "free" | "paid";
+    isFreePreview?: boolean;
+  },
+) {
   const res = await apiFetch(`/api/v1/admin/quizzes/${id}`, {
     method: "PUT",
     body: JSON.stringify(payload),

@@ -1,6 +1,9 @@
 // src/app/api/v1/student/quizzes/grade/route.ts
 import { prisma } from "@/lib/prisma";
-import { json, bad } from "@/lib/http";
+import { json } from "@/lib/http";
+import { CACHE_CONTROL } from "@/lib/cache-tags";
+import { getOrCreateAnonymousSession } from "@/lib/server/anonymous-session";
+import { checkQuizAccess } from "@/lib/server/access-control";
 
 export const dynamic = "force-dynamic";
 
@@ -18,13 +21,24 @@ export const dynamic = "force-dynamic";
  * }
  */
 export async function POST(req: Request) {
+  const privateHeaders = new Headers({
+    "cache-control": CACHE_CONTROL.PRIVATE_NO_STORE,
+  });
+
   try {
     const body = await req.json().catch(() => null);
     if (!body || !body.quizId || !body.answers) {
-      return bad("invalid_payload", 400);
+      return json({ error: "invalid_payload" }, { status: 400, headers: privateHeaders });
     }
 
     const quizId: string = body.quizId;
+    const { session } = await getOrCreateAnonymousSession();
+    const access = await checkQuizAccess({ quizId, anonymousSessionId: session.id });
+    if (access.reason === "not_found") return json({ error: "not_found" }, { status: 404, headers: privateHeaders });
+    if (!access.allowed) {
+      return json({ error: "paid_access_required", details: access }, { status: 403, headers: privateHeaders });
+    }
+
     const answers: Record<
       string,
       { questionId: string; selectedOptionIds?: string[]; booleanAnswer?: boolean; textAnswer?: string }
@@ -62,7 +76,7 @@ export async function POST(req: Request) {
       },
     });
 
-    if (!quiz) return bad("not_found", 404);
+    if (!quiz) return json({ error: "not_found" }, { status: 404, headers: privateHeaders });
 
     // 2) التصحيح
     let correctAnswers = 0;
@@ -119,12 +133,8 @@ export async function POST(req: Request) {
       completedAt: new Date().toISOString(),
     };
 
-    const headers = new Headers({
-      "cache-control": "public, s-maxage=60, stale-while-revalidate=30",
-    });
-
-    return json({ data: result }, { status: 200, headers });
+    return json({ data: result }, { status: 200, headers: privateHeaders });
   } catch {
-    return bad("failed_to_grade_quiz", 500);
+    return json({ error: "failed_to_grade_quiz" }, { status: 500, headers: privateHeaders });
   }
 }

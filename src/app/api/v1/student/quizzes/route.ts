@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { json, bad } from "@/lib/http";
+import { CACHE_CONTROL, CACHE_TTL } from "@/lib/cache-tags";
 
 export const dynamic = "force-dynamic";
 
@@ -95,6 +96,8 @@ export async function GET(req: Request) {
           description: true,
           timeLimit: true,
           createdAt: true,
+          accessType: true,
+          isFreePreview: true,
           _count: { select: { questions: true } },
           // المسار المباشر
           subject: {
@@ -162,6 +165,8 @@ export async function GET(req: Request) {
         description: q.description,
         timeLimit: q.timeLimit,
         createdAt: q.createdAt,
+        accessType: q.accessType,
+        isFreePreview: q.isFreePreview,
         _count: q._count,
         university: effectiveUniversity ? { id: effectiveUniversity.id, name: effectiveUniversity.name } : null,
         major: effectiveMajor
@@ -175,7 +180,7 @@ export async function GET(req: Request) {
     });
 
     const headers = new Headers({
-      "cache-control": "public, s-maxage=300, stale-while-revalidate=60",
+      "cache-control": CACHE_CONTROL.publicSMaxage(CACHE_TTL.publicStable),
     });
 
     return json(

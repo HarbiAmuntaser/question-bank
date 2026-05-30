@@ -1,19 +1,18 @@
-// src/components/admin/chapters/MajorFilter.tsx
 "use client";
 
-import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+
+import { AdminLookupCombobox } from "@/components/admin/admin-lookup-combobox";
 
 type Option = { id: string; name: string; code: string | null };
 
 export function MajorFilter({
-  options,
   value,
   placeholder = "التخصص",
   allValue = "__all__",
   disabled = false,
 }: {
-  options: Option[];
+  options?: Option[];
   value: string;
   placeholder?: string;
   allValue?: string;
@@ -22,33 +21,28 @@ export function MajorFilter({
   const router = useRouter();
   const sp = useSearchParams();
   const pathname = usePathname();
+  const universityId = sp.get("universityId") ?? "";
+  const selectedValue = value === allValue ? "" : value;
 
-  const onChange = (val: string) => {
+  const onChange = (next: string) => {
     const params = new URLSearchParams(sp.toString());
-    if (val === allValue) {
-      params.delete("majorId");
-    } else {
-      params.set("majorId", val);
-    }
-    // عند تغيير التخصص احذف المقرر
+    if (next) params.set("majorId", next);
+    else params.delete("majorId");
     params.delete("subjectId");
     params.delete("page");
     router.push(`${pathname}?${params.toString()}`);
   };
 
   return (
-    <Select value={value} onValueChange={onChange} disabled={disabled}>
-      <SelectTrigger className="w-48">
-        <SelectValue placeholder={placeholder} />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value={allValue}>كل التخصصات</SelectItem>
-        {options.map((m) => (
-          <SelectItem key={m.id} value={m.id}>
-            {m.name}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <div className="w-full sm:w-48">
+      <AdminLookupCombobox
+        type="major"
+        value={selectedValue}
+        onValueChange={onChange}
+        universityId={universityId}
+        disabled={disabled || (!universityId && !selectedValue)}
+        placeholder={universityId ? placeholder : "اختر الجامعة أولاً"}
+      />
+    </div>
   );
 }

@@ -2,7 +2,7 @@
 import { prisma } from "@/lib/prisma";
 import { json, bad, unauth, notFound } from "@/lib/http";
 import { verifyAdmin } from "@/lib/admin-auth";
-import { revalidateTag } from "next/cache";
+import { revalidateSeoCache } from "@/lib/cache-invalidation";
 import { Prisma } from "@prisma/client";
 import { updateSeoMetaSchema } from "@/validations/seo-meta";
 
@@ -123,7 +123,7 @@ export async function PUT(req: Request, ctx: RouteParams) {
 
   try {
     const updated = await prisma.seoMeta.update({ where: { id }, data });
-    revalidateTag("seo-meta");
+    revalidateSeoCache({ ownerType: updated.ownerType, ownerId: updated.ownerId });
     return json({ data: updated, message: "seo_meta_updated" }, { status: 200 });
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
@@ -143,6 +143,6 @@ export async function DELETE(req: Request, ctx: RouteParams) {
   if (!existing) return notFound("seo_meta_not_found");
 
   await prisma.seoMeta.delete({ where: { id } });
-  revalidateTag("seo-meta");
+  revalidateSeoCache({ ownerType: existing.ownerType, ownerId: existing.ownerId });
   return json({ message: "seo_meta_deleted" }, { status: 200 });
 }

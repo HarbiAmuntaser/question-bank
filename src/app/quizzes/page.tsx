@@ -5,13 +5,15 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { QuizzesListing } from "@/components/public/quizzes-listing";
 import { getRequestOrigin } from "@/lib/server/request-origin";
 
-export const revalidate = 300; // 5 دقائق ISR
+export const revalidate = 3600; // ساعة واحدة كبداية قبل رفع TTL أكثر.
 
 // ——— Helpers
-async function fetchJSON<T>(url: string, init?: RequestInit): Promise<T> {
+type NextFetchInit = RequestInit & { next?: { revalidate?: number; tags?: string[] } };
+
+async function fetchJSON<T>(url: string, init?: NextFetchInit): Promise<T> {
   const base = await getRequestOrigin();
   const abs = url.startsWith("http") ? url : `${base}${url}`;
-  const res = await fetch(abs, { ...init, next: { revalidate: 300, ...(init as any)?.next } });
+  const res = await fetch(abs, { ...init, next: { revalidate: 3600, ...(init?.next ?? {}) } });
   if (!res.ok) throw new Error(`Failed to fetch ${abs} (${res.status})`);
   const body = await res.json();
   // كل راوتات الطالب ترجع { data }
@@ -26,12 +28,15 @@ type Major = {
 type Subject = { id: string; name: string; majorId: string };
 type QuizItem = {
   id: string; title: string; description: string | null; timeLimit: number; createdAt: string | Date;
+  accessType: "inherit" | "free" | "paid";
+  isFreePreview: boolean;
   _count: { questions: number };
   university?: { id: string; name: string } | null;
   major?: { id: string; name: string; degreeType: string | null; universityId: string } | null;
   subject?: { id: string; name: string; majorId: string } | null;
   chapter?: { id: string; name: string; subject: { id: string; name: string; majorId: string } } | null;
 };
+type Pagination = { page: number; pageSize: number; total: number; totalPages: number };
 
 export const metadata: Metadata = {
   title: "الاختبارات | بنك الأسئلة السعودي",
@@ -79,7 +84,7 @@ export default async function QuizzesPage({
     fetchJSON<University[]>("/api/v1/student/universities/select"),
     fetchJSON<Major[]>("/api/v1/student/majors/select"),
     fetchJSON<Subject[]>("/api/v1/student/subjects/select"),
-    fetchJSON<{ data: QuizItem[]; pagination: any }>(quizzesUrl),
+    fetchJSON<{ data: QuizItem[]; pagination: Pagination }>(quizzesUrl),
   ]);
 
 
@@ -89,8 +94,8 @@ export default async function QuizzesPage({
   const formattedMajors = majors.map((m) => ({
     ...m,
     durationYears: m.durationYears ?? null,
-    createdAt: (m.createdAt as any) ?? new Date().toISOString(),
-    updatedAt: (m.updatedAt as any) ?? new Date().toISOString(),
+    createdAt: m.createdAt ?? new Date().toISOString(),
+    updatedAt: m.updatedAt ?? new Date().toISOString(),
     createdBy: m.createdBy ?? null,
   }));
 

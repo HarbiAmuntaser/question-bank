@@ -7,7 +7,7 @@ import { headers } from "next/headers";
 import { normalizeCountry, isSupportedType } from "@/lib/route-helpers";
 import type { InstitutionType } from "@/config/regions";
 
-export const revalidate = 300;
+export const revalidate = 21600;
 
 /**
  * ✅ Next 15:
@@ -63,7 +63,7 @@ async function fetchJSON<T>(url: string, init?: NextFetchInit) {
   // نحافظ على revalidate الافتراضي ونسمح بتخصيصه من init.next
   const res = await fetch(abs, {
     ...init,
-    next: { revalidate: 300, ...(init?.next ?? {}) },
+    next: { revalidate: 21600, ...(init?.next ?? {}) },
   });
 
   if (!res.ok) return { ok: false as const, status: res.status, data: null as T | null };

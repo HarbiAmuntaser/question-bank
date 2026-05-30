@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription as CardDesc } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { RichQuestionContent } from "@/components/shared/rich-question-content"
 import { Clock, FileQuestion, Award } from "lucide-react"
 import type { QuestionWithRelations } from "@/types"
 
@@ -204,7 +205,7 @@ export function QuizPreviewDialog({ open, onOpenChange, questions, stats, settin
                               <div className="space-y-4">
                                 {/* نص السؤال */}
                                 <div className="p-4 bg-muted/50 rounded-lg">
-                                  <p className="text-base leading-relaxed text-right">{q.questionText}</p>
+                                  <RichQuestionContent content={q.questionText} textClassName="text-base text-right" />
                                 </div>
 
                                 {/* ✅ اختيار متعدد */}
@@ -223,7 +224,7 @@ export function QuizPreviewDialog({ open, onOpenChange, questions, stats, settin
                                         <div className="flex items-center justify-between gap-3">
                                           <div className="flex items-center gap-2">
                                             <span className="font-medium">{String.fromCharCode(65 + index)}.</span>
-                                            <span>{option.optionText}</span>
+                                            <RichQuestionContent content={option.optionText} className="min-w-0 flex-1" />
                                           </div>
 
                                           {option.isCorrect && (
@@ -252,7 +253,7 @@ export function QuizPreviewDialog({ open, onOpenChange, questions, stats, settin
                                             }`}
                                           >
                                             <div className="flex items-center justify-between gap-3">
-                                              <span className="font-medium">{option.optionText}</span>
+                                              <RichQuestionContent content={option.optionText} className="min-w-0 flex-1 font-medium" />
                                               {option.isCorrect && <Badge variant="secondary">الإجابة الصحيحة</Badge>}
                                             </div>
                                           </div>
@@ -280,7 +281,7 @@ export function QuizPreviewDialog({ open, onOpenChange, questions, stats, settin
                                   <div className="space-y-2">
                                     <h4 className="font-medium">التفسير:</h4>
                                     <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg dark:bg-blue-950 dark:border-blue-900">
-                                      <p className="text-blue-800 dark:text-blue-200">{q.explanation}</p>
+                                      <RichQuestionContent content={q.explanation} textClassName="text-blue-800 dark:text-blue-200" />
                                     </div>
                                   </div>
                                 )}

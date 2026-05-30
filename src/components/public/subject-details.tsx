@@ -13,13 +13,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 
-import { Clock, BookOpen, GraduationCap, ArrowRight, FileText } from "lucide-react";
+import { GraduationCap, ArrowRight } from "lucide-react";
 import type { InstitutionType } from "@/config/regions";
 
+import { SubjectQuizzesAccessGrid, type PublicQuizAccessItem } from "@/components/public/subscription-access";
 import { fetchJSON } from "@/lib/server/student-fetch";
 import { stripPrefix, encodeSlugPath } from "@/lib/public/slug-utils";
 
-export const revalidate = 300;
+export const revalidate = 21600;
 
 type SeoLite = { slug: string | null };
 
@@ -56,9 +57,11 @@ type QuizLite = {
   title: string;
   description: string | null;
   timeLimit: number;
+  accessType: "inherit" | "free" | "paid";
+  isFreePreview: boolean;
   _count: { questions: number };
   chapter?: { id: string; name: string } | null;
-  seo?: SeoLite; // من API by-subject
+  seo?: SeoLite;
 };
 
 function normalizeInstitutionType(v: string | null): InstitutionType | null {
@@ -70,13 +73,17 @@ async function fetchSubjectBySlugOrCode(subjectSlugRaw: string) {
   const subjectSlug = stripPrefix(subjectSlugRaw, "مواد");
 
   const bySlug = await fetchJSON<SubjectDto>(
-    `/api/v1/student/subjects/by-slug/${encodeSlugPath(subjectSlug)}`
+    `/api/v1/student/subjects/by-slug/${encodeSlugPath(subjectSlug)}`,
+    undefined,
+    21600,
   );
   if (bySlug.ok && bySlug.data) return { subject: bySlug.data };
 
   if (!subjectSlug.includes("/")) {
     const byCode = await fetchJSON<SubjectDto>(
-      `/api/v1/student/subjects/by-code/${encodeURIComponent(subjectSlug)}`
+      `/api/v1/student/subjects/by-code/${encodeURIComponent(subjectSlug)}`,
+      undefined,
+      21600,
     );
     if (byCode.ok && byCode.data) return { subject: byCode.data };
   }
@@ -121,36 +128,35 @@ export async function SubjectDetails({
   const subjCC = (subject.major.university?.countryCode || "").toUpperCase();
   const subjType = normalizeInstitutionType(subject.major.university?.institutionType || null);
 
-  // mismatch → redirect للمسار الصحيح
   if (subjCC && subjType && (subjCC !== ccNorm || subjType !== typeNorm)) {
     redirect(
       `/${subjCC}/${subjType}/universities/${encodeSlugPath(canonicalUni)}/majors/${encodeSlugPath(
-        canonicalMajor
-      )}/subjects/${encodeSlugPath(canonicalSubject)}${qsDegreeType(degreeType)}`
+        canonicalMajor,
+      )}/subjects/${encodeSlugPath(canonicalSubject)}${qsDegreeType(degreeType)}`,
     );
   }
 
-  // canonical mismatch → redirect داخل نفس cc/type
   if (canonicalUni !== currentUni || canonicalMajor !== currentMajor || canonicalSubject !== currentSubject) {
     redirect(
       `/${ccNorm}/${typeNorm}/universities/${encodeSlugPath(canonicalUni)}/majors/${encodeSlugPath(
-        canonicalMajor
-      )}/subjects/${encodeSlugPath(canonicalSubject)}${qsDegreeType(degreeType)}`
+        canonicalMajor,
+      )}/subjects/${encodeSlugPath(canonicalSubject)}${qsDegreeType(degreeType)}`,
     );
   }
 
   const basePath = `/${ccNorm}/${typeNorm}/universities/${encodeSlugPath(canonicalUni)}/majors/${encodeSlugPath(
-    canonicalMajor
+    canonicalMajor,
   )}/subjects/${encodeSlugPath(canonicalSubject)}`;
 
   const majorLink = `/${ccNorm}/${typeNorm}/universities/${encodeSlugPath(canonicalUni)}/majors/${encodeSlugPath(canonicalMajor)}`;
   const uniLink = `/${ccNorm}/${typeNorm}/universities/${encodeSlugPath(canonicalUni)}`;
 
-  // ✅ نجلب الاختبارات
   const quizzesRes = await fetchJSON<QuizLite[]>(
     `/api/v1/student/quizzes/by-subject/${subject.id}?limit=200${
       degreeType ? `&degreeType=${encodeURIComponent(degreeType)}` : ""
-    }`
+    }`,
+    undefined,
+    21600,
   );
   const quizzes = quizzesRes.ok && quizzesRes.data ? quizzesRes.data : [];
 
@@ -163,9 +169,20 @@ export async function SubjectDetails({
     return `${basePath}/quizzes/${quizSeg}${qsDegreeType(degreeType)}`;
   };
 
+  const quizCards: PublicQuizAccessItem[] = quizzes.map((q) => ({
+    id: q.id,
+    title: q.title,
+    description: q.description,
+    timeLimit: q.timeLimit,
+    accessType: q.accessType,
+    isFreePreview: q.isFreePreview,
+    href: quizDetailsHref(q),
+    _count: q._count,
+    chapter: q.chapter,
+  }));
+
   return (
     <div className="space-y-6 lg:space-y-8">
-      {/* Header Card */}
       <Card className="overflow-hidden border-2 bg-white/90 shadow-lg backdrop-blur-sm dark:bg-gray-800/90">
         <CardHeader className="px-5 text-center sm:px-6">
           <CardTitle className="text-2xl font-bold leading-tight sm:text-3xl">{subject.name}</CardTitle>
@@ -186,12 +203,20 @@ export async function SubjectDetails({
           <Separator className="mx-auto my-4 max-w-md" />
 
           <div className="flex flex-wrap justify-center gap-3 text-sm leading-relaxed text-muted-foreground">
-            <Link href={uniLink} prefetch={false} className="flex min-h-9 items-center gap-2 rounded-md px-1 transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">
+            <Link
+              href={uniLink}
+              prefetch={false}
+              className="flex min-h-9 items-center gap-2 rounded-md px-1 transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+            >
               <GraduationCap className="h-4 w-4" aria-hidden />
               {subject.major.university.name}
             </Link>
             <span>•</span>
-            <Link href={majorLink} prefetch={false} className="flex min-h-9 items-center gap-2 rounded-md px-1 transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">
+            <Link
+              href={majorLink}
+              prefetch={false}
+              className="flex min-h-9 items-center gap-2 rounded-md px-1 transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+            >
               <ArrowRight className="h-4 w-4" aria-hidden />
               {subject.major.name}
             </Link>
@@ -199,17 +224,15 @@ export async function SubjectDetails({
         </CardHeader>
 
         <CardContent className="space-y-6 pb-6">
-          {/* Description */}
           {subject.description ? (
-            <p className="text-sm sm:text-base text-muted-foreground leading-relaxed text-center max-w-3xl mx-auto">
+            <p className="mx-auto max-w-3xl text-center text-sm leading-relaxed text-muted-foreground sm:text-base">
               {subject.description}
             </p>
           ) : null}
 
-          {/* Degree filter */}
           <div className="text-center">
-            <h2 className="text-xl sm:text-2xl font-bold">اختبارات هذه المادة</h2>
-            <p className="text-muted-foreground mt-1">استخدم فلتر الدرجة إن كانت المادة لها مسارين</p>
+            <h2 className="text-xl font-bold sm:text-2xl">اختبارات هذه المادة</h2>
+            <p className="mt-1 text-muted-foreground">استخدم فلتر الدرجة إن كانت المادة لها مسارين</p>
           </div>
 
           <div className="grid grid-cols-1 justify-center gap-2 sm:flex sm:flex-wrap">
@@ -229,54 +252,15 @@ export async function SubjectDetails({
             ))}
           </div>
 
-          {/* Quizzes */}
           {quizzes.length > 0 ? (
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6 xl:grid-cols-3 xl:gap-8">
-              {quizzes.map((q) => (
-                <Card
-                  key={q.id}
-                  className="group flex h-full flex-col overflow-hidden border-2 bg-white/90 shadow-lg backdrop-blur-sm transition-all duration-300 hover:border-primary/40 hover:shadow-xl dark:bg-gray-800/90"
-                >
-                  <CardHeader className="pb-3">
-                    <CardTitle className="line-clamp-2 text-base font-semibold leading-snug transition-colors group-hover:text-primary sm:text-lg">
-                      {q.title}
-                    </CardTitle>
-                    {q.chapter?.name ? (
-                      <p className="text-xs text-muted-foreground mt-1">الفصل: {q.chapter.name}</p>
-                    ) : null}
-                  </CardHeader>
-
-                  <CardContent className="flex flex-1 flex-col justify-between gap-4 pt-0 pb-6">
-                    <p className="line-clamp-2 text-sm leading-relaxed text-muted-foreground">
-                      {q.description || "لا يوجد وصف مختصر لهذا الاختبار."}
-                    </p>
-
-                    <div className="flex items-center justify-between text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <BookOpen className="h-4 w-4" aria-hidden /> {q._count?.questions ?? 0} أسئلة
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Clock className="h-4 w-4" aria-hidden /> {q.timeLimit} دقيقة
-                      </span>
-                    </div>
-
-                    <Button asChild className="h-11 w-full rounded-xl text-sm sm:text-base">
-                      <Link href={quizDetailsHref(q)} prefetch={false} className="flex items-center justify-center gap-2">
-                        <FileText className="h-4 w-4" aria-hidden />
-                        عرض الاختبار
-                      </Link>
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+            <SubjectQuizzesAccessGrid quizzes={quizCards} subjectId={subject.id} majorId={subject.major.id} />
           ) : (
-            <div className="text-center text-muted-foreground py-10">
+            <div className="py-10 text-center text-muted-foreground">
               {degreeType ? "لا توجد اختبارات مطابقة لنوع الدرجة المحدد." : "لا توجد اختبارات لهذه المادة بعد."}
             </div>
           )}
 
-          <div className="pt-2 flex flex-col sm:flex-row gap-3 justify-center">
+          <div className="flex flex-col justify-center gap-3 pt-2 sm:flex-row">
             <Button asChild variant="outline" className="h-11 w-full rounded-xl sm:w-auto">
               <Link href={majorLink} prefetch={false} className="flex items-center gap-2">
                 <ArrowRight className="h-4 w-4" aria-hidden />

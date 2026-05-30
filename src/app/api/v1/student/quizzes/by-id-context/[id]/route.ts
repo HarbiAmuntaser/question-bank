@@ -1,7 +1,10 @@
 /* Fixed Next 15 params typing */
 
 import { prisma } from "@/lib/prisma";
-import { json, bad } from "@/lib/http";
+import { json } from "@/lib/http";
+import { CACHE_CONTROL } from "@/lib/cache-tags";
+import { getOrCreateAnonymousSession } from "@/lib/server/anonymous-session";
+import { checkQuizAccess } from "@/lib/server/access-control";
 
 export const dynamic = "force-dynamic";
 
@@ -13,10 +16,20 @@ type RouteContext = {
 export async function GET(_req: Request, { params }: RouteContext) {
   const { id: rawId } = await params;
   const id = rawId?.trim();
+  const privateHeaders = new Headers({
+    "cache-control": CACHE_CONTROL.PRIVATE_NO_STORE,
+  });
 
-  if (!id) return bad("missing_id", undefined, 400);
+  if (!id) return json({ error: "missing_id" }, { status: 400, headers: privateHeaders });
 
   try {
+    const { session } = await getOrCreateAnonymousSession();
+    const access = await checkQuizAccess({ quizId: id, anonymousSessionId: session.id });
+    if (access.reason === "not_found") return json({ error: "not_found" }, { status: 404, headers: privateHeaders });
+    if (!access.allowed) {
+      return json({ error: "paid_access_required", details: access }, { status: 403, headers: privateHeaders });
+    }
+
     const quiz = await prisma.quiz.findFirst({
       where: { id, isActive: true },
       select: {
@@ -89,7 +102,7 @@ export async function GET(_req: Request, { params }: RouteContext) {
       },
     });
 
-    if (!quiz) return bad("not_found", undefined, 404);
+    if (!quiz) return json({ error: "not_found" }, { status: 404, headers: privateHeaders });
 
     const questions = (quiz.questions || [])
       .map((row) => row.question)
@@ -155,7 +168,7 @@ export async function GET(_req: Request, { params }: RouteContext) {
     }
 
     if (!effectiveSubject?.major?.university) {
-      return bad("missing_context", undefined, 400);
+      return json({ error: "missing_context" }, { status: 400, headers: privateHeaders });
     }
 
     const [uniSeo, majorSeo, subjectSeo] = await Promise.all([
@@ -201,12 +214,8 @@ export async function GET(_req: Request, { params }: RouteContext) {
       },
     };
 
-    const headers = new Headers({
-      "cache-control": "public, s-maxage=300, stale-while-revalidate=60",
-    });
-
-    return json({ data }, { status: 200, headers });
+    return json({ data }, { status: 200, headers: privateHeaders });
   } catch {
-    return bad("failed_to_load_quiz_context", undefined, 500);
+    return json({ error: "failed_to_load_quiz_context" }, { status: 500, headers: privateHeaders });
   }
 }

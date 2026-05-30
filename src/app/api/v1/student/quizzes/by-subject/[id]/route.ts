@@ -3,6 +3,7 @@
 // file: src/app/api/v1/student/quizzes/by-subject/[id]/route.ts
 import { prisma } from "@/lib/prisma";
 import { json, bad } from "@/lib/http";
+import { CACHE_CONTROL, CACHE_TAGS, CACHE_TTL } from "@/lib/cache-tags";
 import { unstable_cache } from "next/cache";
 
 export const dynamic = "force-dynamic";
@@ -48,6 +49,8 @@ const listBySubjectCached = (subjectId: string, q: Q) =>
           description: true,
           timeLimit: true,
           createdAt: true,
+          accessType: true,
+          isFreePreview: true,
           _count: { select: { questions: true } },
         },
       });
@@ -68,7 +71,15 @@ const listBySubjectCached = (subjectId: string, q: Q) =>
       }));
     },
     ["student-quizzes-by-subject", subjectId, q.degreeType ?? "", q.limit ?? ""],
-    { revalidate: 300, tags: ["student-quizzes", "student-quizzes-by-subject"] }
+    {
+      revalidate: CACHE_TTL.publicStable,
+      tags: [
+        "student-quizzes",
+        "student-quizzes-by-subject",
+        CACHE_TAGS.public.quizzes,
+        CACHE_TAGS.public.quizzesBySubject(subjectId),
+      ],
+    }
   )();
 
 export async function GET(req: Request, { params }: RouteContext) {
@@ -87,7 +98,7 @@ export async function GET(req: Request, { params }: RouteContext) {
     const data = await listBySubjectCached(id, q);
 
     const headers = new Headers({
-      "cache-control": "public, s-maxage=300, stale-while-revalidate=60",
+      "cache-control": CACHE_CONTROL.publicSMaxage(CACHE_TTL.publicStable),
     });
     return json({ data }, { status: 200, headers });
   } catch {

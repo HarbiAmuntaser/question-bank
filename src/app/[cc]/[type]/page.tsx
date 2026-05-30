@@ -13,7 +13,7 @@ import type { UniversityGridItem } from "@/components/public/university-grid/typ
 import { fetchJSON } from "@/lib/server/student-fetch";
 
 // ISR للصفحة نفسها (الواجهة) — محتوى الشبكة يجلب Client-side
-export const revalidate = 600;
+export const revalidate = 3600;
 
 type PageParams = {
   cc: string;

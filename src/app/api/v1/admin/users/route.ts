@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { json, bad, unauth } from "@/lib/http";
 import { verifyAdmin } from "@/lib/admin-auth";
+import { CACHE_CONTROL } from "@/lib/cache-tags";
 import { unstable_cache, revalidateTag } from "next/cache";
 import { createUserSchema } from "@/validations/user";
 import bcrypt from "bcryptjs";
@@ -27,7 +28,7 @@ export async function GET(req: Request) {
 
   try {
     const payload = await listUsersCached();
-    return json(payload, 200, { "cache-control": "public, s-maxage=3600, stale-while-revalidate=60" });
+    return json(payload, 200, { "cache-control": CACHE_CONTROL.PRIVATE_NO_STORE });
   } catch {
     return bad("bad_query_params");
   }

@@ -1,7 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { json, bad, unauth, notFound } from "@/lib/http";
 import { verifyAdmin } from "@/lib/admin-auth";
-import { revalidateTag } from "next/cache";
+import { CACHE_CONTROL } from "@/lib/cache-tags";
+import { revalidateQuestionCache } from "@/lib/cache-invalidation";
 import { Prisma } from "@prisma/client";
 import { updateQuestionSchema } from "@/validations/question";
 
@@ -41,7 +42,7 @@ export async function GET(req: Request, { params }: RouteContext) {
 
   return json(
     { data: q },
-    { status: 200, headers: { "cache-control": "public, s-maxage=3600" } }
+    { status: 200, headers: { "cache-control": CACHE_CONTROL.PRIVATE_NO_STORE } }
   );
 }
 
@@ -97,7 +98,11 @@ export async function PUT(req: Request, { params }: RouteContext) {
     include: { options: true },
   });
 
-  revalidateTag("questions");
+  const chapter = await prisma.chapter.findUnique({
+    where: { id: updated.chapterId },
+    select: { subjectId: true },
+  });
+  revalidateQuestionCache({ subjectId: chapter?.subjectId });
   return json({ data: updated }, { status: 200 });
 }
 
@@ -106,6 +111,11 @@ export async function DELETE(req: Request, { params }: RouteContext) {
 
   const auth = await verifyAdmin(req);
   if (!auth.ok) return unauth();
+
+  const target = await prisma.question.findUnique({
+    where: { id },
+    select: { chapter: { select: { subjectId: true } } },
+  });
 
   try {
     await prisma.question.delete({ where: { id } });
@@ -116,6 +126,6 @@ export async function DELETE(req: Request, { params }: RouteContext) {
     return bad("فشل الحذف");
   }
 
-  revalidateTag("questions");
+  revalidateQuestionCache({ subjectId: target?.chapter?.subjectId });
   return json({ data: true }, { status: 200 });
 }

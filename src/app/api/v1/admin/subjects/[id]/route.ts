@@ -1,7 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { json, bad, unauth, notFound } from "@/lib/http";
 import { verifyAdmin } from "@/lib/admin-auth";
-import { revalidateTag } from "next/cache";
+import { CACHE_CONTROL } from "@/lib/cache-tags";
+import { revalidateSubjectCache } from "@/lib/cache-invalidation";
 import type { Prisma } from "@prisma/client";
 import { updateSubjectSchema } from "@/validations/subject";
 
@@ -39,7 +40,7 @@ export async function GET(req: Request, ctx: Ctx) {
   if (!s) return notFound("المقرر غير موجود");
   return json(
     { data: s },
-    { status: 200, headers: { "cache-control": "public, s-maxage=3600" } }
+    { status: 200, headers: { "cache-control": CACHE_CONTROL.PRIVATE_NO_STORE } }
   );
 }
 
@@ -75,7 +76,7 @@ export async function PUT(req: Request, ctx: Ctx) {
 
   const updated = await prisma.subject.update({ where: { id }, data });
 
-  revalidateTag("subjects");
+  revalidateSubjectCache({ id: updated.id, majorId: updated.majorId });
   return json({ data: updated });
 }
 
@@ -85,12 +86,17 @@ export async function DELETE(req: Request, ctx: Ctx) {
 
   const { id } = await ctx.params;
 
+  const target = await prisma.subject.findUnique({
+    where: { id },
+    select: { majorId: true },
+  });
+
   try {
     await prisma.subject.delete({ where: { id } });
   } catch {
     return bad("فشل الحذف. تأكد من عدم وجود علاقات (فصول مرتبطة)");
   }
 
-  revalidateTag("subjects");
+  revalidateSubjectCache({ id, majorId: target?.majorId });
   return json({ data: true });
 }

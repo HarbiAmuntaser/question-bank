@@ -8,7 +8,8 @@ import { fetchJSON } from "@/lib/server/student-fetch";
 import QuizReview from "@/components/public/quiz/review/quiz-review";
 import { PublicHeader } from "@/components/public/public-header/public-header";
 
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 type PageParams = { id: string };
 type SearchParams = { session?: string; onlyWrong?: string };
@@ -26,7 +27,11 @@ export default async function ReviewPage({
   const id = (p?.id || "").trim();
   if (!id) notFound();
 
-  const quizRes = await fetchJSON<QuizWithQuestions>(`/api/v1/student/quizzes/by-id/${encodeURIComponent(id)}`);
+  const quizRes = await fetchJSON<QuizWithQuestions>(
+    `/api/v1/student/quizzes/by-id/${encodeURIComponent(id)}`,
+    { cache: "no-store" },
+    0
+  );
   if (!quizRes.ok || !quizRes.data) notFound();
 
   const onlyWrong = sp?.onlyWrong === "1";

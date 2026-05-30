@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { updateQuizAction, deleteQuizAction } from "@/app/admin/quizzes/actions";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
+import { RichQuestionContent } from "@/components/shared/rich-question-content";
 
 export function QuizDetails({ quiz }: { quiz: any }) {
   const router = useRouter();
@@ -89,7 +90,7 @@ export function QuizDetails({ quiz }: { quiz: any }) {
                     <Badge>{qq.question?.points} نقطة</Badge>
                   </div>
                 </div>
-                <div className="text-sm">{qq.question?.questionText}</div>
+                <RichQuestionContent content={qq.question?.questionText} className="text-sm" />
               </div>
             ))
           ) : (

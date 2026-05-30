@@ -65,9 +65,9 @@ export function AnalyticsDashboard({ data, initialDays }: AnalyticsDashboardProp
   return (
     <div className="space-y-6">
       <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
-        <div className="flex flex-wrap gap-2">
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap">
           <Select value={rangeValue} onValueChange={updateDays}>
-            <SelectTrigger className="w-[170px]">
+            <SelectTrigger className="h-10 w-full sm:w-[170px]">
               <Calendar className="mr-2 h-4 w-4" />
               <SelectValue />
             </SelectTrigger>
@@ -81,7 +81,7 @@ export function AnalyticsDashboard({ data, initialDays }: AnalyticsDashboardProp
           </Select>
 
           <Select value={selectedSubject} onValueChange={setSelectedSubject}>
-            <SelectTrigger className="w-[170px]">
+            <SelectTrigger className="h-10 w-full sm:w-[170px]">
               <Filter className="mr-2 h-4 w-4" />
               <SelectValue />
             </SelectTrigger>
@@ -96,13 +96,13 @@ export function AnalyticsDashboard({ data, initialDays }: AnalyticsDashboardProp
           </Select>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex w-full gap-2 sm:w-auto">
           <Button
             variant="outline"
             size="sm"
             onClick={handleRefresh}
             disabled={isPending}
-            className="flex items-center gap-2 bg-transparent"
+            className="flex h-10 w-full items-center gap-2 bg-transparent sm:w-auto"
           >
             <RefreshCw className={`h-4 w-4 ${isPending ? "animate-spin" : ""}`} />
             تحديث
@@ -113,28 +113,30 @@ export function AnalyticsDashboard({ data, initialDays }: AnalyticsDashboardProp
       <OverviewCards data={data.overview} />
 
       <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="overview" className="flex items-center gap-2">
+        <div className="overflow-x-auto pb-1">
+          <TabsList className="inline-grid min-w-max grid-cols-5 sm:w-full">
+            <TabsTrigger value="overview" className="flex h-10 items-center gap-2 whitespace-nowrap px-3">
             <BarChart3 className="h-4 w-4" />
             نظرة عامة
           </TabsTrigger>
-          <TabsTrigger value="quizzes" className="flex items-center gap-2">
+            <TabsTrigger value="quizzes" className="flex h-10 items-center gap-2 whitespace-nowrap px-3">
             <FileText className="h-4 w-4" />
             الاختبارات
           </TabsTrigger>
-          <TabsTrigger value="questions" className="flex items-center gap-2">
+            <TabsTrigger value="questions" className="flex h-10 items-center gap-2 whitespace-nowrap px-3">
             <Users className="h-4 w-4" />
             الأسئلة
           </TabsTrigger>
-          <TabsTrigger value="subjects" className="flex items-center gap-2">
+            <TabsTrigger value="subjects" className="flex h-10 items-center gap-2 whitespace-nowrap px-3">
             <TrendingUp className="h-4 w-4" />
             المواد
           </TabsTrigger>
-          <TabsTrigger value="reports" className="flex items-center gap-2">
+            <TabsTrigger value="reports" className="flex h-10 items-center gap-2 whitespace-nowrap px-3">
             <Download className="h-4 w-4" />
             التقارير
           </TabsTrigger>
-        </TabsList>
+          </TabsList>
+        </div>
 
         <TabsContent value="overview" className="space-y-6">
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">

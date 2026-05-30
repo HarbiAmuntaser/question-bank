@@ -12,6 +12,8 @@ export interface QuizGenerationSettings {
   questionTypes?: ("multiple_choice" | "true_false" | "short_answer" | "essay")[]; // اختيارية
   randomize: boolean;
   selectedChapters: string[];
+  accessType?: "inherit" | "free" | "paid";
+  isFreePreview?: boolean;
 }
 
 async function apiFetch(path: string, init?: RequestInit) {

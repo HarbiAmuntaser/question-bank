@@ -1,7 +1,9 @@
 import { prisma } from "@/lib/prisma";
 import { json, bad, unauth } from "@/lib/http";
 import { verifyAdmin } from "@/lib/admin-auth";
-import { unstable_cache, revalidateTag } from "next/cache";
+import { CACHE_CONTROL } from "@/lib/cache-tags";
+import { revalidateSubjectCache } from "@/lib/cache-invalidation";
+import { unstable_cache } from "next/cache";
 import type { Prisma } from "@prisma/client";
 import { createSubjectSchema, listSubjectsQuerySchema } from "@/validations/subject";
 
@@ -162,7 +164,7 @@ export async function GET(req: Request) {
   try {
     const payload = await listSubjectsCached(q);
     const headers = new Headers({
-      "cache-control": "public, s-maxage=3600, stale-while-revalidate=60",
+      "cache-control": CACHE_CONTROL.PRIVATE_NO_STORE,
     });
     return json(payload, { status: 200, headers });
   } catch {
@@ -192,6 +194,6 @@ export async function POST(req: Request) {
     },
   });
 
-  revalidateTag("subjects");
+  revalidateSubjectCache({ id: created.id, majorId: created.majorId });
   return json({ data: created }, 201);
 }

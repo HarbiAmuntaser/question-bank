@@ -13,6 +13,7 @@ import {
   FileText,
   GraduationCap,
   Home,
+  KeyRound,
   Shuffle,
   User,
 } from "lucide-react";
@@ -32,6 +33,7 @@ export const adminNavigation: NavItem[] = [
   { name: "الأسئلة", href: "/admin/questions", icon: FileQuestion },
   { name: "مولد الاختبارات", href: "/admin/quiz-generator", icon: Shuffle },
   { name: "الاختبارات المنشأة", href: "/admin/quizzes", icon: ClipboardList },
+  { name: "الاشتراكات", href: "/admin/subscriptions", icon: KeyRound },
   { name: "التحليلات", href: "/admin/analytics", icon: BarChart3 },
   { name: "نماذج اختبارات", href: "/admin/exams", icon: File },
   { name: "seo", href: "/admin/seo-meta", icon: File },

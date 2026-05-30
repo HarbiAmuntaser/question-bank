@@ -17,16 +17,19 @@ export function AsyncCombobox({
   disabled,
   fetcher,
   depsKey,
+  disablePortal,
 }: {
   value: ComboOption | null;
   onChange: (next: ComboOption | null) => void;
   placeholder: string;
   disabled?: boolean;
   fetcher: (q: string) => Promise<ComboOption[]>;
-  depsKey?: string; // لتفريغ الكاش عند تغير السلسلة
+  depsKey?: string; // Clears cached options when a parent lookup changes.
+  disablePortal?: boolean;
 }) {
   const [open, setOpen] = React.useState(false);
   const [query, setQuery] = React.useState("");
+  const [debouncedQuery, setDebouncedQuery] = React.useState("");
   const [items, setItems] = React.useState<ComboOption[]>([]);
   const [loading, setLoading] = React.useState(false);
 
@@ -34,7 +37,7 @@ export function AsyncCombobox({
   const abortRef = React.useRef<AbortController | null>(null);
 
   React.useEffect(() => {
-    // تغيّر السلسلة (مثل universityId) => صفّر الكاش والاختيارات الحالية داخل القائمة
+    // Parent filter changed: clear stale options and the current search text.
     cacheRef.current.clear();
     setItems([]);
     setQuery("");
@@ -42,9 +45,14 @@ export function AsyncCombobox({
   }, [depsKey]);
 
   React.useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedQuery(query), 250);
+    return () => window.clearTimeout(timer);
+  }, [query]);
+
+  React.useEffect(() => {
     if (!open) return;
 
-    const key = `${depsKey ?? ""}::${query}`;
+    const key = `${depsKey ?? ""}::${debouncedQuery}`;
     const cached = cacheRef.current.get(key);
     if (cached) {
       setItems(cached);
@@ -58,17 +66,19 @@ export function AsyncCombobox({
     setLoading(true);
     void (async () => {
       try {
-        const data = await fetcher(query);
+        const data = await fetcher(debouncedQuery);
         if (ac.signal.aborted) return;
         cacheRef.current.set(key, data);
         setItems(data);
+      } catch {
+        if (!ac.signal.aborted) setItems([]);
       } finally {
         if (!ac.signal.aborted) setLoading(false);
       }
     })();
 
     return () => ac.abort();
-  }, [open, query, depsKey, fetcher]);
+  }, [open, debouncedQuery, depsKey, fetcher]);
 
   const label = value?.label ?? "";
 
@@ -79,25 +89,28 @@ export function AsyncCombobox({
           type="button"
           variant="outline"
           disabled={disabled}
-          className={cn("w-full justify-between", !value && "text-muted-foreground")}
+          aria-label={placeholder}
+          className={cn("h-10 w-full justify-between focus-visible:ring-2 focus-visible:ring-ring", !value && "text-muted-foreground")}
         >
           <span className="truncate">{value ? label : placeholder}</span>
           <ChevronsUpDown className="h-4 w-4 opacity-50 ms-2" />
         </Button>
       </PopoverTrigger>
 
-<PopoverContent
-  align="start"
-  sideOffset={8}
-  className="p-0 min-w-[420px] w-[min(900px,95vw)] max-h-[420px] overflow-hidden"
->
-        <Command>
+      <PopoverContent
+        align="start"
+        sideOffset={8}
+        className="p-0 min-w-[320px] w-[min(520px,95vw)] max-h-[420px] overflow-hidden"
+        dir="rtl"
+        disablePortal={disablePortal}
+      >
+        <Command shouldFilter={false}>
           <CommandInput
             placeholder="ابحث..."
             value={query}
             onValueChange={setQuery}
           />
-<CommandList className="max-h-[380px] overflow-auto">
+          <CommandList className="max-h-[380px] overflow-auto">
             <CommandEmpty>
               {loading ? "جاري التحميل..." : "لا توجد نتائج"}
             </CommandEmpty>

@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { json, bad } from "@/lib/http";
+import { CACHE_CONTROL, CACHE_TAGS, CACHE_TTL } from "@/lib/cache-tags";
 import { unstable_cache } from "next/cache";
 
 export const dynamic = "force-dynamic";
@@ -40,11 +41,11 @@ async function findQuizIdByAny(slugPath: string, variants: string[], last: strin
   return ends?.ownerId ?? null;
 }
 
-const getPreviewCached = (id: string) =>
+const getPreviewCached = (id: string, origin: string) =>
   unstable_cache(
     async () => {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/api/v1/student/quizzes/preview/by-id/${encodeURIComponent(id)}`,
+        `${origin}/api/v1/student/quizzes/preview/by-id/${encodeURIComponent(id)}`,
         {
           cache: "no-store",
         }
@@ -62,7 +63,10 @@ const getPreviewCached = (id: string) =>
       return body?.data ?? null;
     },
     ["student-quiz-preview-by-slug-id", id],
-    { revalidate: 300, tags: ["student-quizzes", "student-quiz-preview"] }
+    {
+      revalidate: CACHE_TTL.publicLong,
+      tags: ["student-quizzes", "student-quiz-preview", CACHE_TAGS.public.quizzes, CACHE_TAGS.public.quiz(id)],
+    }
   )();
 
 export async function GET(_req: Request, { params }: RouteContext) {
@@ -74,11 +78,11 @@ export async function GET(_req: Request, { params }: RouteContext) {
     const quizId = await findQuizIdByAny(slugPath, variants, last);
     if (!quizId) return bad("not_found", undefined, 404);
 
-    const data = await getPreviewCached(quizId);
+    const data = await getPreviewCached(quizId, new URL(_req.url).origin);
     if (!data) return bad("not_found", undefined, 404);
 
     const headers = new Headers({
-      "cache-control": "public, s-maxage=300, stale-while-revalidate=60",
+      "cache-control": CACHE_CONTROL.publicSMaxage(CACHE_TTL.publicLong),
     });
     return json({ data }, { status: 200, headers });
   } catch {

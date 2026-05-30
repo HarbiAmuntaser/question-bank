@@ -1,109 +1,102 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+
+import { AdminLookupCombobox } from "@/components/admin/admin-lookup-combobox";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-
-type Uni = { id: string; name: string };
-type Major = { id: string; name: string; universityId: string };
-type Subject = { id: string; name: string; majorId: string };
-
-async function fetchJSON<T>(url: string) {
-  const res = await fetch(url, { cache: "no-store" });
-  if (!res.ok) return [];
-  const data = await res.json();
-  return (data?.data ?? []) as T[];
-}
 
 export function QuizzesFilters() {
   const router = useRouter();
   const pathname = usePathname();
   const search = useSearchParams();
 
-  const [universities, setUniversities] = useState<Uni[]>([]);
-  const [majors, setMajors] = useState<Major[]>([]);
-  const [subjects, setSubjects] = useState<Subject[]>([]);
-
-  const [universityId, setUniversityId] = useState<string>(search.get("universityId") ?? "");
-  const [majorId, setMajorId] = useState<string>(search.get("majorId") ?? "");
-  const [subjectId, setSubjectId] = useState<string>(search.get("subjectId") ?? "");
+  const [universityId, setUniversityId] = useState(search.get("universityId") ?? "");
+  const [majorId, setMajorId] = useState(search.get("majorId") ?? "");
+  const [subjectId, setSubjectId] = useState(search.get("subjectId") ?? "");
 
   useEffect(() => {
-    (async () => {
-      const [unis, mjs, subs] = await Promise.all([
-        fetchJSON<Uni>("/api/v1/admin/universities?page=1&pageSize=1000&sortBy=name&sortOrder=asc"),
-        fetchJSON<Major>("/api/v1/admin/majors?page=1&pageSize=2000&sortBy=name&sortOrder=asc"),
-        fetchJSON<Subject>("/api/v1/admin/subjects?page=1&pageSize=4000&sortBy=name&sortOrder=asc"),
-      ]);
-      setUniversities(unis);
-      setMajors(mjs);
-      setSubjects(subs);
-    })();
-  }, []);
+    setUniversityId(search.get("universityId") ?? "");
+    setMajorId(search.get("majorId") ?? "");
+    setSubjectId(search.get("subjectId") ?? "");
+  }, [search]);
 
-  // اشتقاقات حسب الاختيار
-  const filteredMajors = useMemo(
-    () => majors.filter((m) => !universityId || m.universityId === universityId),
-    [majors, universityId]
-  );
-  const filteredSubjects = useMemo(
-    () => subjects.filter((s) => !majorId || s.majorId === majorId),
-    [subjects, majorId]
+  const updateParams = useCallback(
+    (next: { universityId?: string; majorId?: string; subjectId?: string }) => {
+      const params = new URLSearchParams(search.toString());
+      const nextUniversityId = next.universityId ?? universityId;
+      const nextMajorId = next.majorId ?? majorId;
+      const nextSubjectId = next.subjectId ?? subjectId;
+
+      if (nextUniversityId) params.set("universityId", nextUniversityId);
+      else params.delete("universityId");
+
+      if (nextMajorId) params.set("majorId", nextMajorId);
+      else params.delete("majorId");
+
+      if (nextSubjectId) params.set("subjectId", nextSubjectId);
+      else params.delete("subjectId");
+
+      params.set("page", "1");
+      router.replace(`${pathname}?${params.toString()}`);
+    },
+    [majorId, pathname, router, search, subjectId, universityId],
   );
 
-  // ريست عند تغيير الأعلى
-  useEffect(() => {
+  const handleUniversityChange = (value: string) => {
+    setUniversityId(value);
     setMajorId("");
     setSubjectId("");
-  }, [universityId]);
-  useEffect(() => {
-    setSubjectId("");
-  }, [majorId]);
+    updateParams({ universityId: value, majorId: "", subjectId: "" });
+  };
 
-  // ادفع البارامترات إلى العنوان
-  useEffect(() => {
-    const params = new URLSearchParams(search.toString());
-    if (universityId) params.set("universityId", universityId); else params.delete("universityId");
-    if (majorId) params.set("majorId", majorId); else params.delete("majorId");
-    if (subjectId) params.set("subjectId", subjectId); else params.delete("subjectId");
-    params.set("page", "1");
-    router.replace(`${pathname}?${params.toString()}`);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [universityId, majorId, subjectId]);
+  const handleMajorChange = (value: string) => {
+    setMajorId(value);
+    setSubjectId("");
+    updateParams({ majorId: value, subjectId: "" });
+  };
+
+  const handleSubjectChange = (value: string) => {
+    setSubjectId(value);
+    updateParams({ subjectId: value });
+  };
 
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <div className="space-y-2">
           <Label>الجامعة</Label>
-          <Select value={universityId} onValueChange={setUniversityId}>
-            <SelectTrigger><SelectValue placeholder="اختر الجامعة" /></SelectTrigger>
-            <SelectContent>
-              {universities.map((u) => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
-            </SelectContent>
-          </Select>
+          <AdminLookupCombobox
+            type="university"
+            value={universityId}
+            onValueChange={handleUniversityChange}
+            placeholder="ابحث عن جامعة"
+          />
         </div>
 
         <div className="space-y-2">
           <Label>التخصص</Label>
-          <Select value={majorId} onValueChange={setMajorId} disabled={!universityId}>
-            <SelectTrigger><SelectValue placeholder={universityId ? "اختر التخصص" : "اختر الجامعة أولاً"} /></SelectTrigger>
-            <SelectContent>
-              {filteredMajors.map((m) => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
-            </SelectContent>
-          </Select>
+          <AdminLookupCombobox
+            type="major"
+            value={majorId}
+            onValueChange={handleMajorChange}
+            universityId={universityId}
+            disabled={!universityId && !majorId}
+            placeholder={universityId ? "ابحث عن تخصص" : "اختر الجامعة أولاً"}
+          />
         </div>
 
         <div className="space-y-2">
           <Label>المقرر</Label>
-          <Select value={subjectId} onValueChange={setSubjectId} disabled={!majorId}>
-            <SelectTrigger><SelectValue placeholder={majorId ? "اختر المقرر" : "اختر التخصص أولاً"} /></SelectTrigger>
-            <SelectContent>
-              {filteredSubjects.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-            </SelectContent>
-          </Select>
+          <AdminLookupCombobox
+            type="subject"
+            value={subjectId}
+            onValueChange={handleSubjectChange}
+            majorId={majorId}
+            disabled={!majorId && !subjectId}
+            placeholder={majorId ? "ابحث عن مقرر" : "اختر التخصص أولاً"}
+          />
         </div>
       </div>
       <Separator />

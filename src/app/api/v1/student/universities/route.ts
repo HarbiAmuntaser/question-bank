@@ -7,6 +7,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { json, bad } from "@/lib/http";
+import { cacheTags, CACHE_CONTROL, CACHE_TAGS, CACHE_TTL } from "@/lib/cache-tags";
 import { unstable_cache } from "next/cache";
 
 export const dynamic = "force-dynamic";
@@ -22,8 +23,9 @@ type Q = {
 
 // ✅ مهم: unstable_cache يأخذ keyParts ثابتة (string[])،
 // وNext سيُميّز الكاش تلقائياً حسب Arguments (q) التي نمررها للدالة.
-const listUniversitiesCached = unstable_cache(
-  async (q: Q) => {
+const listUniversitiesCached = (q: Q) =>
+  unstable_cache(
+  async () => {
     const search = (q.q ?? "").trim();
     const rawLimit = Number(q.limit ?? "60");
     const limit = Math.min(Math.max(rawLimit || 60, 1), 1000);
@@ -123,9 +125,24 @@ const listUniversitiesCached = unstable_cache(
       ...(includeMajors ? { majors: u.majors } : { majors: [] as never[] }),
     }));
   },
-  ["student-universities"], // ✅ ثابت
-  { revalidate: 600, tags: ["student-universities"] }
-);
+  [
+    "student-universities",
+    q.q ?? "",
+    q.sort ?? "",
+    q.limit ?? "",
+    q.withMajors ?? "",
+    q.cc ?? "",
+    q.type ?? "",
+  ],
+  {
+    revalidate: CACHE_TTL.publicStable,
+    tags: cacheTags(
+      "student-universities",
+      CACHE_TAGS.public.institutions,
+      q.cc ? CACHE_TAGS.public.institutionsCountry(q.cc) : null
+    ),
+  }
+)();
 
 export async function GET(req: Request) {
   try {
@@ -142,7 +159,7 @@ export async function GET(req: Request) {
     const data = await listUniversitiesCached(q);
 
     const headers = new Headers({
-      "cache-control": "public, s-maxage=600, stale-while-revalidate=60",
+      "cache-control": CACHE_CONTROL.publicSMaxage(CACHE_TTL.publicStable),
     });
     return json({ data }, { status: 200, headers });
   } catch {

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Badge } from "@/components/ui/badge";
+import { RichQuestionContent } from "@/components/shared/rich-question-content";
 import { useToast } from "@/hooks/use-toast";
 import { createExamQuestionAction, updateExamQuestionAction, type ExamQuestionPayload } from "@/app/admin/exams/actions";
 
@@ -169,7 +170,10 @@ export function ExamQuestionDialog({
                         >
                           <RadioGroupItem value={q.id} className="mt-1" />
                           <div className="space-y-1 text-sm">
-                            <div className="font-medium leading-5 line-clamp-2">{q.questionText}</div>
+                            <RichQuestionContent
+                              content={q.questionText}
+                              className="max-h-24 overflow-auto font-medium leading-5"
+                            />
                             <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                               {q.chapter?.subject?.name && <span>{q.chapter.subject.name}</span>}
                               {q.chapter?.name && <span>• {q.chapter.name}</span>}

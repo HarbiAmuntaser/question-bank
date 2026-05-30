@@ -72,47 +72,20 @@ async function fetchChapters(args: {
 }
 
 async function fetchUniversities(): Promise<UniOpt[]> {
-  const qs = buildQuery({ page: 1, pageSize: 1000, sortBy: "name", sortOrder: "asc" });
-  const res = await adminApiFetch(`/api/v1/admin/universities?${qs}`, {
-    next: { revalidate: 3600, tags: ["universities"] },
-  });
-  if (!res.ok) return [];
-  const payload = (await res.json()) as { data: Array<{ id: string; name: string; code: string | null }> };
-  return payload.data.map((u) => ({ id: u.id, name: u.name, code: u.code ?? null }));
+  // Filters now search lazily via AdminLookupCombobox, so the server table should not prefetch large lists.
+  return [];
 }
 
 async function fetchMajors(universityId?: string): Promise<MajorOpt[]> {
-  const qs = buildQuery({
-    page: 1,
-    pageSize: 1000,
-    sortBy: "name",
-    sortOrder: "asc",
-    universityId,
-  });
-  const res = await adminApiFetch(`/api/v1/admin/majors?${qs}`, {
-    next: { revalidate: 3600, tags: ["majors"] },
-  });
-  if (!res.ok) return [];
-  const payload = (await res.json()) as { data: Array<{ id: string; name: string; code: string | null }> };
-  // API يعيد حقول إضافية، لا نحتاج سوى id,name,code
-  return payload.data.map((m) => ({ id: m.id, name: m.name, code: m.code ?? null }));
+  void universityId;
+  // Cascading filter options are fetched on demand by the client combobox.
+  return [];
 }
 
 async function fetchSubjects(filters: { universityId?: string; majorId?: string }): Promise<SubjectOpt[]> {
-  const qs = buildQuery({
-    page: 1,
-    pageSize: 1000,
-    sortBy: "name",
-    sortOrder: "asc",
-    universityId: filters.universityId,
-    majorId: filters.majorId,
-  });
-  const res = await adminApiFetch(`/api/v1/admin/subjects?${qs}`, {
-    next: { revalidate: 3600, tags: ["subjects"] },
-  });
-  if (!res.ok) return [];
-  const payload = (await res.json()) as { data: Array<{ id: string; name: string; code: string | null }> };
-  return payload.data.map((s) => ({ id: s.id, name: s.name, code: s.code ?? null }));
+  void filters;
+  // Subjects are resolved lazily after the parent major is selected.
+  return [];
 }
 
 export async function ChaptersTable({

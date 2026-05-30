@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { json, bad } from "@/lib/http";
+import { CACHE_CONTROL, CACHE_TAGS, CACHE_TTL } from "@/lib/cache-tags";
 import { unstable_cache } from "next/cache";
 
 export const dynamic = "force-dynamic";
@@ -81,7 +82,10 @@ const getSubjectDetailsCached = (id: string) =>
       };
     },
     ["student-subject-detail-by-id", id],
-    { revalidate: 600, tags: ["student-subjects", "student-subject-detail"] }
+    {
+      revalidate: CACHE_TTL.publicLong,
+      tags: ["student-subjects", "student-subject-detail", CACHE_TAGS.public.subjects, CACHE_TAGS.public.subject(id)],
+    }
   )();
 
 export async function GET(
@@ -110,7 +114,7 @@ export async function GET(
     const data = await getSubjectDetailsCached(subject.id);
     if (!data) return bad("not_found", undefined, 404);
 
-    const headers = new Headers({ "cache-control": "public, s-maxage=600, stale-while-revalidate=60" });
+    const headers = new Headers({ "cache-control": CACHE_CONTROL.publicSMaxage(CACHE_TTL.publicLong) });
     return json({ data }, { status: 200, headers });
   } catch {
     return bad("failed_to_load_subject_by_code");

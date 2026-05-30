@@ -2,7 +2,8 @@
 import { prisma } from "@/lib/prisma";
 import { json, bad, unauth } from "@/lib/http";
 import { verifyAdmin } from "@/lib/admin-auth";
-import { revalidateTag } from "next/cache";
+import { CACHE_CONTROL } from "@/lib/cache-tags";
+import { revalidateSeoCache } from "@/lib/cache-invalidation";
 import { Prisma } from "@prisma/client"; // ✅ ليس type
 import { createSeoMetaSchema, listSeoMetaQuerySchema } from "@/validations/seo-meta";
 
@@ -90,7 +91,7 @@ export async function GET(req: Request) {
   ]);
 
   const headers = new Headers({
-    "cache-control": "public, s-maxage=300, stale-while-revalidate=60",
+    "cache-control": CACHE_CONTROL.PRIVATE_NO_STORE,
   });
 
   return json(
@@ -138,7 +139,7 @@ export async function POST(req: Request) {
       },
     });
 
-    revalidateTag("seo-meta");
+    revalidateSeoCache({ ownerType: created.ownerType, ownerId: created.ownerId });
     return json({ data: created, message: "seo_meta_created" }, { status: 201 });
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {

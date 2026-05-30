@@ -1,8 +1,10 @@
-// src/components/admin/chapters/chapter-dialog.tsx
 "use client";
 
 import type React from "react";
 import { useEffect, useState, useTransition } from "react";
+
+import { createChapterAction, updateChapterAction } from "@/app/admin/chapters/actions";
+import { AdminLookupCombobox } from "@/components/admin/admin-lookup-combobox";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -17,15 +19,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { createChapterAction, updateChapterAction } from "@/app/admin/chapters/actions";
 import { useToast } from "@/hooks/use-toast";
 import type { ChapterWithRelations } from "@/types";
-
-// خيارات بسيطة للـ Select
-type UniversityOption = { id: string; name: string; code: string | null };
-type MajorOption = { id: string; name: string; code: string | null; universityId: string };
-type SubjectOption = { id: string; name: string; code: string | null; majorId: string };
 
 interface ChapterDialogProps {
   children?: React.ReactNode;
@@ -39,199 +34,50 @@ export function ChapterDialog({ children, chapter, open, onOpenChange }: Chapter
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
-  // القوائم
-  const [universities, setUniversities] = useState<UniversityOption[]>([]);
-  const [majors, setMajors] = useState<MajorOption[]>([]);
-  const [subjects, setSubjects] = useState<SubjectOption[]>([]);
-
-  // القيم المختارة
-  const [selectedUniversity, setSelectedUniversity] = useState<string>("");
-  const [selectedMajor, setSelectedMajor] = useState<string>("");
-  const [selectedSubject, setSelectedSubject] = useState<string>(chapter?.subjectId || "");
+  const [selectedUniversity, setSelectedUniversity] = useState("");
+  const [selectedMajor, setSelectedMajor] = useState("");
+  const [selectedSubject, setSelectedSubject] = useState(chapter?.subjectId || "");
 
   const isControlled = open !== undefined && onOpenChange !== undefined;
   const dialogOpen = isControlled ? open : isOpen;
   const setDialogOpen = isControlled ? onOpenChange : setIsOpen;
 
-  // Helpers للطلبات (عميل = نسبي)
-  async function loadUniversities() {
-    try {
-      const qs = new URLSearchParams({
-        page: "1",
-        pageSize: "1000",
-        sortBy: "name",
-        sortOrder: "asc",
-      });
-      const res = await fetch(`/api/v1/admin/universities?${qs.toString()}`, {
-        next: { revalidate: 3600, tags: ["universities"] },
-      });
-      if (!res.ok) throw new Error("failed");
-      const payload = await res.json();
-      const items: UniversityOption[] = (payload?.data ?? []).map((u: any) => ({
-        id: u.id,
-        name: u.name,
-        code: u.code ?? null,
-      }));
-      setUniversities(items);
-    } catch {
-      setUniversities([]);
-    }
-  }
-
-  async function loadMajorsByUniversity(universityId: string) {
-    if (!universityId) {
-      setMajors([]);
-      return;
-    }
-    try {
-      const qs = new URLSearchParams({
-        page: "1",
-        pageSize: "1000",
-        sortBy: "name",
-        sortOrder: "asc",
-        universityId,
-      });
-      const res = await fetch(`/api/v1/admin/majors?${qs.toString()}`, {
-        next: { revalidate: 3600, tags: ["majors"] },
-      });
-      if (!res.ok) throw new Error("failed");
-      const payload = await res.json();
-      const items: MajorOption[] = (payload?.data ?? []).map((m: any) => ({
-        id: m.id,
-        name: m.name,
-        code: m.code ?? null,
-        universityId,
-      }));
-      setMajors(items);
-    } catch {
-      setMajors([]);
-    }
-  }
-
-  async function loadSubjectsByMajor(majorId: string) {
-    if (!majorId) {
-      setSubjects([]);
-      return;
-    }
-    try {
-      const qs = new URLSearchParams({
-        page: "1",
-        pageSize: "1000",
-        sortBy: "name",
-        sortOrder: "asc",
-        majorId,
-      });
-      const res = await fetch(`/api/v1/admin/subjects?${qs.toString()}`, {
-        next: { revalidate: 3600, tags: ["subjects"] },
-      });
-      if (!res.ok) throw new Error("failed");
-      const payload = await res.json();
-      const items: SubjectOption[] = (payload?.data ?? []).map((s: any) => ({
-        id: s.id,
-        name: s.name,
-        code: s.code ?? null,
-        majorId,
-      }));
-      setSubjects(items);
-    } catch {
-      setSubjects([]);
-    }
-  }
-
-  // فتح الدايالوج: تحميل الجامعات + لو تحرير نعمل prefill للسلسلة
   useEffect(() => {
     if (!dialogOpen) return;
+    setSelectedUniversity(chapter?.subject?.major?.university?.id ?? "");
+    setSelectedMajor(chapter?.subject?.majorId ?? "");
+    setSelectedSubject(chapter?.subjectId ?? "");
+  }, [dialogOpen, chapter]);
 
-    // حمّل الجامعات أولاً
-    (async () => {
-      await loadUniversities();
-
-      // Prefill في حالة التعديل
-      if (chapter?.subject) {
-        const uniId = chapter.subject?.major?.university?.id ?? "";
-        const majId = chapter.subject?.majorId ?? "";
-        const subId = chapter.subjectId ?? "";
-
-        if (uniId) {
-          setSelectedUniversity(uniId);
-          await loadMajorsByUniversity(uniId);
-        } else {
-          setSelectedUniversity("");
-          setMajors([]);
-        }
-
-        if (majId) {
-          setSelectedMajor(majId);
-          await loadSubjectsByMajor(majId);
-        } else {
-          setSelectedMajor("");
-          setSubjects([]);
-        }
-
-        if (subId) {
-          setSelectedSubject(subId);
-        } else {
-          setSelectedSubject("");
-        }
-      } else {
-        // إنشاء جديد
-        setSelectedUniversity("");
-        setSelectedMajor("");
-        setSelectedSubject("");
-        setMajors([]);
-        setSubjects([]);
-      }
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dialogOpen]);
-
-  // عند تغيير الجامعة
-  const handleSelectUniversity = async (val: string) => {
-    setSelectedUniversity(val);
+  const handleSelectUniversity = (value: string) => {
+    setSelectedUniversity(value);
     setSelectedMajor("");
     setSelectedSubject("");
-    setSubjects([]);
-    await loadMajorsByUniversity(val);
   };
 
-  // عند تغيير التخصص
-  const handleSelectMajor = async (val: string) => {
-    setSelectedMajor(val);
+  const handleSelectMajor = (value: string) => {
+    setSelectedMajor(value);
     setSelectedSubject("");
-    await loadSubjectsByMajor(val);
   };
 
-  // Submit
   const handleSubmit = async (formData: FormData) => {
     if (!selectedSubject) {
-      toast({
-        title: "خطأ",
-        description: "يرجى اختيار المقرر",
-        variant: "destructive",
-      });
+      toast({ title: "خطأ", description: "يرجى اختيار المقرر", variant: "destructive" });
       return;
     }
 
-    formData.append("subjectId", selectedSubject);
+    formData.set("subjectId", selectedSubject);
 
     startTransition(async () => {
       try {
-        let result;
-        if (chapter) {
-          result = await updateChapterAction(chapter.id, formData);
-        } else {
-          result = await createChapterAction(formData);
-        }
+        const result = chapter ? await updateChapterAction(chapter.id, formData) : await createChapterAction(formData);
 
         if (result.success) {
           toast({ title: "نجح", description: result.message });
           setDialogOpen(false);
-          // إعادة تهيئة الحقول
           setSelectedUniversity("");
           setSelectedMajor("");
           setSelectedSubject("");
-          setMajors([]);
-          setSubjects([]);
         } else {
           toast({ title: "خطأ", description: result.message, variant: "destructive" });
         }
@@ -244,7 +90,7 @@ export function ChapterDialog({ children, chapter, open, onOpenChange }: Chapter
   return (
     <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
       {children && <DialogTrigger asChild>{children}</DialogTrigger>}
-      <DialogContent className="sm:max-w-[760px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[760px]">
         <DialogHeader>
           <DialogTitle>{chapter ? "تعديل الفصل" : "إضافة فصل"}</DialogTitle>
           <DialogDescription>
@@ -254,81 +100,46 @@ export function ChapterDialog({ children, chapter, open, onOpenChange }: Chapter
 
         <form action={handleSubmit}>
           <div className="grid gap-4 py-4">
-            {/* الجامعة */}
             <div className="grid grid-cols-4 items-center gap-4">
               <Label className="text-right">الجامعة</Label>
               <div className="col-span-3">
-                <Select value={selectedUniversity} onValueChange={handleSelectUniversity}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="اختر الجامعة" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {universities.map((u) => (
-                      <SelectItem key={u.id} value={u.id}>
-                        {u.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <AdminLookupCombobox
+                  type="university"
+                  value={selectedUniversity}
+                  onValueChange={handleSelectUniversity}
+                  placeholder="ابحث عن جامعة"
+                />
               </div>
             </div>
 
-            {/* التخصص */}
             <div className="grid grid-cols-4 items-center gap-4">
               <Label className="text-right">التخصص</Label>
               <div className="col-span-3">
-                <Select
+                <AdminLookupCombobox
+                  type="major"
                   value={selectedMajor}
                   onValueChange={handleSelectMajor}
-                  disabled={!selectedUniversity || majors.length === 0}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={selectedUniversity ? "اختر التخصص" : "اختر الجامعة أولاً"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {majors.map((m) => (
-                      <SelectItem key={m.id} value={m.id}>
-                        {m.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  universityId={selectedUniversity}
+                  disabled={!selectedUniversity}
+                  placeholder={selectedUniversity ? "ابحث عن تخصص" : "اختر الجامعة أولاً"}
+                />
               </div>
             </div>
 
-            {/* المقرر */}
             <div className="grid grid-cols-4 items-center gap-4">
               <Label className="text-right">المقرر</Label>
               <div className="col-span-3">
-                <Select
+                <AdminLookupCombobox
+                  type="subject"
                   value={selectedSubject}
                   onValueChange={setSelectedSubject}
-                  disabled={!selectedMajor || subjects.length === 0}
-                  required
-                >
-                  <SelectTrigger>
-                    <SelectValue
-                      placeholder={
-                        selectedMajor
-                          ? subjects.length > 0
-                            ? "اختر المقرر"
-                            : "لا توجد مقررات لهذا التخصص"
-                          : "اختر التخصص أولاً"
-                      }
-                    />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {subjects.map((s) => (
-                      <SelectItem key={s.id} value={s.id}>
-                        {s.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  majorId={selectedMajor}
+                  disabled={!selectedMajor}
+                  placeholder={selectedMajor ? "ابحث عن مقرر" : "اختر التخصص أولاً"}
+                />
               </div>
             </div>
 
-            {/* اسم الفصل */}
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="name" className="text-right">
                 اسم الفصل
@@ -336,7 +147,6 @@ export function ChapterDialog({ children, chapter, open, onOpenChange }: Chapter
               <Input id="name" name="name" defaultValue={chapter?.name} className="col-span-3" required />
             </div>
 
-            {/* رقم الفصل */}
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="chapterNumber" className="text-right">
                 رقم الفصل
@@ -352,9 +162,8 @@ export function ChapterDialog({ children, chapter, open, onOpenChange }: Chapter
               />
             </div>
 
-            {/* الوصف */}
             <div className="grid grid-cols-4 items-start gap-4">
-              <Label htmlFor="description" className="text-right pt-2">
+              <Label htmlFor="description" className="pt-2 text-right">
                 الوصف
               </Label>
               <Textarea
@@ -367,9 +176,8 @@ export function ChapterDialog({ children, chapter, open, onOpenChange }: Chapter
               />
             </div>
 
-            {/* الأهداف التعليمية */}
             <div className="grid grid-cols-4 items-start gap-4">
-              <Label htmlFor="learningObjectives" className="text-right pt-2">
+              <Label htmlFor="learningObjectives" className="pt-2 text-right">
                 الأهداف التعليمية
               </Label>
               <Textarea
@@ -382,7 +190,6 @@ export function ChapterDialog({ children, chapter, open, onOpenChange }: Chapter
               />
             </div>
 
-            {/* الحالة */}
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="isActive" className="text-right">
                 نشط

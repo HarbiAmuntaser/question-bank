@@ -19,7 +19,7 @@ import type { InstitutionType } from "@/config/regions";
 import { fetchJSON } from "@/lib/server/student-fetch";
 import { stripPrefix, encodeSlugPath } from "@/lib/public/slug-utils";
 
-export const revalidate = 300;
+export const revalidate = 21600;
 
 type SeoLite = { slug: string | null };
 
@@ -66,13 +66,17 @@ async function fetchMajorBySlugOrCode(majorSlugPathRaw: string) {
   const majorSlugPath = stripPrefix(majorSlugPathRaw, "تخصصات");
 
   const bySlug = await fetchJSON<MajorDto>(
-    `/api/v1/student/majors/by-slug/${encodeSlugPath(majorSlugPath)}`
+    `/api/v1/student/majors/by-slug/${encodeSlugPath(majorSlugPath)}`,
+    undefined,
+    21600
   );
   if (bySlug.ok && bySlug.data) return { major: bySlug.data };
 
   if (!majorSlugPath.includes("/")) {
     const byCode = await fetchJSON<MajorDto>(
-      `/api/v1/student/majors/by-code/${encodeURIComponent(majorSlugPath)}`
+      `/api/v1/student/majors/by-code/${encodeURIComponent(majorSlugPath)}`,
+      undefined,
+      21600
     );
     if (byCode.ok && byCode.data) return { major: byCode.data };
   }

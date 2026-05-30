@@ -7,7 +7,8 @@ import { QuizInterface } from "@/components/public/quiz/quiz-interface";
 import { fetchJSON } from "@/lib/server/student-fetch";
 import { PublicHeader } from "@/components/public/public-header/public-header";
 
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 type PageParams = { id: string };
 
@@ -15,7 +16,9 @@ export default async function QuizPage({ params }: { params: Promise<PageParams>
   const { id } = await params;
 
   const res = await fetchJSON<QuizWithQuestions>(
-    `/api/v1/student/quizzes/by-id/${encodeURIComponent(id)}`
+    `/api/v1/student/quizzes/by-id/${encodeURIComponent(id)}`,
+    { cache: "no-store" },
+    0
   );
 
   if (!res.ok || !res.data) notFound();

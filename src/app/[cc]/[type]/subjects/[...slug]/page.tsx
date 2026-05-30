@@ -11,7 +11,7 @@ import {
 } from "@/lib/public/slug-utils";
 import { fetchJSON } from "@/lib/server/student-fetch";
 
-export const revalidate = 300;
+export const revalidate = 21600;
 
 /**
  * ✅ Next 15:
@@ -46,19 +46,25 @@ async function fetchSubjectBySlugOrCodeOrId(subjectSlugPathRaw: string) {
 
   // 1) by-slug
   const bySlug = await fetchJSON<SubjectLite>(
-    `/api/v1/student/subjects/by-slug/${encodeSlugPath(subjectSlugPath)}`
+    `/api/v1/student/subjects/by-slug/${encodeSlugPath(subjectSlugPath)}`,
+    undefined,
+    21600
   );
   if (bySlug.ok && bySlug.data) return bySlug.data;
 
   // 2) fallback: by-code ثم by-id (إذا segment واحد)
   if (!subjectSlugPath.includes("/")) {
     const byCode = await fetchJSON<SubjectLite>(
-      `/api/v1/student/subjects/by-code/${encodeURIComponent(subjectSlugPath)}`
+      `/api/v1/student/subjects/by-code/${encodeURIComponent(subjectSlugPath)}`,
+      undefined,
+      21600
     );
     if (byCode.ok && byCode.data) return byCode.data;
 
     const byId = await fetchJSON<SubjectLite>(
-      `/api/v1/student/subjects/by-id/${encodeURIComponent(subjectSlugPath)}`
+      `/api/v1/student/subjects/by-id/${encodeURIComponent(subjectSlugPath)}`,
+      undefined,
+      21600
     );
     if (byId.ok && byId.data) return byId.data;
   }

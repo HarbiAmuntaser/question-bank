@@ -1,6 +1,7 @@
 import { bad, json, unauth } from "@/lib/http"
 import { verifyAdmin } from "@/lib/admin-auth"
 import { getDashboardDataCached } from "@/lib/admin/dashboard"
+import { CACHE_CONTROL } from "@/lib/cache-tags"
 
 export const dynamic = "force-dynamic"
 
@@ -15,7 +16,7 @@ export async function GET(req: Request) {
       {
         status: 200,
         headers: {
-          "cache-control": "public, s-maxage=300, stale-while-revalidate=60",
+          "cache-control": CACHE_CONTROL.PRIVATE_NO_STORE,
         },
       }
     )

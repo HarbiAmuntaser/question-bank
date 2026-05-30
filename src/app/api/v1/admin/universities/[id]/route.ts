@@ -5,8 +5,9 @@
 import { prisma } from "@/lib/prisma";
 import { json, bad, unauth, notFound } from "@/lib/http";
 import { verifyAdmin } from "@/lib/admin-auth";
+import { CACHE_CONTROL } from "@/lib/cache-tags";
+import { revalidateUniversityCache } from "@/lib/cache-invalidation";
 import { updateUniversitySchema } from "@/validations/university";
-import { revalidateTag } from "next/cache";
 import type { Prisma } from "@prisma/client";
 
 type RouteParams = { id: string };
@@ -33,7 +34,7 @@ export async function GET(req: Request, { params }: RouteContext) {
   if (!u) return notFound("الجامعة غير موجودة");
   return json(
     { data: u },
-    { status: 200, headers: { "cache-control": "public, s-maxage=3600" } }
+    { status: 200, headers: { "cache-control": CACHE_CONTROL.PRIVATE_NO_STORE } }
   );
 }
 
@@ -72,7 +73,7 @@ export async function PUT(req: Request, { params }: RouteContext) {
 
   const updated = await prisma.university.update({ where: { id }, data });
 
-  revalidateTag("universities");
+  revalidateUniversityCache({ id: updated.id, countryCode: updated.countryCode });
   return json({ data: updated });
 }
 
@@ -83,6 +84,10 @@ export async function DELETE(req: Request, { params }: RouteContext) {
   const auth = await verifyAdmin(req);
   if (!auth.ok) return unauth();
 
+  const target = await prisma.university.findUnique({
+    where: { id },
+    select: { countryCode: true },
+  });
   const hasMajors = await prisma.major.count({ where: { universityId: id } });
   if (hasMajors > 0) return bad("لا يمكن حذف الجامعة لوجود تخصصات مرتبطة بها");
 
@@ -92,6 +97,6 @@ export async function DELETE(req: Request, { params }: RouteContext) {
     return bad("فشل الحذف. تأكد من عدم وجود علاقات أخرى");
   }
 
-  revalidateTag("universities");
+  revalidateUniversityCache({ id, countryCode: target?.countryCode });
   return json({ data: true });
 }
