@@ -3,3 +3,5 @@ export {
   InstitutionsPreviewSection,
   type UniversityPreviewItem,
 } from "./institutions-preview-section";
+export { StaticInstitutionsPreviewSection } from "./static-preview-section";
+export { ViewportInstitutionsPreviewSection } from "./viewport-preview-section";

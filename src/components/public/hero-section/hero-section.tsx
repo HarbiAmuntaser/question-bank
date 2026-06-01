@@ -19,6 +19,7 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { useMediaQuery } from "./use-media-query";
@@ -30,17 +31,63 @@ import {
   TYPE_LABELS,
   type Lang,
   type InstitutionType,
+  type HeroCopy,
 } from "@/content/hero";
 
 import { ICON_MAP } from "./icon-map";
-import { HeroBackground } from "./background";
-import { FeaturesGrid } from "./features-grid";
 import { HeroMedia } from "./hero-media";
 import { HeroActions } from "./hero-actions";
 import { formatBadge, getDocumentLang, normalizeCc, buildHeroLinks } from "./utils";
 import type { HeroSectionProps } from "./types";
 
 import { Star } from "lucide-react";
+
+type HeroBackgroundProps = { animate: boolean };
+type FeaturesGridProps = { copy: HeroCopy; allowMotion?: boolean };
+
+const LazyHeroBackground = dynamic<HeroBackgroundProps>(
+  () => import("./background").then((mod) => mod.HeroBackground),
+  {
+    ssr: false,
+    loading: () => <StaticHeroBackground />,
+  },
+);
+
+const LazyFeaturesGrid = dynamic<FeaturesGridProps>(
+  () => import("./features-grid").then((mod) => mod.FeaturesGrid),
+  {
+    ssr: false,
+    loading: () => <FeaturesGridFallback />,
+  },
+);
+
+function StaticHeroBackground() {
+  return (
+    <div className="absolute inset-0" aria-hidden>
+      <div className="absolute inset-0 bg-[url('/patterns/islamic-pattern.svg')] opacity-5" />
+    </div>
+  );
+}
+
+function FeaturesGridFallback() {
+  return (
+    <div className="mt-10 grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-3 lg:mt-20 lg:gap-8" aria-hidden>
+      {Array.from({ length: 3 }).map((_, index) => (
+        <div
+          key={index}
+          className="min-h-[220px] rounded-xl border-2 bg-white/60 shadow-sm backdrop-blur-sm dark:bg-gray-800/60"
+        >
+          <div className="flex h-full flex-col items-center p-5 text-center sm:p-6 lg:p-8">
+            <div className="mb-6 h-16 w-16 rounded-2xl bg-muted/70" />
+            <div className="mb-4 h-6 w-2/3 rounded bg-muted/70" />
+            <div className="h-4 w-full rounded bg-muted/70" />
+            <div className="mt-2 h-4 w-4/5 rounded bg-muted/70" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export function HeroSection({
   cc: rawCc = "SA",
@@ -76,6 +123,13 @@ const isSmallScreen = useMediaQuery("(max-width: 1024px)");
 
 // ✅ نعتبر “أنيميشن ثقيل” فقط للديسكتوب
 const allowHeavyMotion = !reduceMotion && !isSmallScreen;
+const [decorationsReady, setDecorationsReady] = useState(false);
+
+// Defer decorative hero chunks so the LCP image and primary copy get priority.
+useEffect(() => {
+  const timer = window.setTimeout(() => setDecorationsReady(true), 350);
+  return () => window.clearTimeout(timer);
+}, []);
   // تحسين أداء: نوقف الحركة لو المستخدم بدّل التبويب
   useEffect(() => {
     const onVis = () => setPaused(document.visibilityState !== "visible");
@@ -111,7 +165,7 @@ const { browseTypeHref, browseAcademiesHref, browseSchoolsHref } = buildHeroLink
       className="relative flex items-center justify-center overflow-hidden bg-gradient-to-br from-gray-50 via-white to-gray-100 py-8 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 sm:py-10 lg:min-h-[86vh] lg:py-0"
       aria-label={lang === "ar" ? "القسم التعريفي الرئيسي" : "Hero section"}
     >
-<HeroBackground animate={allowHeavyMotion} />
+{decorationsReady ? <LazyHeroBackground animate={allowHeavyMotion} /> : <StaticHeroBackground />}
 
       <div
         className="relative mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-12"
@@ -229,7 +283,11 @@ const { browseTypeHref, browseAcademiesHref, browseSchoolsHref } = buildHeroLink
         </div>
 
         {/* بطاقات المزايا */}
-<FeaturesGrid copy={copy} allowMotion={!isSmallScreen} />
+{decorationsReady ? (
+  <LazyFeaturesGrid copy={copy} allowMotion={!isSmallScreen} />
+) : (
+  <FeaturesGridFallback />
+)}
       </div>
     </section>
   );

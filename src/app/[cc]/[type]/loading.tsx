@@ -1,16 +1,13 @@
-// file: src/app/[cc]/[type]/loading.tsx
-
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { PublicLoadingState } from "@/components/public/public-loading-state";
 
 export default function Loading() {
   return (
-    <div
-      className="container py-20 flex items-center justify-center"
-      role="status"
-      aria-busy="true"
-      aria-live="polite"
-    >
-      <LoadingSpinner />
+    <div className="container py-10">
+      <PublicLoadingState
+        title="جاري تجهيز قائمة المؤسسات..."
+        description="نحضّر الجامعات والمدارس والأكاديميات لتظهر لك بترتيب واضح."
+        cards={6}
+      />
     </div>
   );
 }

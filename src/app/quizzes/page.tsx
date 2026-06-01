@@ -1,7 +1,7 @@
 // src/app/quizzes/page.tsx
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { PublicLoadingState } from "@/components/public/public-loading-state";
 import { QuizzesListing } from "@/components/public/quizzes-listing";
 import { getRequestOrigin } from "@/lib/server/request-origin";
 
@@ -101,7 +101,15 @@ export default async function QuizzesPage({
 
   return (
     <div className="container mx-auto py-8 px-4 md:px-6">
-      <Suspense fallback={<LoadingSpinner />}>
+      <Suspense
+        fallback={
+          <PublicLoadingState
+            title="جاري تجهيز الاختبارات..."
+            description="نرتب الاختبارات والفلاتر لتصل إلى المحتوى المناسب بسرعة."
+            cards={6}
+          />
+        }
+      >
         <QuizzesListing
           initialQuizzes={initialQuizzes}
           universities={universities}

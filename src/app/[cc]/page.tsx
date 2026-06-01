@@ -19,6 +19,8 @@ import { PublicFooter } from "@/components/public/public-footer";
 import { HeroSection } from "@/components/public/hero-section/hero-section";
 import {
   InstitutionsPreviewSection,
+  StaticInstitutionsPreviewSection,
+  ViewportInstitutionsPreviewSection,
   type UniversityPreviewItem,
 } from "@/components/public/home-main/institutions-preview";
 
@@ -78,8 +80,13 @@ export default async function CountryHome({ params }: { params: Promise<PagePara
 
         {/* ✅ Preview Sections */}
         <InstitutionsPreviewSection cc={cc} type="university" initialItems={universities} />
-        <InstitutionsPreviewSection cc={cc} type="school" initialItems={schools} />
-        <InstitutionsPreviewSection cc={cc} type="academy" initialItems={academies} />
+        <ViewportInstitutionsPreviewSection cc={cc} type="school" initialItems={schools}>
+          <StaticInstitutionsPreviewSection cc={cc} type="school" initialItems={schools} />
+        </ViewportInstitutionsPreviewSection>
+
+        <ViewportInstitutionsPreviewSection cc={cc} type="academy" initialItems={academies}>
+          <StaticInstitutionsPreviewSection cc={cc} type="academy" initialItems={academies} />
+        </ViewportInstitutionsPreviewSection>
       </main>
 
       <PublicFooter cc={cc} />

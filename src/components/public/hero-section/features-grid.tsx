@@ -26,6 +26,36 @@ export function FeaturesGrid({ copy, allowMotion = true }: Props) {
     <div className="mt-10 grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-3 lg:mt-20 lg:gap-8">
       {copy.features.map((f, i) => {
         const FeatureIcon = ICON_MAP[f.icon] ?? ICON_MAP.book;
+        const card = (
+          <div className="h-full border-2 hover:border-primary/50 transition-all duration-300 shadow-lg hover:shadow-xl bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl">
+            <div className="flex h-full flex-col p-5 text-center sm:p-6 lg:p-8">
+              <div
+                className={`w-16 h-16 ${f.bgColor} rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300`}
+              >
+                <div
+                  className={`w-12 h-12 bg-gradient-to-r ${f.gradient} rounded-xl flex items-center justify-center`}
+                >
+                  <FeatureIcon className="h-6 w-6 text-white" aria-hidden />
+                </div>
+              </div>
+
+              <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">
+                {f.title}
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400 leading-relaxed flex-grow">
+                {f.description}
+              </p>
+            </div>
+          </div>
+        );
+
+        if (!canAnimate) {
+          return (
+            <div key={`${f.title}-${i}`} className="group">
+              {card}
+            </div>
+          );
+        }
 
         return (
           <motion.div
@@ -36,26 +66,7 @@ export function FeaturesGrid({ copy, allowMotion = true }: Props) {
             whileHover={canAnimate ? { y: -6 } : undefined}
             className="group"
           >
-            <div className="h-full border-2 hover:border-primary/50 transition-all duration-300 shadow-lg hover:shadow-xl bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl">
-              <div className="flex h-full flex-col p-5 text-center sm:p-6 lg:p-8">
-                <div
-                  className={`w-16 h-16 ${f.bgColor} rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300`}
-                >
-                  <div
-                    className={`w-12 h-12 bg-gradient-to-r ${f.gradient} rounded-xl flex items-center justify-center`}
-                  >
-                    <FeatureIcon className="h-6 w-6 text-white" aria-hidden />
-                  </div>
-                </div>
-
-                <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">
-                  {f.title}
-                </h3>
-                <p className="text-gray-600 dark:text-gray-400 leading-relaxed flex-grow">
-                  {f.description}
-                </p>
-              </div>
-            </div>
+            {card}
           </motion.div>
         );
       })}

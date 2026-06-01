@@ -3,6 +3,7 @@
 
 import { useCallback, useRef, useState } from "react";
 import dynamic from "next/dynamic";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 
 import type { QuizWithQuestions, QuizSession, QuizAnswer } from "@/types";
@@ -181,7 +182,9 @@ export function QuizInterface({ quiz }: { quiz: QuizWithQuestions }) {
     return (
       <div className="flex min-h-[420px] items-center justify-center px-4">
         <div className="rounded-lg border bg-card/95 p-6 text-center shadow-sm" aria-live="polite">
-          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-primary" />
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl border bg-muted/30">
+            <Image src="/images/institutions/default.svg" alt="" width={64} height={64} className="h-full w-full object-cover opacity-90" />
+          </div>
           <p className="text-sm leading-relaxed text-muted-foreground sm:text-base">جاري تحضير الاختبار...</p>
         </div>
       </div>
@@ -204,7 +207,9 @@ export function QuizInterface({ quiz }: { quiz: QuizWithQuestions }) {
     return (
       <div className="flex min-h-[420px] items-center justify-center px-4">
         <div className="rounded-lg border bg-card/95 p-6 text-center shadow-sm" aria-live="polite">
-          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-primary" />
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl border bg-muted/30">
+            <Image src="/images/institutions/default.svg" alt="" width={64} height={64} className="h-full w-full object-cover opacity-90" />
+          </div>
           <p className="text-sm leading-relaxed text-muted-foreground sm:text-base">جاري تحضير الاختبار...</p>
         </div>
       </div>

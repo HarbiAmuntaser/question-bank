@@ -5,8 +5,9 @@ import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { BookOpen, Clock, Search, Loader2 } from "lucide-react";
+import { BookOpen, Clock, Search } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { PublicLoadingState } from "@/components/public/public-loading-state";
 import {
   isOpenWithoutStatus,
   QuizAccessAction,
@@ -185,9 +186,12 @@ useEffect(() => {
         </div>
 
         {loading ? (
-          <div className="flex justify-center items-center h-64">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
+          <PublicLoadingState
+            title="جاري تحديث نتائج البحث..."
+            description="نبحث داخل الاختبارات ونرتب النتائج حسب الفلاتر المختارة."
+            cards={3}
+            className="py-4"
+          />
         ) : quizzes.length === 0 ? (
           <div className="text-center py-10">
             <p className="text-xl text-muted-foreground">لا توجد اختبارات مطابقة لمعايير البحث.</p>
