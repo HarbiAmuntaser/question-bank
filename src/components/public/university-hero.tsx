@@ -1,7 +1,8 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { MapPin } from "lucide-react";
+import { BookOpen, MapPin } from "lucide-react";
 
 import type { UniversityPublicLite } from "@/types/public-university";
 
@@ -27,9 +28,9 @@ export function UniversityHero({ university }: UniversityHeroProps) {
 
   return (
     <section className="container py-6 sm:py-8 lg:py-12">
-      <Card className="overflow-hidden border-2 bg-white/90 shadow-lg backdrop-blur-sm dark:bg-gray-800/90">
+      <Card className="overflow-hidden border bg-card/95 shadow-sm transition-shadow hover:shadow-md dark:bg-gray-900/80">
         <CardContent className="p-5 sm:p-6 lg:p-8">
-          <div className="flex flex-col items-start gap-5 sm:gap-6 lg:flex-row lg:gap-8">
+          <div className="flex flex-col items-start gap-5 sm:gap-6 lg:flex-row lg:items-center lg:gap-8">
             {/* الشعار + معلومات أساسية */}
             <div className="flex w-full items-start gap-4 sm:items-center sm:gap-6">
               <Avatar className="h-16 w-16 shrink-0 sm:h-24 sm:w-24">
@@ -41,20 +42,30 @@ export function UniversityHero({ university }: UniversityHeroProps) {
               </Avatar>
 
               <div className="min-w-0">
+                <div className="mb-2 flex flex-wrap items-center gap-2 text-xs font-medium text-muted-foreground">
+                  <span>المؤسسات التعليمية</span>
+                  <span aria-hidden>/</span>
+                  <span>تفاصيل المؤسسة</span>
+                </div>
+
                 <h1 className="mb-2 text-2xl font-bold leading-tight text-gray-900 dark:text-white sm:text-3xl">
                   {university.name}
                 </h1>
+
+                <p className="mb-4 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
+                  استعرض التخصصات والمقررات والاختبارات المتاحة لهذه المؤسسة في مكان واحد.
+                </p>
 
                 <div className="flex flex-wrap items-center gap-2">
                   {university.code ? (
                     <Badge variant="secondary">{university.code}</Badge>
                   ) : null}
 
-                  <Badge className="bg-white/80 dark:bg-white/10 text-gray-900 dark:text-white border" variant="outline">
+                  <Badge className="border bg-background/80 text-foreground" variant="outline">
                     {majors.length} تخصص
                   </Badge>
 
-                  <Badge className="bg-white/80 dark:bg-white/10 text-gray-900 dark:text-white border" variant="outline">
+                  <Badge className="border bg-background/80 text-foreground" variant="outline">
                     تأسست: {createdYear}
                   </Badge>
                 </div>
@@ -72,8 +83,14 @@ export function UniversityHero({ university }: UniversityHeroProps) {
               </div>
             </div>
 
-            {/* مساحة إضافية مستقبلًا (CTA أو روابط) */}
-            <div className="flex-1" />
+            <div className="w-full lg:w-auto">
+              <Button asChild className="h-11 w-full rounded-lg px-5 sm:w-auto">
+                <a href="#majors-section" className="flex items-center justify-center gap-2">
+                  <BookOpen className="h-4 w-4" aria-hidden />
+                  عرض التخصصات
+                </a>
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>

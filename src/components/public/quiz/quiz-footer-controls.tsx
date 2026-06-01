@@ -3,7 +3,7 @@
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle } from "lucide-react";
 
 export function QuizFooterControls({
   isLast,
@@ -19,21 +19,23 @@ export function QuizFooterControls({
   onSubmit: () => void;
 }) {
   return (
-    <Card>
-      <CardContent className="pt-6">
-        <div className="flex flex-col gap-3 sm:flex-row sm:justify-between">
-          <Button variant="outline" onClick={onPrev} disabled={isFirst} aria-disabled={isFirst} className="h-11 w-full sm:w-auto">
-            السؤال السابق
+    <Card className="border bg-card/95 shadow-sm">
+      <CardContent className="p-4 sm:p-5">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:flex lg:justify-between">
+          <Button variant="outline" onClick={onPrev} disabled={isFirst} aria-disabled={isFirst} className="h-12 w-full gap-2 rounded-lg lg:w-auto">
+            <ArrowRight className="h-4 w-4" aria-hidden />
+            السابق
           </Button>
 
           {isLast ? (
-            <Button onClick={onSubmit} className="flex h-11 w-full items-center gap-2 sm:w-auto" aria-label="تسليم الاختبار">
+            <Button onClick={onSubmit} className="flex h-12 w-full items-center justify-center gap-2 rounded-lg lg:w-auto" aria-label="تسليم الاختبار">
               <CheckCircle className="h-4 w-4" />
               تسليم الاختبار
             </Button>
           ) : (
-            <Button onClick={onNext} aria-label="السؤال التالي" className="h-11 w-full sm:w-auto">
-              السؤال التالي
+            <Button onClick={onNext} aria-label="السؤال التالي" className="h-12 w-full gap-2 rounded-lg lg:w-auto">
+              التالي
+              <ArrowLeft className="h-4 w-4" aria-hidden />
             </Button>
           )}
         </div>

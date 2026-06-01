@@ -5,8 +5,14 @@ import {
   buildAnalyticsExcelTsv,
   parseAnalyticsDays,
 } from "@/lib/admin/analytics"
+import { CACHE_CONTROL } from "@/lib/cache-tags"
 
 export const dynamic = "force-dynamic"
+
+function withPrivateNoStore(response: Response) {
+  response.headers.set("cache-control", CACHE_CONTROL.PRIVATE_NO_STORE)
+  return response
+}
 
 function buildFilename(extension: "csv" | "xls"): string {
   const date = new Date().toISOString().slice(0, 10)
@@ -15,7 +21,7 @@ function buildFilename(extension: "csv" | "xls"): string {
 
 export async function GET(req: Request) {
   const auth = await verifyAdmin(req)
-  if (!auth.ok) return unauth()
+  if (!auth.ok) return withPrivateNoStore(unauth())
 
   const url = new URL(req.url)
   const format = (url.searchParams.get("format") ?? "csv").toLowerCase()
@@ -29,6 +35,7 @@ export async function GET(req: Request) {
         headers: {
           "content-type": "text/csv; charset=utf-8",
           "content-disposition": `attachment; filename="${buildFilename("csv")}"`,
+          "cache-control": CACHE_CONTROL.PRIVATE_NO_STORE,
         },
       })
     }
@@ -40,13 +47,14 @@ export async function GET(req: Request) {
         headers: {
           "content-type": "application/vnd.ms-excel; charset=utf-8",
           "content-disposition": `attachment; filename="${buildFilename("xls")}"`,
+          "cache-control": CACHE_CONTROL.PRIVATE_NO_STORE,
         },
       })
     }
 
-    return bad("unsupported_export_format")
+    return withPrivateNoStore(bad("unsupported_export_format"))
   } catch (error) {
     console.error("analytics_export_failed", error)
-    return bad("analytics_export_failed")
+    return withPrivateNoStore(bad("analytics_export_failed"))
   }
 }

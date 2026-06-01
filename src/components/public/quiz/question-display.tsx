@@ -6,7 +6,7 @@ import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { QuestionWithOptions, QuizAnswer } from "@/types";
-import { Star } from "lucide-react";
+import { CheckCircle2, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { RichQuestionContent } from "@/components/shared/rich-question-content";
 
@@ -43,16 +43,16 @@ export function QuestionDisplay({ question, questionNumber, answer, onAnswerChan
   const lang = useMemo(() => detectTextLang(question.questionText), [question.questionText]);
 
   return (
-    <Card className="w-full" dir={dir} lang={lang}>
-      <CardHeader>
-        <div className={cn("flex items-start justify-between gap-4", dir === "rtl" ? "text-right" : "text-left")}>
-          <CardTitle className="text-lg">
+    <Card className="w-full border bg-card/95 shadow-sm" dir={dir} lang={lang}>
+      <CardHeader className="p-4 sm:p-6">
+        <div className={cn("flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between", dir === "rtl" ? "text-right" : "text-left")}>
+          <CardTitle className="text-lg font-semibold leading-tight sm:text-xl">
             {lang === "en" ? `Question ${questionNumber}` : `السؤال ${questionNumber}`}
           </CardTitle>
 
-          <div className="flex items-center gap-2">
-            <Badge className={levelClass}>{levelText}</Badge>
-            <Badge variant="outline" className="flex items-center gap-1">
+          <div className={cn("flex flex-wrap items-center gap-2", dir === "rtl" ? "justify-start sm:justify-end" : "justify-start")}>
+            <Badge className={cn("rounded-md", levelClass)}>{levelText}</Badge>
+            <Badge variant="outline" className="flex items-center gap-1 rounded-md bg-background">
               <Star className="h-3 w-3" aria-hidden />
               {question.points} {lang === "en" ? "pts" : "نقطة"}
             </Badge>
@@ -60,9 +60,9 @@ export function QuestionDisplay({ question, questionNumber, answer, onAnswerChan
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-5 p-4 pt-0 sm:space-y-6 sm:p-6 sm:pt-0">
         {/* نص السؤال */}
-        <div className={cn("prose prose-lg max-w-none dark:prose-invert", dir === "rtl" ? "text-right" : "text-left")}>
+        <div className={cn("prose max-w-none text-base leading-relaxed dark:prose-invert sm:prose-lg", dir === "rtl" ? "text-right" : "text-left")}>
           <RichQuestionContent content={question.questionText} textClassName="text-gray-900 dark:text-gray-100" />
         </div>
 
@@ -102,8 +102,8 @@ export function QuestionDisplay({ question, questionNumber, answer, onAnswerChan
 
         {/* حالة الحفظ */}
         {answer ? (
-          <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
-            <div className="h-2 w-2 bg-green-500 rounded-full" aria-hidden />
+          <div className={cn("flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-300", dir === "rtl" ? "justify-start" : "justify-start")}>
+            <CheckCircle2 className="h-4 w-4" aria-hidden />
             <span>{lang === "en" ? "Answer saved" : "تم حفظ الإجابة"}</span>
           </div>
         ) : null}

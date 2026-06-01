@@ -32,35 +32,35 @@ export function ResultStatsCard({
       : null;
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
+    <Card className="border bg-card/95 shadow-sm">
+      <CardHeader className="p-5 sm:p-6">
+        <CardTitle className="flex items-center gap-2 text-lg">
           <BarChart3 className="h-5 w-5" aria-hidden />
           إحصائيات مفصلة
         </CardTitle>
       </CardHeader>
 
-      <CardContent className="space-y-4">
-        <div className="flex justify-between items-center">
+      <CardContent className="space-y-4 p-5 pt-0 sm:p-6 sm:pt-0">
+        <div className="flex items-center justify-between gap-3">
           <span className="text-sm font-medium">النقاط المكتسبة:</span>
-          <span className="font-bold">
+          <span className="text-left font-bold">
             {current.earnedPoints} من {current.totalPoints || "—"}
           </span>
         </div>
 
-        <div className="flex justify-between items-center">
+        <div className="flex items-center justify-between gap-3">
           <span className="text-sm font-medium">الوقت المستغرق:</span>
-          <span className="font-bold">{durationLabel}</span>
+          <span className="text-left font-bold">{durationLabel}</span>
         </div>
 
-        <div className="flex justify-between items-center">
+        <div className="flex items-center justify-between gap-3">
           <span className="text-sm font-medium">الحد الزمني:</span>
-          <span className="font-bold">{quizTimeLimitMin} دقيقة</span>
+          <span className="text-left font-bold">{quizTimeLimitMin} دقيقة</span>
         </div>
 
-        <div className="flex justify-between items-center">
+        <div className="flex items-center justify-between gap-3">
           <span className="text-sm font-medium">معدل الإجابة:</span>
-          <span className="font-bold">{rate ? `${rate} سؤال/دقيقة` : "—"}</span>
+          <span className="text-left font-bold">{rate ? `${rate} سؤال/دقيقة` : "—"}</span>
         </div>
 
         <Separator />

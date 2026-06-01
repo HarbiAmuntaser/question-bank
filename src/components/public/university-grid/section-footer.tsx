@@ -17,7 +17,7 @@ export function GridFooter({
       <Button
         asChild
         variant="outline"
-        className="rounded-xl w-full sm:w-auto sm:px-8 h-12 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-2 shadow-lg"
+        className="h-11 w-full rounded-lg bg-background/80 shadow-sm sm:w-auto sm:px-8"
       >
         <Link href={href} prefetch={false}>
           {label}

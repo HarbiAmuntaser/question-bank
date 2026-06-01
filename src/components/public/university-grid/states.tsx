@@ -10,12 +10,12 @@ export function GridLoading() {
           <div
             key={index}
             // Keep loading cards the same size as real cards to avoid layout shift.
-            className="overflow-hidden rounded-lg border-2 bg-white/90 shadow-lg dark:bg-gray-800/90"
+            className="overflow-hidden rounded-lg border bg-card/95 shadow-sm dark:bg-gray-900/80"
           >
             <div className="h-44 animate-pulse bg-muted sm:h-48" />
             <div className="space-y-5 p-6">
               <div className="h-6 w-4/5 animate-pulse rounded bg-muted" />
-              <div className="h-11 w-full animate-pulse rounded-xl bg-muted sm:h-12" />
+              <div className="h-11 w-full animate-pulse rounded-lg bg-muted sm:h-12" />
             </div>
           </div>
         ))}
@@ -27,7 +27,7 @@ export function GridLoading() {
 export function GridError({ message }: { message: string }) {
   return (
     <section className="py-14">
-      <div className="max-w-3xl mx-auto text-center rounded-2xl p-6 bg-red-50 dark:bg-red-900/20 border border-red-200/60 dark:border-red-800/50">
+      <div className="mx-auto max-w-3xl rounded-lg border border-red-200/60 bg-red-50 p-6 text-center dark:border-red-800/50 dark:bg-red-900/20">
         <p className="text-red-700 dark:text-red-300 font-medium">{message}</p>
       </div>
     </section>
@@ -36,11 +36,11 @@ export function GridError({ message }: { message: string }) {
 
 export function GridEmpty({ title, text }: { title: string; text: string }) {
   return (
-    <div className="text-center py-14">
-      <div className="p-6 bg-gray-100 dark:bg-gray-800 rounded-2xl max-w-md mx-auto">
-        <Search className="h-14 w-14 text-gray-400 mx-auto mb-4" aria-hidden />
-        <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white mb-2">{title}</h3>
-        <p className="text-gray-600 dark:text-gray-400">{text}</p>
+    <div className="py-14 text-center">
+      <div className="mx-auto max-w-md rounded-lg border bg-card/95 p-6 shadow-sm">
+        <Search className="mx-auto mb-4 h-14 w-14 text-muted-foreground" aria-hidden />
+        <h3 className="mb-2 text-lg font-semibold text-gray-900 dark:text-white sm:text-xl">{title}</h3>
+        <p className="text-muted-foreground">{text}</p>
       </div>
     </div>
   );

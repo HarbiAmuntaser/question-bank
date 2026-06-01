@@ -35,20 +35,20 @@ export function QuizSubmissionDialog({
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent className="max-w-md">
+      <AlertDialogContent className="max-w-md" dir="rtl">
         <AlertDialogHeader>
-          <AlertDialogTitle className="flex items-center gap-2">
+          <AlertDialogTitle className="flex items-center gap-2 text-right">
             <Clock className="h-5 w-5" aria-hidden />
             تسليم الاختبار
           </AlertDialogTitle>
 
-          <AlertDialogDescription>
+          <AlertDialogDescription className="text-right leading-relaxed">
             هل أنت متأكد من رغبتك في تسليم الاختبار؟ لن تتمكن من تعديل إجاباتك بعد التسليم.
           </AlertDialogDescription>
         </AlertDialogHeader>
 
         <div className="space-y-4">
-          <div className="space-y-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+          <div className="space-y-3 rounded-lg border bg-muted/30 p-4">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium">إجمالي الأسئلة:</span>
               <Badge variant="outline">{safeTotal}</Badge>
@@ -76,7 +76,7 @@ export function QuizSubmissionDialog({
               </div>
             ) : null}
 
-            <div className="flex items-center justify-between pt-2 border-t">
+            <div className="flex items-center justify-between border-t pt-2">
               <span className="text-sm font-medium">نسبة الإكمال:</span>
               <Badge variant={completionPercentage === 100 ? "default" : "secondary"}>
                 {completionPercentage}%
@@ -85,8 +85,8 @@ export function QuizSubmissionDialog({
           </div>
 
           {unansweredQuestions > 0 ? (
-            <div className="flex items-start gap-2 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
-              <AlertTriangle className="h-4 w-4 text-yellow-600 mt-0.5 flex-shrink-0" aria-hidden />
+            <div className="flex items-start gap-2 rounded-lg border border-yellow-200 bg-yellow-50 p-3 dark:border-yellow-800 dark:bg-yellow-900/20">
+              <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-yellow-600" aria-hidden />
               <p className="text-sm text-yellow-800 dark:text-yellow-200">
                 لديك {unansweredQuestions} سؤال لم تتم الإجابة عليه. الأسئلة غير المجابة ستحصل على صفر نقطة.
               </p>
@@ -94,15 +94,15 @@ export function QuizSubmissionDialog({
           ) : null}
         </div>
 
-        <AlertDialogFooter className="mt-4">
-          <AlertDialogCancel>مراجعة الإجابات</AlertDialogCancel>
+        <AlertDialogFooter className="mt-4 gap-2 sm:justify-start">
+          <AlertDialogCancel className="h-11 rounded-lg">مراجعة الإجابات</AlertDialogCancel>
 
           <AlertDialogAction
             onClick={() => {
               onOpenChange(false);
               onConfirm();
             }}
-            className="bg-red-600 hover:bg-red-700"
+            className="h-11 rounded-lg bg-red-600 hover:bg-red-700"
           >
             تسليم الاختبار
           </AlertDialogAction>

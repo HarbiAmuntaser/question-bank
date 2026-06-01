@@ -13,13 +13,20 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
-import { GraduationCap, University as UniversityIcon, Trophy } from "lucide-react";
+import { BookOpen, GraduationCap, University as UniversityIcon, Trophy } from "lucide-react";
 import type { InstitutionType } from "@/config/regions";
 
+import { MajorSubscriptionCallout } from "@/components/public/subscription-access";
 import { fetchJSON } from "@/lib/server/student-fetch";
 import { stripPrefix, encodeSlugPath } from "@/lib/public/slug-utils";
 
 export const revalidate = 21600;
+
+const surfaceCardClass = "overflow-hidden border bg-card/95 shadow-sm transition-shadow hover:shadow-md dark:bg-gray-900/80";
+const listCardClass =
+  "group flex h-full flex-col overflow-hidden border bg-card/95 shadow-sm transition-colors hover:border-primary/40 hover:shadow-md dark:bg-gray-900/80";
+const actionButtonClass = "h-11 w-full rounded-lg text-sm sm:text-base";
+const metaTileClass = "rounded-lg border bg-muted/30 px-4 py-3";
 
 type SeoLite = { slug: string | null };
 
@@ -164,14 +171,30 @@ export async function MajorDetails({
   return (
     <div className="space-y-6 lg:space-y-8">
       {/* Header Card */}
-      <Card className="overflow-hidden border-2 bg-white/90 shadow-lg backdrop-blur-sm dark:bg-gray-800/90">
+      <Card className={surfaceCardClass}>
         <CardHeader className="px-5 text-center sm:px-6">
+          <div className="mb-2 flex flex-wrap items-center justify-center gap-2 text-xs font-medium text-muted-foreground">
+            <Link
+              href={uniLink}
+              prefetch={false}
+              className="rounded-md transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+            >
+              {major.university.name}
+            </Link>
+            <span aria-hidden>/</span>
+            <span>تفاصيل التخصص</span>
+          </div>
+
           <CardTitle className="text-2xl font-bold leading-tight sm:text-3xl">{major.name}</CardTitle>
 
           <CardDescription className="text-sm leading-relaxed text-muted-foreground sm:text-base" dir="rtl">
             {major.degreeType ? major.degreeType : "تخصص"}
             {major.durationYears ? ` • ${major.durationYears} سنوات` : ""}
           </CardDescription>
+
+          <p className="mx-auto mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
+            استعرض المواد والاختبارات المرتبطة بهذا التخصص واختر المسار المناسب للبدء.
+          </p>
 
           <div className="mt-3 flex flex-wrap items-center justify-center gap-3 text-sm leading-relaxed text-muted-foreground">
             <Link
@@ -188,35 +211,45 @@ export async function MajorDetails({
 
           <Separator className="mx-auto my-4 max-w-md" />
 
-          <div className="flex justify-center gap-6 text-base font-semibold sm:gap-8 sm:text-lg">
-            <div className="flex flex-col items-center">
+          <div className="mx-auto grid w-full max-w-xl grid-cols-1 gap-3 text-base font-semibold sm:grid-cols-2 sm:text-lg">
+            <div className={metaTileClass}>
               <span className="text-2xl sm:text-3xl font-bold arabic-numbers">
                 {major._count?.subjects ?? subjects.length}
               </span>
-              <span className="text-muted-foreground">مواد</span>
+              <span className="mt-1 block text-sm font-medium text-muted-foreground">مواد دراسية</span>
             </div>
 
             {typeof major._count?.quizzes === "number" ? (
-              <div className="flex flex-col items-center">
+              <div className={metaTileClass}>
                 <span className="text-2xl sm:text-3xl font-bold arabic-numbers">
                   {major._count.quizzes}
                 </span>
-                <span className="text-muted-foreground">اختبارات</span>
+                <span className="mt-1 block text-sm font-medium text-muted-foreground">اختبارات متاحة</span>
               </div>
             ) : null}
           </div>
         </CardHeader>
 
-        <CardContent className="pt-0 pb-6" />
+        <CardContent className="flex justify-center pt-0 pb-6">
+          <Button asChild className="h-11 w-full rounded-lg sm:w-auto">
+            <a href="#subjects-section" className="flex items-center justify-center gap-2">
+              <BookOpen className="h-4 w-4" aria-hidden />
+              عرض المواد
+            </a>
+          </Button>
+        </CardContent>
       </Card>
 
-      {/* Subjects Section */}
-      <div className="text-center">
-        <h2 className="text-xl sm:text-2xl font-bold">المواد الدراسية في هذا التخصص</h2>
-        <p className="text-muted-foreground mt-1">اختر مادة لاستكشاف اختباراتِها</p>
-      </div>
+      <MajorSubscriptionCallout majorId={major.id} title={major.name} />
 
-      {subjects.length > 0 ? (
+      {/* Subjects Section */}
+      <section id="subjects-section" className="space-y-5">
+        <div className="text-center">
+          <h2 className="text-xl font-bold leading-tight sm:text-2xl">المواد الدراسية في هذا التخصص</h2>
+          <p className="mt-1 text-sm leading-relaxed text-muted-foreground sm:text-base">اختر مادة لاستكشاف اختباراتِها</p>
+        </div>
+
+        {subjects.length > 0 ? (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6 xl:grid-cols-3 xl:gap-8">
           {subjects.map((s) => {
             const chaptersCount = s._count?.chapters;
@@ -225,7 +258,7 @@ export async function MajorDetails({
             return (
               <Card
                 key={s.id}
-                className="group flex h-full flex-col overflow-hidden border-2 bg-white/90 shadow-lg backdrop-blur-sm transition-all duration-300 hover:border-primary/40 hover:shadow-xl dark:bg-gray-800/90"
+                className={listCardClass}
               >
                 <CardHeader className="pb-3">
                   <CardTitle className="line-clamp-2 text-base font-semibold leading-snug transition-colors group-hover:text-primary sm:text-lg">
@@ -253,7 +286,7 @@ export async function MajorDetails({
                     <span>{s.year ? `السنة: ${s.year}` : "—"}</span>
                   </div>
 
-                  <Button asChild className="h-11 w-full rounded-xl text-sm sm:text-base">
+                  <Button asChild className={actionButtonClass}>
                     <Link href={href} prefetch={false} className="flex items-center justify-center gap-2">
                       <Trophy className="h-4 w-4" aria-hidden />
                       استكشاف الاختبارات
@@ -269,9 +302,10 @@ export async function MajorDetails({
           لا توجد مواد دراسية متاحة لهذا التخصص بعد.
         </div>
       )}
+      </section>
 
       <div className="pt-2">
-        <Button asChild variant="outline" className="h-11 w-full rounded-xl sm:w-auto">
+        <Button asChild variant="outline" className="h-11 w-full rounded-lg sm:w-auto">
           <Link href={uniLink} prefetch={false} className="flex items-center gap-2">
             <GraduationCap className="h-4 w-4" aria-hidden />
             الرجوع إلى الجامعة

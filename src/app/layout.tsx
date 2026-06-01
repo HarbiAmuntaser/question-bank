@@ -10,7 +10,6 @@ import { baseMetadata, organizationJsonLd, websiteJsonLd } from "@/lib/seo";
 import { SpeedInsights } from "@vercel/speed-insights/next"; // ✅ أضف هذا
 import { Analytics } from "@vercel/analytics/react";
 
-
 const cairo = Cairo({ subsets: ["arabic", "latin"], display: "swap" });
 
 export const metadata: Metadata = {

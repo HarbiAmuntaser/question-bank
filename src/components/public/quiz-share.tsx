@@ -77,13 +77,13 @@ export function QuizShare({
   }
 
   return (
-    <div className="flex flex-col sm:flex-row gap-2 justify-center">
-      <Button type="button" onClick={share} className="gap-2 h-11 rounded-xl">
+    <div className="flex flex-col justify-center gap-2 sm:flex-row" aria-live="polite">
+      <Button type="button" onClick={share} className="h-11 w-full gap-2 rounded-lg sm:w-auto" aria-label="مشاركة رابط الاختبار">
         <Share2 className="h-4 w-4" aria-hidden />
         مشاركة الاختبار
       </Button>
 
-      <Button type="button" variant="outline" onClick={copyLink} className="gap-2 h-11 rounded-xl">
+      <Button type="button" variant="outline" onClick={copyLink} className="h-11 w-full gap-2 rounded-lg sm:w-auto" aria-label={copied ? "تم نسخ رابط الاختبار" : "نسخ رابط الاختبار"}>
         {copied ? <Check className="h-4 w-4" aria-hidden /> : <Copy className="h-4 w-4" aria-hidden />}
         {copied ? "تم النسخ" : "نسخ الرابط"}
       </Button>

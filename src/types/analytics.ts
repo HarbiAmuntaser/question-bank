@@ -1,8 +1,12 @@
 export interface AnalyticsData {
   overview: {
+    studentSessions: number
+    adminUsers: number
+    /** Backward-compatible alias for studentSessions. */
     totalUsers: number
     totalQuizzes: number
     totalQuestions: number
+    totalAnswers: number
     totalAttempts: number
     averageScore: number
     completionRate: number
@@ -19,7 +23,9 @@ export interface AnalyticsData {
   questionAnalysis: {
     questionId: string
     questionText: string
+    answerCount: number
     correctRate: number
+    incorrectRate: number
     averageTime: number
     difficulty: "easy" | "medium" | "hard"
     tags: string[]
@@ -28,7 +34,9 @@ export interface AnalyticsData {
     date: string
     attempts: number
     averageScore: number
+    /** Backward-compatible alias for newStudentSessions. */
     newUsers: number
+    newStudentSessions: number
   }[]
   subjectPerformance: {
     subjectId: string

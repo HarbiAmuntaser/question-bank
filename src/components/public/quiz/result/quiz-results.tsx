@@ -29,14 +29,14 @@ export function QuizResults({
   if (!state.current) return <ResultLoading label="تعذر تحميل النتيجة، حاول إعادة فتح الصفحة." />;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="mx-auto max-w-5xl space-y-5 px-3 py-4 sm:px-4 sm:py-6 lg:space-y-6 lg:px-0">
       <ResultPrintStyles />
 
       <ResultSummaryCard quizTitle={quiz.title} current={state.current} />
 
       <ResultBestCard attemptsCount={state.attemptsCount} best={state.best} isCurrentBest={state.isCurrentBest} />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:gap-6">
         <ResultStatsCard current={state.current} quizTimeLimitMin={quiz.timeLimit} />
         <ResultSessionCard current={state.current} quizTimeLimitMin={quiz.timeLimit} />
       </div>

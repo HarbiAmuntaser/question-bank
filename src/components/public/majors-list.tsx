@@ -9,6 +9,9 @@ import type { MajorPublicLite } from "@/types/public-university";
 
 type InstType = "university" | "school" | "academy";
 
+const listCardClass =
+  "group flex h-full flex-col overflow-hidden border bg-card/95 shadow-sm transition-colors hover:border-primary/40 hover:shadow-md dark:bg-gray-900/80";
+
 interface MajorsListProps {
   cc: string;
   type: InstType;
@@ -53,7 +56,7 @@ export function MajorsList({ majors, cc, type, universitySlug }: MajorsListProps
       {majors.map((major) => (
         <Card
           key={major.id}
-          className="group flex h-full flex-col overflow-hidden border-2 bg-white/90 shadow-lg backdrop-blur-sm transition-all duration-300 hover:border-primary/40 hover:shadow-xl dark:bg-gray-800/90"
+          className={listCardClass}
         >
           <CardHeader className="pb-3">
             <div className="flex items-start gap-4">
@@ -91,7 +94,7 @@ export function MajorsList({ majors, cc, type, universitySlug }: MajorsListProps
               )}
             </div>
 
-            <Button asChild className="h-11 w-full rounded-xl text-sm sm:text-base">
+            <Button asChild className="h-11 w-full rounded-lg text-sm sm:text-base">
               <Link href={hrefFor(major)} prefetch={false} className="focus-visible:outline-none">
                 استكشف المقررات
               </Link>

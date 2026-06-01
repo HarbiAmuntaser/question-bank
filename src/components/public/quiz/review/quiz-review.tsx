@@ -170,35 +170,39 @@ export default function QuizReview({ quiz, sessionId, onlyWrong }: Props) {
   const toggleHref = onlyWrong ? baseReview : `${baseReview}&onlyWrong=1`;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="mx-auto max-w-5xl space-y-5 px-3 py-4 sm:px-4 sm:py-6 lg:space-y-6 lg:px-0">
       {/* Header */}
-      <Card>
-        <CardHeader className="space-y-3">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <CardTitle className="text-2xl font-bold">مراجعة الأسئلة</CardTitle>
+      <Card className="border bg-card/95 shadow-sm">
+        <CardHeader className="space-y-4 p-5 sm:p-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <CardTitle className="text-2xl font-bold leading-tight">مراجعة الأسئلة</CardTitle>
+              <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                راجع إجابتك، الإجابة الصحيحة، والتوضيح لكل سؤال.
+              </p>
+            </div>
 
             <NoteBadge onlyWrong={!!onlyWrong} index={safeIndex} total={total} />
           </div>
 
-          {/* أدوات سريعة (مهم للجوال) */}
-          <div className="flex flex-col sm:flex-row gap-3">
-            <Button asChild variant="outline" className="bg-transparent">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <Button asChild variant="outline" className="h-11 rounded-lg bg-transparent">
               <Link href={toggleHref}>{onlyWrong ? "عرض جميع الأسئلة" : "عرض الخاطئة فقط"}</Link>
             </Button>
 
-            <Button onClick={handleRetry} className="flex items-center gap-2">
+            <Button onClick={handleRetry} className="flex h-11 items-center justify-center gap-2 rounded-lg">
               <RotateCcw className="h-4 w-4" aria-hidden />
               إعادة المحاولة
             </Button>
           </div>
         </CardHeader>
 
-        <CardContent className="flex flex-col sm:flex-row items-center justify-between gap-3">
+        <CardContent className="flex flex-col items-center justify-between gap-3 p-5 pt-0 sm:flex-row sm:p-6 sm:pt-0">
           <Button
             variant="outline"
             onClick={goPrev}
             disabled={safeIndex === 0}
-            className="w-full sm:w-auto flex items-center justify-center gap-2"
+            className="flex h-11 w-full items-center justify-center gap-2 rounded-lg sm:w-auto"
             aria-label="السؤال السابق"
           >
             <ChevronRight className="h-4 w-4" aria-hidden />
@@ -212,7 +216,7 @@ export default function QuizReview({ quiz, sessionId, onlyWrong }: Props) {
           <Button
             onClick={goNext}
             disabled={safeIndex === total - 1}
-            className="w-full sm:w-auto flex items-center justify-center gap-2"
+            className="flex h-11 w-full items-center justify-center gap-2 rounded-lg sm:w-auto"
             aria-label="السؤال التالي"
           >
             التالي
@@ -222,10 +226,10 @@ export default function QuizReview({ quiz, sessionId, onlyWrong }: Props) {
       </Card>
 
       {/* Question Card with smart direction */}
-      <Card dir={dir}>
-        <CardHeader>
-          <div className="flex items-start justify-between gap-4">
-            <CardTitle className={`text-lg ${align}`}>السؤال {safeIndex + 1}</CardTitle>
+      <Card className="border bg-card/95 shadow-sm" dir={dir}>
+        <CardHeader className="p-5 sm:p-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <CardTitle className={`text-lg font-semibold leading-tight sm:text-xl ${align}`}>السؤال {safeIndex + 1}</CardTitle>
 
             <Badge className={badgeColor} aria-label={current!.isCorrect ? "إجابة صحيحة" : "إجابة خاطئة"}>
               {current!.isCorrect ? (
@@ -241,9 +245,9 @@ export default function QuizReview({ quiz, sessionId, onlyWrong }: Props) {
           </div>
         </CardHeader>
 
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-5 p-5 pt-0 sm:space-y-6 sm:p-6 sm:pt-0">
           {/* Question text */}
-          <div className={`prose prose-lg max-w-none dark:prose-invert ${align}`}>
+          <div className={`prose max-w-none text-base leading-relaxed dark:prose-invert sm:prose-lg ${align}`}>
             <RichQuestionContent content={q.questionText} />
           </div>
 
@@ -251,7 +255,7 @@ export default function QuizReview({ quiz, sessionId, onlyWrong }: Props) {
           <div className="space-y-2">
             <div className={`text-sm font-medium ${align}`}>إجابة الطالب:</div>
             <div
-              className={`p-3 rounded-lg border ${align} ${
+              className={`rounded-lg border p-4 ${align} ${
                 current!.isCorrect ? "bg-green-50 dark:bg-green-900/20" : "bg-red-50 dark:bg-red-900/20"
               }`}
             >
@@ -266,7 +270,7 @@ export default function QuizReview({ quiz, sessionId, onlyWrong }: Props) {
               الإجابة الصحيحة / التوضيح:
             </div>
 
-            <div className={`p-3 rounded-lg border bg-gray-50 dark:bg-gray-800/40 ${align}`}>
+            <div className={`rounded-lg border bg-muted/30 p-4 ${align}`}>
               {renderCorrectAnswer()}
 
               {/* إن كان هناك explanation إضافي للأسئلة الموضوعية */}
@@ -282,12 +286,12 @@ export default function QuizReview({ quiz, sessionId, onlyWrong }: Props) {
       </Card>
 
       {/* Footer nav (على الجوال ممتاز) */}
-      <div className="flex items-center justify-center gap-3">
-        <Button variant="outline" onClick={goPrev} disabled={safeIndex === 0} className="flex items-center gap-2">
+      <div className="grid grid-cols-2 gap-3">
+        <Button variant="outline" onClick={goPrev} disabled={safeIndex === 0} className="flex h-11 items-center justify-center gap-2 rounded-lg">
           <ChevronRight className="h-4 w-4" aria-hidden />
           السابق
         </Button>
-        <Button onClick={goNext} disabled={safeIndex === total - 1} className="flex items-center gap-2">
+        <Button onClick={goNext} disabled={safeIndex === total - 1} className="flex h-11 items-center justify-center gap-2 rounded-lg">
           التالي
           <ChevronLeft className="h-4 w-4" aria-hidden />
         </Button>

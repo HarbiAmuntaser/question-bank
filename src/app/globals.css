@@ -34,6 +34,25 @@
     --saudi-gold: 45 93% 58%; /* Gold accent */
     --saudi-blue: 210 40% 96.1%; /* Light blue for backgrounds/accents */
     --saudi-dark-green: 142.1 76.2% 26.3%; /* Darker green for hover/active */
+
+    /* Shared theme tokens used by legacy utility classes. */
+    color-scheme: light;
+    --surface-1: 0 0% 100%;
+    --surface-2: 240 4.8% 95.9%;
+    --surface-3: 240 5.9% 90%;
+    --text-primary: 240 10% 3.9%;
+    --text-secondary: 240 3.8% 46.1%;
+    --text-tertiary: 240 3.8% 58%;
+    --brand-purple: 262 83% 58%;
+    --brand-blue: 217 91% 60%;
+    --brand-pink: 330 81% 60%;
+    --brand-yellow: 45 93% 58%;
+    --brand-green: 142.1 76.2% 36.3%;
+    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--brand-blue)));
+    --gradient-secondary: linear-gradient(135deg, hsl(var(--secondary)), hsl(var(--accent)));
+    --gradient-accent: linear-gradient(135deg, hsl(var(--brand-yellow)), hsl(var(--primary)));
+    --gradient-success: linear-gradient(135deg, hsl(var(--brand-green)), hsl(var(--primary)));
+    --gradient-warning: linear-gradient(135deg, hsl(var(--brand-yellow)), hsl(35 92% 50%));
   }
 
   .dark {
@@ -62,6 +81,24 @@
     --saudi-gold: 45 93% 58%;
     --saudi-blue: 210 40% 10%;
     --saudi-dark-green: 142.1 70.6% 35.3%;
+
+    color-scheme: dark;
+    --surface-1: 240 10% 3.9%;
+    --surface-2: 240 3.7% 15.9%;
+    --surface-3: 240 3.7% 20%;
+    --text-primary: 0 0% 98%;
+    --text-secondary: 240 5% 64.9%;
+    --text-tertiary: 240 5% 54%;
+    --brand-purple: 263 70% 66%;
+    --brand-blue: 217 91% 65%;
+    --brand-pink: 330 81% 68%;
+    --brand-yellow: 45 93% 58%;
+    --brand-green: 142.1 70.6% 45.3%;
+    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--brand-blue)));
+    --gradient-secondary: linear-gradient(135deg, hsl(var(--secondary)), hsl(var(--accent)));
+    --gradient-accent: linear-gradient(135deg, hsl(var(--brand-yellow)), hsl(var(--primary)));
+    --gradient-success: linear-gradient(135deg, hsl(var(--brand-green)), hsl(var(--primary)));
+    --gradient-warning: linear-gradient(135deg, hsl(var(--brand-yellow)), hsl(35 92% 55%));
   }
 }
 
@@ -383,4 +420,3 @@
     background-position: 200% 0;
   }
 }
-

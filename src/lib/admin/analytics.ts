@@ -1,9 +1,6 @@
-import { unstable_cache } from "next/cache"
 import type { DifficultyLevel, Prisma } from "@prisma/client"
 import { prisma } from "@/lib/prisma"
 import type { AnalyticsData } from "@/types/analytics"
-
-export const ANALYTICS_REVALIDATE_SECONDS = 300
 
 const DEFAULT_DAYS = 30
 const MAX_DAYS = 365
@@ -56,8 +53,11 @@ function pickDifficulty(values: DifficultyLevel[]): "easy" | "medium" | "hard" {
   return "medium"
 }
 
-function buildEmptySeries(days: number): Map<string, { attempts: number; scoreSum: number; scoreCount: number; newUsers: number }> {
-  const series = new Map<string, { attempts: number; scoreSum: number; scoreCount: number; newUsers: number }>()
+function buildEmptySeries(days: number): Map<
+  string,
+  { attempts: number; scoreSum: number; scoreCount: number; newStudentSessions: number }
+> {
+  const series = new Map<string, { attempts: number; scoreSum: number; scoreCount: number; newStudentSessions: number }>()
   const now = new Date()
 
   for (let offset = days - 1; offset >= 0; offset -= 1) {
@@ -67,7 +67,7 @@ function buildEmptySeries(days: number): Map<string, { attempts: number; scoreSu
       attempts: 0,
       scoreSum: 0,
       scoreCount: 0,
-      newUsers: 0,
+      newStudentSessions: 0,
     })
   }
 
@@ -85,9 +85,11 @@ async function buildAnalyticsData(days: number): Promise<AnalyticsData> {
   since.setDate(since.getDate() - (days - 1))
 
   const [
-    totalUsers,
+    studentSessions,
+    adminUsers,
     totalQuizzes,
     totalQuestions,
+    totalAnswers,
     totalAttempts,
     completedAttempts,
     averageScoreAggregate,
@@ -99,11 +101,13 @@ async function buildAnalyticsData(days: number): Promise<AnalyticsData> {
     questionAnswerGroups,
     questionCorrectGroups,
     recentAttempts,
-    recentUsers,
+    recentStudentSessions,
   ] = await Promise.all([
+    prisma.anonymousSession.count(),
     prisma.user.count({ where: { isActive: true } }),
     prisma.quiz.count({ where: { isActive: true } }),
     prisma.question.count({ where: { isActive: true } }),
+    prisma.userAnswer.count(),
     prisma.quizAttempt.count(),
     prisma.quizAttempt.count({ where: { isCompleted: true } }),
     prisma.quizAttempt.aggregate({
@@ -179,8 +183,8 @@ async function buildAnalyticsData(days: number): Promise<AnalyticsData> {
         score: true,
       },
     }),
-    prisma.user.findMany({
-      where: { createdAt: { gte: since }, isActive: true },
+    prisma.anonymousSession.findMany({
+      where: { createdAt: { gte: since } },
       select: {
         createdAt: true,
       },
@@ -264,10 +268,18 @@ async function buildAnalyticsData(days: number): Promise<AnalyticsData> {
   const sortedQuestionIds =
     questionAnswerMap.size > 0
       ? [...questionAnswerMap.entries()]
-          .sort((a, b) => b[1].total - a[1].total)
+          .sort((a, b) => {
+            const aCorrect = questionCorrectMap.get(a[0]) ?? 0
+            const bCorrect = questionCorrectMap.get(b[0]) ?? 0
+            const aIncorrectRate = a[1].total > 0 ? 100 - (aCorrect / a[1].total) * 100 : 0
+            const bIncorrectRate = b[1].total > 0 ? 100 - (bCorrect / b[1].total) * 100 : 0
+
+            if (bIncorrectRate !== aIncorrectRate) return bIncorrectRate - aIncorrectRate
+            return b[1].total - a[1].total
+          })
           .slice(0, TOP_QUESTIONS_LIMIT)
           .map(([questionId]) => questionId)
-      : questionMeta.slice(0, TOP_QUESTIONS_LIMIT).map((question) => question.id)
+      : []
 
   const topQuestions =
     sortedQuestionIds.length > 0
@@ -292,11 +304,14 @@ async function buildAnalyticsData(days: number): Promise<AnalyticsData> {
       const total = questionAnswerMap.get(questionId)?.total ?? 0
       const averageTime = questionAnswerMap.get(questionId)?.averageTime ?? 0
       const correct = questionCorrectMap.get(questionId) ?? 0
+      const correctRate = total > 0 ? round((correct / total) * 100) : 0
 
       return {
         questionId,
         questionText: question.questionText,
-        correctRate: total > 0 ? round((correct / total) * 100) : 0,
+        answerCount: total,
+        correctRate,
+        incorrectRate: round(100 - correctRate),
         averageTime: Math.round(averageTime),
         difficulty: question.difficultyLevel,
         tags: question.tags,
@@ -318,18 +333,19 @@ async function buildAnalyticsData(days: number): Promise<AnalyticsData> {
     }
   }
 
-  for (const user of recentUsers) {
-    const key = toDateKey(user.createdAt)
+  for (const studentSession of recentStudentSessions) {
+    const key = toDateKey(studentSession.createdAt)
     const entry = series.get(key)
     if (!entry) continue
-    entry.newUsers += 1
+    entry.newStudentSessions += 1
   }
 
   const timeSeriesData = [...series.entries()].map(([date, entry]) => ({
     date,
     attempts: entry.attempts,
     averageScore: entry.scoreCount > 0 ? round(entry.scoreSum / entry.scoreCount) : 0,
-    newUsers: entry.newUsers,
+    newUsers: entry.newStudentSessions,
+    newStudentSessions: entry.newStudentSessions,
   }))
 
   const subjectScoreAccumulator = new Map<string, { totalAttempts: number; weightedScoreSum: number }>()
@@ -396,9 +412,12 @@ async function buildAnalyticsData(days: number): Promise<AnalyticsData> {
 
   return {
     overview: {
-      totalUsers,
+      studentSessions,
+      adminUsers,
+      totalUsers: studentSessions,
       totalQuizzes,
       totalQuestions,
+      totalAnswers,
       totalAttempts,
       averageScore: round(decimalToNumber(averageScoreAggregate._avg.score)),
       completionRate: totalAttempts > 0 ? round((completedAttempts / totalAttempts) * 100) : 0,
@@ -411,14 +430,9 @@ async function buildAnalyticsData(days: number): Promise<AnalyticsData> {
   }
 }
 
-export const getAnalyticsDataCached = unstable_cache(
-  async (days: number) => buildAnalyticsData(days),
-  ["admin-analytics-dashboard"],
-  {
-    revalidate: ANALYTICS_REVALIDATE_SECONDS,
-    tags: ["analytics"],
-  }
-)
+export async function getAnalyticsData(days: number): Promise<AnalyticsData> {
+  return buildAnalyticsData(days)
+}
 
 function escapeCsvCell(value: string | number): string {
   const normalized = String(value).replace(/"/g, '""')
@@ -426,13 +440,15 @@ function escapeCsvCell(value: string | number): string {
 }
 
 export async function buildAnalyticsCsv(days: number): Promise<string> {
-  const data = await getAnalyticsDataCached(days)
+  const data = await getAnalyticsData(days)
 
   const lines: string[] = []
   lines.push(["القسم", "المؤشر", "القيمة"].map(escapeCsvCell).join(","))
-  lines.push(["نظرة عامة", "إجمالي المستخدمين", data.overview.totalUsers].map(escapeCsvCell).join(","))
+  lines.push(["نظرة عامة", "جلسات الطلاب", data.overview.studentSessions].map(escapeCsvCell).join(","))
+  lines.push(["نظرة عامة", "مستخدمي الإدارة", data.overview.adminUsers].map(escapeCsvCell).join(","))
   lines.push(["نظرة عامة", "إجمالي الاختبارات", data.overview.totalQuizzes].map(escapeCsvCell).join(","))
   lines.push(["نظرة عامة", "إجمالي الأسئلة", data.overview.totalQuestions].map(escapeCsvCell).join(","))
+  lines.push(["نظرة عامة", "إجابات الطلاب", data.overview.totalAnswers].map(escapeCsvCell).join(","))
   lines.push(["نظرة عامة", "إجمالي المحاولات", data.overview.totalAttempts].map(escapeCsvCell).join(","))
   lines.push(["نظرة عامة", "متوسط الدرجات", `${data.overview.averageScore}%`].map(escapeCsvCell).join(","))
   lines.push(["نظرة عامة", "معدل الإكمال", `${data.overview.completionRate}%`].map(escapeCsvCell).join(","))
@@ -468,13 +484,15 @@ export async function buildAnalyticsCsv(days: number): Promise<string> {
 }
 
 export async function buildAnalyticsExcelTsv(days: number): Promise<string> {
-  const data = await getAnalyticsDataCached(days)
+  const data = await getAnalyticsData(days)
 
   const lines: string[] = []
   lines.push(["القسم", "المؤشر", "القيمة"].join("\t"))
-  lines.push(["نظرة عامة", "إجمالي المستخدمين", String(data.overview.totalUsers)].join("\t"))
+  lines.push(["نظرة عامة", "جلسات الطلاب", String(data.overview.studentSessions)].join("\t"))
+  lines.push(["نظرة عامة", "مستخدمي الإدارة", String(data.overview.adminUsers)].join("\t"))
   lines.push(["نظرة عامة", "إجمالي الاختبارات", String(data.overview.totalQuizzes)].join("\t"))
   lines.push(["نظرة عامة", "إجمالي الأسئلة", String(data.overview.totalQuestions)].join("\t"))
+  lines.push(["نظرة عامة", "إجابات الطلاب", String(data.overview.totalAnswers)].join("\t"))
   lines.push(["نظرة عامة", "إجمالي المحاولات", String(data.overview.totalAttempts)].join("\t"))
   lines.push(["نظرة عامة", "متوسط الدرجات", `${data.overview.averageScore}%`].join("\t"))
   lines.push(["نظرة عامة", "معدل الإكمال", `${data.overview.completionRate}%`].join("\t"))

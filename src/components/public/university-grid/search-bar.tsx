@@ -23,11 +23,11 @@ export const UniversitySearchBar = memo(function UniversitySearchBar({
     <form
       role="search"
       aria-label={label}
-      className="max-w-2xl mx-auto mb-8 sm:mb-10"
+      className="mx-auto mb-8 max-w-2xl sm:mb-10"
       onSubmit={(e) => e.preventDefault()}
     >
       <div className="relative">
-        <Search className="absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" aria-hidden />
+        <Search className="absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground sm:h-5 sm:w-5" aria-hidden />
         <label htmlFor="universities-search" className="sr-only">
           {label}
         </label>
@@ -37,7 +37,7 @@ export const UniversitySearchBar = memo(function UniversitySearchBar({
           placeholder={placeholder}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="h-12 sm:h-14 pr-12 text-base sm:text-lg border-2 border-gray-200 dark:border-gray-700 focus:border-primary rounded-2xl shadow-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm"
+          className="h-11 rounded-lg border bg-card/95 pr-11 text-base shadow-sm focus-visible:ring-2 focus-visible:ring-primary/35 sm:h-12 sm:pr-12"
           inputMode="search"
           autoComplete="off"
           spellCheck={false}

@@ -549,18 +549,18 @@ export default async function UniversitiesCatchAllPage({
   const uniTyped = uni as UniversityPublicLite;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+    <div className="min-h-screen bg-background">
       <PublicHeader />
       <main>
         <UniversityHero university={uniTyped} />
 
-        <section className="py-16 px-4 sm:px-6 lg:px-8">
-          <div className="max-w-7xl mx-auto">
-            <div className="mb-12">
-              <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+        <section id="majors-section" className="px-4 py-10 sm:px-6 sm:py-12 lg:px-8 lg:py-14">
+          <div className="mx-auto max-w-7xl">
+            <div className="mb-8 space-y-2 sm:mb-10">
+              <h2 className="text-2xl font-bold leading-tight text-gray-900 dark:text-white sm:text-3xl">
                 التخصصات المتاحة
               </h2>
-              <p className="text-lg text-gray-600 dark:text-gray-300">
+              <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
                 اختر التخصص الذي تريد استكشافه
               </p>
             </div>

@@ -16,27 +16,27 @@ export function ResultBestCard({
   isCurrentBest: boolean;
 }) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
+    <Card className="border bg-card/95 shadow-sm">
+      <CardHeader className="p-5 sm:p-6">
+        <CardTitle className="flex items-center gap-2 text-lg">
           <Award className="h-5 w-5" aria-hidden />
           أفضل نتيجة لك
         </CardTitle>
       </CardHeader>
 
-      <CardContent className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-        <div className="text-sm text-muted-foreground">
+      <CardContent className="flex flex-col gap-3 p-5 pt-0 sm:p-6 sm:pt-0 md:flex-row md:items-center md:justify-between">
+        <div className="text-sm leading-relaxed text-muted-foreground">
           عدد المحاولات على هذا الاختبار: <span className="font-medium text-foreground">{attemptsCount}</span>
         </div>
 
         {best ? (
           <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="outline">أفضل نسبة: {Math.round(best.percentage)}%</Badge>
-            <Badge variant="secondary">التقدير: {best.grade}</Badge>
-            {isCurrentBest ? <Badge>هذه محاولتك الأفضل ✅</Badge> : <Badge variant="outline">ليست الأفضل</Badge>}
+            <Badge variant="outline" className="rounded-md">أفضل نسبة: {Math.round(best.percentage)}%</Badge>
+            <Badge variant="secondary" className="rounded-md">التقدير: {best.grade}</Badge>
+            {isCurrentBest ? <Badge className="rounded-md">هذه محاولتك الأفضل</Badge> : <Badge variant="outline" className="rounded-md">ليست الأفضل</Badge>}
           </div>
         ) : (
-          <Badge variant="outline">لا توجد محاولات سابقة</Badge>
+          <Badge variant="outline" className="w-fit rounded-md">لا توجد محاولات سابقة</Badge>
         )}
       </CardContent>
     </Card>

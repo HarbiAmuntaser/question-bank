@@ -1,17 +1,18 @@
 "use client"
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
+import { BookOpen, Target, Users } from "lucide-react"
+
 import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts"
-import { BookOpen, Users, Target } from "lucide-react"
 import type { AnalyticsData } from "@/types/analytics"
 
 interface SubjectPerformanceChartProps {
   data: AnalyticsData["subjectPerformance"]
 }
 
-const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8", "#82CA9D"]
+const COLORS = ["#2563eb", "#16a34a", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4"]
 
 interface ChartTooltipPayloadItem {
   color?: string
@@ -34,7 +35,7 @@ function SubjectBarTooltip({ active, payload, label }: BarTooltipProps) {
   if (!active || !payload?.length || !label) return null
 
   return (
-    <div className="rounded-lg border bg-white p-3 shadow-lg dark:bg-gray-800">
+    <div className="rounded-lg border bg-popover p-3 text-popover-foreground shadow-lg">
       <p className="text-sm font-medium">{label}</p>
       <p className="text-sm" style={{ color: payload[0]?.color }}>
         متوسط الدرجات: {Number(payload[0]?.value ?? 0).toFixed(1)}%
@@ -47,11 +48,17 @@ function SubjectPieTooltip({ active, payload }: PieTooltipProps) {
   if (!active || !payload?.length) return null
 
   return (
-    <div className="rounded-lg border bg-white p-3 shadow-lg dark:bg-gray-800">
+    <div className="rounded-lg border bg-popover p-3 text-popover-foreground shadow-lg">
       <p className="text-sm font-medium">{payload[0]?.name}</p>
-      <p className="text-sm">المحاولات: {payload[0]?.value ?? 0}</p>
+      <p className="text-sm">المحاولات: {(payload[0]?.value ?? 0).toLocaleString("ar-SA")}</p>
     </div>
   )
+}
+
+function scoreBadge(score: number) {
+  if (score >= 80) return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
+  if (score >= 60) return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300"
+  return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"
 }
 
 export function SubjectPerformanceChart({ data }: SubjectPerformanceChartProps) {
@@ -61,75 +68,79 @@ export function SubjectPerformanceChart({ data }: SubjectPerformanceChartProps) 
     color: COLORS[index % COLORS.length],
   }))
 
+  if (data.length === 0) {
+    return (
+      <Card className="rounded-lg">
+        <CardHeader>
+          <CardTitle className="text-base">أداء المواد</CardTitle>
+          <p className="text-xs text-muted-foreground">المصدر: QuizAttempt مع ربط الاختبارات بالمواد.</p>
+        </CardHeader>
+        <CardContent>
+          <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
+            لا توجد بيانات محاولات مرتبطة بالمواد ضمن الفترة أو الفلتر المحدد.
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <Card>
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+        <Card className="rounded-lg">
           <CardHeader>
-            <CardTitle>متوسط الدرجات حسب المادة</CardTitle>
+            <CardTitle className="text-base">متوسط الدرجات حسب المادة</CardTitle>
+            <p className="text-xs text-muted-foreground">محسوب من متوسط درجات QuizAttempt لكل مادة.</p>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={data}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="subjectName" tick={{ fontSize: 12 }} angle={-45} textAnchor="end" height={80} />
-                <YAxis tick={{ fontSize: 12 }} />
-                <Tooltip content={<SubjectBarTooltip />} />
-                <Bar dataKey="averageScore" fill="#8884d8" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            <div className="h-[320px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={data}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="subjectName" tick={{ fontSize: 12 }} angle={-35} textAnchor="end" height={80} />
+                  <YAxis tick={{ fontSize: 12 }} />
+                  <Tooltip content={<SubjectBarTooltip />} />
+                  <Bar dataKey="averageScore" fill="#2563eb" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="rounded-lg">
           <CardHeader>
-            <CardTitle>توزيع المحاولات حسب المادة</CardTitle>
+            <CardTitle className="text-base">توزيع المحاولات حسب المادة</CardTitle>
+            <p className="text-xs text-muted-foreground">يوضح المواد الأكثر استخدامًا من QuizAttempt.</p>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={pieData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                  label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`}
-                >
-                  {pieData.map((entry, index) => (
-                    <Cell key={`${entry.name}-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip content={<SubjectPieTooltip />} />
-              </PieChart>
-            </ResponsiveContainer>
+            <div className="h-[320px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={pieData} cx="50%" cy="50%" outerRadius={90} fill="#2563eb" dataKey="value" nameKey="name">
+                    {pieData.map((entry, index) => (
+                      <Cell key={`${entry.name}-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip content={<SubjectPieTooltip />} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
           </CardContent>
         </Card>
       </div>
 
-      <Card>
+      <Card className="rounded-lg">
         <CardHeader>
-          <CardTitle>تفاصيل أداء المواد</CardTitle>
+          <CardTitle className="text-base">تفاصيل أداء المواد</CardTitle>
+          <p className="text-xs text-muted-foreground">متوسط الدرجة، عدد المحاولات، وعدد الأسئلة لكل مادة.</p>
         </CardHeader>
         <CardContent>
-          <div className="space-y-6">
+          <div className="space-y-4">
             {data.map((subject) => (
               <div key={subject.subjectId} className="rounded-lg border p-4">
-                <div className="mb-4 flex items-center justify-between">
-                  <h3 className="text-lg font-semibold">{subject.subjectName}</h3>
-                  <Badge
-                    className={
-                      subject.averageScore >= 80
-                        ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
-                        : subject.averageScore >= 60
-                          ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300"
-                          : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"
-                    }
-                  >
-                    {subject.averageScore.toFixed(1)}%
-                  </Badge>
+                <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <h3 className="text-base font-semibold">{subject.subjectName}</h3>
+                  <Badge className={scoreBadge(subject.averageScore)}>{subject.averageScore.toFixed(1)}%</Badge>
                 </div>
 
                 <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -148,7 +159,7 @@ export function SubjectPerformanceChart({ data }: SubjectPerformanceChartProps) 
                       <Users className="h-4 w-4 text-green-600 dark:text-green-400" />
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">إجمالي المحاولات</p>
+                      <p className="text-sm text-muted-foreground">محاولات الاختبارات</p>
                       <p className="font-semibold">{subject.totalAttempts.toLocaleString("ar-SA")}</p>
                     </div>
                   </div>
@@ -173,10 +184,6 @@ export function SubjectPerformanceChart({ data }: SubjectPerformanceChartProps) 
                 </div>
               </div>
             ))}
-
-            {data.length === 0 && (
-              <div className="py-8 text-center text-muted-foreground">لا توجد بيانات مواد لعرضها</div>
-            )}
           </div>
         </CardContent>
       </Card>

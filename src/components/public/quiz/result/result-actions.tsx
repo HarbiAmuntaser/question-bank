@@ -61,19 +61,18 @@ export function ResultActions({
   const reviewWrongHref = `${reviewAllHref}&onlyWrong=1`;
 
   return (
-    <Card className="no-print">
-      <CardContent className="pt-6">
-        <div className="flex flex-col gap-3 justify-center">
-          {/* ✅ أزرار المراجعة (مطلوبة) */}
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Button asChild className="flex items-center gap-2">
+    <Card className="no-print border bg-card/95 shadow-sm">
+      <CardContent className="p-5 sm:p-6">
+        <div className="flex flex-col justify-center gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <Button asChild className="flex h-11 items-center justify-center gap-2 rounded-lg">
               <Link href={reviewWrongHref}>
                 <CheckCircle className="h-4 w-4" aria-hidden />
                 مراجعة الأسئلة الخاطئة
               </Link>
             </Button>
 
-            <Button asChild variant="outline" className="flex items-center gap-2 bg-transparent">
+            <Button asChild variant="outline" className="flex h-11 items-center justify-center gap-2 rounded-lg bg-transparent">
               <Link href={reviewAllHref}>
                 <RotateCcw className="h-4 w-4" aria-hidden />
                 مراجعة جميع الأسئلة
@@ -81,19 +80,18 @@ export function ResultActions({
             </Button>
           </div>
 
-          {/* ✅ باقي الأزرار */}
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Button onClick={handleRetry} className="flex items-center gap-2">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <Button onClick={handleRetry} className="flex h-11 items-center justify-center gap-2 rounded-lg">
               <RotateCcw className="h-4 w-4" aria-hidden />
               إعادة المحاولة
             </Button>
 
-            <Button variant="outline" onClick={handleShare} className="flex items-center gap-2 bg-transparent">
+            <Button variant="outline" onClick={handleShare} className="flex h-11 items-center justify-center gap-2 rounded-lg bg-transparent">
               <Share2 className="h-4 w-4" aria-hidden />
               مشاركة النتيجة
             </Button>
 
-            <Button variant="outline" onClick={() => window.print()} className="flex items-center gap-2 bg-transparent">
+            <Button variant="outline" onClick={() => window.print()} className="flex h-11 items-center justify-center gap-2 rounded-lg bg-transparent">
               <Printer className="h-4 w-4" aria-hidden />
               طباعة / حفظ PDF
             </Button>
@@ -101,7 +99,7 @@ export function ResultActions({
             <Button
               variant="outline"
               onClick={() => router.push(backToSubjectUrl || "/")}
-              className="flex items-center gap-2 bg-transparent"
+              className="flex h-11 items-center justify-center gap-2 rounded-lg bg-transparent"
             >
               <ArrowLeft className="h-4 w-4" aria-hidden />
               اختبارات المادة

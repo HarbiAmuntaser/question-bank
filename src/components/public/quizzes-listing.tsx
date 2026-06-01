@@ -2,12 +2,19 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BookOpen, Clock, Search, Loader2 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { QuizAccessAction, type AccessStatus, type PublicQuizAccessItem } from "@/components/public/subscription-access";
+import {
+  isOpenWithoutStatus,
+  QuizAccessAction,
+  QuizAccessBadges,
+  type AccessStatus,
+  type PublicQuizAccessItem,
+} from "@/components/public/subscription-access";
+import { cn } from "@/lib/utils";
 
 type QuizItem = {
   id: string; title: string; description: string | null; timeLimit: number; createdAt: string | Date;
@@ -23,6 +30,10 @@ type QuizItem = {
 type University = { id: string; name: string };
 type Major = { id: string; name: string; degreeType: string | null; universityId: string };
 type Subject = { id: string; name: string; majorId: string };
+
+const quizCardClass =
+  "flex h-full flex-col border bg-card/95 shadow-sm transition-colors hover:border-primary/40 hover:shadow-md dark:bg-gray-900/80";
+const filterControlClass = "h-11 rounded-lg text-right";
 
 interface QuizzesListingProps {
   initialQuizzes: QuizItem[];
@@ -126,22 +137,22 @@ useEffect(() => {
   return (
     <section className="py-8 md:py-12" dir="rtl">
       <div className="container px-4 md:px-6">
-        <div className="text-center mb-10">
-          <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">تصفح الاختبارات</h1>
-          <p className="mt-3 max-w-[700px] mx-auto text-gray-600 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed dark:text-gray-300">
+        <div className="mb-8 text-center">
+          <h1 className="text-2xl font-bold leading-tight sm:text-3xl md:text-4xl">تصفح الاختبارات</h1>
+          <p className="mx-auto mt-3 max-w-[700px] text-sm leading-relaxed text-muted-foreground sm:text-base">
             ابحث عن الاختبارات حسب الجامعة، التخصص، أو المادة.
           </p>
         </div>
 
         {/* فلاتر */}
-        <div className="mb-8 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
+        <div className="mb-8 grid grid-cols-1 gap-3 rounded-lg border bg-card/95 p-4 shadow-sm sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
           <div className="relative">
             <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
-            <Input placeholder="بحث عن اختبار..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="h-12 rounded-xl pr-10 text-right" />
+            <Input placeholder="بحث عن اختبار..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className={`${filterControlClass} pr-10`} />
           </div>
 
           <Select value={selectedUniversity} onValueChange={setSelectedUniversity}>
-            <SelectTrigger className="h-12 rounded-xl text-right"><SelectValue placeholder="الجامعة" /></SelectTrigger>
+            <SelectTrigger className={filterControlClass}><SelectValue placeholder="الجامعة" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">جميع الجامعات</SelectItem>
               {universities.map((u) => (<SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>))}
@@ -149,7 +160,7 @@ useEffect(() => {
           </Select>
 
           <Select value={selectedMajor} onValueChange={setSelectedMajor} disabled={dynamicMajors.length === 0 && selectedUniversity !== "all"}>
-            <SelectTrigger className="h-12 rounded-xl text-right"><SelectValue placeholder="التخصص" /></SelectTrigger>
+            <SelectTrigger className={filterControlClass}><SelectValue placeholder="التخصص" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">جميع التخصصات</SelectItem>
               {dynamicMajors.map((m) => (<SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>))}
@@ -157,7 +168,7 @@ useEffect(() => {
           </Select>
 
           <Select value={selectedDegreeType} onValueChange={setSelectedDegreeType}>
-            <SelectTrigger className="h-12 rounded-xl text-right"><SelectValue placeholder="نوع الدرجة" /></SelectTrigger>
+            <SelectTrigger className={filterControlClass}><SelectValue placeholder="نوع الدرجة" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">جميع أنواع الدرجات</SelectItem>
               {degreeTypes.map((t) => (<SelectItem key={t} value={t}>{t}</SelectItem>))}
@@ -165,7 +176,7 @@ useEffect(() => {
           </Select>
 
           <Select value={selectedSubject} onValueChange={setSelectedSubject} disabled={dynamicSubjects.length === 0 && (selectedUniversity !== "all" || selectedMajor !== "all")}>
-            <SelectTrigger className="h-12 rounded-xl text-right"><SelectValue placeholder="المادة" /></SelectTrigger>
+            <SelectTrigger className={filterControlClass}><SelectValue placeholder="المادة" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">جميع المواد</SelectItem>
               {dynamicSubjects.map((s) => (<SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>))}
@@ -183,16 +194,44 @@ useEffect(() => {
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6 xl:grid-cols-3 xl:gap-8">
-            {quizzes.map((quiz) => (
-              <Card key={quiz.id} className="flex flex-col border-2 bg-white/90 shadow-md transition-all duration-300 hover:border-primary/40 hover:shadow-xl dark:bg-gray-800/90">
-                <CardHeader className="pb-3">
-                  <CardTitle className="line-clamp-2 text-lg font-semibold sm:text-xl">{quiz.title}</CardTitle>
-                  {quiz.title && <CardDescription className="text-gray-500 dark:text-gray-400 text-right" dir="rtl">{quiz.title}</CardDescription>}
+            {quizzes.map((quiz) => {
+              const access = accessItems[quiz.id] ?? null;
+              const locked = !isOpenWithoutStatus(quiz) && !access?.allowed;
+              const quizAccessLoading = accessLoading && !isOpenWithoutStatus(quiz);
+
+              return (
+              <Card
+                key={quiz.id}
+                className={cn(
+                  quizCardClass,
+                  locked
+                    ? "border-amber-200/70 bg-amber-50/20 dark:border-amber-900/40 dark:bg-amber-950/10"
+                    : quiz.isFreePreview || quiz.accessType === "free"
+                      ? "border-emerald-200/70 bg-emerald-50/20 dark:border-emerald-900/40 dark:bg-emerald-950/10"
+                      : access?.allowed
+                        ? "border-primary/25 bg-primary/5"
+                        : "",
+                )}
+              >
+                <CardHeader className="space-y-3 pb-3">
+                  <QuizAccessBadges quiz={quiz} access={access} loading={quizAccessLoading} />
+                  <CardTitle className="line-clamp-2 text-base font-semibold leading-snug sm:text-lg">{quiz.title}</CardTitle>
                 </CardHeader>
-                <CardContent className="flex-grow space-y-2.5">
+                <CardContent className="flex-grow space-y-3 pt-0">
                   <p className="line-clamp-2 text-sm leading-relaxed text-muted-foreground">{quiz.description}</p>
-                  <div className="flex items-center text-sm text-muted-foreground"><BookOpen className="h-4 w-4 mr-1" /><span>{quiz._count?.questions ?? 0} أسئلة</span></div>
-                  <div className="flex items-center text-sm text-muted-foreground"><Clock className="h-4 w-4 mr-1" /><span>{quiz.timeLimit} دقيقة</span></div>
+
+                  {locked ? (
+                    <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
+                      هذا الاختبار يتطلب اشتراكًا، لكنه يبقى ظاهرًا حتى تعرف محتوى المادة قبل التفعيل.
+                    </p>
+                  ) : quiz.isFreePreview ? (
+                    <p className="rounded-lg bg-sky-50 px-3 py-2 text-xs leading-relaxed text-sky-800 dark:bg-sky-950/30 dark:text-sky-200">
+                      اختبار تجربة مجانية يمكنك البدء به مباشرة.
+                    </p>
+                  ) : null}
+
+                  <div className="flex items-center gap-1 text-sm text-muted-foreground"><BookOpen className="h-4 w-4" /><span>{quiz._count?.questions ?? 0} أسئلة</span></div>
+                  <div className="flex items-center gap-1 text-sm text-muted-foreground"><Clock className="h-4 w-4" /><span>{quiz.timeLimit} دقيقة</span></div>
                   <p className="text-sm text-muted-foreground">الجامعة: {quiz.university?.name || "غير محدد"}</p>
                   <p className="text-sm text-muted-foreground">التخصص: {quiz.major?.name || "غير محدد"}</p>
                   <p className="text-sm text-muted-foreground">المادة: {quiz.subject?.name || quiz.chapter?.subject?.name || "غير محدد"}</p>
@@ -209,13 +248,14 @@ useEffect(() => {
                       href: `/quiz/${quiz.id}`,
                       _count: quiz._count,
                     } satisfies PublicQuizAccessItem}
-                    access={accessItems[quiz.id] ?? null}
-                    loading={accessLoading && quiz.accessType !== "free" && !quiz.isFreePreview}
+                    access={access}
+                    loading={quizAccessLoading}
                     onRedeemed={refreshAccess}
                   />
                 </div>
               </Card>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

@@ -1,5 +1,20 @@
 import type { AccessScopeType } from "@prisma/client";
 
+export type StatusFilter = "all" | "active" | "disabled" | "used" | "expired";
+
+export type PaginationMeta = {
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+};
+
+export type SubscriptionFilters = {
+  plansStatus: StatusFilter;
+  codesStatus: StatusFilter;
+  entitlementsStatus: StatusFilter;
+};
+
 export type PlanRow = {
   id: string;
   scopeType: AccessScopeType;

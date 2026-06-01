@@ -1,16 +1,38 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { AlertTriangle, CheckCircle, Clock, Search } from "lucide-react"
+
 import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Progress } from "@/components/ui/progress"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Search, AlertTriangle, CheckCircle, Clock } from "lucide-react"
 import type { AnalyticsData } from "@/types/analytics"
 
 interface QuestionAnalysisTableProps {
   data: AnalyticsData["questionAnalysis"]
+}
+
+function difficultyBadge(difficulty: AnalyticsData["questionAnalysis"][number]["difficulty"]) {
+  switch (difficulty) {
+    case "easy":
+      return { label: "سهل", className: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300" }
+    case "medium":
+      return { label: "متوسط", className: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300" }
+    case "hard":
+      return { label: "صعب", className: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300" }
+  }
+}
+
+function statusBadge(question: AnalyticsData["questionAnalysis"][number]) {
+  if (question.incorrectRate >= 70) {
+    return { label: "صعب جدًا", variant: "destructive" as const }
+  }
+  if (question.incorrectRate >= 40) {
+    return { label: "يحتاج مراجعة", variant: "secondary" as const }
+  }
+  return { label: "مستقر", variant: "outline" as const }
 }
 
 export function QuestionAnalysisTable({ data }: QuestionAnalysisTableProps) {
@@ -31,63 +53,33 @@ export function QuestionAnalysisTable({ data }: QuestionAnalysisTableProps) {
     })
   }, [data, searchTerm, difficultyFilter])
 
-  const getPerformanceColor = (rate: number) => {
-    if (rate >= 80) return "text-green-600"
-    if (rate >= 60) return "text-yellow-600"
-    return "text-red-600"
-  }
-
-  const getPerformanceIcon = (rate: number) => {
-    if (rate >= 80) return <CheckCircle className="h-4 w-4 text-green-600" />
-    if (rate >= 60) return <Clock className="h-4 w-4 text-yellow-600" />
-    return <AlertTriangle className="h-4 w-4 text-red-600" />
-  }
-
-  const getDifficultyColor = (difficulty: AnalyticsData["questionAnalysis"][number]["difficulty"]) => {
-    switch (difficulty) {
-      case "easy":
-        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
-      case "medium":
-        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300"
-      case "hard":
-        return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"
-    }
-  }
-
-  const getDifficultyText = (difficulty: AnalyticsData["questionAnalysis"][number]["difficulty"]) => {
-    switch (difficulty) {
-      case "easy":
-        return "سهل"
-      case "medium":
-        return "متوسط"
-      case "hard":
-        return "صعب"
-    }
-  }
-
   return (
-    <Card>
+    <Card className="rounded-lg">
       <CardHeader>
         <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
-          <CardTitle>تحليل أداء الأسئلة</CardTitle>
+          <div>
+            <CardTitle className="text-base">أصعب الأسئلة وأداء الإجابات</CardTitle>
+            <p className="mt-1 text-xs text-muted-foreground">المصدر: UserAnswer، والترتيب الافتراضي حسب نسبة الخطأ.</p>
+          </div>
 
-          <div className="flex w-full gap-2 sm:w-auto">
-            <div className="relative flex-1 sm:w-64">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-muted-foreground" />
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+            <div className="relative flex-1 sm:w-72">
+              <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder="البحث في الأسئلة..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
+                onChange={(event) => setSearchTerm(event.target.value)}
+                className="h-10 pr-10"
               />
             </div>
 
             <select
               value={difficultyFilter}
-              onChange={(e) => setDifficultyFilter(e.target.value)}
-              className="rounded-md border px-3 py-2 text-sm"
+              onChange={(event) => setDifficultyFilter(event.target.value)}
+              className="h-10 rounded-md border bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              aria-label="تصفية حسب مستوى الصعوبة"
             >
-              <option value="all">جميع المستويات</option>
+              <option value="all">كل المستويات</option>
               <option value="easy">سهل</option>
               <option value="medium">متوسط</option>
               <option value="hard">صعب</option>
@@ -97,86 +89,79 @@ export function QuestionAnalysisTable({ data }: QuestionAnalysisTableProps) {
       </CardHeader>
 
       <CardContent>
-        <div className="rounded-md border">
-          <Table>
+        <div className="overflow-x-auto rounded-md border">
+          <Table className="min-w-[920px]">
             <TableHeader>
               <TableRow>
                 <TableHead>السؤال</TableHead>
-                <TableHead>معدل الإجابة الصحيحة</TableHead>
+                <TableHead>نسبة الخطأ</TableHead>
+                <TableHead>نسبة الصحة</TableHead>
+                <TableHead>إجابات الطلاب</TableHead>
                 <TableHead>متوسط الوقت</TableHead>
                 <TableHead>الصعوبة</TableHead>
-                <TableHead>العلامات</TableHead>
                 <TableHead>الحالة</TableHead>
               </TableRow>
             </TableHeader>
 
             <TableBody>
-              {filteredData.map((question) => (
-                <TableRow key={question.questionId}>
-                  <TableCell className="max-w-[300px]">
-                    <div className="truncate" title={question.questionText}>
-                      {question.questionText}
-                    </div>
-                  </TableCell>
+              {filteredData.map((question) => {
+                const difficulty = difficultyBadge(question.difficulty)
+                const status = statusBadge(question)
 
-                  <TableCell>
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className={`font-medium ${getPerformanceColor(question.correctRate)}`}>
-                          {question.correctRate.toFixed(1)}%
-                        </span>
-                        {getPerformanceIcon(question.correctRate)}
+                return (
+                  <TableRow key={question.questionId}>
+                    <TableCell className="max-w-[340px]">
+                      <div className="line-clamp-2 leading-6" title={question.questionText}>
+                        {question.questionText}
                       </div>
-                      <Progress value={question.correctRate} className="h-2" />
-                    </div>
-                  </TableCell>
+                    </TableCell>
 
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">{question.averageTime} ث</span>
-                    </div>
-                  </TableCell>
+                    <TableCell>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-medium text-red-600">{question.incorrectRate.toFixed(1)}%</span>
+                          {question.incorrectRate >= 50 ? (
+                            <AlertTriangle className="h-4 w-4 text-red-600" />
+                          ) : (
+                            <CheckCircle className="h-4 w-4 text-green-600" />
+                          )}
+                        </div>
+                        <Progress value={question.incorrectRate} className="h-2" />
+                      </div>
+                    </TableCell>
 
-                  <TableCell>
-                    <Badge className={getDifficultyColor(question.difficulty)}>
-                      {getDifficultyText(question.difficulty)}
-                    </Badge>
-                  </TableCell>
+                    <TableCell>
+                      <span className="font-medium">{question.correctRate.toFixed(1)}%</span>
+                    </TableCell>
 
-                  <TableCell>
-                    <div className="flex flex-wrap gap-1">
-                      {question.tags.slice(0, 2).map((tag) => (
-                        <Badge key={tag} variant="outline" className="text-xs">
-                          {tag}
-                        </Badge>
-                      ))}
-                      {question.tags.length > 2 && (
-                        <Badge variant="outline" className="text-xs">
-                          +{question.tags.length - 2}
-                        </Badge>
-                      )}
-                    </div>
-                  </TableCell>
+                    <TableCell>{question.answerCount.toLocaleString("ar-SA")}</TableCell>
 
-                  <TableCell>
-                    {question.correctRate < 50 ? (
-                      <Badge variant="destructive">يحتاج مراجعة</Badge>
-                    ) : question.correctRate < 70 ? (
-                      <Badge variant="secondary">متوسط</Badge>
-                    ) : (
-                      <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">ممتاز</Badge>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm">{question.averageTime.toLocaleString("ar-SA")} ث</span>
+                      </div>
+                    </TableCell>
+
+                    <TableCell>
+                      <Badge className={difficulty.className}>{difficulty.label}</Badge>
+                    </TableCell>
+
+                    <TableCell>
+                      <Badge variant={status.variant}>{status.label}</Badge>
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
             </TableBody>
           </Table>
         </div>
 
         {filteredData.length === 0 && (
-          <div className="py-8 text-center">
-            <p className="text-muted-foreground">لا توجد أسئلة تطابق البحث</p>
+          <div className="mt-4 rounded-lg border border-dashed py-8 text-center">
+            <p className="text-sm text-muted-foreground">
+              لا توجد إجابات طلاب محفوظة لتحليل الأسئلة ضمن البحث أو الفترة المحددة.
+            </p>
           </div>
         )}
       </CardContent>

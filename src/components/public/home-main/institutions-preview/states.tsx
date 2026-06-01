@@ -7,13 +7,13 @@ export function PreviewLoading() {
         <div
           key={index}
           // Skeleton mirrors the final card footprint to reduce CLS while client data loads.
-          className="overflow-hidden rounded-lg border-2 bg-white/90 shadow-md dark:bg-gray-800/90"
+          className="overflow-hidden rounded-lg border bg-card/95 shadow-sm dark:bg-gray-900/80"
         >
           <div className="h-36 animate-pulse bg-muted sm:h-44" />
           <div className="space-y-4 p-6">
             <div className="h-6 w-3/4 animate-pulse rounded bg-muted" />
             <div className="h-4 w-1/2 animate-pulse rounded bg-muted" />
-            <div className="h-11 w-full animate-pulse rounded-xl bg-muted sm:h-12" />
+            <div className="h-11 w-full animate-pulse rounded-lg bg-muted sm:h-12" />
           </div>
         </div>
       ))}
@@ -23,7 +23,7 @@ export function PreviewLoading() {
 
 export function PreviewError({ message }: { message: string }) {
   return (
-    <div className="rounded-2xl p-5 sm:p-6 border bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300">
+    <div className="rounded-lg border bg-red-50 p-5 text-red-700 dark:bg-red-900/20 dark:text-red-300 sm:p-6">
       {message}
     </div>
   );

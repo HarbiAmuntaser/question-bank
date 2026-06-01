@@ -63,12 +63,14 @@ export function QuestionOptions({ question, answer, onAnswerChange, dir }: Props
   const maxText = question.questionType === "essay" ? 2000 : 500;
   const currentLen = (answer?.textAnswer ?? "").length;
 
-  const rowClass = cn(
-    "flex min-h-12 cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800",
-    dir === "rtl" ? "flex-row-reverse text-right" : "flex-row text-left"
-  );
+  const rowClass = (selected: boolean) =>
+    cn(
+      "flex min-h-12 cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors focus-within:ring-2 focus-within:ring-primary/35 hover:bg-muted/50 sm:min-h-14 sm:p-4",
+      selected ? "border-primary/50 bg-primary/5 shadow-sm" : "bg-background",
+      dir === "rtl" ? "flex-row-reverse text-right" : "flex-row text-left"
+    );
 
-  const inputClass = "h-5 w-5";
+  const inputClass = "h-5 w-5 shrink-0 accent-primary";
 
   // تحسين وصولية: fieldset + legend
   if (question.questionType === "multiple_choice") {
@@ -81,7 +83,7 @@ export function QuestionOptions({ question, answer, onAnswerChange, dir }: Props
           const optDir = detectTextDir(option.optionText);
 
           return (
-            <label key={option.id} htmlFor={id} className={rowClass}>
+            <label key={option.id} htmlFor={id} className={rowClass(selectedOption === option.id)}>
               <input
                 id={id}
                 type="radio"
@@ -108,7 +110,7 @@ export function QuestionOptions({ question, answer, onAnswerChange, dir }: Props
       <fieldset className="space-y-3" aria-label="صح أو خطأ">
         <legend className="sr-only">اختر صحيح أو خطأ</legend>
 
-        <label htmlFor={`${uid}-${groupName}-true`} className={rowClass}>
+        <label htmlFor={`${uid}-${groupName}-true`} className={rowClass(answer?.booleanAnswer === true)}>
           <input
             id={`${uid}-${groupName}-true`}
             type="radio"
@@ -123,7 +125,7 @@ export function QuestionOptions({ question, answer, onAnswerChange, dir }: Props
           </span>
         </label>
 
-        <label htmlFor={`${uid}-${groupName}-false`} className={rowClass}>
+        <label htmlFor={`${uid}-${groupName}-false`} className={rowClass(answer?.booleanAnswer === false)}>
           <input
             id={`${uid}-${groupName}-false`}
             type="radio"
@@ -156,7 +158,7 @@ export function QuestionOptions({ question, answer, onAnswerChange, dir }: Props
         value={answer?.textAnswer || ""}
         onChange={(e) => handleTextAnswerChange(e.target.value)}
         rows={question.questionType === "essay" ? 8 : 3}
-        className={cn("resize-none", dir === "rtl" ? "text-right" : "text-left")}
+        className={cn("min-h-28 resize-none rounded-lg text-base leading-relaxed", dir === "rtl" ? "text-right" : "text-left")}
         maxLength={maxText}
         dir={dir}
       />

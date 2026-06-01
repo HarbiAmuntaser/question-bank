@@ -4,17 +4,17 @@ import { GraduationCap } from "lucide-react";
 
 export function GridHeader({ heading, subheading }: { heading: string; subheading: string }) {
   return (
-    <div className="text-center mb-8 sm:mb-10">
-      <div className="flex items-center justify-center gap-3 mb-3">
-        <div className="p-3 bg-gradient-to-r from-green-500 to-emerald-400 rounded-2xl shadow-lg" aria-hidden>
-          <GraduationCap className="h-7 w-7 text-white" />
+    <div className="mb-8 text-center sm:mb-10">
+      <div className="mb-3 flex items-center justify-center gap-3">
+        <div className="rounded-lg bg-primary/10 p-3 text-primary" aria-hidden>
+          <GraduationCap className="h-7 w-7" />
         </div>
-        <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white">
+        <h2 className="text-2xl font-bold leading-tight text-gray-900 dark:text-white sm:text-3xl lg:text-4xl">
           {heading}
         </h2>
       </div>
 
-      <p className="text-base sm:text-lg text-gray-600 dark:text-gray-400 max-w-3xl mx-auto leading-relaxed">
+      <p className="mx-auto max-w-3xl text-sm leading-relaxed text-muted-foreground sm:text-base">
         {subheading}
       </p>
     </div>

@@ -1,12 +1,12 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import { Clock, Search, TrendingDown, TrendingUp } from "lucide-react"
+
 import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Search, Eye, TrendingUp, TrendingDown, Clock } from "lucide-react"
 import type { AnalyticsData } from "@/types/analytics"
 
 interface QuizAnalyticsTableProps {
@@ -15,13 +15,30 @@ interface QuizAnalyticsTableProps {
 
 type SortableQuizKey = "title" | "attempts" | "averageScore" | "averageTime" | "completionRate"
 
+function formatTime(seconds: number) {
+  const minutes = Math.floor(seconds / 60)
+  if (minutes <= 0) return `${seconds.toLocaleString("ar-SA")} ث`
+  return `${minutes.toLocaleString("ar-SA")} دقيقة`
+}
+
+function difficultyBadge(difficulty: AnalyticsData["quizPerformance"][number]["difficulty"]) {
+  switch (difficulty) {
+    case "easy":
+      return { label: "سهل", className: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300" }
+    case "medium":
+      return { label: "متوسط", className: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300" }
+    case "hard":
+      return { label: "صعب", className: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300" }
+  }
+}
+
 export function QuizAnalyticsTable({ data }: QuizAnalyticsTableProps) {
   const [searchTerm, setSearchTerm] = useState("")
   const [sortBy, setSortBy] = useState<SortableQuizKey>("attempts")
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc")
 
   const sortedData = useMemo(() => {
-    const filteredData = data.filter((quiz) => quiz.title.toLowerCase().includes(searchTerm.toLowerCase()))
+    const filteredData = data.filter((quiz) => quiz.title.toLowerCase().includes(searchTerm.trim().toLowerCase()))
 
     return [...filteredData].sort((a, b) => {
       const aValue = a[sortBy]
@@ -49,165 +66,105 @@ export function QuizAnalyticsTable({ data }: QuizAnalyticsTableProps) {
     setSortOrder("desc")
   }
 
-  const formatTime = (seconds: number) => {
-    const minutes = Math.floor(seconds / 60)
-    if (minutes <= 0) return `${seconds} ث`
-    return `${minutes} دقيقة`
-  }
-
-  const getDifficultyColor = (difficulty: AnalyticsData["quizPerformance"][number]["difficulty"]) => {
-    switch (difficulty) {
-      case "easy":
-        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
-      case "medium":
-        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300"
-      case "hard":
-        return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"
-    }
-  }
-
-  const getDifficultyText = (difficulty: AnalyticsData["quizPerformance"][number]["difficulty"]) => {
-    switch (difficulty) {
-      case "easy":
-        return "سهل"
-      case "medium":
-        return "متوسط"
-      case "hard":
-        return "صعب"
-    }
-  }
+  const SortIcon = sortOrder === "asc" ? TrendingUp : TrendingDown
 
   return (
-    <Card>
+    <Card className="rounded-lg">
       <CardHeader>
         <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
-          <CardTitle>تحليل أداء الاختبارات</CardTitle>
-          <div className="relative w-full sm:w-64">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-muted-foreground" />
+          <div>
+            <CardTitle className="text-base">أكثر الاختبارات استخدامًا وأداءها</CardTitle>
+            <p className="mt-1 text-xs text-muted-foreground">المصدر: QuizAttempt.</p>
+          </div>
+          <div className="relative w-full sm:w-72">
+            <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder="البحث في الاختبارات..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
+              onChange={(event) => setSearchTerm(event.target.value)}
+              className="h-10 pr-10"
             />
           </div>
         </div>
       </CardHeader>
 
       <CardContent>
-        <div className="rounded-md border">
-          <Table>
+        <div className="overflow-x-auto rounded-md border">
+          <Table className="min-w-[850px]">
             <TableHeader>
               <TableRow>
-                <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("title")}>
-                  <div className="flex items-center gap-2">
-                    اسم الاختبار
-                    {sortBy === "title" &&
-                      (sortOrder === "asc" ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />)}
-                  </div>
-                </TableHead>
-
-                <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("attempts")}>
-                  <div className="flex items-center gap-2">
-                    المحاولات
-                    {sortBy === "attempts" &&
-                      (sortOrder === "asc" ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />)}
-                  </div>
-                </TableHead>
-
-                <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("averageScore")}>
-                  <div className="flex items-center gap-2">
-                    متوسط الدرجات
-                    {sortBy === "averageScore" &&
-                      (sortOrder === "asc" ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />)}
-                  </div>
-                </TableHead>
-
-                <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("averageTime")}>
-                  <div className="flex items-center gap-2">
-                    متوسط الوقت
-                    {sortBy === "averageTime" &&
-                      (sortOrder === "asc" ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />)}
-                  </div>
-                </TableHead>
-
-                <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("completionRate")}>
-                  <div className="flex items-center gap-2">
-                    معدل الإكمال
-                    {sortBy === "completionRate" &&
-                      (sortOrder === "asc" ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />)}
-                  </div>
-                </TableHead>
-
+                {[
+                  ["title", "اسم الاختبار"],
+                  ["attempts", "المحاولات"],
+                  ["averageScore", "متوسط الدرجة"],
+                  ["averageTime", "متوسط الوقت"],
+                  ["completionRate", "معدل الإكمال"],
+                ].map(([key, label]) => (
+                  <TableHead key={key}>
+                    <button
+                      type="button"
+                      className="flex items-center gap-2 rounded-md py-1 text-right hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      onClick={() => handleSort(key as SortableQuizKey)}
+                    >
+                      {label}
+                      {sortBy === key && <SortIcon className="h-4 w-4" />}
+                    </button>
+                  </TableHead>
+                ))}
                 <TableHead>الصعوبة</TableHead>
-                <TableHead>الإجراءات</TableHead>
               </TableRow>
             </TableHeader>
 
             <TableBody>
-              {sortedData.map((quiz) => (
-                <TableRow key={quiz.quizId}>
-                  <TableCell className="font-medium">
-                    <div className="max-w-[220px] truncate" title={quiz.title}>
-                      {quiz.title}
-                    </div>
-                  </TableCell>
+              {sortedData.map((quiz) => {
+                const difficulty = difficultyBadge(quiz.difficulty)
 
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">{quiz.attempts}</span>
-                      <span className="text-xs text-muted-foreground">محاولة</span>
-                    </div>
-                  </TableCell>
-
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">{quiz.averageScore.toFixed(1)}%</span>
-                      {quiz.averageScore >= 80 ? (
-                        <TrendingUp className="h-4 w-4 text-green-600" />
-                      ) : quiz.averageScore >= 60 ? (
-                        <Clock className="h-4 w-4 text-yellow-600" />
-                      ) : (
-                        <TrendingDown className="h-4 w-4 text-red-600" />
-                      )}
-                    </div>
-                  </TableCell>
-
-                  <TableCell>
-                    <span className="text-sm">{formatTime(quiz.averageTime)}</span>
-                  </TableCell>
-
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">{quiz.completionRate.toFixed(1)}%</span>
-                      <div className="h-2 w-16 overflow-hidden rounded-full bg-gray-200">
-                        <div
-                          className="h-full bg-blue-500 transition-all duration-300"
-                          style={{ width: `${quiz.completionRate}%` }}
-                        />
+                return (
+                  <TableRow key={quiz.quizId}>
+                    <TableCell className="font-medium">
+                      <div className="max-w-[260px] truncate" title={quiz.title}>
+                        {quiz.title}
                       </div>
-                    </div>
-                  </TableCell>
+                    </TableCell>
 
-                  <TableCell>
-                    <Badge className={getDifficultyColor(quiz.difficulty)}>{getDifficultyText(quiz.difficulty)}</Badge>
-                  </TableCell>
+                    <TableCell>
+                      <span className="font-medium">{quiz.attempts.toLocaleString("ar-SA")}</span>
+                    </TableCell>
 
-                  <TableCell>
-                    <Button variant="ghost" size="sm" className="flex items-center gap-2" disabled>
-                      <Eye className="h-4 w-4" />
-                      تفاصيل
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{quiz.averageScore.toFixed(1)}%</span>
+                        {quiz.averageScore >= 80 ? (
+                          <TrendingUp className="h-4 w-4 text-green-600" />
+                        ) : quiz.averageScore >= 60 ? (
+                          <Clock className="h-4 w-4 text-yellow-600" />
+                        ) : (
+                          <TrendingDown className="h-4 w-4 text-red-600" />
+                        )}
+                      </div>
+                    </TableCell>
+
+                    <TableCell>
+                      <span className="text-sm">{formatTime(quiz.averageTime)}</span>
+                    </TableCell>
+
+                    <TableCell>
+                      <span className="font-medium">{quiz.completionRate.toFixed(1)}%</span>
+                    </TableCell>
+
+                    <TableCell>
+                      <Badge className={difficulty.className}>{difficulty.label}</Badge>
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
             </TableBody>
           </Table>
         </div>
 
         {sortedData.length === 0 && (
-          <div className="py-8 text-center">
-            <p className="text-muted-foreground">لا توجد اختبارات تطابق البحث</p>
+          <div className="mt-4 rounded-lg border border-dashed py-8 text-center">
+            <p className="text-sm text-muted-foreground">لا توجد محاولات اختبارات تطابق البحث أو الفترة المحددة.</p>
           </div>
         )}
       </CardContent>

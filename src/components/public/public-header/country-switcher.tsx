@@ -1,11 +1,3 @@
-// file: src/components/public/public-header/country-switcher.tsx
-/**
- * Country Switcher
- * ----------------
- * مبدّل الدولة (Desktop + Mobile)
- * - compact للجوال
- */
-
 "use client";
 
 import { Globe2 } from "lucide-react";
@@ -25,9 +17,9 @@ export function CountrySwitcher({ cc, onChange, compact = false }: Props) {
   if (compact) {
     return (
       <div className="flex items-center gap-2">
-        <Globe2 className="h-4 w-4" aria-hidden />
+        <Globe2 className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
         <select
-          className="h-9 rounded-md border bg-background px-2 text-sm"
+          className="h-10 min-w-0 rounded-lg border bg-background px-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           aria-label="اختيار الدولة"
           value={cc}
           onChange={(e) => onChange(e.target.value as CountryCode)}
@@ -43,10 +35,10 @@ export function CountrySwitcher({ cc, onChange, compact = false }: Props) {
   }
 
   return (
-    <div className="flex items-center gap-2 ps-2 pe-1 py-1 rounded-md border">
-      <Globe2 className="h-4 w-4" aria-hidden />
+    <div className="flex h-10 items-center gap-2 rounded-lg border bg-background/80 pe-1 ps-2">
+      <Globe2 className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
       <select
-        className="h-8 bg-transparent text-sm outline-none"
+        className="h-9 bg-transparent text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
         aria-label="اختيار الدولة"
         value={cc}
         onChange={(e) => onChange(e.target.value as CountryCode)}

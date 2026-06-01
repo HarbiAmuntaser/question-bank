@@ -28,21 +28,20 @@ export function InstitutionGridCard({
   const imgSrc = "/images/institutions/default.svg";
 
   return (
-    <Card className="flex h-full flex-col overflow-hidden border-2 bg-white/90 shadow-lg backdrop-blur-sm transition-all duration-300 hover:border-primary/40 hover:shadow-xl dark:bg-gray-800/90">
-      {/* صورة */}
-      <div className="relative h-44 sm:h-48 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-green-600/20 via-blue-600/20 to-purple-600/20" aria-hidden />
+    <Card className="group flex h-full flex-col overflow-hidden border bg-card/95 shadow-sm transition-colors hover:border-primary/40 hover:shadow-md dark:bg-gray-900/80">
+      <div className="relative h-40 overflow-hidden sm:h-44">
+        <div className="absolute inset-0 bg-muted/30" aria-hidden />
         <Image
           src={imgSrc}
           alt={name}
           fill
-          className="object-cover transition-transform duration-500 group-hover:scale-110"
+          className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
         />
 
-        <div className="absolute top-4 right-4">
-          <Badge className="bg-white/90 text-gray-900 shadow-lg" aria-label={badgeAria}>
-            <Star className="w-3 h-3 ml-1 text-yellow-500" aria-hidden />
+        <div className="absolute right-3 top-3">
+          <Badge className="rounded-md bg-background/90 text-foreground shadow-sm" aria-label={badgeAria}>
+            <Star className="ml-1 h-3 w-3 text-yellow-500" aria-hidden />
             {badgeText}
           </Badge>
         </div>
@@ -57,7 +56,7 @@ export function InstitutionGridCard({
       <CardContent className="mt-auto pb-6">
         <Button
           asChild
-          className="h-11 w-full rounded-xl bg-gradient-to-r from-green-600 to-emerald-500 text-sm shadow-lg hover:from-green-700 hover:to-emerald-600 sm:h-12 sm:text-base"
+          className="h-11 w-full rounded-lg text-sm sm:text-base"
         >
           <Link href={href} prefetch={false} className="flex items-center justify-center gap-2">
             <GraduationCap className="h-5 w-5" aria-hidden />

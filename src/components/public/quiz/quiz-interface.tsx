@@ -2,13 +2,12 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 
 import type { QuizWithQuestions, QuizSession, QuizAnswer } from "@/types";
 
 import { QuestionDisplay } from "./question-display";
-import { QuizSubmissionDialog } from "./quiz-submission-dialog";
-import { ResumeAttemptDialog } from "./resume-attempt-dialog";
 
 import { useQuizRuntime } from "./use-quiz-runtime";
 import { QuizHeader } from "./quiz-header";
@@ -17,6 +16,48 @@ import { QuizMobileNav } from "./quiz-mobile-nav";
 import { QuizNavigation } from "./quiz-navigation";
 
 type GradeResponse = Record<string, unknown>;
+
+type QuizSubmissionDialogProps = {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  totalQuestions: number;
+  answeredQuestions: number;
+  onConfirm: () => void;
+};
+
+type ResumeAttemptDialogProps = {
+  open: boolean;
+  quizTitle: string;
+  resumeInfo: {
+    answeredCount: number;
+    totalQuestions: number;
+    currentIndex: number;
+    timeRemaining: number;
+    startTime?: string;
+  };
+  onResume: () => void;
+  onRestart: () => void;
+};
+
+const QuizSubmissionDialog = dynamic<QuizSubmissionDialogProps>(
+  () => import("./quiz-submission-dialog").then((mod) => mod.QuizSubmissionDialog),
+  { ssr: false, loading: () => <DialogLazyFallback /> },
+);
+
+const ResumeAttemptDialog = dynamic<ResumeAttemptDialogProps>(
+  () => import("./resume-attempt-dialog").then((mod) => mod.ResumeAttemptDialog),
+  { ssr: false, loading: () => <DialogLazyFallback /> },
+);
+
+function DialogLazyFallback() {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/70 p-4 backdrop-blur-sm">
+      <div className="rounded-lg border bg-card px-4 py-3 text-sm text-muted-foreground shadow-sm">
+        جاري تحميل النافذة...
+      </div>
+    </div>
+  );
+}
 
 function safeArray<T>(v: unknown): T[] {
   return Array.isArray(v) ? (v as T[]) : [];
@@ -82,6 +123,7 @@ export function QuizInterface({ quiz }: { quiz: QuizWithQuestions }) {
         body: JSON.stringify({
           quizId: quiz.id,
           answers: completedSession.answers as Record<string, QuizAnswer>,
+          timeSpent: durationSec,
         }),
       });
 
@@ -137,10 +179,10 @@ export function QuizInterface({ quiz }: { quiz: QuizWithQuestions }) {
 
   if (!isReady) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center" aria-live="polite">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4" />
-          <p className="text-gray-600 dark:text-gray-400">جاري تحضير الاختبار...</p>
+      <div className="flex min-h-[420px] items-center justify-center px-4">
+        <div className="rounded-lg border bg-card/95 p-6 text-center shadow-sm" aria-live="polite">
+          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-primary" />
+          <p className="text-sm leading-relaxed text-muted-foreground sm:text-base">جاري تحضير الاختبار...</p>
         </div>
       </div>
     );
@@ -160,10 +202,10 @@ export function QuizInterface({ quiz }: { quiz: QuizWithQuestions }) {
 
   if (!session) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center" aria-live="polite">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4" />
-          <p className="text-gray-600 dark:text-gray-400">جاري تحضير الاختبار...</p>
+      <div className="flex min-h-[420px] items-center justify-center px-4">
+        <div className="rounded-lg border bg-card/95 p-6 text-center shadow-sm" aria-live="polite">
+          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-primary" />
+          <p className="text-sm leading-relaxed text-muted-foreground sm:text-base">جاري تحضير الاختبار...</p>
         </div>
       </div>
     );
@@ -174,7 +216,7 @@ export function QuizInterface({ quiz }: { quiz: QuizWithQuestions }) {
   const isLast = currentQuestionIndex === total - 1;
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
+    <div className="mx-auto max-w-6xl space-y-5 px-3 py-4 sm:px-4 sm:py-6 lg:space-y-6 lg:px-0">
       <QuizHeader
         title={quiz.title}
         description={quiz.description}
@@ -188,8 +230,8 @@ export function QuizInterface({ quiz }: { quiz: QuizWithQuestions }) {
         onOpenSubmit={() => setShowSubmissionDialog(true)}
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        <div className="lg:col-span-3 space-y-4">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_18rem] lg:gap-6">
+        <div className="space-y-4">
           <QuestionDisplay
             question={currentQuestion}
             questionNumber={currentQuestionIndex + 1}
@@ -215,14 +257,14 @@ export function QuizInterface({ quiz }: { quiz: QuizWithQuestions }) {
           />
         </div>
 
-        <div className="hidden lg:block lg:col-span-1">
+        <aside className="hidden lg:block">
           <QuizNavigation
             questions={quiz.questions}
             answers={answers}
             currentQuestionIndex={currentQuestionIndex}
             onQuestionSelect={setCurrentQuestionIndex}
           />
-        </div>
+        </aside>
       </div>
 
       <div className="hidden lg:block">
@@ -235,13 +277,15 @@ export function QuizInterface({ quiz }: { quiz: QuizWithQuestions }) {
         />
       </div>
 
-      <QuizSubmissionDialog
-        open={showSubmissionDialog}
-        onOpenChange={setShowSubmissionDialog}
-        totalQuestions={total}
-        answeredQuestions={answeredCount}
-        onConfirm={handleSubmitQuiz}
-      />
+      {showSubmissionDialog ? (
+        <QuizSubmissionDialog
+          open={showSubmissionDialog}
+          onOpenChange={setShowSubmissionDialog}
+          totalQuestions={total}
+          answeredQuestions={answeredCount}
+          onConfirm={handleSubmitQuiz}
+        />
+      ) : null}
     </div>
   );
 }

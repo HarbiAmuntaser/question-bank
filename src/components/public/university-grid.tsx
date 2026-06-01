@@ -138,7 +138,7 @@ export function UniversityGrid({
 
   return (
     <section
-      className="py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-gray-50 via-white to-blue-50/30 dark:from-gray-900 dark:via-gray-800 dark:to-blue-900/30"
+      className="bg-background px-4 py-16 sm:px-6 lg:px-8"
       aria-labelledby="universities-heading"
     >
       <div className="max-w-7xl mx-auto">
@@ -152,7 +152,7 @@ export function UniversityGrid({
               {ui.heading}
             </h2>
           </div>
-          <p className="text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto leading-relaxed">{ui.subheading}</p>
+          <p className="mx-auto max-w-3xl text-xl leading-relaxed text-muted-foreground">{ui.subheading}</p>
         </motion.div>
 
         {/* Search (اختياري) */}
@@ -167,7 +167,7 @@ export function UniversityGrid({
             onSubmit={(e) => e.preventDefault()}
           >
             <div className="relative">
-              <Search className="absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" aria-hidden />
+              <Search className="absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" aria-hidden />
               <label htmlFor="universities-search" className="sr-only">
                 {ui.searchLabel}
               </label>
@@ -259,9 +259,9 @@ export function UniversityGrid({
         {filtered.length === 0 && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-16">
             <div className="p-6 bg-gray-100 dark:bg-gray-800 rounded-2xl max-w-md mx-auto">
-              <Search className="h-16 w-16 text-gray-400 mx-auto mb-4" aria-hidden />
+              <Search className="mx-auto mb-4 h-16 w-16 text-muted-foreground" aria-hidden />
               <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">{ui.noResultsTitle}</h3>
-              <p className="text-gray-600 dark:text-gray-400">{ui.noResultsText}</p>
+              <p className="text-muted-foreground">{ui.noResultsText}</p>
             </div>
           </motion.div>
         )}

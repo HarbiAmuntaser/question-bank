@@ -1,21 +1,36 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState, useTransition } from "react";
-import { BookOpen, Clock, FileText, Lock, MessageCircle, Send, Ticket } from "lucide-react";
+import dynamic from "next/dynamic";
+import { useEffect, useMemo, useState } from "react";
+import {
+  BookOpen,
+  Clock,
+  FileText,
+  Lock,
+  ShieldCheck,
+  Ticket,
+  Unlock,
+} from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
+import type { SubscriptionGateDialogProps } from "./subscription-gate-dialog";
+
+const listCardClass =
+  "group flex h-full flex-col overflow-hidden border bg-card/95 shadow-sm transition-colors hover:border-primary/40 hover:shadow-md dark:bg-gray-900/80";
+const actionButtonClass = "h-11 w-full rounded-lg gap-2 text-sm sm:text-base";
+const accessBadgeClass = "h-7 rounded-md px-2.5 text-xs font-medium";
+
+const LazySubscriptionGateDialog = dynamic<SubscriptionGateDialogProps>(
+  () => import("./subscription-gate-dialog").then((mod) => mod.SubscriptionGateDialog),
+  {
+    ssr: false,
+    loading: () => <SubscriptionDialogFallback />,
+  },
+);
 
 type AccessPlan = {
   id: string;
@@ -54,165 +69,69 @@ export type PublicQuizAccessItem = {
   chapter?: { id: string; name: string } | null;
 };
 
-function isOpenWithoutStatus(quiz: Pick<PublicQuizAccessItem, "accessType" | "isFreePreview">) {
+export function isOpenWithoutStatus(quiz: Pick<PublicQuizAccessItem, "accessType" | "isFreePreview">) {
   return quiz.accessType === "free" || quiz.isFreePreview;
 }
 
-function buildRequestMessage(plan: AccessPlan | null, title: string) {
-  const pageUrl = typeof window !== "undefined" ? window.location.href : "";
-  const scope = plan?.scopeType === "major" ? "اشتراك تخصص" : "اشتراك مقرر";
-  const base =
-    plan?.contactMessage?.trim() ||
-    `أرغب في ${scope}${plan?.title ? `: ${plan.title}` : ""}${title ? ` - ${title}` : ""}`;
-  return `${base}\nالرابط: ${pageUrl}`;
+function formatPrice(plan: AccessPlan | null) {
+  if (!plan?.price) return "السعر غير محدد";
+  return `${plan.price} ${plan.currency ?? ""}`.trim();
 }
 
-function whatsappHref(plan: AccessPlan | null, title: string) {
-  if (!plan?.whatsappNumber) return null;
-  const phone = plan.whatsappNumber.replace(/[^\d+]/g, "");
-  return `https://wa.me/${phone.replace(/^\+/, "")}?text=${encodeURIComponent(buildRequestMessage(plan, title))}`;
+function accessStateLabel(quiz: Pick<PublicQuizAccessItem, "accessType" | "isFreePreview">, access?: AccessStatus | null) {
+  if (quiz.accessType === "free") return "مجاني";
+  if (quiz.isFreePreview) return "تجربة مجانية";
+  if (access?.allowed) return "مشترك";
+  return "يتطلب اشتراك";
 }
 
-function telegramHref(plan: AccessPlan | null) {
-  if (!plan?.telegramUsername) return null;
-  return `https://t.me/${plan.telegramUsername.replace(/^@/, "")}`;
+function accessStateClass(label: string) {
+  switch (label) {
+    case "مجاني":
+      return "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-300";
+    case "تجربة مجانية":
+      return "border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-900/60 dark:bg-sky-950/30 dark:text-sky-300";
+    case "مشترك":
+      return "border-primary/25 bg-primary/10 text-primary";
+    default:
+      return "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-300";
+  }
 }
 
-function SubscriptionGateDialog({
-  open,
-  onOpenChange,
+export function QuizAccessBadges({
+  quiz,
   access,
-  targetTitle,
-  quizId,
-  subjectId,
-  majorId,
-  onRedeemed,
+  loading,
 }: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  access: AccessStatus | null;
-  targetTitle: string;
-  quizId?: string;
-  subjectId?: string | null;
-  majorId?: string | null;
-  onRedeemed: () => void;
+  quiz: Pick<PublicQuizAccessItem, "accessType" | "isFreePreview">;
+  access?: AccessStatus | null;
+  loading?: boolean;
 }) {
-  const [code, setCode] = useState("");
-  const [message, setMessage] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
-  const plan = access?.plan ?? null;
-  const whats = whatsappHref(plan, targetTitle);
-  const telegram = telegramHref(plan);
-
-  const recordContactClick = (method: "whatsapp" | "telegram") => {
-    if (!plan?.id) return;
-    void fetch("/api/v1/student/access/payment-request", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      cache: "no-store",
-      body: JSON.stringify({
-        planId: plan.id,
-        contactMethod: method,
-        contactValue: method === "whatsapp" ? plan.whatsappNumber : plan.telegramUsername,
-        message: buildRequestMessage(plan, targetTitle),
-        pageUrl: window.location.href,
-      }),
-    }).catch(() => null);
-  };
-
-  const redeem = () => {
-    const value = code.trim();
-    if (!value) {
-      setMessage("أدخل كود الاشتراك أولاً.");
-      return;
-    }
-
-    startTransition(async () => {
-      setMessage(null);
-      const res = await fetch("/api/v1/student/access/redeem", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        cache: "no-store",
-        body: JSON.stringify({ code: value, quizId, subjectId, majorId }),
-      });
-      const body = await res.json().catch(() => null);
-
-      if (!res.ok) {
-        setMessage(
-          body?.error === "invalid_code"
-            ? "الكود غير صحيح أو غير متاح."
-            : "تعذر تفعيل الكود. تحقق منه وحاول مرة أخرى.",
-        );
-        return;
-      }
-
-      setMessage("تم تفعيل الاشتراك بنجاح.");
-      setCode("");
-      onRedeemed();
-      window.setTimeout(() => onOpenChange(false), 600);
-    });
-  };
+  const label = accessStateLabel(quiz, access);
+  const Icon = label === "يتطلب اشتراك" ? Lock : label === "مشترك" ? Unlock : ShieldCheck;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto text-right sm:max-w-lg" dir="rtl">
-        <DialogHeader className="text-right">
-          <DialogTitle>{plan?.title ?? "فتح المحتوى المدفوع"}</DialogTitle>
-          <DialogDescription>
-            {plan?.price ? `${plan.price} ${plan.currency ?? ""}` : "أدخل كود الاشتراك أو تواصل معنا للحصول على الكود."}
-          </DialogDescription>
-        </DialogHeader>
+    <div className="flex flex-wrap items-center gap-2">
+      <Badge variant="outline" className={cn(accessBadgeClass, accessStateClass(label))}>
+        <Icon className="ml-1.5 h-3.5 w-3.5" aria-hidden />
+        {label}
+      </Badge>
+      {loading && label === "يتطلب اشتراك" ? (
+        <Badge variant="outline" className={cn(accessBadgeClass, "border-muted bg-muted/40 text-muted-foreground")}>
+          جار التحقق
+        </Badge>
+      ) : null}
+    </div>
+  );
+}
 
-        <div className="space-y-4">
-          <div className="rounded-md border bg-muted/30 p-3 text-sm">
-            <div className="font-medium">{targetTitle}</div>
-            <div className="mt-1 text-muted-foreground">{plan?.scopeType === "major" ? "اشتراك تخصص" : "اشتراك مقرر"}</div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="subscriptionCode">لدي كود اشتراك</Label>
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <Input
-                id="subscriptionCode"
-                value={code}
-                onChange={(event) => setCode(event.target.value)}
-                placeholder="QB-XXXX-XXXX-XXXX"
-                dir="ltr"
-                className="font-mono"
-              />
-              <Button type="button" onClick={redeem} disabled={pending}>
-                <Ticket className="ml-2 h-4 w-4" aria-hidden />
-                {pending ? "جار التفعيل..." : "تفعيل"}
-              </Button>
-            </div>
-            {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}
-          </div>
-
-          <div className="grid gap-2 sm:grid-cols-2">
-            {whats ? (
-              <Button asChild variant="outline" onClick={() => recordContactClick("whatsapp")}>
-                <a href={whats} target="_blank" rel="noreferrer">
-                  <MessageCircle className="ml-2 h-4 w-4" aria-hidden />
-                  اشترك عبر واتساب
-                </a>
-              </Button>
-            ) : null}
-            {telegram ? (
-              <Button asChild variant="outline" onClick={() => recordContactClick("telegram")}>
-                <a href={telegram} target="_blank" rel="noreferrer">
-                  <Send className="ml-2 h-4 w-4" aria-hidden />
-                  اشترك عبر تليجرام
-                </a>
-              </Button>
-            ) : null}
-          </div>
-
-          <p className="text-xs leading-relaxed text-muted-foreground">
-            هل فقدت الوصول؟ تواصل معنا مع رقم الكود أو رقم الواتساب المستخدم.
-          </p>
-        </div>
-      </DialogContent>
-    </Dialog>
+function SubscriptionDialogFallback() {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/70 p-4 backdrop-blur-sm">
+      <div className="rounded-lg border bg-card px-4 py-3 text-sm text-muted-foreground shadow-sm">
+        جاري تحميل نافذة الاشتراك...
+      </div>
+    </div>
   );
 }
 
@@ -240,7 +159,7 @@ export function QuizAccessAction({
 
   if (!isLocked) {
     return (
-      <Button asChild className="h-11 w-full rounded-xl text-sm sm:text-base">
+      <Button asChild className={actionButtonClass}>
         <Link href={quiz.href} prefetch={false} className="flex items-center justify-center gap-2">
           <FileText className="h-4 w-4" aria-hidden />
           {label}
@@ -251,20 +170,87 @@ export function QuizAccessAction({
 
   return (
     <>
-      <Button type="button" className="h-11 w-full rounded-xl text-sm sm:text-base" variant="outline" onClick={() => setOpen(true)} disabled={loading}>
-        <Lock className="ml-2 h-4 w-4" aria-hidden />
-        {loading ? "جار التحقق..." : "لدي كود اشتراك"}
+      <Button
+        type="button"
+        className={cn(actionButtonClass, "border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200")}
+        variant="outline"
+        onClick={() => setOpen(true)}
+        disabled={loading}
+      >
+        <Lock className="h-4 w-4" aria-hidden />
+        {loading ? "جار التحقق..." : access?.plan ? "لدي كود اشتراك" : "عرض خيارات الاشتراك"}
       </Button>
-      <SubscriptionGateDialog
-        open={open}
-        onOpenChange={setOpen}
-        access={access ?? null}
-        targetTitle={quiz.title}
-        quizId={quiz.id}
-        subjectId={subjectId}
-        majorId={majorId}
-        onRedeemed={onRedeemed}
-      />
+      {open ? (
+        <LazySubscriptionGateDialog
+          open={open}
+          onOpenChange={setOpen}
+          access={access ?? null}
+          targetTitle={quiz.title}
+          quizId={quiz.id}
+          subjectId={subjectId}
+          majorId={majorId}
+          onRedeemed={onRedeemed}
+        />
+      ) : null}
+    </>
+  );
+}
+
+export function MajorSubscriptionCallout({
+  majorId,
+  title,
+}: {
+  majorId: string;
+  title: string;
+}) {
+  const [access, setAccess] = useState<AccessStatus | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [open, setOpen] = useState(false);
+
+  const refreshAccess = () => {
+    setLoading(true);
+    void fetch(`/api/v1/student/access/status?majorId=${encodeURIComponent(majorId)}`, { cache: "no-store" })
+      .then((res) => res.json())
+      .then((body) => setAccess(body?.data ?? null))
+      .catch(() => setAccess(null))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(refreshAccess, [majorId]);
+
+  if (loading || !access?.requiresSubscription || !access.plan) return null;
+
+  return (
+    <>
+      <Card className="border-primary/20 bg-primary/5 text-right shadow-sm">
+        <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="space-y-2">
+            <QuizAccessBadges quiz={{ accessType: "paid", isFreePreview: false }} access={access} />
+            <div className="flex items-start gap-2 font-semibold leading-relaxed">
+              <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />
+              <span>هذا التخصص يحتاج اشتراك للوصول إلى الاختبارات المدفوعة.</span>
+            </div>
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              الخطة: <span className="font-medium text-foreground">{access.plan.title}</span>
+              {access.plan.price ? ` • ${formatPrice(access.plan)}` : ""}
+            </p>
+          </div>
+          <Button type="button" className="h-11 w-full gap-2 rounded-lg sm:w-auto" onClick={() => setOpen(true)}>
+            <Ticket className="h-4 w-4" aria-hidden />
+            الاشتراك أو تفعيل كود
+          </Button>
+        </CardContent>
+      </Card>
+      {open ? (
+        <LazySubscriptionGateDialog
+          open={open}
+          onOpenChange={setOpen}
+          access={access}
+          targetTitle={title}
+          majorId={majorId}
+          onRedeemed={refreshAccess}
+        />
+      ) : null}
     </>
   );
 }
@@ -305,12 +291,25 @@ export function SubjectQuizzesAccessGrid({
         return (
           <Card
             key={q.id}
-            className="group flex h-full flex-col overflow-hidden border-2 bg-white/90 shadow-lg backdrop-blur-sm transition-all duration-300 hover:border-primary/40 hover:shadow-xl dark:bg-gray-800/90"
+            className={cn(
+              listCardClass,
+              locked
+                ? "border-amber-200/70 bg-amber-50/20 dark:border-amber-900/40 dark:bg-amber-950/10"
+                : q.isFreePreview || q.accessType === "free"
+                  ? "border-emerald-200/70 bg-emerald-50/20 dark:border-emerald-900/40 dark:bg-emerald-950/10"
+                  : access?.allowed
+                    ? "border-primary/25 bg-primary/5"
+                    : "",
+            )}
           >
             <CardHeader className="pb-3">
-              <div className="mb-2 flex flex-wrap gap-2">
-                {q.isFreePreview || q.accessType === "free" ? <Badge variant="secondary">معاينة مجانية</Badge> : null}
-                {locked ? <Badge variant="outline">مغلق</Badge> : null}
+              <div className="mb-2 flex items-start justify-between gap-3">
+                <QuizAccessBadges quiz={q} access={access} loading={loading && !isOpenWithoutStatus(q)} />
+                {locked ? (
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300">
+                    <Lock className="h-4 w-4" aria-hidden />
+                  </span>
+                ) : null}
               </div>
               <CardTitle className="line-clamp-2 text-base font-semibold leading-snug transition-colors group-hover:text-primary sm:text-lg">
                 {q.title}
@@ -322,6 +321,16 @@ export function SubjectQuizzesAccessGrid({
               <p className="line-clamp-2 text-sm leading-relaxed text-muted-foreground">
                 {q.description || "لا يوجد وصف مختصر لهذا الاختبار."}
               </p>
+
+              {locked ? (
+                <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
+                  الاختبار ظاهر لك بالكامل في القائمة، ويمكن فتحه بعد تفعيل كود الاشتراك.
+                </p>
+              ) : q.isFreePreview ? (
+                <p className="rounded-lg bg-sky-50 px-3 py-2 text-xs leading-relaxed text-sky-800 dark:bg-sky-950/30 dark:text-sky-200">
+                  تجربة مجانية مناسبة للتعرّف على أسلوب الأسئلة قبل الاشتراك.
+                </p>
+              ) : null}
 
               <div className="flex items-center justify-between text-xs text-muted-foreground">
                 <span className="flex items-center gap-1">
@@ -392,7 +401,10 @@ export function QuizDetailsAccessGate({
 
   return (
     <div className="flex justify-center">
-      <div className="w-full sm:w-auto sm:min-w-48">
+      <div className="w-full space-y-3 text-center sm:w-auto sm:min-w-48">
+        <div className="flex justify-center">
+          <QuizAccessBadges quiz={quiz} access={access} loading={loading && !isOpenWithoutStatus(quiz)} />
+        </div>
         <QuizAccessAction
           quiz={quiz}
           access={access}

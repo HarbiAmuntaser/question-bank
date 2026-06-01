@@ -14,7 +14,7 @@ export function InstitutionsSectionFooter({ href, ariaLabel }: Props) {
       <Button
         asChild
         variant="outline"
-        className="rounded-xl w-full sm:w-auto"
+        className="h-11 w-full rounded-lg shadow-sm sm:w-auto"
       >
         <Link href={href} prefetch={false} aria-label={ariaLabel}>
           عرض الكل

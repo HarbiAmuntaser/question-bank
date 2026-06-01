@@ -24,7 +24,7 @@ export default async function QuizPage({ params }: { params: Promise<PageParams>
   if (!res.ok || !res.data) notFound();
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-background">
       <PublicHeader />
       <main className="container mx-auto px-4 py-8">
         <QuizInterface quiz={res.data} />

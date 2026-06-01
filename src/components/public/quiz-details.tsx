@@ -18,10 +18,14 @@ import { fetchJSON } from "@/lib/server/student-fetch";
 import { stripPrefix, encodeSlugPath } from "@/lib/public/slug-utils";
 
 import { GraduationCap, ArrowRight, Trophy, Share2 } from "lucide-react";
-import { QuizShare } from "@/components/public/quiz-share";
+import { LazyQuizShare } from "@/components/public/lazy-quiz-share";
 import { QuizDetailsAccessGate } from "@/components/public/subscription-access";
 
 export const revalidate = 21600;
+
+const surfaceCardClass = "overflow-hidden border bg-card/95 shadow-sm transition-shadow hover:shadow-md dark:bg-gray-900/80";
+const outlineButtonClass = "h-11 w-full rounded-lg sm:w-auto";
+const actionPanelClass = "rounded-lg border bg-muted/20 p-4 sm:p-5";
 
 type SeoLite = { slug: string | null };
 
@@ -184,8 +188,20 @@ export async function QuizDetails({
 
   return (
     <div className="space-y-6 lg:space-y-8">
-      <Card className="overflow-hidden border-2 bg-white/90 shadow-lg backdrop-blur-sm dark:bg-gray-800/90">
+      <Card className={surfaceCardClass}>
         <CardHeader className="px-5 text-center sm:px-6">
+          <div className="mb-2 flex flex-wrap items-center justify-center gap-2 text-xs font-medium text-muted-foreground">
+            <Link
+              href={subjectLink}
+              prefetch={false}
+              className="rounded-md transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+            >
+              {subject.name}
+            </Link>
+            <span aria-hidden>/</span>
+            <span>تفاصيل الاختبار</span>
+          </div>
+
           <CardTitle className="text-2xl font-bold leading-tight sm:text-3xl">{quiz.title}</CardTitle>
           <CardDescription className="text-sm leading-relaxed text-muted-foreground sm:text-base" dir="rtl">
             {quiz.description || "صفحة تفاصيل الاختبار قبل البدء."}
@@ -234,31 +250,40 @@ export async function QuizDetails({
         </CardHeader>
 
         <CardContent className="space-y-6 pb-6">
-          {/* ✅ مشاركة */}
-          <div className="flex items-center justify-center gap-2 text-center leading-relaxed text-muted-foreground">
-            <Share2 className="h-4 w-4" aria-hidden />
-            <span className="text-sm">شارك رابط الاختبار مع زملائك</span>
-          </div>
-          <QuizShare url={shareUrl} title={quiz.title} text={shareText} />
+          <div className={actionPanelClass}>
+            <div className="mb-4 text-center">
+              <h2 className="text-lg font-semibold leading-tight sm:text-xl">جاهز للبدء؟</h2>
+              <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                تحقق من بيانات الاختبار ثم انتقل إلى صفحة الحل.
+              </p>
+            </div>
 
-          {/* ✅ ابدأ الاختبار */}
-          <QuizDetailsAccessGate
-            quizId={quiz.id}
-            title={quiz.title}
-            href={`/quiz/${encodeURIComponent(quiz.id)}`}
-            accessType={quiz.accessType}
-            isFreePreview={quiz.isFreePreview}
-            subjectId={subject.id}
-            majorId={major.id}
-          />
+            <QuizDetailsAccessGate
+              quizId={quiz.id}
+              title={quiz.title}
+              href={`/quiz/${encodeURIComponent(quiz.id)}`}
+              accessType={quiz.accessType}
+              isFreePreview={quiz.isFreePreview}
+              subjectId={subject.id}
+              majorId={major.id}
+            />
+          </div>
+
+          <div className="space-y-3 rounded-lg border bg-background/70 p-4 text-center">
+            <div className="flex items-center justify-center gap-2 leading-relaxed text-muted-foreground">
+              <Share2 className="h-4 w-4" aria-hidden />
+              <span className="text-sm">شارك رابط الاختبار مع زملائك</span>
+            </div>
+            <LazyQuizShare url={shareUrl} title={quiz.title} text={shareText} />
+          </div>
 
           <div className="mt-2 flex flex-col justify-center gap-3 sm:flex-row">
-            <Button asChild variant="outline" className="h-11 w-full rounded-xl sm:w-auto">
+            <Button asChild variant="outline" className={outlineButtonClass}>
               <Link href={subjectLink} prefetch={false}>
                 الرجوع للمادة
               </Link>
             </Button>
-            <Button asChild variant="outline" className="h-11 w-full rounded-xl sm:w-auto">
+            <Button asChild variant="outline" className={outlineButtonClass}>
               <Link href={majorLink} prefetch={false}>
                 الرجوع للتخصص
               </Link>

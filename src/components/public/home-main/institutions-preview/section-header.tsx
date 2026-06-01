@@ -14,16 +14,16 @@ export function InstitutionsSectionHeader({
   subtitle = "الأعلى حسب عدد التخصصات",
 }: Props) {
   return (
-    <div className="flex items-center gap-3 mb-6 sm:mb-8">
+    <div className="mb-6 flex items-center gap-3 sm:mb-8">
       <div
-        className="p-3 bg-gradient-to-r from-green-500 to-emerald-400 rounded-2xl shadow-lg"
+        className="rounded-lg bg-primary/10 p-3 text-primary"
         aria-hidden
       >
-        <GraduationCap className="h-6 w-6 text-white" />
+        <GraduationCap className="h-6 w-6" />
       </div>
 
       <div>
-        <h2 id={id} className="text-2xl sm:text-3xl font-bold">
+        <h2 id={id} className="text-2xl font-bold leading-tight sm:text-3xl">
           {title}
         </h2>
         <p className="text-sm text-muted-foreground">{subtitle}</p>

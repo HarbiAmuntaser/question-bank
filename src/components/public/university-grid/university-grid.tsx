@@ -121,7 +121,7 @@ export function UniversityGrid({
 
   return (
     <section
-      className="py-14 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-gray-50 via-white to-blue-50/30 dark:from-gray-900 dark:via-gray-800 dark:to-blue-900/30"
+      className="bg-background px-4 py-14 sm:px-6 lg:px-8"
       aria-labelledby="institutions-heading"
     >
       <div className="max-w-7xl mx-auto">

@@ -101,7 +101,7 @@ export default async function QuizResultsPage({
   const backToSubjectUrl = ctxRes.ok ? buildSubjectUrlFromContext(ctxRes.data) : null;
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-background">
       <PublicHeader />
       <main className="container mx-auto px-4 py-8">
         <QuizResults quiz={quiz} sessionId={sessionId} backToSubjectUrl={backToSubjectUrl ?? undefined} />

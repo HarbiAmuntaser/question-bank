@@ -30,11 +30,10 @@ export function InstitutionPreviewCard({
   const location = [city, region].filter(Boolean).join(" • ");
 
   return (
-    <Card className="flex h-full flex-col overflow-hidden border-2 bg-white/90 shadow-md backdrop-blur-sm transition-all duration-300 hover:border-primary/40 hover:shadow-xl dark:bg-gray-800/90">
-      {/* صورة */}
-      <div className="relative h-36 sm:h-44 overflow-hidden">
+    <Card className="group flex h-full flex-col overflow-hidden border bg-card/95 shadow-sm transition-colors hover:border-primary/40 hover:shadow-md dark:bg-gray-900/80">
+      <div className="relative h-36 overflow-hidden sm:h-44">
         <div
-          className="absolute inset-0 bg-gradient-to-br from-green-600/15 via-blue-600/15 to-purple-600/15"
+          className="absolute inset-0 bg-muted/30"
           aria-hidden
         />
 
@@ -42,13 +41,13 @@ export function InstitutionPreviewCard({
           src={imageSrc}
           alt={name}
           fill
-          className="object-cover transition-transform duration-500 will-change-transform hover:scale-[1.04]"
+          className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
         />
 
-        <div className="absolute top-3 right-3">
-          <Badge className="bg-white/90 text-gray-900 shadow-sm">
-            <Star className="w-3 h-3 ml-1 text-yellow-500" aria-hidden />
+        <div className="absolute right-3 top-3">
+          <Badge className="rounded-md bg-background/90 text-foreground shadow-sm">
+            <Star className="ml-1 h-3 w-3 text-yellow-500" aria-hidden />
             موصى بها
           </Badge>
         </div>
@@ -74,7 +73,7 @@ export function InstitutionPreviewCard({
         {/* زر الاستكشاف */}
         <Button
           asChild
-          className="h-11 w-full rounded-xl bg-gradient-to-r from-green-600 to-emerald-500 text-sm shadow-sm hover:from-green-700 hover:to-emerald-600 sm:h-12 sm:text-base"
+          className="h-11 w-full rounded-lg text-sm sm:text-base"
         >
           <Link href={href} prefetch={false} className="flex items-center justify-center gap-2">
             <GraduationCap className="h-5 w-5" aria-hidden />

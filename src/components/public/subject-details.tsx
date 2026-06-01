@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 
-import { GraduationCap, ArrowRight } from "lucide-react";
+import { BookOpen, GraduationCap, ArrowRight } from "lucide-react";
 import type { InstitutionType } from "@/config/regions";
 
 import { SubjectQuizzesAccessGrid, type PublicQuizAccessItem } from "@/components/public/subscription-access";
@@ -21,6 +21,10 @@ import { fetchJSON } from "@/lib/server/student-fetch";
 import { stripPrefix, encodeSlugPath } from "@/lib/public/slug-utils";
 
 export const revalidate = 21600;
+
+const surfaceCardClass = "overflow-hidden border bg-card/95 shadow-sm transition-shadow hover:shadow-md dark:bg-gray-900/80";
+const filterButtonClass = "h-11 rounded-lg text-sm sm:w-auto sm:text-base";
+const outlineButtonClass = "h-11 w-full rounded-lg sm:w-auto";
 
 type SeoLite = { slug: string | null };
 
@@ -183,14 +187,30 @@ export async function SubjectDetails({
 
   return (
     <div className="space-y-6 lg:space-y-8">
-      <Card className="overflow-hidden border-2 bg-white/90 shadow-lg backdrop-blur-sm dark:bg-gray-800/90">
+      <Card className={surfaceCardClass}>
         <CardHeader className="px-5 text-center sm:px-6">
+          <div className="mb-2 flex flex-wrap items-center justify-center gap-2 text-xs font-medium text-muted-foreground">
+            <Link
+              href={majorLink}
+              prefetch={false}
+              className="rounded-md transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+            >
+              {subject.major.name}
+            </Link>
+            <span aria-hidden>/</span>
+            <span>تفاصيل المادة</span>
+          </div>
+
           <CardTitle className="text-2xl font-bold leading-tight sm:text-3xl">{subject.name}</CardTitle>
 
           <CardDescription className="text-sm leading-relaxed text-muted-foreground sm:text-base" dir="rtl">
             {subject.major?.degreeType ? subject.major.degreeType : "مادة"}
             {typeof subject.creditHours === "number" ? ` • ${subject.creditHours} ساعات` : ""}
           </CardDescription>
+
+          <p className="mx-auto mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
+            راجع بيانات المادة والاختبارات المتاحة قبل اختيار الاختبار المناسب.
+          </p>
 
           <div className="mt-3 flex flex-wrap justify-center gap-2">
             {subject.code ? <Badge variant="secondary">{subject.code}</Badge> : null}
@@ -230,45 +250,56 @@ export async function SubjectDetails({
             </p>
           ) : null}
 
-          <div className="text-center">
-            <h2 className="text-xl font-bold sm:text-2xl">اختبارات هذه المادة</h2>
-            <p className="mt-1 text-muted-foreground">استخدم فلتر الدرجة إن كانت المادة لها مسارين</p>
-          </div>
-
-          <div className="grid grid-cols-1 justify-center gap-2 sm:flex sm:flex-wrap">
-            <Button asChild variant={!degreeType ? "default" : "outline"} className="h-11 rounded-xl text-sm sm:w-auto sm:text-base">
-              <Link href={basePath}>الكل</Link>
+          <div className="flex justify-center">
+            <Button asChild className="h-11 w-full rounded-lg sm:w-auto">
+              <a href="#subject-quizzes" className="flex items-center justify-center gap-2">
+                <BookOpen className="h-4 w-4" aria-hidden />
+                عرض الاختبارات
+              </a>
             </Button>
-
-            {degreeOptions.map((opt) => (
-              <Button
-                key={opt}
-                asChild
-                variant={degreeType === opt ? "default" : "outline"}
-                className="h-11 rounded-xl text-sm sm:w-auto sm:text-base"
-              >
-                <Link href={`${basePath}?degreeType=${encodeURIComponent(opt)}`}>{opt}</Link>
-              </Button>
-            ))}
           </div>
 
-          {quizzes.length > 0 ? (
-            <SubjectQuizzesAccessGrid quizzes={quizCards} subjectId={subject.id} majorId={subject.major.id} />
-          ) : (
-            <div className="py-10 text-center text-muted-foreground">
-              {degreeType ? "لا توجد اختبارات مطابقة لنوع الدرجة المحدد." : "لا توجد اختبارات لهذه المادة بعد."}
+          <section id="subject-quizzes" className="space-y-5">
+            <div className="text-center">
+              <h2 className="text-xl font-bold sm:text-2xl">اختبارات هذه المادة</h2>
+              <p className="mt-1 text-sm leading-relaxed text-muted-foreground sm:text-base">استخدم فلتر الدرجة إن كانت المادة لها مسارين</p>
             </div>
-          )}
+
+            <div className="grid grid-cols-1 justify-center gap-2 sm:flex sm:flex-wrap">
+              <Button asChild variant={!degreeType ? "default" : "outline"} className={filterButtonClass}>
+                <Link href={basePath}>الكل</Link>
+              </Button>
+
+              {degreeOptions.map((opt) => (
+                <Button
+                  key={opt}
+                  asChild
+                  variant={degreeType === opt ? "default" : "outline"}
+                  className={filterButtonClass}
+                >
+                  <Link href={`${basePath}?degreeType=${encodeURIComponent(opt)}`}>{opt}</Link>
+                </Button>
+              ))}
+            </div>
+
+            {quizzes.length > 0 ? (
+              <SubjectQuizzesAccessGrid quizzes={quizCards} subjectId={subject.id} majorId={subject.major.id} />
+            ) : (
+              <div className="py-10 text-center text-muted-foreground">
+                {degreeType ? "لا توجد اختبارات مطابقة لنوع الدرجة المحدد." : "لا توجد اختبارات لهذه المادة بعد."}
+              </div>
+            )}
+          </section>
 
           <div className="flex flex-col justify-center gap-3 pt-2 sm:flex-row">
-            <Button asChild variant="outline" className="h-11 w-full rounded-xl sm:w-auto">
+            <Button asChild variant="outline" className={outlineButtonClass}>
               <Link href={majorLink} prefetch={false} className="flex items-center gap-2">
                 <ArrowRight className="h-4 w-4" aria-hidden />
                 الرجوع إلى التخصص
               </Link>
             </Button>
 
-            <Button asChild variant="outline" className="h-11 w-full rounded-xl sm:w-auto">
+            <Button asChild variant="outline" className={outlineButtonClass}>
               <Link href={uniLink} prefetch={false} className="flex items-center gap-2">
                 <GraduationCap className="h-4 w-4" aria-hidden />
                 الرجوع إلى الجامعة

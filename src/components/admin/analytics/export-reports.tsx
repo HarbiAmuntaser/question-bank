@@ -1,18 +1,58 @@
 "use client"
 
 import { useState } from "react"
+import { Download, FileSpreadsheet, FileText, Loader2, Table } from "lucide-react"
+import { toast } from "sonner"
+
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { Download, Table, FileSpreadsheet, Loader2, FileText } from "lucide-react"
-import { toast } from "sonner"
 
 interface ExportReportsProps {
   days: number
 }
 
 type ExportFormat = "excel" | "csv"
+
+const reportTypes = [
+  {
+    id: "overview",
+    title: "تقرير النظرة العامة",
+    description: "جلسات الطلاب، محاولات الاختبارات، إجابات الطلاب، ومتوسطات الأداء.",
+    formats: ["excel", "csv"] as ExportFormat[],
+  },
+  {
+    id: "quiz-performance",
+    title: "تقرير أداء الاختبارات",
+    description: "أكثر الاختبارات استخدامًا ومتوسط الدرجات ومعدلات الإكمال.",
+    formats: ["excel", "csv"] as ExportFormat[],
+  },
+  {
+    id: "subject-performance",
+    title: "تقرير أداء المواد",
+    description: "مقارنة أداء المواد حسب المحاولات ومتوسط درجات الطلاب.",
+    formats: ["excel", "csv"] as ExportFormat[],
+  },
+]
+
+function getFormatIcon(format: ExportFormat) {
+  switch (format) {
+    case "excel":
+      return <FileSpreadsheet className="h-4 w-4" />
+    case "csv":
+      return <Table className="h-4 w-4" />
+  }
+}
+
+function getFormatLabel(format: ExportFormat) {
+  switch (format) {
+    case "excel":
+      return "Excel"
+    case "csv":
+      return "CSV"
+  }
+}
 
 export function ExportReports({ days }: ExportReportsProps) {
   const [isExporting, setIsExporting] = useState<ExportFormat | null>(null)
@@ -52,60 +92,21 @@ export function ExportReports({ days }: ExportReportsProps) {
     }
   }
 
-  const reportTypes = [
-    {
-      id: "overview",
-      title: "تقرير النظرة العامة",
-      description: "إحصائيات شاملة عن أداء النظام والمستخدمين",
-      formats: ["excel", "csv"] as ExportFormat[],
-    },
-    {
-      id: "quiz-performance",
-      title: "تقرير أداء الاختبارات",
-      description: "تحليل مفصل لأداء كل اختبار ومعدلات النجاح",
-      formats: ["excel", "csv"] as ExportFormat[],
-    },
-    {
-      id: "subject-performance",
-      title: "تقرير أداء المواد",
-      description: "مقارنة أداء الطلاب في المواد المختلفة",
-      formats: ["excel", "csv"] as ExportFormat[],
-    },
-  ]
-
-  const getFormatIcon = (format: ExportFormat) => {
-    switch (format) {
-      case "excel":
-        return <FileSpreadsheet className="h-4 w-4" />
-      case "csv":
-        return <Table className="h-4 w-4" />
-    }
-  }
-
-  const getFormatLabel = (format: ExportFormat) => {
-    switch (format) {
-      case "excel":
-        return "Excel"
-      case "csv":
-        return "CSV"
-    }
-  }
-
   return (
     <div className="space-y-6">
-      <Card>
+      <Card className="rounded-lg">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-base">
             <Download className="h-5 w-5" />
             تصدير سريع
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
             <Button
               onClick={() => handleExport("excel")}
               disabled={isExporting === "excel"}
-              className="flex items-center gap-2"
+              className="flex h-10 items-center gap-2"
             >
               {isExporting === "excel" ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileSpreadsheet className="h-4 w-4" />}
               تصدير Excel
@@ -115,23 +116,23 @@ export function ExportReports({ days }: ExportReportsProps) {
               variant="outline"
               onClick={() => handleExport("csv")}
               disabled={isExporting === "csv"}
-              className="flex items-center gap-2"
+              className="flex h-10 items-center gap-2"
             >
               {isExporting === "csv" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Table className="h-4 w-4" />}
               تصدير CSV
             </Button>
 
-            <Badge variant="outline" className="px-3 py-2">
+            <Badge variant="outline" className="flex h-10 items-center justify-center px-3">
               PDF لاحقًا
             </Badge>
           </div>
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="rounded-lg">
         <CardHeader>
-          <CardTitle>تقارير مفصلة</CardTitle>
-          <p className="text-sm text-muted-foreground">التصدير الحالي فعلي ويعتمد على بيانات API الحالية والكاش</p>
+          <CardTitle className="text-base">تقارير مفصلة</CardTitle>
+          <p className="text-sm text-muted-foreground">التصدير يعتمد على بيانات التحليلات التعليمية الحالية.</p>
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
@@ -151,7 +152,7 @@ export function ExportReports({ days }: ExportReportsProps) {
                         size="sm"
                         onClick={() => handleExport(format)}
                         disabled={isExporting === format}
-                        className="flex items-center gap-2"
+                        className="flex h-9 items-center gap-2"
                       >
                         {isExporting === format ? <Loader2 className="h-4 w-4 animate-spin" /> : getFormatIcon(format)}
                         {getFormatLabel(format)}
@@ -167,18 +168,18 @@ export function ExportReports({ days }: ExportReportsProps) {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="rounded-lg">
         <CardHeader>
-          <CardTitle>ملاحظات</CardTitle>
+          <CardTitle className="text-base">ملاحظات</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3 text-sm text-muted-foreground">
-          <div className="flex items-center gap-2">
-            <FileText className="h-4 w-4" />
-            التصدير الحالي يدعم CSV و Excel بشكل فعلي من نفس بيانات لوحة التحليلات.
+          <div className="flex items-start gap-2">
+            <FileText className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>التصدير الحالي يدعم CSV و Excel من نفس بيانات لوحة التحليلات.</span>
           </div>
-          <div className="flex items-center gap-2">
-            <FileText className="h-4 w-4" />
-            تصدير PDF يحتاج مكتبة مخصصة أو قالب HTML للطباعة ثم تحويله لاحقًا.
+          <div className="flex items-start gap-2">
+            <FileText className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>لا يتم تصدير بيانات زيارات الصفحات أو الأجهزة؛ هذه تظل ضمن Vercel Analytics.</span>
           </div>
         </CardContent>
       </Card>

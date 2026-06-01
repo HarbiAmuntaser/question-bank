@@ -35,7 +35,7 @@ const NavButton = memo(
         variant={variant as any}
         size="sm"
         onClick={() => onSelect(n - 1)}
-        className="h-10 w-full flex items-center justify-center gap-1 text-xs"
+        className="flex h-10 w-full items-center justify-center gap-1 rounded-lg text-xs"
         aria-current={isCurrent ? "true" : "false"}
         aria-label={`الانتقال للسؤال رقم ${n}`}
       >
@@ -80,9 +80,9 @@ export const QuizNavigation = memo(function QuizNavigation({
   }, [answeredIds, answeredCount, totalQuestions, questions]);
 
   return (
-    <Card className={cn(sticky ? "sticky top-4" : "", className)}>
-      <CardHeader>
-        <CardTitle className="text-lg">خريطة الأسئلة</CardTitle>
+    <Card className={cn("border bg-card/95 shadow-sm", sticky ? "sticky top-4" : "", className)}>
+      <CardHeader className="space-y-3 p-4">
+        <CardTitle className="text-base font-semibold">خريطة الأسئلة</CardTitle>
         <div className="flex items-center justify-between text-sm">
           <span className="text-gray-600 dark:text-gray-400">
             {answeredCount} من {totalQuestions}
@@ -91,7 +91,7 @@ export const QuizNavigation = memo(function QuizNavigation({
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 p-4 pt-0">
         <div className="space-y-2">
           <div className="flex items-center gap-2 text-sm">
             <CheckCircle className="h-4 w-4 text-green-600" />
@@ -107,7 +107,7 @@ export const QuizNavigation = memo(function QuizNavigation({
           </div>
         </div>
 
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-5 gap-2 lg:grid-cols-4">
           {questions.map((q, idx) => (
             <NavButton
               key={q.id}
@@ -119,7 +119,7 @@ export const QuizNavigation = memo(function QuizNavigation({
           ))}
         </div>
 
-        <div className="space-y-2 pt-4 border-t">
+        <div className="space-y-2 border-t pt-4">
           <Button
             type="button"
             variant="outline"
@@ -128,7 +128,7 @@ export const QuizNavigation = memo(function QuizNavigation({
               if (firstUnansweredIndex !== -1) onSelect(firstUnansweredIndex);
             }}
             disabled={answeredCount === totalQuestions || firstUnansweredIndex === -1}
-            className="w-full"
+            className="h-11 w-full rounded-lg"
           >
             الانتقال للسؤال التالي غير المجاب
           </Button>
