@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { PublicLoadingState } from "@/components/public/public-loading-state";
 import { QuizzesListing } from "@/components/public/quizzes-listing";
 import { getRequestOrigin } from "@/lib/server/request-origin";
+import { SITE_NAME } from "@/lib/seo";
 
 export const revalidate = 3600; // ساعة واحدة كبداية قبل رفع TTL أكثر.
 
@@ -38,13 +39,16 @@ type QuizItem = {
 };
 type Pagination = { page: number; pageSize: number; total: number; totalPages: number };
 
+const pageTitle = `الاختبارات | ${SITE_NAME}`;
+const pageDescription = "تصفح اختبارات الجامعات والتخصصات والمواد بسهولة وسرعة.";
+
 export const metadata: Metadata = {
-  title: "الاختبارات | بنك الأسئلة السعودي",
-  description: "تصفح اختبارات الجامعات والتخصصات والمواد بسهولة وسرعة.",
+  title: pageTitle,
+  description: pageDescription,
   robots: { index: true, follow: true },
   openGraph: {
-    title: "الاختبارات | بنك الأسئلة السعودي",
-    description: "تصفح اختبارات الجامعات والتخصصات والمواد بسهولة وسرعة.",
+    title: pageTitle,
+    description: pageDescription,
     type: "website",
   },
 };

@@ -11,6 +11,7 @@ import type { CountryCode, InstitutionType } from "@/config/regions";
 import { UniversityGrid } from "@/components/public/university-grid/university-grid";
 import type { UniversityGridItem } from "@/components/public/university-grid/types";
 import { fetchJSON } from "@/lib/server/student-fetch";
+import { SITE_NAME, SITE_URL } from "@/lib/seo";
 
 // ISR للصفحة نفسها (الواجهة) — محتوى الشبكة يجلب Client-side
 export const revalidate = 3600;
@@ -38,8 +39,6 @@ function typeLabel(type: InstitutionType) {
 function localeFor(cc: CountryCode) {
   return cc === "YE" ? "ar_YE" : "ar_SA";
 }
-
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://bank.example.com";
 
 async function fetchInitialInstitutions(cc: CountryCode, type: InstitutionType) {
   const params = new URLSearchParams({
@@ -75,7 +74,7 @@ export async function generateMetadata({ params }: { params: Promise<PageParams>
 
   const type = typeRaw as InstitutionType;
 
-  const title = `${typeLabel(type)} في ${cc === "YE" ? "اليمن" : "السعودية"} | بنك الأسئلة`;
+  const title = `${typeLabel(type)} في ${cc === "YE" ? "اليمن" : "السعودية"} | ${SITE_NAME}`;
   const description =
     type === "university"
       ? "استكشف جميع الجامعات، التخصصات والمقررات، وابدأ التحضير عبر مكتبة الاختبارات."
@@ -93,7 +92,7 @@ export async function generateMetadata({ params }: { params: Promise<PageParams>
       title,
       description,
       url: canonical,
-      siteName: "بنك الأسئلة",
+      siteName: SITE_NAME,
       type: "website",
       locale: localeFor(cc),
     },

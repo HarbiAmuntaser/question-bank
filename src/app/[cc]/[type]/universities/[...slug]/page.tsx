@@ -24,13 +24,11 @@ import {
 } from "@/lib/public/slug-utils";
 
 import { fetchJSON } from "@/lib/server/student-fetch";
+import { SITE_NAME, SITE_URL } from "@/lib/seo";
 
 export const revalidate = 21600;
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://bank.example.com";
-
 type PageParams = { cc: string; type: string; slug: string[] };
-type SearchParams = { degreeType?: string };
 
 /* -------------------------
    Minimal Types (بدون any)
@@ -132,6 +130,13 @@ async function fetchMajorBySlugOrCode(majorSlugPathRaw: string): Promise<{ major
       21600
     );
     if (byCode.ok && byCode.data) return { major: byCode.data };
+
+    const byId = await fetchJSON<Major>(
+      `/api/v1/student/majors/by-id/${encodeURIComponent(majorSlugPath)}`,
+      undefined,
+      21600
+    );
+    if (byId.ok && byId.data) return { major: byId.data };
   }
 
   return { major: null };
@@ -285,7 +290,7 @@ export async function generateMetadata({ params }: { params: Promise<PageParams>
 
     const canonical = `${SITE_URL}${canonicalPath}`;
 
-    const title = seo?.metaTitle || `${quiz.title} | بنك الأسئلة`;
+    const title = seo?.metaTitle || `${quiz.title} | ${SITE_NAME}`;
     const description = seo?.metaDescription || quiz.description || `شاهد تفاصيل اختبار "${quiz.title}" ثم ابدأ.`;
     const ogImage = seo?.ogImageUrl || quiz.context.university.logoUrl || undefined;
 
@@ -333,8 +338,8 @@ export async function generateMetadata({ params }: { params: Promise<PageParams>
 
     const canonical = `${SITE_URL}${canonicalPath}`;
 
-    const title = seo?.metaTitle || `${subject.name} | بنك الأسئلة`;
-    const description = seo?.metaDescription || `استكشف اختبارات مادة ${subject.name} ضمن بنك الأسئلة.`;
+    const title = seo?.metaTitle || `${subject.name} | ${SITE_NAME}`;
+    const description = seo?.metaDescription || `استكشف اختبارات مادة ${subject.name} ضمن ${SITE_NAME}.`;
     const ogImage = seo?.ogImageUrl || subject.major?.university?.logoUrl || undefined;
 
     return {
@@ -376,7 +381,7 @@ export async function generateMetadata({ params }: { params: Promise<PageParams>
 
     const canonical = `${SITE_URL}${canonicalPath}`;
 
-    const title = `${major.name} | بنك الأسئلة`;
+    const title = `${major.name} | ${SITE_NAME}`;
     const description = `استكشف مواد تخصص ${major.name} واستعد للاختبارات.`;
     const ogImage = major.university?.logoUrl || undefined;
 
@@ -413,7 +418,7 @@ export async function generateMetadata({ params }: { params: Promise<PageParams>
   const canonicalPath = `/${cc}/${type}/universities/${encodeSlugPath(canonicalSlug)}`;
   const canonical = `${SITE_URL}${canonicalPath}`;
 
-  const title = seo?.metaTitle || uni?.name || `جامعة | بنك الأسئلة`;
+  const title = seo?.metaTitle || uni?.name || `جامعة | ${SITE_NAME}`;
   const description = seo?.metaDescription || `استكشف التخصصات والمقررات والاختبارات المتاحة.`;
   const ogImage = seo?.ogImageUrl || uni?.logoUrl || undefined;
 
@@ -441,13 +446,10 @@ export async function generateMetadata({ params }: { params: Promise<PageParams>
 
 export default async function UniversitiesCatchAllPage({
   params,
-  searchParams,
 }: {
   params: Promise<PageParams>;
-  searchParams: Promise<SearchParams>;
 }) {
   const p = await params;
-  const sp = await searchParams;
 
   const cc = normalizeCountry(p.cc);
   const typeRaw = (p.type || "").toLowerCase();
@@ -472,7 +474,6 @@ export default async function UniversitiesCatchAllPage({
             majorSlugPath={majorSlugPath}
             subjectSlugPath={subjectSlugPath}
             quizSlugPath={quizSlugPath}
-            degreeType={sp.degreeType ?? null}
           />
         </main>
         <PublicFooter cc={cc} />
@@ -494,7 +495,6 @@ export default async function UniversitiesCatchAllPage({
             universitySlugPath={universitySlugPath}
             majorSlugPath={majorSlugPath}
             subjectSlugPath={subjectSlugPath}
-            degreeType={sp.degreeType ?? null}
           />
         </main>
         <PublicFooter cc={cc} />

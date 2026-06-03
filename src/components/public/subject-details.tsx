@@ -23,7 +23,6 @@ import { stripPrefix, encodeSlugPath } from "@/lib/public/slug-utils";
 export const revalidate = 21600;
 
 const surfaceCardClass = "overflow-hidden border bg-card/95 shadow-sm transition-shadow hover:shadow-md dark:bg-gray-900/80";
-const filterButtonClass = "h-11 rounded-lg text-sm sm:w-auto sm:text-base";
 const outlineButtonClass = "h-11 w-full rounded-lg sm:w-auto";
 
 type SeoLite = { slug: string | null };
@@ -95,25 +94,18 @@ async function fetchSubjectBySlugOrCode(subjectSlugRaw: string) {
   return { subject: null as SubjectDto | null };
 }
 
-function qsDegreeType(v?: string | null) {
-  const x = (v || "").trim();
-  return x ? `?degreeType=${encodeURIComponent(x)}` : "";
-}
-
 export async function SubjectDetails({
   cc,
   type,
   universitySlugPath,
   majorSlugPath,
   subjectSlugPath,
-  degreeType,
 }: {
   cc: string;
   type: InstitutionType;
   universitySlugPath: string;
   majorSlugPath: string;
   subjectSlugPath: string;
-  degreeType?: string | null;
 }) {
   const ccNorm = (cc || "SA").toUpperCase();
   const typeNorm = type;
@@ -136,7 +128,7 @@ export async function SubjectDetails({
     redirect(
       `/${subjCC}/${subjType}/universities/${encodeSlugPath(canonicalUni)}/majors/${encodeSlugPath(
         canonicalMajor,
-      )}/subjects/${encodeSlugPath(canonicalSubject)}${qsDegreeType(degreeType)}`,
+      )}/subjects/${encodeSlugPath(canonicalSubject)}`,
     );
   }
 
@@ -144,7 +136,7 @@ export async function SubjectDetails({
     redirect(
       `/${ccNorm}/${typeNorm}/universities/${encodeSlugPath(canonicalUni)}/majors/${encodeSlugPath(
         canonicalMajor,
-      )}/subjects/${encodeSlugPath(canonicalSubject)}${qsDegreeType(degreeType)}`,
+      )}/subjects/${encodeSlugPath(canonicalSubject)}`,
     );
   }
 
@@ -156,21 +148,17 @@ export async function SubjectDetails({
   const uniLink = `/${ccNorm}/${typeNorm}/universities/${encodeSlugPath(canonicalUni)}`;
 
   const quizzesRes = await fetchJSON<QuizLite[]>(
-    `/api/v1/student/quizzes/by-subject/${subject.id}?limit=200${
-      degreeType ? `&degreeType=${encodeURIComponent(degreeType)}` : ""
-    }`,
+    `/api/v1/student/quizzes/by-subject/${subject.id}?limit=200`,
     undefined,
     21600,
   );
   const quizzes = quizzesRes.ok && quizzesRes.data ? quizzesRes.data : [];
 
-  const degreeOptions = ["بكالوريوس", "دبلوم"];
-
   const quizDetailsHref = (q: QuizLite) => {
     const raw = (q.seo?.slug || q.id || "").toString().trim();
     const cleaned = stripPrefix(raw, "اختبارات");
     const quizSeg = encodeSlugPath(cleaned || q.id);
-    return `${basePath}/quizzes/${quizSeg}${qsDegreeType(degreeType)}`;
+    return `${basePath}/quizzes/${quizSeg}`;
   };
 
   const quizCards: PublicQuizAccessItem[] = quizzes.map((q) => ({
@@ -262,31 +250,16 @@ export async function SubjectDetails({
           <section id="subject-quizzes" className="space-y-5">
             <div className="text-center">
               <h2 className="text-xl font-bold sm:text-2xl">اختبارات هذه المادة</h2>
-              <p className="mt-1 text-sm leading-relaxed text-muted-foreground sm:text-base">استخدم فلتر الدرجة إن كانت المادة لها مسارين</p>
-            </div>
-
-            <div className="grid grid-cols-1 justify-center gap-2 sm:flex sm:flex-wrap">
-              <Button asChild variant={!degreeType ? "default" : "outline"} className={filterButtonClass}>
-                <Link href={basePath}>الكل</Link>
-              </Button>
-
-              {degreeOptions.map((opt) => (
-                <Button
-                  key={opt}
-                  asChild
-                  variant={degreeType === opt ? "default" : "outline"}
-                  className={filterButtonClass}
-                >
-                  <Link href={`${basePath}?degreeType=${encodeURIComponent(opt)}`}>{opt}</Link>
-                </Button>
-              ))}
+              <p className="mt-1 text-sm leading-relaxed text-muted-foreground sm:text-base">
+                تظهر الاختبارات المرتبطة بهذا المقرر ضمن درجة التخصص المختارة سابقًا.
+              </p>
             </div>
 
             {quizzes.length > 0 ? (
               <SubjectQuizzesAccessGrid quizzes={quizCards} subjectId={subject.id} majorId={subject.major.id} />
             ) : (
               <div className="py-10 text-center text-muted-foreground">
-                {degreeType ? "لا توجد اختبارات مطابقة لنوع الدرجة المحدد." : "لا توجد اختبارات لهذه المادة بعد."}
+                لا توجد اختبارات لهذه المادة بعد.
               </div>
             )}
           </section>

@@ -1,0 +1,46 @@
+<svg width="720" height="216" viewBox="0 0 720 216" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Mustawak logo</title>
+  <desc id="desc">Arabic Mustawak wordmark with a geometric meem-inspired level mark.</desc>
+  <rect width="720" height="216" rx="0" fill="transparent"/>
+  <g transform="translate(516 32)">
+    <rect x="0" y="0" width="152" height="152" rx="34" fill="#F8FAFC"/>
+    <rect x="0" y="0" width="152" height="152" rx="34" stroke="#0F766E" stroke-opacity="0.16" stroke-width="3"/>
+    <path
+      d="M35 96V61C35 38.2 52.1 23 76 23C99.9 23 117 38.2 117 61V96C117 109.2 126.4 117 140 117"
+      stroke="#0F766E"
+      stroke-width="12"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+    <path
+      d="M35 96H117"
+      stroke="#0F766E"
+      stroke-width="12"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+    <path
+      d="M76 96V63"
+      stroke="#0F766E"
+      stroke-width="12"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+    <rect x="51" y="73" width="10" height="23" rx="5" fill="#C9972B"/>
+    <rect x="71" y="59" width="10" height="37" rx="5" fill="#C9972B"/>
+    <rect x="91" y="45" width="10" height="51" rx="5" fill="#C9972B"/>
+  </g>
+  <text
+    x="484"
+    y="126"
+    direction="rtl"
+    unicode-bidi="plaintext"
+    text-anchor="end"
+    fill="#111827"
+    font-family="Cairo, IBM Plex Sans Arabic, Tahoma, Arial, sans-serif"
+    font-size="78"
+    font-weight="800"
+    letter-spacing="0"
+  >مستواك</text>
+  <path d="M178 150H484" stroke="#0F766E" stroke-opacity="0.12" stroke-width="4" stroke-linecap="round"/>
+</svg>

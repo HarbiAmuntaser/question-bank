@@ -1,20 +1,19 @@
-// ============================================================================
-// file: src/lib/seo.ts
-// أدوات SEO/OG/JSON-LD + جلب SeoMeta
-// ============================================================================
-
 import type { Metadata } from "next";
+
 import { prisma } from "@/lib/prisma";
 
-/** اسم الموقع الافتراضي */
-export const SITE_NAME = "بنك الأسئلة السعودي";
-/** قاعدة الروابط (يفضّل ضبطها في .env.local) */
+export const SITE_NAME = "مستواك";
+export const SITE_DOMAIN = "mustawak.com";
 export const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/+$/, "") ||
   process.env.NEXT_PUBLIC_BASE_URL?.replace(/\/+$/, "") ||
-  "https://bank.example.com";
+  `https://${SITE_DOMAIN}`;
 
-/** تكوين Robots الافتراضي */
+const SITE_DESCRIPTION =
+  "مستواك منصة تعليمية عربية للتدريب والمراجعة عبر اختبارات منظمة للجامعات والمدارس والأكاديميات.";
+const BRAND_ICON = "/brand/mustawak-favicon.svg";
+const BRAND_LOGO = "/brand/mustawak-logo.svg";
+
 const DEFAULT_ROBOTS = {
   index: true,
   follow: true,
@@ -25,11 +24,8 @@ const DEFAULT_ROBOTS = {
   },
 } as const;
 
-/** Metadata افتراضي شامل (يُستخدم على مستوى التطبيق) */
 export function baseMetadata(): Metadata {
-  const title = `${SITE_NAME} - منصة تعليمية سعودية`;
-  const description =
-    "منصة سعودية تجمع أسئلة واختبارات الجامعات والتخصصات مع تحليلات تقدم وتجربة استخدام سريعة وآمنة.";
+  const title = `${SITE_NAME} - منصة تعليمية للاختبارات والمراجعة`;
 
   return {
     metadataBase: new URL(SITE_URL),
@@ -37,17 +33,18 @@ export function baseMetadata(): Metadata {
       default: title,
       template: `%s | ${SITE_NAME}`,
     },
-    description,
+    description: SITE_DESCRIPTION,
     applicationName: SITE_NAME,
     keywords: [
-      "بنك الأسئلة",
-      "جامعات السعودية",
-      "اختبارات",
-      "أسئلة",
-      "تعليم",
-      "طلاب",
-      "Saudi Universities",
+      "مستواك",
+      "اختبارات تعليمية",
+      "أسئلة تدريبية",
+      "مراجعة دراسية",
+      "اختبارات جامعية",
+      "اختبارات مدرسية",
+      "منصة تعليمية عربية",
       "Quizzes",
+      "Education",
     ],
     alternates: {
       canonical: SITE_URL,
@@ -57,48 +54,45 @@ export function baseMetadata(): Metadata {
       url: SITE_URL,
       siteName: SITE_NAME,
       title,
-      description,
-      locale: "ar_SA",
+      description: SITE_DESCRIPTION,
+      locale: "ar",
+      images: [
+        {
+          url: BRAND_LOGO,
+          width: 720,
+          height: 216,
+          alt: SITE_NAME,
+        },
+      ],
     },
     twitter: {
       card: "summary_large_image",
       title,
-      description,
-      creator: "@saudibank",
+      description: SITE_DESCRIPTION,
+      images: [BRAND_LOGO],
     },
     robots: DEFAULT_ROBOTS,
     icons: {
-      icon: [
-        { url: "/favicon.ico" },
-        { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
-        { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
-      ],
-      apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
-      other: [{ rel: "mask-icon", url: "/safari-pinned-tab.svg", color: "#0ea5a4" }],
+      icon: [{ url: BRAND_ICON, type: "image/svg+xml" }],
+      shortcut: [{ url: BRAND_ICON, type: "image/svg+xml" }],
+      apple: [{ url: BRAND_ICON, type: "image/svg+xml" }],
+      other: [{ rel: "mask-icon", url: BRAND_ICON, color: "#0f766e" }],
     },
     category: "education",
     referrer: "strict-origin-when-cross-origin",
   };
 }
 
-/** JSON-LD: كيان المؤسسة */
 export function organizationJsonLd() {
   return {
     "@context": "https://schema.org",
     "@type": "Organization",
     name: SITE_NAME,
     url: SITE_URL,
-    logo: `${SITE_URL}/logo.png`,
-    sameAs: [
-      "https://x.com/saudibank",
-      "https://www.facebook.com/saudibank",
-      "https://www.instagram.com/saudibank",
-      "https://www.youtube.com/@saudibank",
-    ],
+    logo: `${SITE_URL}${BRAND_LOGO}`,
   };
 }
 
-/** JSON-LD: WebSite + SearchAction (لتحسين Sitelinks) */
 export function websiteJsonLd() {
   return {
     "@context": "https://schema.org",
@@ -113,7 +107,6 @@ export function websiteJsonLd() {
   };
 }
 
-// ====== SeoMeta جلب حسب slug/locale (للاستخدام بالصفحات) ======
 export type SeoMetaRecord = {
   slug: string;
   locale: "ar" | "en";
@@ -127,10 +120,7 @@ export type SeoMetaRecord = {
   nofollow: boolean;
 };
 
-export async function getSeoBySlug(
-  slug: string,
-  locale: "ar" | "en" = "ar"
-): Promise<SeoMetaRecord | null> {
+export async function getSeoBySlug(slug: string, locale: "ar" | "en" = "ar"): Promise<SeoMetaRecord | null> {
   const row = await prisma.seoMeta.findFirst({
     where: { slug, locale },
     select: {
@@ -147,7 +137,5 @@ export async function getSeoBySlug(
     },
   });
 
-  return row
-    ? (row as SeoMetaRecord)
-    : null;
+  return row ? (row as SeoMetaRecord) : null;
 }

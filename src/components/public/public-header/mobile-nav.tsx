@@ -35,7 +35,11 @@ export function MobileNav({ pathname, nav, currentCC, onChangeCountry }: Props) 
         </Button>
       </SheetTrigger>
 
-      <SheetContent side="right" className="w-80" aria-label="القائمة الجانبية">
+      <SheetContent
+        side="right"
+        className="w-80 [&>button]:left-4 [&>button]:right-auto [&>button]:flex [&>button]:h-10 [&>button]:w-10 [&>button]:items-center [&>button]:justify-center [&>button]:rounded-lg [&>button]:opacity-100 [&>button]:hover:bg-accent [&>button_svg]:h-5 [&>button_svg]:w-5"
+        aria-label="القائمة الجانبية"
+      >
         <SheetHeader className="text-right">
           <SheetTitle>القائمة</SheetTitle>
         </SheetHeader>
@@ -46,7 +50,7 @@ export function MobileNav({ pathname, nav, currentCC, onChangeCountry }: Props) 
             <CountrySwitcher cc={currentCC} onChange={onChangeCountry} compact />
           </div>
 
-          {nav.map(({ key, href, label, Icon }) => {
+          {nav.map(({ key, href, label }) => {
             const active = isActiveLink(pathname, href, key);
 
             return (
@@ -56,13 +60,12 @@ export function MobileNav({ pathname, nav, currentCC, onChangeCountry }: Props) 
                   // Keep prefetch limited to the home link to reduce background requests.
                   prefetch={key === "home"}
                   className={[
-                    "flex min-h-11 items-center gap-2 rounded-lg p-3 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-                    active ? "bg-accent/70" : "hover:bg-accent",
+                    "flex min-h-11 items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                    active ? "font-semibold text-primary" : "text-muted-foreground hover:text-foreground",
                   ].join(" ")}
                   aria-current={active ? "page" : undefined}
                   aria-label={label}
                 >
-                  <Icon className="h-5 w-5" aria-hidden />
                   <span>{label}</span>
                 </Link>
               </SheetClose>

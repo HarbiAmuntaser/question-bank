@@ -64,9 +64,31 @@ type MajorDto = {
   seo?: SeoLite;
 };
 
+type MajorDegreeOption = {
+  id: string;
+  name: string;
+  code: string | null;
+  degreeType: string | null;
+};
+
 function normalizeInstitutionType(v: string | null): InstitutionType | null {
   const x = (v || "").trim().toLowerCase();
   return x === "university" || x === "school" || x === "academy" ? (x as InstitutionType) : null;
+}
+
+function normalizeComparableText(value: string | null | undefined) {
+  return (value ?? "").trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+function normalizeDegreeLabel(value: string | null | undefined) {
+  return (value ?? "").trim();
+}
+
+function degreeSortRank(value: string) {
+  const label = value.toLowerCase();
+  if (label.includes("بكالور") || label.includes("bachelor")) return 0;
+  if (label.includes("دبلوم") || label.includes("diploma")) return 1;
+  return 2;
 }
 
 async function fetchMajorBySlugOrCode(majorSlugPathRaw: string) {
@@ -86,9 +108,63 @@ async function fetchMajorBySlugOrCode(majorSlugPathRaw: string) {
       21600
     );
     if (byCode.ok && byCode.data) return { major: byCode.data };
+
+    const byId = await fetchJSON<MajorDto>(
+      `/api/v1/student/majors/by-id/${encodeURIComponent(majorSlugPath)}`,
+      undefined,
+      21600
+    );
+    if (byId.ok && byId.data) return { major: byId.data };
   }
 
   return { major: null as MajorDto | null };
+}
+
+async function fetchDegreeOptions(major: MajorDto) {
+  try {
+    const result = await fetchJSON<MajorDegreeOption[]>(
+      `/api/v1/student/majors?universityId=${encodeURIComponent(major.university.id)}`,
+      undefined,
+      3600,
+    );
+
+    if (!result.ok || !Array.isArray(result.data)) {
+      return [];
+    }
+
+    const currentName = normalizeComparableText(major.name);
+    const optionsByDegree = new Map<string, MajorDegreeOption>();
+
+    for (const item of result.data) {
+      if (normalizeComparableText(item.name) !== currentName) continue;
+
+      const degree = normalizeDegreeLabel(item.degreeType);
+      if (!degree) continue;
+
+      const existing = optionsByDegree.get(degree);
+      if (!existing || item.id === major.id) {
+        optionsByDegree.set(degree, item);
+      }
+    }
+
+    const currentDegree = normalizeDegreeLabel(major.degreeType);
+    if (currentDegree && !optionsByDegree.has(currentDegree)) {
+      optionsByDegree.set(currentDegree, {
+        id: major.id,
+        name: major.name,
+        code: major.code,
+        degreeType: major.degreeType,
+      });
+    }
+
+    return Array.from(optionsByDegree.values()).sort((a, b) => {
+      const aDegree = normalizeDegreeLabel(a.degreeType);
+      const bDegree = normalizeDegreeLabel(b.degreeType);
+      return degreeSortRank(aDegree) - degreeSortRank(bDegree) || aDegree.localeCompare(bDegree, "ar");
+    });
+  } catch {
+    return [];
+  }
 }
 
 function universityHref(cc: string, type: InstitutionType, uni: UniversityLiteForMajor) {
@@ -111,6 +187,21 @@ function subjectHrefHier(
   return `/${cc}/${type}/universities/${encodeSlugPath(canonicalUni)}/majors/${encodeSlugPath(
     canonicalMajor
   )}/subjects/${subjectEnc}`;
+}
+
+function majorHrefHier(
+  cc: string,
+  type: InstitutionType,
+  canonicalUni: string,
+  canonicalMajor: string,
+  currentMajorId: string,
+  option: MajorDegreeOption,
+) {
+  if (option.id === currentMajorId) {
+    return `/${cc}/${type}/universities/${encodeSlugPath(canonicalUni)}/majors/${encodeSlugPath(canonicalMajor)}`;
+  }
+
+  return `/${cc}/${type}/universities/${encodeSlugPath(canonicalUni)}/majors/${encodeSlugPath(option.id)}`;
 }
 
 export async function MajorDetails({
@@ -167,6 +258,8 @@ export async function MajorDetails({
 
   const uniLink = universityHref(ccNorm, typeNorm, major.university);
   const subjects = Array.isArray(major.subjects) ? major.subjects : [];
+  const degreeOptions = await fetchDegreeOptions(major);
+  const currentDegree = normalizeDegreeLabel(major.degreeType);
 
   return (
     <div className="space-y-6 lg:space-y-8">
@@ -241,6 +334,45 @@ export async function MajorDetails({
       </Card>
 
       <MajorSubscriptionCallout majorId={major.id} title={major.name} />
+
+      {degreeOptions.length > 0 ? (
+        <Card className={surfaceCardClass}>
+          <CardContent className="space-y-4 p-5 sm:p-6">
+            <div className="flex flex-col gap-2 text-center sm:text-start">
+              <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
+                <GraduationCap className="h-5 w-5 text-primary" aria-hidden />
+                <h2 className="text-lg font-bold leading-tight sm:text-xl">نوع الدرجة</h2>
+              </div>
+              <p className="text-sm leading-relaxed text-muted-foreground sm:text-base">
+                اختر درجة البرنامج لعرض المقررات المرتبطة بها ضمن هذا التخصص.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap">
+              {degreeOptions.map((option) => {
+                const optionDegree = normalizeDegreeLabel(option.degreeType);
+                const isCurrent = option.id === major.id || optionDegree === currentDegree;
+
+                return (
+                  <Button
+                    key={`${option.id}-${optionDegree}`}
+                    asChild
+                    variant={isCurrent ? "default" : "outline"}
+                    className="h-11 rounded-lg text-sm sm:w-auto sm:text-base"
+                  >
+                    <Link
+                      href={majorHrefHier(ccNorm, typeNorm, canonicalUni, canonicalMajor, major.id, option)}
+                      prefetch={false}
+                    >
+                      {optionDegree}
+                    </Link>
+                  </Button>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
 
       {/* Subjects Section */}
       <section id="subjects-section" className="space-y-5">

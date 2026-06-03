@@ -1,9 +1,9 @@
 export const SITE = {
-  NAME: "بنك الأسئلة السعودي",
-  DESCRIPTION: "منصة أسئلة، فصول، واختبارات سابقة لطلاب الجامعات السعودية.",
-  // اضبطه في env: NEXT_PUBLIC_SITE_URL=https://example.com
-  URL: (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/$/, ""),
+  NAME: "مستواك",
+  DESCRIPTION: "منصة تعليمية عربية للتدريب والمراجعة عبر اختبارات منظمة للجامعات والمدارس والأكاديميات.",
+  DOMAIN: "mustawak.com",
+  URL: (process.env.NEXT_PUBLIC_SITE_URL ?? "https://mustawak.com").replace(/\/+$/, ""),
   LOCALE: "ar",
-  THEME_COLOR_LIGHT: "#14532d", // saudi green
-  THEME_COLOR_DARK: "#15803d",
-};
+  THEME_COLOR_LIGHT: "#0f766e",
+  THEME_COLOR_DARK: "#14b8a6",
+} as const;

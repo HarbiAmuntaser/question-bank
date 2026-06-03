@@ -1,0 +1,30 @@
+<svg width="192" height="192" viewBox="0 0 192 192" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Mustawak mark</title>
+  <desc id="desc">A geometric Arabic meem-inspired mark with ascending level steps.</desc>
+  <rect x="12" y="12" width="168" height="168" rx="42" fill="#F8FAFC"/>
+  <rect x="12" y="12" width="168" height="168" rx="42" stroke="#0F766E" stroke-opacity="0.16" stroke-width="3"/>
+  <path
+    d="M48 121V78C48 49.8 69.1 31 96 31C122.9 31 144 49.8 144 78V121C144 137.6 155.4 147 171 147"
+    stroke="#0F766E"
+    stroke-width="15"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <path
+    d="M48 121H144"
+    stroke="#0F766E"
+    stroke-width="15"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <path
+    d="M96 121V79"
+    stroke="#0F766E"
+    stroke-width="15"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <rect x="65" y="93" width="13" height="28" rx="6.5" fill="#C9972B"/>
+  <rect x="88" y="76" width="13" height="45" rx="6.5" fill="#C9972B"/>
+  <rect x="111" y="59" width="13" height="62" rx="6.5" fill="#C9972B"/>
+</svg>

@@ -1,16 +1,16 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import Link from "next/link";
+import { BookOpenCheck, Clock, GraduationCap } from "lucide-react";
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import Link from "next/link";
-import { Clock } from "lucide-react";
+import { Card, CardContent, CardTitle } from "@/components/ui/card";
 
 import type { MajorPublicLite } from "@/types/public-university";
 
 type InstType = "university" | "school" | "academy";
 
 const listCardClass =
-  "group flex h-full flex-col overflow-hidden border bg-card/95 shadow-sm transition-colors hover:border-primary/40 hover:shadow-md dark:bg-gray-900/80";
+  "group relative flex h-full flex-col overflow-hidden border bg-card/95 p-5 shadow-sm transition-colors hover:border-primary/40 hover:shadow-md dark:bg-gray-900/80";
 
 interface MajorsListProps {
   cc: string;
@@ -36,9 +36,16 @@ function stripPrefix(raw: string, prefixAr: string) {
     .replace(/\/+$/, "");
 }
 
+function getProgramLabel(type: InstType) {
+  if (type === "school") return "مسار مدرسي";
+  if (type === "academy") return "برنامج تدريبي";
+  return "برنامج أكاديمي";
+}
+
 export function MajorsList({ majors, cc, type, universitySlug }: MajorsListProps) {
   const ccNorm = (cc || "SA").trim().toUpperCase();
   const typeNorm = (type || "university").trim().toLowerCase() as InstType;
+  const programLabel = getProgramLabel(typeNorm);
 
   const uniSlugClean = stripPrefix(universitySlug, "جامعات");
   const uniEncoded = encodeSlugPath(uniSlugClean);
@@ -50,58 +57,88 @@ export function MajorsList({ majors, cc, type, universitySlug }: MajorsListProps
     return `/${ccNorm}/${typeNorm}/universities/${uniEncoded}/majors/${majorEncoded}`;
   };
 
-  // ✅ نفس نمط بطاقات الصفحة الرئيسية: خفيف ومرتب للجوال/آيباد
   return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6 xl:grid-cols-3 xl:gap-8">
-      {majors.map((major) => (
-        <Card
-          key={major.id}
-          className={listCardClass}
-        >
-          <CardHeader className="pb-3">
-            <div className="flex items-start gap-4">
-              <Avatar className="h-11 w-11 shrink-0">
-                <AvatarFallback className="bg-primary/10 text-primary font-bold">
-                  {(major.name?.trim()?.charAt(0) || "T").toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5 xl:grid-cols-3 xl:gap-6">
+      {majors.map((major) => {
+        const subjectsCount = major._count?.subjects;
+        const hasSubjectsCount = typeof subjectsCount === "number";
 
-              <div className="flex-1 min-w-0">
-                <CardTitle className="line-clamp-2 text-base font-semibold leading-snug transition-colors group-hover:text-primary sm:text-lg">
-                  {major.name}
-                </CardTitle>
+        return (
+          <Card key={major.id} className={listCardClass}>
+            <div className="absolute inset-x-0 top-0 h-1 bg-primary/70" aria-hidden />
 
-                <div className="flex flex-wrap items-center gap-2 mt-2">
-                  {major.code ? <Badge variant="secondary" className="text-xs">{major.code}</Badge> : null}
-                  {major.degreeType ? <Badge variant="outline" className="text-xs">{major.degreeType}</Badge> : null}
-                  <Badge variant="outline" className="text-xs">
-                    {major._count?.subjects ?? 0} مقرر
-                  </Badge>
+            <CardContent className="flex h-full flex-col gap-5 p-0">
+              <div className="flex items-start gap-4">
+                <div
+                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"
+                  aria-hidden
+                >
+                  <GraduationCap className="h-6 w-6" />
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <div className="mb-2 flex flex-wrap items-center gap-2">
+                    <Badge
+                      variant="secondary"
+                      className="rounded-full px-2.5 py-1 text-[11px] font-semibold"
+                    >
+                      {programLabel}
+                    </Badge>
+                    {major.code ? (
+                      <Badge
+                        variant="outline"
+                        className="rounded-full px-2.5 py-1 text-[11px]"
+                        dir="ltr"
+                      >
+                        {major.code}
+                      </Badge>
+                    ) : null}
+                  </div>
+
+                  <CardTitle className="line-clamp-2 text-lg font-bold leading-snug text-foreground transition-colors group-hover:text-primary sm:text-xl">
+                    {major.name}
+                  </CardTitle>
                 </div>
               </div>
-            </div>
-          </CardHeader>
 
-          <CardContent className="flex flex-1 flex-col justify-between gap-4 pt-0 pb-6">
-            <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
-              {major.durationYears ? (
-                <div className="flex items-center">
-                  <Clock className="h-4 w-4 ml-1" aria-hidden />
-                  <span className="arabic-numbers">{major.durationYears} سنوات</span>
-                </div>
-              ) : (
-                <span />
-              )}
-            </div>
+              <div className="flex flex-wrap gap-2">
+                {major.degreeType ? (
+                  <Badge variant="outline" className="rounded-full px-3 py-1 text-xs">
+                    {major.degreeType}
+                  </Badge>
+                ) : null}
+                {hasSubjectsCount ? (
+                  <Badge variant="outline" className="rounded-full px-3 py-1 text-xs">
+                    {subjectsCount} مقرر
+                  </Badge>
+                ) : null}
+              </div>
 
-            <Button asChild className="h-11 w-full rounded-lg text-sm sm:text-base">
-              <Link href={hrefFor(major)} prefetch={false} className="focus-visible:outline-none">
-                استكشف المقررات
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
-      ))}
+              <div className="flex items-start gap-2 rounded-lg border bg-muted/30 p-3 text-sm leading-6 text-muted-foreground">
+                {major.durationYears ? (
+                  <>
+                    <Clock className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />
+                    <span className="arabic-numbers">
+                      مدة الدراسة: {major.durationYears} سنوات
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <BookOpenCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />
+                    <span>مواد واختبارات مرتبطة بهذا المسار.</span>
+                  </>
+                )}
+              </div>
+
+              <Button asChild className="mt-auto h-11 w-full rounded-lg text-sm sm:text-base">
+                <Link href={hrefFor(major)} prefetch={false} className="focus-visible:outline-none">
+                  استعرض مواد التخصص
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+        );
+      })}
     </div>
   );
 }

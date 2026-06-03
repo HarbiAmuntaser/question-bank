@@ -28,6 +28,8 @@ import { InstitutionGridCard } from "./institution-card";
 import { GridEmpty, GridError, GridLoading } from "./states";
 import { GridFooter } from "./section-footer";
 
+const MIN_SEARCH_LENGTH = 2;
+
 export function UniversityGrid({
   cc,
   type,
@@ -53,6 +55,8 @@ export function UniversityGrid({
 
   const [query, setQuery] = useState("");
   const debouncedQuery = useDebouncedValue(query, 250);
+  const trimmedQuery = query.trim();
+  const isShortSearch = trimmedQuery.length > 0 && trimmedQuery.length < MIN_SEARCH_LENGTH;
 
   const base = useMemo(() => buildBase(ccNorm, typeNorm), [ccNorm, typeNorm]);
   const listHref = useMemo(() => buildListHref(ccNorm, typeNorm), [ccNorm, typeNorm]);
@@ -60,8 +64,8 @@ export function UniversityGrid({
   useEffect(() => {
     const q = debouncedQuery.trim();
 
-    // Use server-rendered initial data for the default list and fetch only for searches.
-    if (initialItems !== undefined && !q) {
+    // Use server-rendered initial data for the default list and skip tiny searches.
+    if (initialItems !== undefined && (!q || q.length < MIN_SEARCH_LENGTH)) {
       setItems(initialItems);
       setLoading(false);
       setError(null);
@@ -133,6 +137,7 @@ export function UniversityGrid({
             onChange={setQuery}
             label={ui.searchLabel}
             placeholder={ui.searchPlaceholder}
+            helperText={isShortSearch ? "اكتب حرفين على الأقل للبحث" : null}
           />
         )}
 
@@ -156,6 +161,10 @@ export function UniversityGrid({
                     href={href}
                     logoUrl={u.logoUrl}
                     code={u.code}
+                    city={u.city}
+                    region={u.region}
+                    majorCount={u._count?.majors}
+                    quizCount={u._count?.quizzes}
                     badgeText={ui.badgeText}
                     badgeAria={ui.badgeAria}
                     ctaText={ui.ctaExplore}

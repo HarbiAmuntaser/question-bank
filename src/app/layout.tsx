@@ -1,19 +1,26 @@
-// ============================================================================
-// file: src/app/layout.tsx  (مُحدّث ليستخدم lib/seo بدون أخطاء)
-// ============================================================================
 import type React from "react";
-import type { Metadata } from "next";
-import { Cairo } from "next/font/google";
-import "./globals.css";
-import { ThemeProvider } from "@/components/theme-provider";
-import { baseMetadata, organizationJsonLd, websiteJsonLd } from "@/lib/seo";
-import { SpeedInsights } from "@vercel/speed-insights/next"; // ✅ أضف هذا
+import type { Metadata, Viewport } from "next";
 import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/next";
+import { Cairo } from "next/font/google";
+
+import { ThemeProvider } from "@/components/theme-provider";
+import { SITE } from "@/lib/site.config";
+import { baseMetadata, organizationJsonLd, websiteJsonLd } from "@/lib/seo";
+
+import "./globals.css";
 
 const cairo = Cairo({ subsets: ["arabic", "latin"], display: "swap" });
 
 export const metadata: Metadata = {
   ...baseMetadata(),
+};
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: SITE.THEME_COLOR_LIGHT },
+    { media: "(prefers-color-scheme: dark)", color: SITE.THEME_COLOR_DARK },
+  ],
 };
 
 export default function RootLayout({
@@ -24,10 +31,8 @@ export default function RootLayout({
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning>
       <body className={cairo.className}>
-        {/* JSON-LD: Organization + Website */}
         <script
           type="application/ld+json"
-          // يوضّح هوية الموقع لمحركات البحث
           dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd()) }}
         />
         <script
@@ -36,11 +41,9 @@ export default function RootLayout({
         />
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           {children}
-                {/* ✅ Speed Insights هنا */}
           <SpeedInsights />
           <Analytics />
         </ThemeProvider>
-        
       </body>
     </html>
   );

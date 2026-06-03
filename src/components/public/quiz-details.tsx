@@ -71,11 +71,6 @@ function normalizeInstitutionType(v: string | null): InstitutionType | null {
   return x === "university" || x === "school" || x === "academy" ? (x as InstitutionType) : null;
 }
 
-function qsDegreeType(v?: string | null) {
-  const x = (v || "").trim();
-  return x ? `?degreeType=${encodeURIComponent(x)}` : "";
-}
-
 async function fetchQuizPreviewBySlugOrId(quizSlugPathRaw: string) {
   const quizSlugPath = stripPrefix(quizSlugPathRaw, "اختبارات");
 
@@ -107,7 +102,6 @@ export async function QuizDetails({
   majorSlugPath,
   subjectSlugPath,
   quizSlugPath,
-  degreeType,
 }: {
   cc: string;
   type: InstitutionType;
@@ -115,7 +109,6 @@ export async function QuizDetails({
   majorSlugPath: string;
   subjectSlugPath: string;
   quizSlugPath: string; // slug أو id (وقد يكون متعدد المقاطع)
-  degreeType?: string | null;
 }) {
   const ccNorm = (cc || "SA").toUpperCase();
   const typeNorm = type;
@@ -147,8 +140,7 @@ export async function QuizDetails({
     `/universities/${encodeSlugPath(canonicalUni)}` +
     `/majors/${encodeSlugPath(canonicalMajor)}` +
     `/subjects/${encodeSlugPath(canonicalSubject)}` +
-    `/quizzes/${encodeSlugPath(canonicalQuiz)}` +
-    `${qsDegreeType(degreeType)}`;
+    `/quizzes/${encodeSlugPath(canonicalQuiz)}`;
 
   if (uniCC && uniType && (uniCC !== ccNorm || uniType !== typeNorm)) {
     redirect(canonicalPath);
@@ -165,16 +157,14 @@ export async function QuizDetails({
       `/${ccNorm}/${typeNorm}/universities/${encodeSlugPath(canonicalUni)}` +
         `/majors/${encodeSlugPath(canonicalMajor)}` +
         `/subjects/${encodeSlugPath(canonicalSubject)}` +
-        `/quizzes/${encodeSlugPath(canonicalQuiz)}` +
-        `${qsDegreeType(degreeType)}`
+        `/quizzes/${encodeSlugPath(canonicalQuiz)}`
     );
   }
 
   const subjectLink =
     `/${ccNorm}/${typeNorm}/universities/${encodeSlugPath(canonicalUni)}` +
     `/majors/${encodeSlugPath(canonicalMajor)}` +
-    `/subjects/${encodeSlugPath(canonicalSubject)}` +
-    `${qsDegreeType(degreeType)}`;
+    `/subjects/${encodeSlugPath(canonicalSubject)}`;
 
   const majorLink =
     `/${ccNorm}/${typeNorm}/universities/${encodeSlugPath(canonicalUni)}` +

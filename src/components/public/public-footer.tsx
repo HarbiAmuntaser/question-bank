@@ -1,11 +1,9 @@
-import type { ReactNode } from "react";
+import Image from "next/image";
 import Link from "next/link";
-import { GraduationCap, Mail, MapPin, Phone } from "lucide-react";
 
 import {
   DEFAULT_COUNTRY,
   SUPPORTED_COUNTRIES,
-  type CountryCode,
 } from "@/config/regions";
 import { normalizeCountry } from "@/lib/route-helpers";
 
@@ -18,38 +16,21 @@ type FooterLink = {
   href: string;
 };
 
-const CONTACT_BY_COUNTRY: Record<
-  CountryCode,
-  { email: string; phone: string; location: string }
-> = {
-  SA: {
-    email: "info@questionbank.example",
-    phone: "+966 11 000 0000",
-    location: "المملكة العربية السعودية",
-  },
-  YE: {
-    email: "info@questionbank.example",
-    phone: "+967 1 000 000",
-    location: "اليمن",
-  },
-};
-
 const supportLinks: FooterLink[] = [
   { label: "مركز المساعدة", href: "/public/help" },
   { label: "الأسئلة الشائعة", href: "/public/faq" },
-  { label: "تواصل معنا", href: "/public/contact" },
+  { label: "التواصل", href: "/public/contact" },
 ];
 
 const policyLinks: FooterLink[] = [
   { label: "الخصوصية", href: "/public/privacy" },
   { label: "الشروط", href: "/public/terms" },
-  { label: "ملفات تعريف الارتباط", href: "/public/cookies" },
+  { label: "ملفات الارتباط", href: "/public/cookies" },
 ];
 
 export function PublicFooter({ cc: ccProp }: Props) {
   const cc = normalizeCountry(ccProp ?? DEFAULT_COUNTRY);
   const countryLabel = SUPPORTED_COUNTRIES[cc]?.label ?? cc;
-  const contact = CONTACT_BY_COUNTRY[cc];
   const year = new Date().getFullYear();
 
   const browseLinks: FooterLink[] = [
@@ -64,22 +45,24 @@ export function PublicFooter({ cc: ccProp }: Props) {
       <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-4">
           <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <div
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground"
+            <div className="flex items-center gap-3">
+              <Image
+                src="/brand/mustawak-mark-clean.svg"
+                alt=""
+                width={40}
+                height={40}
+                className="h-10 w-10 shrink-0"
                 aria-hidden
-              >
-                <GraduationCap className="h-5 w-5" />
-              </div>
+              />
               <div className="min-w-0 leading-tight">
-                <div className="text-lg font-bold">بنك الأسئلة</div>
+                <div className="text-lg font-bold">مستواك</div>
                 <div className="text-xs text-muted-foreground">إصدار {countryLabel}</div>
               </div>
             </div>
 
             <p className="max-w-sm text-sm leading-7 text-muted-foreground">
-              منصة تعليمية للمراجعة والتدريب عبر أسئلة واختبارات منظمة للطلاب، مع محتوى مخصص
-              حسب الدولة ونوع المؤسسة.
+              منصة تعليمية للمراجعة والتدريب عبر اختبارات منظمة للجامعات والمدارس والأكاديميات، مع تجربة عربية واضحة
+              ومناسبة للجوال والتابلت وسطح المكتب.
             </p>
           </div>
 
@@ -88,24 +71,16 @@ export function PublicFooter({ cc: ccProp }: Props) {
 
           <div className="space-y-4">
             <h3 className="text-base font-semibold">التواصل</h3>
-            <div className="space-y-3">
-              <ContactItem icon={<Mail className="h-4 w-4" aria-hidden />}>
-                <span dir="ltr" className="text-left">
-                  {contact.email}
-                </span>
-              </ContactItem>
-              <ContactItem icon={<Phone className="h-4 w-4" aria-hidden />}>
-                <span dir="ltr" className="text-left">
-                  {contact.phone}
-                </span>
-              </ContactItem>
-              <ContactItem icon={<MapPin className="h-4 w-4" aria-hidden />}>
-                <span>{contact.location}</span>
-              </ContactItem>
-            </div>
+            <p className="text-sm leading-7 text-muted-foreground">
+              قنوات التواصل الرسمية ستتوفر قريبا عبر موقع{" "}
+              <span dir="ltr" className="whitespace-nowrap">
+                mustawak.com
+              </span>
+              . لا نعرض بريدا أو رقما غير مفعل.
+            </p>
 
             <p className="rounded-lg border bg-muted/30 p-3 text-sm leading-6 text-muted-foreground">
-              التنبيهات التعليمية وخيارات المتابعة ستكون متاحة قريبًا.
+              تابع هذه الصفحة لاحقا لمعرفة وسائل الدعم المعتمدة وخيارات المتابعة الرسمية.
             </p>
           </div>
         </div>
@@ -113,7 +88,7 @@ export function PublicFooter({ cc: ccProp }: Props) {
         <div className="my-8 h-px bg-border" />
 
         <div className="flex flex-col gap-4 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
-          <p>© {year} بنك الأسئلة. جميع الحقوق محفوظة.</p>
+          <p>© {year} مستواك. جميع الحقوق محفوظة.</p>
           <nav className="flex flex-wrap gap-x-5 gap-y-2" aria-label="روابط السياسات">
             {policyLinks.map((link) => (
               <FooterLinkItem key={link.href} link={link} />
@@ -147,14 +122,5 @@ function FooterLinkItem({ link }: { link: FooterLink }) {
     >
       {link.label}
     </Link>
-  );
-}
-
-function ContactItem({ icon, children }: { icon: ReactNode; children: ReactNode }) {
-  return (
-    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-      <span className="text-muted-foreground">{icon}</span>
-      {children}
-    </div>
   );
 }

@@ -19,10 +19,14 @@ import { PublicFooter } from "@/components/public/public-footer";
 import { HeroSection } from "@/components/public/hero-section/hero-section";
 import {
   InstitutionsPreviewSection,
-  StaticInstitutionsPreviewSection,
-  ViewportInstitutionsPreviewSection,
   type UniversityPreviewItem,
 } from "@/components/public/home-main/institutions-preview";
+import { HowItWorksSection } from "@/components/public/home-main/how-it-works-section";
+import { PathSelectionSection } from "@/components/public/home-main/path-selection-section";
+import {
+  PlatformStatsSection,
+  type PlatformStatsSnapshot,
+} from "@/components/public/home-main/platform-stats-section";
 
 import { SUPPORTED_COUNTRIES, type CountryCode } from "@/config/regions";
 import { fetchJSON } from "@/lib/server/student-fetch";
@@ -58,16 +62,29 @@ async function fetchPreviewItems(cc: CountryCode, type: PreviewType) {
   }
 }
 
+async function fetchPlatformStats() {
+  try {
+    const result = await fetchJSON<PlatformStatsSnapshot>(
+      "/api/v1/student/stats",
+      undefined,
+      600,
+    );
+
+    return result.ok ? result.data : null;
+  } catch {
+    return null;
+  }
+}
+
 export default async function CountryHome({ params }: { params: Promise<PageParams> }) {
   const { cc: rawCc } = await params;
   const cc = normalizeAndValidateCc(rawCc);
 
   if (!cc) notFound();
 
-  const [universities, schools, academies] = await Promise.all([
+  const [universities, platformStats] = await Promise.all([
     fetchPreviewItems(cc, "university"),
-    fetchPreviewItems(cc, "school"),
-    fetchPreviewItems(cc, "academy"),
+    fetchPlatformStats(),
   ]);
 
   return (
@@ -78,15 +95,10 @@ export default async function CountryHome({ params }: { params: Promise<PagePara
         {/* Hero حسب الدولة فقط */}
         <HeroSection cc={cc} lang="ar" />
 
-        {/* ✅ Preview Sections */}
+        <PathSelectionSection cc={cc} />
+        <PlatformStatsSection stats={platformStats} />
+        <HowItWorksSection />
         <InstitutionsPreviewSection cc={cc} type="university" initialItems={universities} />
-        <ViewportInstitutionsPreviewSection cc={cc} type="school" initialItems={schools}>
-          <StaticInstitutionsPreviewSection cc={cc} type="school" initialItems={schools} />
-        </ViewportInstitutionsPreviewSection>
-
-        <ViewportInstitutionsPreviewSection cc={cc} type="academy" initialItems={academies}>
-          <StaticInstitutionsPreviewSection cc={cc} type="academy" initialItems={academies} />
-        </ViewportInstitutionsPreviewSection>
       </main>
 
       <PublicFooter cc={cc} />

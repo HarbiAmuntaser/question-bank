@@ -11,6 +11,7 @@ type Props = {
   onChange: (v: string) => void;
   label: string;
   placeholder: string;
+  helperText?: string | null;
 };
 
 export const UniversitySearchBar = memo(function UniversitySearchBar({
@@ -18,6 +19,7 @@ export const UniversitySearchBar = memo(function UniversitySearchBar({
   onChange,
   label,
   placeholder,
+  helperText,
 }: Props) {
   return (
     <form
@@ -43,6 +45,12 @@ export const UniversitySearchBar = memo(function UniversitySearchBar({
           spellCheck={false}
         />
       </div>
+
+      {helperText ? (
+        <p className="mt-2 text-sm leading-6 text-muted-foreground" role="status">
+          {helperText}
+        </p>
+      ) : null}
     </form>
   );
 });
