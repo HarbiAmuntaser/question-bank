@@ -114,7 +114,10 @@ export async function GET(
     const data = await getSubjectDetailsCached(subject.id);
     if (!data) return bad("not_found", undefined, 404);
 
-    const headers = new Headers({ "cache-control": CACHE_CONTROL.publicSMaxage(CACHE_TTL.publicLong) });
+    const headers = new Headers({
+      // Avoid Vercel CDN staleness; unstable_cache remains the internal cache layer.
+      "cache-control": CACHE_CONTROL.PRIVATE_NO_STORE,
+    });
     return json({ data }, { status: 200, headers });
   } catch {
     return bad("failed_to_load_subject_by_code");

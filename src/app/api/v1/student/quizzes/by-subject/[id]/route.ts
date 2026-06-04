@@ -98,7 +98,8 @@ export async function GET(req: Request, { params }: RouteContext) {
     const data = await listBySubjectCached(id, q);
 
     const headers = new Headers({
-      "cache-control": CACHE_CONTROL.publicSMaxage(CACHE_TTL.publicStable),
+      // Avoid Vercel CDN staleness; unstable_cache remains the internal cache layer.
+      "cache-control": CACHE_CONTROL.PRIVATE_NO_STORE,
     });
     return json({ data }, { status: 200, headers });
   } catch {

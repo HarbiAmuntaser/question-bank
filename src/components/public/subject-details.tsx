@@ -17,7 +17,6 @@ import { BookOpen, GraduationCap, ArrowRight } from "lucide-react";
 import type { InstitutionType } from "@/config/regions";
 
 import { SubjectQuizzesAccessGrid, type PublicQuizAccessItem } from "@/components/public/subscription-access";
-import { CACHE_TAGS, cacheTags } from "@/lib/cache-tags";
 import { fetchJSON } from "@/lib/server/student-fetch";
 import { stripPrefix, encodeSlugPath } from "@/lib/public/slug-utils";
 
@@ -75,28 +74,18 @@ function normalizeInstitutionType(v: string | null): InstitutionType | null {
 
 async function fetchSubjectBySlugOrCode(subjectSlugRaw: string) {
   const subjectSlug = stripPrefix(subjectSlugRaw, "مواد");
-  const tags = cacheTags(
-    "student-subjects",
-    "student-subject-detail",
-    "student-quizzes",
-    "student-quizzes-by-subject",
-    CACHE_TAGS.public.subjects,
-    CACHE_TAGS.public.quizzes,
-    CACHE_TAGS.public.seo,
-  );
-
   const bySlug = await fetchJSON<SubjectDto>(
     `/api/v1/student/subjects/by-slug/${encodeSlugPath(subjectSlug)}`,
-    { next: { tags } },
-    21600,
+    { cache: "no-store" },
+    0,
   );
   if (bySlug.ok && bySlug.data) return { subject: bySlug.data };
 
   if (!subjectSlug.includes("/")) {
     const byCode = await fetchJSON<SubjectDto>(
       `/api/v1/student/subjects/by-code/${encodeURIComponent(subjectSlug)}`,
-      { next: { tags } },
-      21600,
+      { cache: "no-store" },
+      0,
     );
     if (byCode.ok && byCode.data) return { subject: byCode.data };
   }
@@ -159,21 +148,8 @@ export async function SubjectDetails({
 
   const quizzesRes = await fetchJSON<QuizLite[]>(
     `/api/v1/student/quizzes/by-subject/${subject.id}?limit=200`,
-    {
-      next: {
-        tags: cacheTags(
-          "student-subject-detail",
-          "student-quizzes",
-          "student-quizzes-by-subject",
-          CACHE_TAGS.public.subjects,
-          CACHE_TAGS.public.subject(subject.id),
-          CACHE_TAGS.public.quizzes,
-          CACHE_TAGS.public.quizzesBySubject(subject.id),
-          CACHE_TAGS.public.seo,
-        ),
-      },
-    },
-    21600,
+    { cache: "no-store" },
+    0,
   );
   const quizzes = quizzesRes.ok && quizzesRes.data ? quizzesRes.data : [];
 
