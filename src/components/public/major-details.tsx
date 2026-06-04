@@ -94,35 +94,25 @@ function degreeSortRank(value: string) {
 
 async function fetchMajorBySlugOrCode(majorSlugPathRaw: string) {
   const majorSlugPath = stripPrefix(majorSlugPathRaw, "تخصصات");
-  const tags = cacheTags(
-    "student-majors",
-    "student-major-detail",
-    "student-subjects",
-    CACHE_TAGS.public.majors,
-    CACHE_TAGS.public.subjects,
-    CACHE_TAGS.public.quizzes,
-    CACHE_TAGS.public.seo,
-  );
-
   const bySlug = await fetchJSON<MajorDto>(
     `/api/v1/student/majors/by-slug/${encodeSlugPath(majorSlugPath)}`,
-    { next: { tags } },
-    21600
+    { cache: "no-store" },
+    0
   );
   if (bySlug.ok && bySlug.data) return { major: bySlug.data };
 
   if (!majorSlugPath.includes("/")) {
     const byCode = await fetchJSON<MajorDto>(
       `/api/v1/student/majors/by-code/${encodeURIComponent(majorSlugPath)}`,
-      { next: { tags } },
-      21600
+      { cache: "no-store" },
+      0
     );
     if (byCode.ok && byCode.data) return { major: byCode.data };
 
     const byId = await fetchJSON<MajorDto>(
       `/api/v1/student/majors/by-id/${encodeURIComponent(majorSlugPath)}`,
-      { next: { tags } },
-      21600
+      { cache: "no-store" },
+      0
     );
     if (byId.ok && byId.data) return { major: byId.data };
   }

@@ -122,7 +122,8 @@ export async function GET(
     if (!data) return bad("not_found", undefined, 404);
 
     const headers = new Headers({
-      "cache-control": CACHE_CONTROL.publicSMaxage(CACHE_TTL.publicLong),
+      // Avoid Vercel CDN staleness; unstable_cache remains the internal cache layer.
+      "cache-control": CACHE_CONTROL.PRIVATE_NO_STORE,
     });
     return json({ data }, { status: 200, headers });
   } catch {
