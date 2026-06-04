@@ -164,9 +164,8 @@ export async function GET(req: Request) {
     const data = hasSearch ? await listUniversities(q) : await listUniversitiesCached(q);
 
     const headers = new Headers({
-      "cache-control": hasSearch
-        ? CACHE_CONTROL.PRIVATE_NO_STORE
-        : CACHE_CONTROL.publicSMaxage(CACHE_TTL.publicStable),
+      // Keep Vercel's CDN out of this endpoint; unstable_cache remains the freshness layer.
+      "cache-control": CACHE_CONTROL.PRIVATE_NO_STORE,
     });
     return json({ data }, { status: 200, headers });
   } catch {

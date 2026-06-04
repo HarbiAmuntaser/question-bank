@@ -150,7 +150,7 @@ export default async function TypeListPage({ params }: { params: Promise<PagePar
 
       <main>
         <section className="container py-10">
-          <UniversityGrid cc={cc} type={type} lang="ar" initialItems={undefined} showViewAll={false} showSearch />
+          <UniversityGrid cc={cc} type={type} lang="ar" initialItems={initialItems} showViewAll={false} showSearch />
         </section>
       </main>
 
