@@ -5,7 +5,6 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { HelpCircle, CheckCircle, FileText, PenTool } from "lucide-react";
 import { Pagination } from "@/components/Pagination";
-import { SortButton } from "@/components/ui/SortButton";
 import { QuestionsFilters } from "./QuestionsFilters";
 import { QuestionActions } from "./question-actions";
 import { AdminTableShell } from "@/components/admin/admin-table-shell";
@@ -51,8 +50,6 @@ function buildQuery(params: Record<string, string | number | undefined>) {
 async function fetchQuestions(args: {
   page: number;
   pageSize: number;
-  sortBy: "createdAt" | "questionText" | "points" | "difficultyLevel";
-  sortOrder: "asc" | "desc";
   universityId?: string;
   majorId?: string;
   subjectId?: string;
@@ -97,8 +94,6 @@ export async function QuestionsTable({
 }: {
   searchParams?: {
     page?: string;
-    sortBy?: string;
-    sortOrder?: string;
     universityId?: string;
     majorId?: string;
     subjectId?: string;
@@ -109,17 +104,9 @@ export async function QuestionsTable({
   const currentPage = Number(searchParams?.page ?? 1) || 1;
   const perPage = 10;
 
-  const sortBy: "createdAt" | "questionText" | "points" | "difficultyLevel" = (() => {
-    const s = searchParams?.sortBy;
-    return s === "questionText" || s === "points" || s === "difficultyLevel" ? (s as any) : "createdAt";
-  })();
-  const sortOrder: "asc" | "desc" = searchParams?.sortOrder === "asc" ? "asc" : "desc";
-
   const args = {
     page: currentPage,
     pageSize: perPage,
-    sortBy,
-    sortOrder,
     universityId: searchParams?.universityId || undefined,
     majorId: searchParams?.majorId || undefined,
     subjectId: searchParams?.subjectId || undefined,
@@ -132,12 +119,6 @@ export async function QuestionsTable({
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <QuestionsFilters />
-        <div className="flex flex-wrap gap-2">
-          <SortButton sortBy="questionText" currentSort={sortBy} sortOrder={sortOrder}>السؤال</SortButton>
-          <SortButton sortBy="points" currentSort={sortBy} sortOrder={sortOrder}>النقاط</SortButton>
-          {/* <SortButton sortBy="difficultyLevel" currentSort={sortBy} sortOrder={sortOrder}>الصعوبة</SortButton> */}
-          <SortButton sortBy="createdAt" currentSort={sortBy} sortOrder={sortOrder}>الأحدث</SortButton>
-        </div>
       </div>
 
       <AdminTableShell minWidth="min-w-[1200px]">

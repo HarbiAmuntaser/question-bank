@@ -19,7 +19,6 @@ export interface UniversityDTO {
   code: string | null;
   city: string | null;
   region: string | null;
-  logoUrl: string | null;
   isActive: boolean;
   createdAt: string; // ISO
   updatedAt: string; // ISO
@@ -35,7 +34,6 @@ export interface CreateUniversityInput {
   code?: string | null;
   city?: string | null;
   region?: string | null;
-  logoUrl?: string | null;
   isActive?: boolean;
 
   // إجباريتان عند الإنشاء
@@ -48,7 +46,6 @@ export interface UpdateUniversityInput {
   code?: string | null;
   city?: string | null;
   region?: string | null;
-  logoUrl?: string | null;
   isActive?: boolean;
 
   // اختياريتان عند التحديث (نحدّثهما فقط إذا أُرسلا)
@@ -86,7 +83,6 @@ export async function createUniversityAction(formData: FormData): Promise<Action
     code: (formData.get("code") as string | null) ?? null,
     city: (formData.get("city") as string | null) ?? null,
     region: (formData.get("region") as string | null) ?? null,
-    logoUrl: (formData.get("logoUrl") as string | null) ?? null,
     isActive: formData.get("isActive") === "on",
 
     // إجباريتان
@@ -129,7 +125,6 @@ export async function updateUniversityAction(id: string, formData: FormData): Pr
     code: ((formData.get("code") as string | null) ?? null),
     city: ((formData.get("city") as string | null) ?? null),
     region: ((formData.get("region") as string | null) ?? null),
-    logoUrl: ((formData.get("logoUrl") as string | null) ?? null),
     isActive: formData.get("isActive") === null ? undefined : formData.get("isActive") === "on",
   };
 

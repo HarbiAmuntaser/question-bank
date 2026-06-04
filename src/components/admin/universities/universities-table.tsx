@@ -11,9 +11,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { SearchInput } from "@/components/ui/SearchInput";
-import { SortButton } from "@/components/ui/SortButton";
 import { Pagination } from "@/components/Pagination";
 import { UniversityActions } from "./university-actions";
 import { AdminTableShell } from "@/components/admin/admin-table-shell";
@@ -25,7 +24,6 @@ export interface UniversityRow {
   code: string | null;
   city: string | null;
   region: string | null;
-  logoUrl: string | null;
   isActive: boolean;
   createdAt: string; // ISO
   updatedAt: string; // ISO
@@ -60,8 +58,6 @@ function buildQuery(params: Record<string, string | number | undefined>) {
 async function fetchUniversities({
   page,
   pageSize,
-  sortBy,
-  sortOrder,
   query,
   // 👇 جديد
   countryCode,
@@ -69,13 +65,11 @@ async function fetchUniversities({
 }: {
   page: number;
   pageSize: number;
-  sortBy: "name" | "createdAt";
-  sortOrder: "asc" | "desc";
   query: string;
   countryCode?: string;
   institutionType?: "" | "university" | "school" | "academy";
 }): Promise<ListResponse> {
-  const qs = buildQuery({ page, pageSize, sortBy, sortOrder, query, countryCode, institutionType });
+  const qs = buildQuery({ page, pageSize, query, countryCode, institutionType });
   const res = await adminApiFetch(`/api/v1/admin/universities?${qs}`, {
     next: { revalidate: 3600, tags: ["universities"] },
   });
@@ -91,8 +85,6 @@ export async function UniversitiesTable({
   searchParams?: {
     page?: string;
     query?: string;
-    sortBy?: string;
-    sortOrder?: string;
     // 👇 جديد
     countryCode?: string;
     institutionType?: string;
@@ -101,8 +93,6 @@ export async function UniversitiesTable({
   const currentPage: number = Number(searchParams?.page ?? 1) || 1;
   const perPage = 10;
   const searchQuery: string = searchParams?.query ?? "";
-  const sortBy: "name" | "createdAt" = searchParams?.sortBy === "name" ? "name" : "createdAt";
-  const sortOrder: "asc" | "desc" = searchParams?.sortOrder === "asc" ? "asc" : "desc";
 
   // 👇 جديد
   const countryCode: string = searchParams?.countryCode ?? "";
@@ -112,8 +102,6 @@ export async function UniversitiesTable({
   const { data: universities, pagination } = await fetchUniversities({
     page: currentPage,
     pageSize: perPage,
-    sortBy,
-    sortOrder,
     query: searchQuery,
     // 👇 جديد
     countryCode,
@@ -125,21 +113,7 @@ export async function UniversitiesTable({
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <SearchInput placeholder="ابحث عن جامعة..." />
-                    <UniversitiesFilters />
-
-        <div className="flex flex-wrap gap-2">
-          <SortButton sortBy="name" currentSort={sortBy} sortOrder={sortOrder}>
-            الترتيب بالاسم
-          </SortButton>
-          <SortButton
-            sortBy="createdAt"
-            currentSort={sortBy}
-            sortOrder={sortOrder}
-          >
-            الترتيب بالتاريخ
-          </SortButton>
-
-        </div>
+        <UniversitiesFilters />
       </div>
 
       <AdminTableShell minWidth="min-w-[980px]">
@@ -163,10 +137,6 @@ export async function UniversitiesTable({
                 <TableCell>
                   <div className="flex items-center space-x-3 space-x-reverse">
                     <Avatar className="h-8 w-8">
-                      <AvatarImage
-                        src={university.logoUrl ?? ""}
-                        alt={university.name}
-                      />
                       <AvatarFallback className="bg-primary/10 text-primary">
                         {university.name.charAt(0)}
                       </AvatarFallback>

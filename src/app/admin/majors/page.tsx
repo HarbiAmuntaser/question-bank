@@ -12,13 +12,11 @@ export default async function MajorsPage({
   searchParams: Promise<{
     page?: string;
     query?: string;
-    sortBy?: string;
-    sortOrder?: string;
     universityId?: string; // ✅ أضفناها هنا
   }>;
 }) {
   const resolved = await searchParams;
-  const { page, query, sortBy, sortOrder, universityId } = resolved; // ✅ نقرأها
+  const { page, query, universityId } = resolved; // ✅ نقرأها
 
   return (
     <div className="space-y-6">
@@ -40,14 +38,12 @@ export default async function MajorsPage({
       <Suspense
         fallback={<TableSkeleton columns={8} rows={10} />}
         // ✅ ضفنا universityId للمفتاح كي يُعاد تحميل الجدول عند تغيّره
-        key={`${query}-${page}-${sortBy}-${sortOrder}-${universityId ?? "__all__"}`}
+        key={`${query}-${page}-${universityId ?? "__all__"}`}
       >
         <MajorsTable
           searchParams={{
             query,
             page,
-            sortBy: sortBy as "name" | "createdAt" | "code" | undefined,
-            sortOrder: sortOrder as "asc" | "desc" | undefined,
             universityId, // ✅ تمرير الفلتر للجدول
           }}
         />

@@ -5,7 +5,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { SearchInput } from "@/components/ui/SearchInput";
-import { SortButton } from "@/components/ui/SortButton";
 import { Pagination } from "@/components/Pagination";
 import { MajorActions } from "./major-actions";
 import { UniversityFilter } from "./UniversityFilter";
@@ -53,8 +52,6 @@ function buildQuery(params: Record<string, string | number | undefined>): string
 async function fetchMajors(args: {
   page: number;
   pageSize: number;
-  sortBy: "name" | "createdAt" | "code";
-  sortOrder: "asc" | "desc";
   query: string;
   universityId?: string;
 }): Promise<ListResponse> {
@@ -80,8 +77,6 @@ export async function MajorsTable({
   searchParams?: {
     page?: string;
     query?: string;
-    sortBy?: string;
-    sortOrder?: string;
     universityId?: string;
   };
 }) {
@@ -94,20 +89,12 @@ export async function MajorsTable({
     ? searchParams.universityId
     : undefined;
 
-  const sortBy: "name" | "createdAt" | "code" = (() => {
-    const s = searchParams?.sortBy;
-    return s === "name" || s === "code" ? s : "createdAt";
-  })();
-  const sortOrder: "asc" | "desc" = searchParams?.sortOrder === "asc" ? "asc" : "desc";
-
   // ---- fetch data in parallel ----
   const [universities, { data: majors, pagination }] = await Promise.all([
     fetchUniversitiesForFilter(),
     fetchMajors({
       page: currentPage,
       pageSize: perPage,
-      sortBy,
-      sortOrder,
       query: searchQuery,
       universityId: selectedUniversityId, // ✅ يرسل الفلتر فعليًا
     }),
@@ -124,15 +111,6 @@ export async function MajorsTable({
             value={selectedUniversityId ?? "__all__"}
             placeholder="تصفية حسب الجامعة"
           />
-          <SortButton sortBy="name" currentSort={sortBy} sortOrder={sortOrder}>
-            الاسم
-          </SortButton>
-          <SortButton sortBy="code" currentSort={sortBy} sortOrder={sortOrder}>
-            الرمز
-          </SortButton>
-          <SortButton sortBy="createdAt" currentSort={sortBy} sortOrder={sortOrder}>
-            التاريخ
-          </SortButton>
         </div>
       </div>
 

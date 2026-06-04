@@ -4,7 +4,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { SearchInput } from "@/components/ui/SearchInput";
-import { SortButton } from "@/components/ui/SortButton";
 import { Pagination } from "@/components/Pagination";
 import { SubjectActions } from "./subject-actions";
 import { UniversityFilter } from "../majors/UniversityFilter";
@@ -45,7 +44,7 @@ function buildQuery(params: Record<string, string | number | undefined>): string
 }
 
 async function fetchSubjects(args: {
-  page: number; pageSize: number; sortBy: "name" | "createdAt" | "code"; sortOrder: "asc" | "desc";
+  page: number; pageSize: number;
   query: string; universityId?: string; majorId?: string;
 }): Promise<ListResponse> {
   const qs = buildQuery(args);
@@ -75,8 +74,6 @@ export async function SubjectsTable({
   searchParams?: {
     page?: string;
     query?: string;
-    sortBy?: string;
-    sortOrder?: string;
     universityId?: string;
     majorId?: string;
   };
@@ -87,20 +84,12 @@ export async function SubjectsTable({
   const selectedUniversityId = searchParams?.universityId || undefined;
   const selectedMajorId = searchParams?.majorId || undefined;
 
-  const sortBy: "name" | "createdAt" | "code" = ((): "name" | "createdAt" | "code" => {
-    const s = searchParams?.sortBy;
-    return s === "name" || s === "code" ? s : "createdAt";
-  })();
-  const sortOrder: "asc" | "desc" = searchParams?.sortOrder === "asc" ? "asc" : "desc";
-
   const [universities, majors, { data: subjects, pagination }] = await Promise.all([
     fetchUniversitiesForFilter(),
     fetchMajorsForFilter(selectedUniversityId),
     fetchSubjects({
       page: currentPage,
       pageSize: perPage,
-      sortBy,
-      sortOrder,
       query: searchQuery,
       universityId: selectedUniversityId,
       majorId: selectedMajorId,
@@ -123,9 +112,6 @@ export async function SubjectsTable({
             placeholder="تصفية حسب التخصص"
             disabled={!selectedUniversityId} // لا تظهر إلا بعد اختيار جامعة
           />
-          <SortButton sortBy="name" currentSort={sortBy} sortOrder={sortOrder}>الاسم</SortButton>
-          <SortButton sortBy="code" currentSort={sortBy} sortOrder={sortOrder}>الرمز</SortButton>
-          <SortButton sortBy="createdAt" currentSort={sortBy} sortOrder={sortOrder}>التاريخ</SortButton>
         </div>
       </div>
 

@@ -13,14 +13,12 @@ export default async function UniversitiesPage({
   searchParams: Promise<{
     page?: string
     query?: string
-    sortBy?: string
-    sortOrder?: string
    countryCode?: string;
     institutionType?: string;
   }>
 }) {
   const resolvedSearchParams = await searchParams
-  const { page, query, sortBy, sortOrder, countryCode, institutionType } = resolvedSearchParams
+  const { page, query, countryCode, institutionType } = resolvedSearchParams
 
   return (
     <div className="space-y-6">
@@ -39,15 +37,12 @@ export default async function UniversitiesPage({
 
         <Suspense
           fallback={<TableSkeleton columns={5} rows={10} />}
-        key={`${query}-${page}-${sortBy}-${sortOrder}-${countryCode}-${institutionType}`}
+        key={`${query}-${page}-${countryCode}-${institutionType}`}
         >
           <UniversitiesTable
             searchParams={{
               query,
               page,
-              sortBy: sortBy as "name" | "createdAt",
-              sortOrder: sortOrder as "asc" | "desc",
-
             countryCode,
             institutionType,
             }}

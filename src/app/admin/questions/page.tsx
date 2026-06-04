@@ -12,8 +12,6 @@ export default async function QuestionsPage({
 }: {
   searchParams: Promise<{
     page?: string;
-    sortBy?: string;
-    sortOrder?: string;
     universityId?: string;
     majorId?: string;
     subjectId?: string;
@@ -47,8 +45,6 @@ export default async function QuestionsPage({
         <QuestionsTable
           searchParams={{
             page: sp.page,
-            sortBy: sp.sortBy,
-            sortOrder: sp.sortOrder,
             universityId: sp.universityId,
             majorId: sp.majorId,
             subjectId: sp.subjectId,

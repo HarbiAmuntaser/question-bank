@@ -12,14 +12,12 @@ export default async function SubjectsPage({
   searchParams: Promise<{
     page?: string;
     query?: string;
-    sortBy?: string;
-    sortOrder?: string;
     universityId?: string;
     majorId?: string;
   }>;
 }) {
   const sp = await searchParams;
-  const { page, query, sortBy, sortOrder, universityId, majorId } = sp;
+  const { page, query, universityId, majorId } = sp;
 
   return (
     <div className="space-y-6">
@@ -37,15 +35,13 @@ export default async function SubjectsPage({
       </div>
 
       <Suspense
-        key={`${page ?? 1}-${query ?? ""}-${sortBy ?? "createdAt"}-${sortOrder ?? "desc"}-${universityId ?? ""}-${majorId ?? ""}`}
+        key={`${page ?? 1}-${query ?? ""}-${universityId ?? ""}-${majorId ?? ""}`}
         fallback={<TableSkeleton columns={8} rows={10} />}
       >
         <SubjectsTable
           searchParams={{
             page,
             query,
-            sortBy: sortBy as "name" | "createdAt" | "code",
-            sortOrder: sortOrder as "asc" | "desc",
             universityId,
             majorId,
           }}

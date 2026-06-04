@@ -12,14 +12,13 @@ export default async function ChaptersPage({
   searchParams: Promise<{
     page?: string;
     query?: string;
-    sortBy?: string;
-    sortOrder?: string;
     universityId?: string;
     majorId?: string;
     subjectId?: string;
   }>;
 }) {
   const sp = await searchParams;
+  const { page, query, universityId, majorId, subjectId } = sp;
 
   return (
     <div className="space-y-6">
@@ -38,9 +37,9 @@ export default async function ChaptersPage({
 
       <Suspense
         fallback={<TableSkeleton rows={10} columns={10} />}
-        key={JSON.stringify(sp)}
+        key={`${page ?? 1}-${query ?? ""}-${universityId ?? ""}-${majorId ?? ""}-${subjectId ?? ""}`}
       >
-        <ChaptersTable searchParams={sp} />
+        <ChaptersTable searchParams={{ page, query, universityId, majorId, subjectId }} />
       </Suspense>
     </div>
   );

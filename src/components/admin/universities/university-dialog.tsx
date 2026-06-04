@@ -28,7 +28,6 @@ export interface UniversityMinimal {
   code: string | null;
   city: string | null;
   region: string | null;
-  logoUrl: string | null;
   isActive: boolean;
 
   countryCode: string;
@@ -185,20 +184,6 @@ export function UniversityDialog({
                 defaultValue={university?.region ?? ""}
                 className="col-span-3"
                 placeholder="مثال: المنطقة الوسطى"
-              />
-            </div>
-
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="logoUrl" className="text-right">
-                رابط الشعار
-              </Label>
-              <Input
-                id="logoUrl"
-                name="logoUrl"
-                type="url"
-                defaultValue={university?.logoUrl ?? ""}
-                className="col-span-3"
-                placeholder="https://..."
               />
             </div>
 

@@ -6,25 +6,35 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 
 
 export default async function SignInPage() {
-const session = await getServerSession(authOptions);
-if (session) redirect("/admin");
-return (
-<div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8" dir="rtl">
-<div className="max-w-md w-full space-y-8">
-<div className="text-center">
-<h2 className="mt-6 text-3xl font-bold text-gray-900 dark:text-white">تسجيل دخول المدير</h2>
-<p className="mt-2 text-sm text-gray-600 dark:text-gray-400">نظام إدارة بنك الأسئلة السعودي</p>
-</div>
-<Card>
-<CardHeader>
-<CardTitle>مرحباً بعودتك</CardTitle>
-<CardDescription>سجل دخولك للوصول إلى لوحة الإدارة</CardDescription>
-</CardHeader>
-<CardContent>
-<SignInForm />
-</CardContent>
-</Card>
-</div>
-</div>
-);
+  const session = await getServerSession(authOptions);
+  if (session) redirect("/admin");
+
+  return (
+    <main
+      className="flex min-h-screen items-center justify-center bg-muted/30 px-4 py-8 sm:px-6 lg:px-8"
+      dir="rtl"
+    >
+      <div className="w-full max-w-md space-y-6">
+        <div className="text-center">
+          <p className="text-sm font-medium text-primary">لوحة إدارة مستواك</p>
+          <h1 className="mt-3 text-2xl font-bold tracking-normal text-foreground sm:text-3xl">
+            تسجيل دخول الإدارة
+          </h1>
+          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+            أدخل بيانات حسابك للوصول إلى لوحة التحكم.
+          </p>
+        </div>
+
+        <Card className="border bg-card/95 shadow-sm">
+          <CardHeader className="space-y-1 text-center">
+            <CardTitle className="text-xl">مرحباً بعودتك</CardTitle>
+            <CardDescription>تأكد من البريد وكلمة المرور قبل المتابعة.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <SignInForm />
+          </CardContent>
+        </Card>
+      </div>
+    </main>
+  );
 }

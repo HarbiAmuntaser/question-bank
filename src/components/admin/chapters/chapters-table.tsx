@@ -4,7 +4,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { SearchInput } from "@/components/ui/SearchInput";
-import { SortButton } from "@/components/ui/SortButton";
 import { Pagination } from "@/components/Pagination";
 import { ChapterActions } from "./chapter-actions";
 import { UniversityFilter } from "./UniversityFilter";
@@ -53,8 +52,6 @@ function buildQuery(params: Record<string, string | number | undefined>): string
 async function fetchChapters(args: {
   page: number;
   pageSize: number;
-  sortBy: "name" | "createdAt" | "chapterNumber";
-  sortOrder: "asc" | "desc";
   query: string;
   universityId?: string;
   majorId?: string;
@@ -94,8 +91,6 @@ export async function ChaptersTable({
   searchParams?: {
     page?: string;
     query?: string;
-    sortBy?: string;
-    sortOrder?: string;
     universityId?: string;
     majorId?: string;
     subjectId?: string;
@@ -109,12 +104,6 @@ export async function ChaptersTable({
   const selectedMajorId = searchParams?.majorId || undefined;
   const selectedSubjectId = searchParams?.subjectId || undefined;
 
-  const sortBy: "name" | "createdAt" | "chapterNumber" = (() => {
-    const s = searchParams?.sortBy;
-    return s === "name" || s === "chapterNumber" ? s : "createdAt";
-  })();
-  const sortOrder: "asc" | "desc" = searchParams?.sortOrder === "asc" ? "asc" : "desc";
-
   const [universities, majors, subjects, { data: chapters, pagination }] = await Promise.all([
     fetchUniversities(),
     fetchMajors(selectedUniversityId),
@@ -122,8 +111,6 @@ export async function ChaptersTable({
     fetchChapters({
       page: currentPage,
       pageSize: perPage,
-      sortBy,
-      sortOrder,
       query: searchQuery,
       universityId: selectedUniversityId,
       majorId: selectedMajorId,
@@ -153,9 +140,6 @@ export async function ChaptersTable({
             placeholder="المقرر"
             disabled={!selectedMajorId}
           />
-          <SortButton sortBy="name" currentSort={sortBy} sortOrder={sortOrder}>الاسم</SortButton>
-          <SortButton sortBy="chapterNumber" currentSort={sortBy} sortOrder={sortOrder}>رقم الفصل</SortButton>
-          <SortButton sortBy="createdAt" currentSort={sortBy} sortOrder={sortOrder}>التاريخ</SortButton>
         </div>
       </div>
 
