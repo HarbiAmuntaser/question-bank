@@ -88,29 +88,18 @@ type QuizPreview = {
 
 async function fetchUniversityBySlugOrCode(slugPathRaw: string): Promise<{ uni: University | null }> {
   const slugPath = stripPrefix(slugPathRaw, "جامعات");
-  const tags = cacheTags(
-    "student-universities",
-    "student-university-detail",
-    "student-majors",
-    CACHE_TAGS.public.institutions,
-    CACHE_TAGS.public.majors,
-    CACHE_TAGS.public.subjects,
-    CACHE_TAGS.public.quizzes,
-    CACHE_TAGS.public.seo,
-  );
-
   const bySlug = await fetchJSON<University>(
     `/api/v1/student/universities/by-slug/${encodeSlugPath(slugPath)}`,
-    { next: { tags } },
-    21600
+    { cache: "no-store" },
+    0
   );
   if (bySlug.ok && bySlug.data) return { uni: bySlug.data };
 
   if (!slugPath.includes("/")) {
     const byCode = await fetchJSON<University>(
       `/api/v1/student/universities/by-code/${encodeURIComponent(slugPath)}`,
-      { next: { tags } },
-      21600
+      { cache: "no-store" },
+      0
     );
     if (byCode.ok && byCode.data) return { uni: byCode.data };
   }
