@@ -17,6 +17,7 @@ import { BookOpen, GraduationCap, University as UniversityIcon, Trophy } from "l
 import type { InstitutionType } from "@/config/regions";
 
 import { MajorSubscriptionCallout } from "@/components/public/subscription-access";
+import { CACHE_TAGS, cacheTags } from "@/lib/cache-tags";
 import { fetchJSON } from "@/lib/server/student-fetch";
 import { stripPrefix, encodeSlugPath } from "@/lib/public/slug-utils";
 
@@ -93,10 +94,19 @@ function degreeSortRank(value: string) {
 
 async function fetchMajorBySlugOrCode(majorSlugPathRaw: string) {
   const majorSlugPath = stripPrefix(majorSlugPathRaw, "تخصصات");
+  const tags = cacheTags(
+    "student-majors",
+    "student-major-detail",
+    "student-subjects",
+    CACHE_TAGS.public.majors,
+    CACHE_TAGS.public.subjects,
+    CACHE_TAGS.public.quizzes,
+    CACHE_TAGS.public.seo,
+  );
 
   const bySlug = await fetchJSON<MajorDto>(
     `/api/v1/student/majors/by-slug/${encodeSlugPath(majorSlugPath)}`,
-    undefined,
+    { next: { tags } },
     21600
   );
   if (bySlug.ok && bySlug.data) return { major: bySlug.data };
@@ -104,14 +114,14 @@ async function fetchMajorBySlugOrCode(majorSlugPathRaw: string) {
   if (!majorSlugPath.includes("/")) {
     const byCode = await fetchJSON<MajorDto>(
       `/api/v1/student/majors/by-code/${encodeURIComponent(majorSlugPath)}`,
-      undefined,
+      { next: { tags } },
       21600
     );
     if (byCode.ok && byCode.data) return { major: byCode.data };
 
     const byId = await fetchJSON<MajorDto>(
       `/api/v1/student/majors/by-id/${encodeURIComponent(majorSlugPath)}`,
-      undefined,
+      { next: { tags } },
       21600
     );
     if (byId.ok && byId.data) return { major: byId.data };
@@ -124,7 +134,16 @@ async function fetchDegreeOptions(major: MajorDto) {
   try {
     const result = await fetchJSON<MajorDegreeOption[]>(
       `/api/v1/student/majors?universityId=${encodeURIComponent(major.university.id)}`,
-      undefined,
+      {
+        next: {
+          tags: cacheTags(
+            "student-majors",
+            CACHE_TAGS.public.majors,
+            CACHE_TAGS.public.major(major.id),
+            CACHE_TAGS.public.majorsByUniversity(major.university.id),
+          ),
+        },
+      },
       3600,
     );
 

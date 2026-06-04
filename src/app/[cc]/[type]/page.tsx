@@ -10,6 +10,7 @@ import { normalizeCountry, isSupportedType } from "@/lib/route-helpers";
 import type { CountryCode, InstitutionType } from "@/config/regions";
 import { UniversityGrid } from "@/components/public/university-grid/university-grid";
 import type { UniversityGridItem } from "@/components/public/university-grid/types";
+import { CACHE_TAGS, cacheTags } from "@/lib/cache-tags";
 import { fetchJSON } from "@/lib/server/student-fetch";
 import { SITE_NAME, SITE_URL } from "@/lib/seo";
 
@@ -52,7 +53,15 @@ async function fetchInitialInstitutions(cc: CountryCode, type: InstitutionType) 
   try {
     const result = await fetchJSON<UniversityGridItem[]>(
       `/api/v1/student/universities?${params.toString()}`,
-      undefined,
+      {
+        next: {
+          tags: cacheTags(
+            "student-universities",
+            CACHE_TAGS.public.institutions,
+            CACHE_TAGS.public.institutionsCountry(cc),
+          ),
+        },
+      },
       600,
     );
 

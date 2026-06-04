@@ -29,6 +29,7 @@ import {
 } from "@/components/public/home-main/platform-stats-section";
 
 import { SUPPORTED_COUNTRIES, type CountryCode } from "@/config/regions";
+import { CACHE_TAGS, cacheTags } from "@/lib/cache-tags";
 import { fetchJSON } from "@/lib/server/student-fetch";
 
 type PageParams = { cc: string };
@@ -52,7 +53,15 @@ async function fetchPreviewItems(cc: CountryCode, type: PreviewType) {
   try {
     const result = await fetchJSON<UniversityPreviewItem[]>(
       `/api/v1/student/universities?${params.toString()}`,
-      undefined,
+      {
+        next: {
+          tags: cacheTags(
+            "student-universities",
+            CACHE_TAGS.public.institutions,
+            CACHE_TAGS.public.institutionsCountry(cc),
+          ),
+        },
+      },
       600,
     );
 
@@ -66,7 +75,11 @@ async function fetchPlatformStats() {
   try {
     const result = await fetchJSON<PlatformStatsSnapshot>(
       "/api/v1/student/stats",
-      undefined,
+      {
+        next: {
+          tags: cacheTags("student-stats", CACHE_TAGS.public.stats),
+        },
+      },
       600,
     );
 
