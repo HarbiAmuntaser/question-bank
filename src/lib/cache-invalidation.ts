@@ -1,4 +1,4 @@
-import { revalidateTag } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 
 import { CACHE_TAGS } from "@/lib/cache-tags";
 
@@ -8,7 +8,30 @@ function revalidateTags(tags: Array<string | null | undefined>) {
   }
 }
 
-export function revalidateUniversityCache(input: { id?: string | null; countryCode?: string | null } = {}) {
+function normalizedCountryCodes(values: Array<string | null | undefined>) {
+  return Array.from(
+    new Set(
+      values
+        .map((value) => value?.trim().toUpperCase())
+        .filter((value): value is string => Boolean(value)),
+    ),
+  );
+}
+
+function revalidateInstitutionPaths(countryCodes: string[]) {
+  for (const cc of countryCodes) {
+    revalidatePath(`/${cc}`);
+    revalidatePath(`/${cc}/university`);
+    revalidatePath(`/${cc}/school`);
+    revalidatePath(`/${cc}/academy`);
+  }
+}
+
+export function revalidateUniversityCache(
+  input: { id?: string | null; countryCode?: string | null; previousCountryCode?: string | null } = {},
+) {
+  const countryCodes = normalizedCountryCodes([input.countryCode, input.previousCountryCode]);
+
   revalidateTags([
     "universities",
     "student-universities",
@@ -16,7 +39,7 @@ export function revalidateUniversityCache(input: { id?: string | null; countryCo
     CACHE_TAGS.admin.universities,
     CACHE_TAGS.public.institutions,
     input.id ? CACHE_TAGS.public.institution(input.id) : null,
-    input.countryCode ? CACHE_TAGS.public.institutionsCountry(input.countryCode) : null,
+    ...countryCodes.map((countryCode) => CACHE_TAGS.public.institutionsCountry(countryCode)),
     CACHE_TAGS.public.majors,
     CACHE_TAGS.public.subjects,
     CACHE_TAGS.public.quizzes,
@@ -24,6 +47,8 @@ export function revalidateUniversityCache(input: { id?: string | null; countryCo
     CACHE_TAGS.public.stats,
     "student-stats",
   ]);
+
+  revalidateInstitutionPaths(countryCodes);
 }
 
 export function revalidateMajorCache(input: { id?: string | null; universityId?: string | null } = {}) {

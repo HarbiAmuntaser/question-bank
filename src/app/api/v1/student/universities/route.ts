@@ -14,6 +14,7 @@ export const dynamic = "force-dynamic";
 
 type Q = {
   q?: string | null;
+  search?: string | null;
   sort?: string | null; // "popular" | "name"
   limit?: string | null;
   withMajors?: string | null; // "1" | "true"
@@ -21,12 +22,8 @@ type Q = {
   type?: string | null;       // university | school | academy
 };
 
-// ✅ مهم: unstable_cache يأخذ keyParts ثابتة (string[])،
-// وNext سيُميّز الكاش تلقائياً حسب Arguments (q) التي نمررها للدالة.
-const listUniversitiesCached = (q: Q) =>
-  unstable_cache(
-  async () => {
-    const search = (q.q ?? "").trim();
+async function listUniversities(q: Q) {
+    const search = (q.q ?? q.search ?? "").trim();
     const rawLimit = Number(q.limit ?? "60");
     const limit = Math.min(Math.max(rawLimit || 60, 1), 1000);
 
@@ -124,10 +121,16 @@ const listUniversitiesCached = (q: Q) =>
       },
       ...(includeMajors ? { majors: u.majors } : { majors: [] as never[] }),
     }));
-  },
+}
+
+// ✅ مهم: unstable_cache يأخذ keyParts ثابتة (string[])،
+// وNext سيُميّز الكاش تلقائياً حسب Arguments (q) التي نمررها للدالة.
+const listUniversitiesCached = (q: Q) =>
+  unstable_cache(
+  async () => listUniversities(q),
   [
     "student-universities",
-    q.q ?? "",
+    q.q ?? q.search ?? "",
     q.sort ?? "",
     q.limit ?? "",
     q.withMajors ?? "",
@@ -148,7 +151,8 @@ export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
     const q: Q = {
-      q: url.searchParams.get("q"),
+      q: url.searchParams.get("q") ?? url.searchParams.get("search"),
+      search: url.searchParams.get("search"),
       sort: url.searchParams.get("sort"),
       limit: url.searchParams.get("limit"),
       withMajors: url.searchParams.get("withMajors"),
@@ -156,10 +160,13 @@ export async function GET(req: Request) {
       type: url.searchParams.get("type"),
     };
 
-    const data = await listUniversitiesCached(q);
+    const hasSearch = Boolean((q.q ?? q.search ?? "").trim());
+    const data = hasSearch ? await listUniversities(q) : await listUniversitiesCached(q);
 
     const headers = new Headers({
-      "cache-control": CACHE_CONTROL.publicSMaxage(CACHE_TTL.publicStable),
+      "cache-control": hasSearch
+        ? CACHE_CONTROL.PRIVATE_NO_STORE
+        : CACHE_CONTROL.publicSMaxage(CACHE_TTL.publicStable),
     });
     return json({ data }, { status: 200, headers });
   } catch {

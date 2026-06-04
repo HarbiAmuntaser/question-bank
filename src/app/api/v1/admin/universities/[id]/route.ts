@@ -73,7 +73,11 @@ export async function PUT(req: Request, { params }: RouteContext) {
 
   const updated = await prisma.university.update({ where: { id }, data });
 
-  revalidateUniversityCache({ id: updated.id, countryCode: updated.countryCode });
+  revalidateUniversityCache({
+    id: updated.id,
+    countryCode: updated.countryCode,
+    previousCountryCode: exists.countryCode,
+  });
   return json({ data: updated });
 }
 
