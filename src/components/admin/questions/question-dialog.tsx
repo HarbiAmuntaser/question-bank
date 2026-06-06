@@ -344,7 +344,7 @@ export function QuestionDialog({ children, question, open, onOpenChange }: Quest
         <DialogHeader>
           <DialogTitle>{question ? "تعديل السؤال" : "إضافة سؤال"}</DialogTitle>
           <DialogDescription>
-            {question ? "قم بتحديث معلومات السؤال أدناه." : "أضف سؤالاً جديداً إلى بنك الأسئلة."}
+            {question ? "قم بتحديث معلومات السؤال أدناه." : "أضف سؤالاً جديداً إلى مستواك."}
           </DialogDescription>
         </DialogHeader>
 

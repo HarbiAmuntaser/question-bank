@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { json, bad } from "@/lib/http";
-import { CACHE_CONTROL, CACHE_TTL } from "@/lib/cache-tags";
+import { CACHE_CONTROL } from "@/lib/cache-tags";
 
 export const dynamic = "force-dynamic";
 
@@ -44,7 +44,7 @@ export async function GET(_req: Request, { params }: RouteContext) {
     if (!seo) return bad("not_found", undefined, 404);
 
     const headers = new Headers({
-      "cache-control": CACHE_CONTROL.publicSMaxage(CACHE_TTL.publicLong),
+      "cache-control": CACHE_CONTROL.PRIVATE_NO_STORE,
     });
     return json({ data: seo }, { status: 200, headers });
   } catch {

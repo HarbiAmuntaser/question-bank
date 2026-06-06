@@ -27,7 +27,7 @@ type MajorListRow = Prisma.MajorGetPayload<{
 }>;
 
 const listMajorsCached = unstable_cache(
-  async (q: Record<string, string | null>) => {
+  async (q: Record<string, string | null | undefined>) => {
     const parsed = listMajorsQuerySchema.safeParse({
       page: q.page,
       pageSize: q.pageSize,
@@ -113,11 +113,11 @@ export async function GET(req: Request) {
   if (!auth.ok) return unauth();
 
   const url = new URL(req.url);
-  const q: Record<string, string | null> = {
+  const q: Record<string, string | null | undefined> = {
     page: url.searchParams.get("page"),
     pageSize: url.searchParams.get("pageSize"),
-    sortBy: url.searchParams.get("sortBy"),
-    sortOrder: url.searchParams.get("sortOrder"),
+    sortBy: url.searchParams.get("sortBy") ?? undefined,
+    sortOrder: url.searchParams.get("sortOrder") ?? undefined,
     query: url.searchParams.get("query"),
     universityId: url.searchParams.get("universityId"),
   };

@@ -35,7 +35,7 @@ export function AdminHeader() {
         </SheetTrigger>
         <SheetContent side="right" className="w-80 max-w-[85vw] overflow-y-auto p-5" dir="rtl">
           <SheetHeader className="mb-5 text-right">
-            <SheetTitle>بنك الأسئلة السعودي</SheetTitle>
+            <SheetTitle>مستواك</SheetTitle>
           </SheetHeader>
           <nav aria-label="تنقل الإدارة">
             <AdminNavList closeOnNavigate />

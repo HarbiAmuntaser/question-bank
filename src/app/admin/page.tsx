@@ -150,7 +150,7 @@ export default async function AdminDashboard() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white">لوحة التحكم</h1>
-        <p className="mt-2 text-gray-600 dark:text-gray-400">مرحباً بك في لوحة إدارة بنك الأسئلة السعودي</p>
+        <p className="mt-2 text-gray-600 dark:text-gray-400">مرحباً بك في لوحة إدارة مستواك</p>
       </div>
 
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
@@ -240,7 +240,7 @@ export default async function AdminDashboard() {
               </div>
 
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">بنك الأسئلة</span>
+                <span className="text-sm font-medium">مستواك</span>
                 <span className="text-sm text-green-600 arabic-numbers">
                   {health.questionsCount.toLocaleString("ar-SA")} سؤال
                 </span>

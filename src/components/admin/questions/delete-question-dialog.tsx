@@ -61,7 +61,7 @@ export function DeleteQuestionDialog({ question, open, onOpenChange }: DeleteQue
         <AlertDialogHeader>
           <AlertDialogTitle>هل أنت متأكد تماماً؟</AlertDialogTitle>
           <AlertDialogDescription>
-            لا يمكن التراجع عن هذا الإجراء. سيؤدي هذا إلى حذف السؤال نهائياً من بنك الأسئلة.
+            لا يمكن التراجع عن هذا الإجراء. سيؤدي هذا إلى حذف السؤال نهائياً من مستواك.
             <br />
             <br />
             <strong>السؤال:</strong> {question.questionText.substring(0, 100)}

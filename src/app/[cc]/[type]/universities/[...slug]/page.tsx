@@ -206,25 +206,19 @@ async function getSeoForSubjectSlug(subjectSlugPathRaw: string): Promise<SeoMeta
 
 async function fetchQuizPreviewBySlugOrId(quizSlugPathRaw: string): Promise<{ quiz: QuizPreview | null }> {
   const quizSlugPath = stripPrefix(quizSlugPathRaw, "اختبارات");
-  const tags = cacheTags(
-    "student-quizzes",
-    "student-quiz-preview",
-    CACHE_TAGS.public.quizzes,
-    CACHE_TAGS.public.seo,
-  );
 
   const bySlug = await fetchJSON<QuizPreview>(
     `/api/v1/student/quizzes/preview/by-slug/${encodeSlugPath(quizSlugPath)}`,
-    { next: { tags } },
-    21600
+    { cache: "no-store" },
+    0
   );
   if (bySlug.ok && bySlug.data) return { quiz: bySlug.data };
 
   if (!quizSlugPath.includes("/")) {
     const byId = await fetchJSON<QuizPreview>(
       `/api/v1/student/quizzes/preview/by-id/${encodeURIComponent(quizSlugPath)}`,
-      { next: { tags } },
-      21600
+      { cache: "no-store" },
+      0
     );
     if (byId.ok && byId.data) return { quiz: byId.data };
   }
@@ -236,12 +230,8 @@ async function getSeoForQuizSlug(quizSlugPathRaw: string): Promise<SeoMeta | nul
   const quizSlugPath = stripPrefix(quizSlugPathRaw, "اختبارات");
   const r = await fetchJSON<SeoMeta>(
     `/api/v1/student/seo/quiz/${encodeSlugPath(quizSlugPath)}`,
-    {
-      next: {
-        tags: cacheTags("student-quiz-preview", CACHE_TAGS.public.seo, CACHE_TAGS.public.quizzes),
-      },
-    },
-    21600
+    { cache: "no-store" },
+    0
   );
   return r.ok ? r.data : null;
 }

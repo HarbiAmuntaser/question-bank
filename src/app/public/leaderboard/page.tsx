@@ -1,7 +1,20 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 
 import { StaticPageShell, StaticSectionCard } from "@/components/public/static-page-shell";
 import { Button } from "@/components/ui/button";
+
+export const metadata: Metadata = {
+  title: "لوحة المتصدرين | مستواك",
+  description: "صفحة المتصدرين في مستواك ستتوفر لاحقًا عند جاهزية بيانات حقيقية.",
+  alternates: {
+    canonical: "/public/leaderboard",
+  },
+  robots: {
+    index: false,
+    follow: true,
+  },
+};
 
 export default function LeaderboardPage() {
   return (

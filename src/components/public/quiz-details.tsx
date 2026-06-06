@@ -14,7 +14,6 @@ import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 
 import type { InstitutionType } from "@/config/regions";
-import { CACHE_TAGS, cacheTags } from "@/lib/cache-tags";
 import { fetchJSON } from "@/lib/server/student-fetch";
 import { stripPrefix, encodeSlugPath } from "@/lib/public/slug-utils";
 
@@ -74,18 +73,12 @@ function normalizeInstitutionType(v: string | null): InstitutionType | null {
 
 async function fetchQuizPreviewBySlugOrId(quizSlugPathRaw: string) {
   const quizSlugPath = stripPrefix(quizSlugPathRaw, "اختبارات");
-  const tags = cacheTags(
-    "student-quizzes",
-    "student-quiz-preview",
-    CACHE_TAGS.public.quizzes,
-    CACHE_TAGS.public.seo,
-  );
 
   // 1) slug
   const bySlug = await fetchJSON<QuizPreview>(
     `/api/v1/student/quizzes/preview/by-slug/${encodeSlugPath(quizSlugPath)}`,
-    { next: { tags } },
-    21600,
+    { cache: "no-store" },
+    0,
   );
   if (bySlug.ok && bySlug.data) return { quiz: bySlug.data };
 
@@ -93,12 +86,8 @@ async function fetchQuizPreviewBySlugOrId(quizSlugPathRaw: string) {
   if (!quizSlugPath.includes("/")) {
     const byId = await fetchJSON<QuizPreview>(
       `/api/v1/student/quizzes/preview/by-id/${encodeURIComponent(quizSlugPath)}`,
-      {
-        next: {
-          tags: cacheTags(...tags, CACHE_TAGS.public.quiz(quizSlugPath)),
-        },
-      },
-      21600,
+      { cache: "no-store" },
+      0,
     );
     if (byId.ok && byId.data) return { quiz: byId.data };
   }

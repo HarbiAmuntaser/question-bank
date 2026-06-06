@@ -82,7 +82,7 @@ export async function GET(_req: Request, { params }: RouteContext) {
     if (!data) return bad("not_found", undefined, 404);
 
     const headers = new Headers({
-      "cache-control": CACHE_CONTROL.publicSMaxage(CACHE_TTL.publicLong),
+      "cache-control": CACHE_CONTROL.PRIVATE_NO_STORE,
     });
     return json({ data }, { status: 200, headers });
   } catch {

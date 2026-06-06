@@ -121,7 +121,7 @@ export const HERO_I18N: Record<Lang, Record<CountryKey, HeroCopy>> = {
       badgeTemplate: "منصة التعلم الرائدة في {{country}}",
       slides: [
         {
-          title: "بنك الأسئلة السعودي",
+          title: "مستواك",
           subtitle: "اختبارات دقيقة ومتجددة",
           description: "مصادر موثوقة تساعدك على الاستعداد المسبق بثقة.",
           image: "/images/hero/hero-1.svg",
@@ -178,7 +178,7 @@ title: "مجتمع طلاب السعودية",
       badgeTemplate: "منصة التعلم المتكاملة في {{country}}",
       slides: [
         {
-title: "بنك الأسئلة اليمن",
+title: "مستواك",
           subtitle: "جاهز للاختبارات الوزارية والجامعية",
           description: "محتوى مصمم ليساعدك على اجتياز الاختبارات بثقة.",
           image: "/images/hero/hero-1.svg",
@@ -295,7 +295,7 @@ ctaSecondaryLabel: "استعراض الاختبارات الأكاديمية",
       badgeTemplate: "Leading learning in {{country}}",
       slides: [
         {
-          title: "Saudi Question Bank",
+          title: "Mustawak",
           subtitle: "Accurate & fresh",
           description: "Trusted sources to help you prepare confidently.",
           image: "/images/hero/hero-1.svg",
@@ -352,7 +352,7 @@ ctaSecondaryLabel: "استعراض الاختبارات الأكاديمية",
       badgeTemplate: "Your learning hub in {{country}}",
       slides: [
         {
-          title: "Yemen Question Bank",
+          title: "Mustawak",
           subtitle: "For national & university exams",
           description: "Content tailored to help you pass with confidence.",
           image: "/images/hero/hero-1.svg",

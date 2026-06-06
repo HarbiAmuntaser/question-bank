@@ -45,7 +45,7 @@ const pageDescription = "تصفح اختبارات الجامعات والتخص
 export const metadata: Metadata = {
   title: pageTitle,
   description: pageDescription,
-  robots: { index: true, follow: true },
+  robots: { index: false, follow: true },
   openGraph: {
     title: pageTitle,
     description: pageDescription,

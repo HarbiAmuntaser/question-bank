@@ -26,7 +26,7 @@ export default async function QuestionsPage({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">الأسئلة</h1>
-          <p className="mt-2 text-gray-600 dark:text-gray-400">إدارة بنك الأسئلة في النظام</p>
+          <p className="mt-2 text-gray-600 dark:text-gray-400">إدارة أسئلة مستواك في النظام</p>
         </div>
         <QuestionDialog>
           <Button>
