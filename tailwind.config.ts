@@ -70,13 +70,13 @@ const config: Config = {
         sm: "calc(var(--radius) - 4px)",
       },
       fontFamily: {
-        sans: ["Inter", "system-ui", "sans-serif"],
-        serif: ["Playfair Display", "serif"],
+        sans: ["Cairo", "system-ui", "sans-serif"],
+        serif: ["Cairo", "system-ui", "sans-serif"],
         arabic: ["Cairo", "system-ui", "sans-serif"],
       },
       fontSize: {
-        display: ["clamp(2.5rem, 5vw, 4rem)", { lineHeight: "1.1", letterSpacing: "-0.05em" }],
-        hero: ["clamp(2rem, 4vw, 3rem)", { lineHeight: "1.2", letterSpacing: "-0.025em" }],
+        display: ["clamp(2.5rem, 5vw, 4rem)", { lineHeight: "1.1", letterSpacing: "0" }],
+        hero: ["clamp(2rem, 4vw, 3rem)", { lineHeight: "1.2", letterSpacing: "0" }],
       },
       spacing: {
         section: "clamp(4rem, 8vw, 8rem)",

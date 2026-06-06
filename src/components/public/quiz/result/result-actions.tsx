@@ -8,13 +8,16 @@ import { Button } from "@/components/ui/button";
 import { RotateCcw, Share2, Printer, ArrowLeft, CheckCircle } from "lucide-react";
 import { makeQuizKeys } from "../storage";
 
+type NavigatorWithShare = Navigator & {
+  share?: (data: { title?: string; text?: string; url?: string }) => Promise<void>;
+};
+
 async function tryShare(text: string) {
   const url = window.location.href;
+  const nav = window.navigator as NavigatorWithShare;
 
-  // @ts-ignore
-  if (navigator.share) {
-    // @ts-ignore
-    await navigator.share({ title: "نتيجة الاختبار", text, url });
+  if (typeof nav.share === "function") {
+    await nav.share({ title: "نتيجة الاختبار", text, url });
     return true;
   }
 

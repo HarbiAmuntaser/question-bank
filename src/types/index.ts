@@ -19,7 +19,7 @@ export interface CreateUniversityData {
   isActive: boolean
 }
 
-export interface UpdateUniversityData extends CreateUniversityData {}
+export type UpdateUniversityData = CreateUniversityData
 
 export interface Major {
   id: string
@@ -50,7 +50,7 @@ export interface CreateMajorData {
   isActive: boolean
 }
 
-export interface UpdateMajorData extends CreateMajorData {}
+export type UpdateMajorData = CreateMajorData
 
 // Subject types
 export interface SubjectWithRelations extends Subject {
@@ -71,7 +71,7 @@ export interface CreateSubjectData {
   isActive: boolean
 }
 
-export interface UpdateSubjectData extends CreateSubjectData {}
+export type UpdateSubjectData = CreateSubjectData
 
 export interface Subject {
   id: string
@@ -104,7 +104,7 @@ export interface CreateChapterData {
   isActive: boolean
 }
 
-export interface UpdateChapterData extends CreateChapterData {}
+export type UpdateChapterData = CreateChapterData
 
 export interface Chapter {
   id: string
@@ -145,7 +145,7 @@ export interface CreateQuestionData {
   }[]
 }
 
-export interface UpdateQuestionData extends CreateQuestionData {}
+export type UpdateQuestionData = CreateQuestionData
 
 export interface Question {
   id: string

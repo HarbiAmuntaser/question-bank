@@ -11,8 +11,9 @@ export const SITE_URL =
 
 const SITE_DESCRIPTION =
   "مستواك منصة تعليمية عربية للتدريب والمراجعة عبر اختبارات منظمة للجامعات والمدارس والأكاديميات.";
-const BRAND_ICON = "/brand/mustawak-favicon.svg";
-const BRAND_LOGO = "/brand/mustawak-logo.svg";
+const BRAND_ICON = "/brand/mustawak-favicon-32.png";
+const BRAND_APPLE_ICON = "/brand/mustawak-apple-touch-icon.png";
+const BRAND_LOGO = "/brand/mustawak-og.png";
 
 const DEFAULT_ROBOTS = {
   index: true,
@@ -59,8 +60,8 @@ export function baseMetadata(): Metadata {
       images: [
         {
           url: BRAND_LOGO,
-          width: 720,
-          height: 216,
+          width: 1200,
+          height: 630,
           alt: SITE_NAME,
         },
       ],
@@ -73,10 +74,9 @@ export function baseMetadata(): Metadata {
     },
     robots: DEFAULT_ROBOTS,
     icons: {
-      icon: [{ url: BRAND_ICON, type: "image/svg+xml" }],
-      shortcut: [{ url: BRAND_ICON, type: "image/svg+xml" }],
-      apple: [{ url: BRAND_ICON, type: "image/svg+xml" }],
-      other: [{ rel: "mask-icon", url: BRAND_ICON, color: "#0f766e" }],
+      icon: [{ url: BRAND_ICON, type: "image/png", sizes: "32x32" }],
+      shortcut: [{ url: BRAND_ICON, type: "image/png", sizes: "32x32" }],
+      apple: [{ url: BRAND_APPLE_ICON, type: "image/png", sizes: "180x180" }],
     },
     category: "education",
     referrer: "strict-origin-when-cross-origin",

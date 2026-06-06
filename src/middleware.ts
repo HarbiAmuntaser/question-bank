@@ -1,6 +1,6 @@
 // file: src/middleware.ts
-import { withAuth } from "next-auth/middleware";
-import type { NextRequest } from "next/server";
+import { withAuth, type NextRequestWithAuth } from "next-auth/middleware";
+import type { NextFetchEvent, NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
 import {
@@ -51,8 +51,7 @@ function isCountrySegment(seg: string) {
   return norm === seg.toUpperCase(); // لو غير مدعوم normalizeCountry سيعيد DEFAULT → تفشل
 }
 
-export default withAuth(
-  function middleware(req: NextRequest) {
+function publicMiddleware(req: NextRequest) {
     const { pathname } = req.nextUrl;
 
     // 0) لا نتدخل في API أو الأصول الثابتة
@@ -130,17 +129,28 @@ export default withAuth(
 
     applySecurityHeaders(res);
     return res;
+}
+
+const adminMiddleware = withAuth(
+  function adminOnlyMiddleware() {
+    const res = NextResponse.next();
+    applySecurityHeaders(res);
+    return res;
   },
   {
     callbacks: {
-      authorized: ({ token, req }) => {
-        // حماية الأدمن فقط
-        if (req.nextUrl.pathname.startsWith("/admin")) return Boolean(token);
-        return true;
-      },
+      authorized: ({ token }) => Boolean(token),
     },
   }
 );
+
+export default function middleware(req: NextRequest, event: NextFetchEvent) {
+  if (req.nextUrl.pathname.startsWith("/admin")) {
+    return adminMiddleware(req as NextRequestWithAuth, event);
+  }
+
+  return publicMiddleware(req);
+}
 
 export const config = {
   matcher: [
@@ -149,3 +159,4 @@ export const config = {
     "/((?!api|_next|static|assets|favicon.ico|.*\\..*).*)",
   ],
 };
+

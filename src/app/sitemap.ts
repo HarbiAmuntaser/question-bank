@@ -370,7 +370,6 @@ async function quizEntries(): Promise<SitemapEntry[]> {
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
   const staticEntries: MetadataRoute.Sitemap = [
-    entry("/", { lastModified: now, changeFrequency: "daily", priority: 1 }),
     ...Object.entries(SUPPORTED_COUNTRIES).flatMap(([cc, config]) => [
       entry(`/${cc}`, { lastModified: now, changeFrequency: "daily", priority: 0.9 }),
       ...config.types.map((type) =>
