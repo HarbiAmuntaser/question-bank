@@ -1,7 +1,8 @@
 /**
- * ملف نصوص ثابتة لواجهة الهيرو (i18n)
- * يدعم العربية والإنجليزية، ويحتوي على نسخة عامة + تخصيص للسعودية (SA) واليمن (YE).
- * يمكن توسيعه لاحقًا لدول إضافية أو أقسام أخرى.
+ * Hero content for Mustawak.
+ *
+ * The displayed copy is Arabic-only. The `en` key is kept as an alias for
+ * compatibility with older props/imports until a full i18n layer is needed.
  */
 
 export type Lang = "ar" | "en";
@@ -9,401 +10,171 @@ export type InstitutionType = "university" | "school" | "academy";
 
 type SlideIcon = "graduation" | "trophy" | "users";
 type FeatureIcon = "book" | "users" | "trophy";
+type CountryKey = "default" | "SA" | "YE";
 
 export type HeroSlide = {
   title: string;
   subtitle: string;
   description: string;
   image: string;
-  gradient: string; // tailwind gradient classes
+  gradient: string;
   icon: SlideIcon;
 };
 
 export type HeroFeature = {
   title: string;
   description: string;
-  gradient: string; // tailwind gradient classes
-  bgColor: string;  // tailwind color (light/dark safe)
+  gradient: string;
+  bgColor: string;
   icon: FeatureIcon;
 };
 
-export type HeroCopy = {
-  // نص يظهر في الشارة العلوية الصغيرة — يدعم قالب {{country}}
-  badgeTemplate: string;
-  // الشرائح
-  slides: HeroSlide[];
-  // مربعات المزايا
-  features: HeroFeature[];
-  // نصوص الأزرار (الروابط تُبنى في الكومبوننت حسب cc/type)
-  ctaPrimaryLabel: string;   // مثل: "استعراض الجامعات"
-  ctaSecondaryLabel: string; // مثل: "استكشاف الاختبارات"
-  // Placeholder لشريط البحث (إن أردت إظهاره في الهيرو)
-  searchPlaceholder: string;
-
-  ctaTertiaryLabel: string;   // ✅ NEW: استعراض الاختبارات المدرسية (يروح للمدارس)
-
+export type HeroStat = {
+  label: string;
+  description: string;
 };
 
-type CountryKey = "default" | "SA" | "YE";
+export type HeroPreview = {
+  badge: string;
+  title: string;
+  description: string;
+  questions: string;
+  duration: string;
+  level: string;
+  scoreLabel: string;
+  scoreValue: string;
+  progressLabel: string;
+  progressValue: number;
+  successNote: string;
+};
+
+export type HeroCopy = {
+  badgeTemplate: string;
+  title: string;
+  highlightedTitle: string;
+  subtitle: string;
+  description: string;
+  preview: HeroPreview;
+  stats: HeroStat[];
+
+  // Legacy shape kept so old hero helper files remain type-safe if imported later.
+  slides: HeroSlide[];
+  features: HeroFeature[];
+
+  ctaPrimaryLabel: string;
+  ctaSecondaryLabel: string;
+  ctaTertiaryLabel: string;
+  searchPlaceholder: string;
+};
 
 export const COUNTRY_LABELS: Record<string, { ar: string; en: string }> = {
-  SA: { ar: "السعودية", en: "Saudi Arabia" },
-  YE: { ar: "اليمن", en: "Yemen" },
+  SA: { ar: "السعودية", en: "السعودية" },
+  YE: { ar: "اليمن", en: "اليمن" },
 };
 
 export const TYPE_LABELS: Record<InstitutionType, { ar: string; en: string }> = {
-  university: { ar: "الجامعات", en: "Universities" },
-  school: { ar: "المدارس", en: "Schools" },
-  academy: { ar: "الأكاديميات", en: "Academies" },
+  university: { ar: "الجامعات", en: "الجامعات" },
+  school: { ar: "المدارس", en: "المدارس" },
+  academy: { ar: "الأكاديميات", en: "الأكاديميات" },
+};
+
+const sharedFeatures: HeroFeature[] = [
+  {
+    icon: "book",
+    title: "تنظيم حسب المسار",
+    description: "انتقل من الجهة التعليمية إلى التخصص ثم المقرر والاختبار بسهولة.",
+    gradient: "from-teal-500 to-cyan-500",
+    bgColor: "bg-teal-50 dark:bg-teal-950/30",
+  },
+  {
+    icon: "trophy",
+    title: "تدريب أقرب للواقع",
+    description: "نماذج منظمة تساعدك على قياس جاهزيتك قبل الاختبار.",
+    gradient: "from-emerald-500 to-teal-500",
+    bgColor: "bg-emerald-50 dark:bg-emerald-950/30",
+  },
+  {
+    icon: "users",
+    title: "تجربة واضحة",
+    description: "واجهة عربية مباشرة ونتائج مفهومة بدون تعقيد.",
+    gradient: "from-cyan-500 to-sky-500",
+    bgColor: "bg-cyan-50 dark:bg-cyan-950/30",
+  },
+];
+
+function buildSlides(title: string, subtitle: string, description: string): HeroSlide[] {
+  return [
+    {
+      title,
+      subtitle,
+      description,
+      image: "/images/hero/hero-1.svg",
+      gradient: "from-teal-700 via-emerald-600 to-cyan-500",
+      icon: "graduation",
+    },
+  ];
+}
+
+const basePreview: HeroPreview = {
+  badge: "محاكاة اختبار",
+  title: "اختبار تدريبي",
+  description: "تدرّب قبل الاختبار الحقيقي",
+  questions: "25 سؤال",
+  duration: "30 دقيقة",
+  level: "متوسط",
+  scoreLabel: "جاهزيتك الحالية",
+  scoreValue: "82%",
+  progressLabel: "مؤشر الجاهزية",
+  progressValue: 82,
+  successNote: "مؤشر جيد، راجع الأسئلة الصعبة قبل موعد الاختبار.",
+};
+
+const defaultCopy: HeroCopy = {
+  badgeTemplate: "منصة مستواك للطلاب في {{country}}",
+  title: "اختبر جاهزيتك",
+  highlightedTitle: "وتدرّب بثقة",
+  subtitle: "نماذج وأسئلة منظمة تصل بك إلى الاختبار المناسب بسرعة.",
+  description:
+    "نماذج اختبارات وأسئلة منظمة حسب الدولة، الجهة التعليمية، التخصص، والمقرر؛ لتراجع بطريقة أوضح وتقيس مستواك قبل الاختبار.",
+  preview: basePreview,
+  stats: [
+    { label: "جهات تعليمية", description: "قابل للتوسع" },
+    { label: "مقررات منظمة", description: "تصنيف واضح" },
+    { label: "اختبارات تدريبية", description: "تدريب وقياس" },
+  ],
+  slides: buildSlides(
+    "اختبر جاهزيتك",
+    "وتدرّب بثقة",
+    "نماذج اختبارات وأسئلة منظمة تساعدك على معرفة مستواك."
+  ),
+  features: sharedFeatures,
+  ctaPrimaryLabel: "استعراض المؤسسات",
+  ctaSecondaryLabel: "استعراض الاختبارات الأكاديمية",
+  ctaTertiaryLabel: "استعراض الاختبارات المدرسية",
+  searchPlaceholder: "ابحث عن جامعة، تخصص، مقرر، أو اختبار...",
+};
+
+const saCopy: HeroCopy = {
+  ...defaultCopy,
+  ctaPrimaryLabel: "استعراض الجامعات",
+};
+
+const yeCopy: HeroCopy = {
+  ...defaultCopy,
+  badgeTemplate: "منصة مستواك للطلاب في {{country}}",
+  subtitle: "اختبارات منظمة تساعدك على المراجعة وقياس الجاهزية.",
+  description:
+    "اختر الجهة التعليمية ثم التخصص والمقرر، وابدأ التدريب على نماذج واضحة تساعدك على قياس مستواك قبل الاختبار.",
+  ctaPrimaryLabel: "استعراض المؤسسات",
+};
+
+const arContent: Record<CountryKey, HeroCopy> = {
+  default: defaultCopy,
+  SA: saCopy,
+  YE: yeCopy,
 };
 
 export const HERO_I18N: Record<Lang, Record<CountryKey, HeroCopy>> = {
-  ar: {
-    default: {
-      badgeTemplate: "منصة تعليم {{country}}",
-      slides: [
-        {
-          title: "تعلّم بذكاء",
-          subtitle: "اختبارات تفاعلية وتحليل أداء",
-          description: "تدرّب على بنوك أسئلة دقيقة وتابِع تقدّمك خطوة بخطوة.",
-          image: "/images/hero/hero-1.svg",
-          gradient: "from-green-600 via-green-500 to-emerald-400",
-          icon: "graduation",
-        },
-        {
-          title: "كل شيء في مكان واحد",
-          subtitle: "تخصصات ومقررات ومؤسسات",
-          description: "استكشف المؤسسات والتخصصات والاختبارات من نفس الواجهة.",
-          image: "/images/hero/hero-2.svg",
-          gradient: "from-blue-600 via-blue-500 to-cyan-400",
-          icon: "trophy",
-        },
-        {
-          title: "مجتمع متعاون",
-          subtitle: "انضم لآلاف الطلاب",
-          description: "تعلم مع مجتمع نشِط وشارك خبراتك مع الآخرين.",
-          image: "/images/hero/hero-3.svg",
-          gradient: "from-purple-600 via-purple-500 to-pink-400",
-          icon: "users",
-        },
-      ],
-      features: [
-        {
-          icon: "book",
-          title: "مكتبة شاملة",
-          description: "آلاف الأسئلة والتجميعات المصنّفة بدقة.",
-          gradient: "from-blue-500 to-cyan-400",
-          bgColor: "bg-blue-50 dark:bg-blue-900/20",
-        },
-        {
-          icon: "users",
-          title: "مجتمع تفاعلي",
-          description: "مناقشات ونصائح عملية لتحسين استراتيجيتك.",
-          gradient: "from-green-500 to-emerald-400",
-          bgColor: "bg-green-50 dark:bg-green-900/20",
-        },
-        {
-          icon: "trophy",
-          title: "تحليلات دقيقة",
-          description: "لوحة أداء تُظهر نقاط قوتك ونقاط التحسين.",
-          gradient: "from-purple-500 to-pink-400",
-          bgColor: "bg-purple-50 dark:bg-purple-900/20",
-        },
-      ],
-      ctaPrimaryLabel: "استعراض المؤسسات",
-      ctaTertiaryLabel: "استعرض الاختبارات المدرسية",
-
-      ctaSecondaryLabel: "استكشاف الاختبارات",
-      searchPlaceholder: "ابحث عن اختبار، مقرر، أو مؤسسة...",
-    },
-    SA: {
-      // تخصيص طفيف للسعودية
-      badgeTemplate: "منصة التعلم الرائدة في {{country}}",
-      slides: [
-        {
-          title: "مستواك",
-          subtitle: "اختبارات دقيقة ومتجددة",
-          description: "مصادر موثوقة تساعدك على الاستعداد المسبق بثقة.",
-          image: "/images/hero/hero-1.svg",
-          gradient: "from-green-600 via-green-500 to-emerald-400",
-          icon: "graduation",
-        },
-        {
-          title: "تتبع تقدمك",
-          subtitle: "تقارير وقياسات مفيدة",
-          description: "حلّل أداءك وحدد مسارات تحسينك بسهولة.",
-          image: "/images/hero/hero-2.svg",
-          gradient: "from-blue-600 via-blue-500 to-cyan-400",
-          icon: "trophy",
-        },
-        {
-title: "مجتمع طلاب السعودية",
-          subtitle: "تبادل الخبرة",
-          description: "استفد من خبرات زملائك في مختلف التخصصات.",
-          image: "/images/hero/hero-3.svg",
-          gradient: "from-purple-600 via-purple-500 to-pink-400",
-          icon: "users",
-        },
-      ],
-      features: [
-        {
-          icon: "book",
-          title: "بنوك واسعة",
-          description: "أسئلة من جامعات ومؤسسات سعودية متنوعة.",
-          gradient: "from-blue-500 to-cyan-400",
-          bgColor: "bg-blue-50 dark:bg-blue-900/20",
-        },
-        {
-          icon: "users",
-          title: "مجتمع نشِط",
-          description: "مجموعات، نصائح، ومشاركة خبرات محلية.",
-          gradient: "from-green-500 to-emerald-400",
-          bgColor: "bg-green-50 dark:bg-green-900/20",
-        },
-        {
-          icon: "trophy",
-          title: "قياس الأداء",
-          description: "أدوات قياس تُبرز نقاط القوة والضعف.",
-          gradient: "from-purple-500 to-pink-400",
-          bgColor: "bg-purple-50 dark:bg-purple-900/20",
-        },
-      ],
-      ctaPrimaryLabel: "استعراض المؤسسات",
-      ctaTertiaryLabel: "استعرض الاختبارات المدرسية",
-
-      ctaSecondaryLabel: "استكشاف الاختبارات",
-      searchPlaceholder: "ابحث عن اختبار، مقرر، أو جامعة...",
-    },
-    YE: {
-      badgeTemplate: "منصة التعلم المتكاملة في {{country}}",
-      slides: [
-        {
-title: "مستواك",
-          subtitle: "جاهز للاختبارات الوزارية والجامعية",
-          description: "محتوى مصمم ليساعدك على اجتياز الاختبارات بثقة.",
-          image: "/images/hero/hero-1.svg",
-          gradient: "from-emerald-600 via-emerald-500 to-teal-400",
-          icon: "graduation",
-        },
-        {
-          title: "تدريب فعّال",
-          subtitle: "اختبارات تحاكي الواقع",
-          description: "جرّب نماذج واقعية وتدرّب على إدارة الوقت.",
-          image: "/images/hero/hero-2.svg",
-          gradient: "from-cyan-600 via-sky-500 to-blue-400",
-          icon: "trophy",
-        },
-        {
-          title: "مجتمع اليمن",
-          subtitle: "مساعدة ومشاركة",
-          description: "تواصل مع زملائك وشارك تجاربك للدعم المتبادل.",
-          image: "/images/hero/hero-3.svg",
-          gradient: "from-fuchsia-600 via-pink-500 to-rose-400",
-          icon: "users",
-        },
-      ],
-      features: [
-        {
-          icon: "book",
-          title: "مصادر محلية",
-          description: "محتوى يتوافق مع المناهج اليمنية.",
-          gradient: "from-sky-500 to-cyan-400",
-          bgColor: "bg-sky-50 dark:bg-sky-900/20",
-        },
-        {
-          icon: "users",
-          title: "تفاعل حي",
-          description: "استفسارات ومناقشات تفيد الجميع.",
-          gradient: "from-emerald-500 to-teal-400",
-          bgColor: "bg-emerald-50 dark:bg-emerald-900/20",
-        },
-        {
-          icon: "trophy",
-          title: "نتائج أفضل",
-          description: "ركّز على مكامن الضعف وارتقِ بمستواك.",
-          gradient: "from-fuchsia-500 to-rose-400",
-          bgColor: "bg-fuchsia-50 dark:bg-fuchsia-900/20",
-        },
-      ],
-      ctaPrimaryLabel: "استعراض المؤسسات",
-      ctaTertiaryLabel: "استعرض الاختبارات المدرسية",
-
-ctaSecondaryLabel: "استعراض الاختبارات الأكاديمية",
-      searchPlaceholder: "ابحث عن اختبار، مقرر، أو مؤسسة...",
-    },
-  },
-
-  en: {
-    default: {
-      badgeTemplate: "A learning platform in {{country}}",
-      slides: [
-        {
-          title: "Learn Smarter",
-          subtitle: "Interactive exams & analytics",
-          description: "Practice with accurate question banks and track your progress.",
-          image: "/images/hero/hero-1.svg",
-          gradient: "from-green-600 via-green-500 to-emerald-400",
-          icon: "graduation",
-        },
-        {
-          title: "All-in-One",
-          subtitle: "Programs, courses, institutions",
-          description: "Explore institutions, majors, and exams in one place.",
-          image: "/images/hero/hero-2.svg",
-          gradient: "from-blue-600 via-blue-500 to-cyan-400",
-          icon: "trophy",
-        },
-        {
-          title: "Collaborative Community",
-          subtitle: "Join thousands of learners",
-          description: "Learn with peers and share your experiences.",
-          image: "/images/hero/hero-3.svg",
-          gradient: "from-purple-600 via-purple-500 to-pink-400",
-          icon: "users",
-        },
-      ],
-      features: [
-        {
-          icon: "book",
-          title: "Rich Library",
-          description: "Thousands of curated questions and collections.",
-          gradient: "from-blue-500 to-cyan-400",
-          bgColor: "bg-blue-50 dark:bg-blue-900/20",
-        },
-        {
-          icon: "users",
-          title: "Active Community",
-          description: "Discussions and practical tips to improve.",
-          gradient: "from-green-500 to-emerald-400",
-          bgColor: "bg-green-50 dark:bg-green-900/20",
-        },
-        {
-          icon: "trophy",
-          title: "Powerful Analytics",
-          description: "Dashboards to reveal strengths and gaps.",
-          gradient: "from-purple-500 to-pink-400",
-          bgColor: "bg-purple-50 dark:bg-purple-900/20",
-        },
-      ],
-      ctaPrimaryLabel: "Browse institutions",
-      ctaTertiaryLabel: "Browse School Exams",
-
-      ctaSecondaryLabel: "Browse Academies",
-      searchPlaceholder: "Search exams, courses, or institutions...",
-    },
-    SA: {
-      badgeTemplate: "Leading learning in {{country}}",
-      slides: [
-        {
-          title: "Mustawak",
-          subtitle: "Accurate & fresh",
-          description: "Trusted sources to help you prepare confidently.",
-          image: "/images/hero/hero-1.svg",
-          gradient: "from-green-600 via-green-500 to-emerald-400",
-          icon: "graduation",
-        },
-        {
-          title: "Track Progress",
-          subtitle: "Useful reports",
-          description: "Analyze performance and plan how to improve.",
-          image: "/images/hero/hero-2.svg",
-          gradient: "from-blue-600 via-blue-500 to-cyan-400",
-          icon: "trophy",
-        },
-        {
-          title: "Saudi Community",
-          subtitle: "Share experience",
-          description: "Learn from peers across many majors.",
-          image: "/images/hero/hero-3.svg",
-          gradient: "from-purple-600 via-purple-500 to-pink-400",
-          icon: "users",
-        },
-      ],
-      features: [
-        {
-          icon: "book",
-          title: "Wide Banks",
-          description: "Questions from Saudi institutions.",
-          gradient: "from-blue-500 to-cyan-400",
-          bgColor: "bg-blue-50 dark:bg-blue-900/20",
-        },
-        {
-          icon: "users",
-          title: "Active Community",
-          description: "Local groups and helpful discussions.",
-          gradient: "from-green-500 to-emerald-400",
-          bgColor: "bg-green-50 dark:bg-green-900/20",
-        },
-        {
-          icon: "trophy",
-          title: "Performance",
-          description: "Measure strengths and weaknesses.",
-          gradient: "from-purple-500 to-pink-400",
-          bgColor: "bg-purple-50 dark:bg-purple-900/20",
-        },
-      ],
-      ctaPrimaryLabel: "Browse institutions",
-      ctaTertiaryLabel: "Browse School Exams",
-
-      ctaSecondaryLabel: "Explore exams",
-      searchPlaceholder: "Search exams, courses, or universities...",
-    },
-    YE: {
-      badgeTemplate: "Your learning hub in {{country}}",
-      slides: [
-        {
-          title: "Mustawak",
-          subtitle: "For national & university exams",
-          description: "Content tailored to help you pass with confidence.",
-          image: "/images/hero/hero-1.svg",
-          gradient: "from-emerald-600 via-emerald-500 to-teal-400",
-          icon: "graduation",
-        },
-        {
-          title: "Effective Training",
-          subtitle: "Realistic mock exams",
-          description: "Practice time management with authentic models.",
-          image: "/images/hero/hero-2.svg",
-          gradient: "from-cyan-600 via-sky-500 to-blue-400",
-          icon: "trophy",
-        },
-        {
-          title: "Yemen Community",
-          subtitle: "Support & sharing",
-          description: "Connect and learn with learners like you.",
-          image: "/images/hero/hero-3.svg",
-          gradient: "from-fuchsia-600 via-pink-500 to-rose-400",
-          icon: "users",
-        },
-      ],
-      features: [
-        {
-          icon: "book",
-          title: "Local Content",
-          description: "Materials aligned with Yemeni curricula.",
-          gradient: "from-sky-500 to-cyan-400",
-          bgColor: "bg-sky-50 dark:bg-sky-900/20",
-        },
-        {
-          icon: "users",
-          title: "Live Interaction",
-          description: "Q&A and helpful discussions.",
-          gradient: "from-emerald-500 to-teal-400",
-          bgColor: "bg-emerald-50 dark:bg-emerald-900/20",
-        },
-        {
-          icon: "trophy",
-          title: "Better Results",
-          description: "Focus on gaps and level up.",
-          gradient: "from-fuchsia-500 to-rose-400",
-          bgColor: "bg-fuchsia-50 dark:bg-fuchsia-900/20",
-        },
-      ],
-      ctaPrimaryLabel: "Browse institutions",
-      ctaTertiaryLabel: "Browse School Exams",
-
-      ctaSecondaryLabel: "Explore exams",
-      searchPlaceholder: "Search exams, courses, or institutions...",
-    },
-  },
+  ar: arContent,
+  en: arContent,
 };

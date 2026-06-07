@@ -66,8 +66,9 @@ export function PlatformStatsSection({ stats }: { stats: PlatformStatsSnapshot |
   if (items.length === 0) return null;
 
   return (
-    <section className="container py-8 sm:py-12" aria-labelledby="platform-stats-heading">
-      <div className="rounded-2xl border bg-card/95 p-5 shadow-sm sm:p-6 lg:p-8">
+    <section className="py-8 sm:py-12" aria-labelledby="platform-stats-heading">
+      <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="rounded-2xl border bg-card/95 p-5 shadow-sm sm:p-6 lg:p-8">
         <div className="mb-6 flex flex-col gap-3 sm:mb-8 md:flex-row md:items-end md:justify-between">
           <div className="max-w-3xl">
             <p className="text-sm font-semibold text-primary">إحصائيات حقيقية</p>
@@ -107,6 +108,7 @@ export function PlatformStatsSection({ stats }: { stats: PlatformStatsSnapshot |
             </Card>
           ))}
         </div>
+      </div>
       </div>
     </section>
   );

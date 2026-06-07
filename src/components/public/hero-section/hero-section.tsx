@@ -1,252 +1,80 @@
-// file: src/components/public/hero-section/hero-section.tsx
-"use client";
+import { Sparkles } from "lucide-react";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import dynamic from "next/dynamic";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { Star } from "lucide-react";
-
-import { Badge } from "@/components/ui/badge";
 import {
   COUNTRY_LABELS,
   HERO_I18N,
   TYPE_LABELS,
-  type HeroCopy,
   type Lang,
 } from "@/content/hero";
 
 import { HeroActions } from "./hero-actions";
+import { HeroPreviewCard } from "./hero-preview-card";
 import type { HeroSectionProps } from "./types";
-import {
-  buildHeroLinks,
-  formatBadge,
-  getDocumentLang,
-  normalizeCc,
-} from "./utils";
-import { useMediaQuery } from "./use-media-query";
-
-type HeroBackgroundProps = { animate: boolean };
-type FeaturesGridProps = { copy: HeroCopy; allowMotion?: boolean };
-
-const LazyHeroBackground = dynamic<HeroBackgroundProps>(
-  () => import("./background").then((mod) => mod.HeroBackground),
-  {
-    ssr: false,
-    loading: () => <StaticHeroBackground />,
-  },
-);
-
-const LazyFeaturesGrid = dynamic<FeaturesGridProps>(
-  () => import("./features-grid").then((mod) => mod.FeaturesGrid),
-  {
-    ssr: false,
-    loading: () => <FeaturesGridFallback />,
-  },
-);
-
-function StaticHeroBackground() {
-  return (
-    <div className="absolute inset-0" aria-hidden>
-      <div className="absolute inset-0 bg-[url('/patterns/islamic-pattern.svg')] opacity-5" />
-    </div>
-  );
-}
-
-function FeaturesGridFallback() {
-  return (
-    <div
-      className="mt-8 grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-3 lg:mt-12 lg:gap-8"
-      aria-hidden
-    >
-      {Array.from({ length: 3 }).map((_, index) => (
-        <div
-          key={index}
-          className="min-h-[200px] rounded-xl border-2 bg-white/60 shadow-sm backdrop-blur-sm dark:bg-gray-800/60"
-        >
-          <div className="flex h-full flex-col items-center p-5 text-center sm:p-6 lg:p-8">
-            <div className="mb-6 h-16 w-16 rounded-2xl bg-muted/70" />
-            <div className="mb-4 h-6 w-2/3 rounded bg-muted/70" />
-            <div className="h-4 w-full rounded bg-muted/70" />
-            <div className="mt-2 h-4 w-4/5 rounded bg-muted/70" />
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
+import { buildHeroLinks, formatBadge, normalizeCc, normalizeType } from "./utils";
 
 export function HeroSection({
   cc: rawCc = "SA",
-  type = "university",
-  lang: rawLang,
+  type: rawType = "university",
+  lang: rawLang = "ar",
 }: HeroSectionProps) {
   const cc = normalizeCc(rawCc);
-  const [lang, setLang] = useState<Lang>(rawLang ?? "ar");
-
-  useEffect(() => {
-    if (!rawLang) setLang(getDocumentLang());
-  }, [rawLang]);
-
-  const copy = useMemo(() => {
-    const byLang = HERO_I18N[lang] ?? HERO_I18N.ar;
-    return byLang[cc as "SA" | "YE"] || byLang.default;
-  }, [lang, cc]);
-
-  const countryLabel = COUNTRY_LABELS[cc]?.[lang] ?? cc;
-  const typeLabel = TYPE_LABELS[type]?.[lang] ?? type;
-
-  const [currentSlide, setCurrentSlide] = useState(0);
-  const [paused, setPaused] = useState(false);
-  const reduceMotion = useReducedMotion();
-  const intervalRef = useRef<number | null>(null);
-  const isSmallScreen = useMediaQuery("(max-width: 1024px)");
-  const allowHeavyMotion = !reduceMotion && !isSmallScreen;
-  const [decorationsReady, setDecorationsReady] = useState(false);
-
-  // Defer decorative chunks so the primary hero copy gets render priority.
-  useEffect(() => {
-    const timer = window.setTimeout(() => setDecorationsReady(true), 350);
-    return () => window.clearTimeout(timer);
-  }, []);
-
-  useEffect(() => {
-    const onVisibilityChange = () =>
-      setPaused(document.visibilityState !== "visible");
-
-    document.addEventListener("visibilitychange", onVisibilityChange);
-    return () =>
-      document.removeEventListener("visibilitychange", onVisibilityChange);
-  }, []);
-
-  useEffect(() => {
-    if (paused || reduceMotion) return;
-
-    const delay = isSmallScreen ? 6500 : 4000;
-    intervalRef.current = window.setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % copy.slides.length);
-    }, delay);
-
-    return () => {
-      if (intervalRef.current) window.clearInterval(intervalRef.current);
-    };
-  }, [copy.slides.length, isSmallScreen, paused, reduceMotion]);
-
-  const slide = copy.slides[currentSlide];
+  const type = normalizeType(rawType);
+  const lang: Lang = rawLang === "en" ? "en" : "ar";
+  const copy = HERO_I18N[lang]?.[cc as "SA" | "YE"] ?? HERO_I18N.ar.default;
+  const countryLabel = COUNTRY_LABELS[cc]?.ar ?? cc;
+  const typeLabel = TYPE_LABELS[type]?.ar ?? "المؤسسات";
   const { browseAcademiesHref, browseSchoolsHref, browseTypeHref } =
     buildHeroLinks(cc, type);
 
   return (
     <section
-      className="relative flex items-center justify-center overflow-hidden bg-gradient-to-br from-gray-50 via-white to-gray-100 py-8 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 sm:py-10 lg:min-h-[78vh] lg:py-12"
-      aria-label={lang === "ar" ? "القسم التعريفي الرئيسي" : "Hero section"}
+      className="relative overflow-hidden border-b bg-gradient-to-br from-background via-teal-50/50 to-background dark:via-teal-950/20"
+      aria-label="القسم التعريفي الرئيسي"
     >
-      {decorationsReady ? (
-        <LazyHeroBackground animate={allowHeavyMotion} />
-      ) : (
-        <StaticHeroBackground />
-      )}
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-l from-transparent via-teal-400/60 to-transparent" aria-hidden />
+      <div className="pointer-events-none absolute -left-24 top-24 h-72 w-72 rounded-full bg-cyan-400/10 blur-3xl dark:bg-cyan-500/10" aria-hidden />
+      <div className="pointer-events-none absolute -right-28 bottom-8 h-80 w-80 rounded-full bg-teal-500/10 blur-3xl dark:bg-teal-400/10" aria-hidden />
 
-      <div
-        className="relative mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8"
-        onMouseEnter={() => setPaused(true)}
-        onMouseLeave={() => setPaused(false)}
-        onFocus={() => setPaused(true)}
-        onBlur={() => setPaused(false)}
-      >
-        <div className="mx-auto max-w-5xl text-center">
-          {!reduceMotion && (
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-            >
-              <Badge
-                variant="secondary"
-                className="mb-5 rounded-full border-green-200 bg-gradient-to-r from-green-100 to-emerald-100 px-5 py-2 text-xs shadow-md dark:border-green-800 dark:from-green-900 dark:to-emerald-900 sm:mb-6 sm:px-6 sm:py-3 sm:text-sm"
-              >
-                <Star className="ml-2 h-4 w-4 text-yellow-500" aria-hidden />
-                {formatBadge(copy.badgeTemplate, countryLabel)}
-              </Badge>
-            </motion.div>
-          )}
+      <div className="relative mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 sm:py-14 lg:px-8 lg:py-16">
+        <div className="grid items-center gap-8 lg:grid-cols-[minmax(0,1.08fr)_minmax(320px,0.92fr)] lg:gap-12">
+          <div className="mx-auto max-w-3xl text-center lg:mx-0 lg:text-right">
+            <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-teal-200 bg-background/80 px-4 py-2 text-xs font-bold text-teal-800 shadow-sm dark:border-teal-900/70 dark:bg-slate-950/60 dark:text-teal-200">
+              <Sparkles className="h-4 w-4" aria-hidden />
+              {formatBadge(copy.badgeTemplate, countryLabel)}
+            </div>
 
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={currentSlide}
-              initial={reduceMotion ? false : { opacity: 0, y: 24 }}
-              animate={reduceMotion ? {} : { opacity: 1, y: 0 }}
-              exit={reduceMotion ? {} : { opacity: 0, y: -24 }}
-              transition={{ duration: 0.55 }}
-              className="mx-auto min-h-[260px] max-w-4xl space-y-3 sm:min-h-[270px] sm:space-y-4 lg:min-h-[300px]"
-              aria-live="polite"
-            >
-              <h1 className="text-balance text-3xl font-bold leading-tight sm:text-4xl lg:text-6xl xl:text-7xl">
-                <span
-                  className={`bg-gradient-to-r ${slide.gradient} bg-clip-text text-transparent`}
-                >
-                  {slide.title}
-                </span>
-              </h1>
-              <h2 className="text-lg font-semibold text-gray-700 dark:text-gray-300 sm:text-2xl lg:text-3xl">
-                {slide.subtitle}
-              </h2>
-              <p className="mx-auto max-w-3xl text-base leading-8 text-gray-600 dark:text-gray-400 sm:text-lg lg:text-xl lg:leading-9">
-                {slide.description}
-              </p>
-            </motion.div>
-          </AnimatePresence>
+            <h1 className="text-balance text-4xl font-extrabold leading-[1.18] tracking-normal text-foreground sm:text-5xl lg:text-6xl">
+              {copy.title}
+              <span className="mt-2 block bg-gradient-to-l from-teal-700 via-emerald-600 to-cyan-600 bg-clip-text text-transparent dark:from-teal-300 dark:via-emerald-300 dark:to-cyan-300">
+                {copy.highlightedTitle}
+              </span>
+            </h1>
 
-          <motion.div
-            initial={reduceMotion ? false : { opacity: 0, y: 18 }}
-            animate={reduceMotion ? {} : { opacity: 1, y: 0 }}
-            transition={{ delay: 0.55 }}
-            className="mx-auto mt-1 max-w-4xl"
-          >
-            <HeroActions
-              lang={lang}
-              typeLabel={typeLabel}
-              primaryHref={browseTypeHref}
-              secondaryHref={browseAcademiesHref}
-              tertiaryHref={browseSchoolsHref}
-              secondaryLabel={copy.ctaSecondaryLabel}
-              tertiaryLabel={copy.ctaTertiaryLabel}
-            />
-          </motion.div>
+            <p className="mt-5 max-w-2xl text-lg font-bold leading-8 text-foreground/85 sm:text-xl">
+              {copy.subtitle}
+            </p>
+            <p className="mt-4 max-w-3xl text-base font-medium leading-8 text-foreground/70 sm:text-lg">
+              {copy.description}
+            </p>
 
-          {!reduceMotion && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.8 }}
-              className="flex justify-center gap-3 pt-6"
-              aria-label="مؤشرات الشرائح"
-            >
-              {copy.slides.map((_, index) => (
-                <button
-                  key={index}
-                  onClick={() => setCurrentSlide(index)}
-                  aria-label={
-                    (lang === "ar" ? "انتقال إلى الشريحة رقم " : "Go to slide ") +
-                    (index + 1)
-                  }
-                  aria-current={index === currentSlide ? "true" : "false"}
-                  className={[
-                    "h-3 w-3 rounded-full transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2",
-                    index === currentSlide
-                      ? `bg-gradient-to-r ${slide.gradient} shadow-lg`
-                      : "bg-gray-300 hover:bg-gray-400 dark:bg-gray-600 dark:hover:bg-gray-500",
-                  ].join(" ")}
-                />
-              ))}
-            </motion.div>
-          )}
+            <div className="mt-7">
+              <HeroActions
+                typeLabel={typeLabel}
+                primaryHref={browseTypeHref}
+                secondaryHref={browseAcademiesHref}
+                tertiaryHref={browseSchoolsHref}
+                primaryLabel={copy.ctaPrimaryLabel}
+                secondaryLabel={copy.ctaSecondaryLabel}
+                tertiaryLabel={copy.ctaTertiaryLabel}
+              />
+            </div>
+
+          </div>
+
+          <div className="lg:justify-self-start">
+            <HeroPreviewCard preview={copy.preview} />
+          </div>
         </div>
-
-        {decorationsReady ? (
-          <LazyFeaturesGrid copy={copy} allowMotion={!isSmallScreen} />
-        ) : (
-          <FeaturesGridFallback />
-        )}
       </div>
     </section>
   );

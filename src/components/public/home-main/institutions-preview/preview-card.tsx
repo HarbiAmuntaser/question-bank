@@ -42,7 +42,7 @@ export function InstitutionPreviewCard({
 }: Props) {
   // Keep imagery local and stable until real hosted institution logos are ready.
   const imageSrc = getFallbackImageSrc(code);
-  const location = [city, region].filter(Boolean).join(" • ");
+  const location = [city, region].filter(Boolean).join("، ");
   const shownMajors = majors
     .filter((major) => major.name)
     .slice(0, variant === "featured" ? 3 : 2);
@@ -194,11 +194,11 @@ function DirectoryInstitutionCard({
         <div className="grid grid-cols-2 gap-3">
           <div className="rounded-lg border bg-muted/30 p-3">
             <p className="text-xs font-medium text-muted-foreground">التخصصات</p>
-            <p className="mt-1 text-xl font-bold text-foreground">{majorCount ?? "—"}</p>
+            <p className="mt-1 text-xl font-bold text-foreground">{majorCount ?? "-"}</p>
           </div>
           <div className="rounded-lg border bg-muted/30 p-3">
             <p className="text-xs font-medium text-muted-foreground">الاختبارات</p>
-            <p className="mt-1 text-xl font-bold text-foreground">{quizCount ?? "—"}</p>
+            <p className="mt-1 text-xl font-bold text-foreground">{quizCount ?? "-"}</p>
           </div>
         </div>
 

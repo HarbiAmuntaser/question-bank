@@ -117,82 +117,83 @@ export function InstitutionsPreviewSection({
 
   return (
     <section
-      className="container py-8 sm:py-12"
+      className="py-8 sm:py-12"
       aria-labelledby={`preview-${typeNorm}`}
     >
-      <InstitutionsSectionHeader
-        id={`preview-${typeNorm}`}
-        title={title}
-        subtitle={
-          isUniversityPreview
-            ? "ابدأ من الجامعة ثم انتقل إلى التخصصات والمقررات والاختبارات المتاحة."
-            : undefined
-        }
-        actionHref={isUniversityPreview ? listHref : undefined}
-        actionLabel={`عرض كل ${title}`}
-      />
+      <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+        <InstitutionsSectionHeader
+          id={`preview-${typeNorm}`}
+          title={title}
+          subtitle={
+            isUniversityPreview
+              ? "ابدأ من الجامعة ثم انتقل إلى التخصصات والمقررات والاختبارات المتاحة."
+              : undefined
+          }
+          actionHref={isUniversityPreview ? listHref : undefined}
+          actionLabel={`عرض كل ${title}`}
+        />
 
-      {loading ? (
-        <PreviewLoading />
-      ) : error ? (
-        <PreviewError message={error} />
-      ) : items.length === 0 ? (
-        <PreviewEmpty />
-      ) : (
-        <>
-          <div
-            className={
-              isUniversityPreview
-                ? "grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5 xl:grid-cols-3 xl:gap-6"
-                : "grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6 xl:grid-cols-3 xl:gap-8"
-            }
-            aria-live="polite"
-          >
-            {items.map((u, index) => {
-              const href = buildInstitutionHref(base, {
-                id: u.id,
-                code: u.code ?? null,
-                seo: u.seo ?? null,
-                seoSlug: u.seoSlug ?? null,
-              });
-              const variant =
-                isUniversityPreview ? (index === 0 ? "featured" : "compact") : "default";
+        {loading ? (
+          <PreviewLoading />
+        ) : error ? (
+          <PreviewError message={error} />
+        ) : items.length === 0 ? (
+          <PreviewEmpty />
+        ) : (
+          <>
+            <div
+              className={
+                isUniversityPreview
+                  ? "grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5 xl:grid-cols-3 xl:gap-6"
+                  : "grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6 xl:grid-cols-3 xl:gap-8"
+              }
+              aria-live="polite"
+            >
+              {items.map((u, index) => {
+                const href = buildInstitutionHref(base, {
+                  id: u.id,
+                  code: u.code ?? null,
+                  seo: u.seo ?? null,
+                  seoSlug: u.seoSlug ?? null,
+                });
+                const variant =
+                  isUniversityPreview ? (index === 0 ? "featured" : "compact") : "default";
 
-              return (
-                <div
-                  key={u.id}
-                  // ✅ بدون Wrapper وبدون any
-                  className={
-                    isUniversityPreview && index === 0
-                      ? "md:col-span-2 xl:col-span-1"
-                      : "group"
-                  }
-                >
-                  <InstitutionPreviewCard
-                    name={u.name}
-                    logoUrl={u.logoUrl ?? null}
-                    code={u.code ?? null}
-                    city={u.city ?? null}
-                    region={u.region ?? null}
-                    href={href}
-                    variant={variant}
-                    majorCount={u._count?.majors ?? u.majors?.length ?? null}
-                    quizCount={u._count?.quizzes ?? null}
-                    majors={u.majors ?? []}
-                  />
-                </div>
-              );
-            })}
-          </div>
+                return (
+                  <div
+                    key={u.id}
+                    className={
+                      isUniversityPreview && index === 0
+                        ? "md:col-span-2 xl:col-span-1"
+                        : "group"
+                    }
+                  >
+                    <InstitutionPreviewCard
+                      name={u.name}
+                      logoUrl={u.logoUrl ?? null}
+                      code={u.code ?? null}
+                      city={u.city ?? null}
+                      region={u.region ?? null}
+                      href={href}
+                      variant={variant}
+                      majorCount={u._count?.majors ?? u.majors?.length ?? null}
+                      quizCount={u._count?.quizzes ?? null}
+                      majors={u.majors ?? []}
+                    />
+                  </div>
+                );
+              })}
+            </div>
 
-          <InstitutionsSectionFooter
-            href={listHref}
-            ariaLabel={`عرض كل ${title}`}
-            label={`عرض كل ${title}`}
-            mobileOnly={isUniversityPreview}
-          />
-        </>
-      )}
+            <InstitutionsSectionFooter
+              href={listHref}
+              ariaLabel={`عرض كل ${title}`}
+              label={`عرض كل ${title}`}
+              mobileOnly={isUniversityPreview}
+            />
+          </>
+        )}
+      </div>
     </section>
   );
 }

@@ -1,50 +1,33 @@
-// file: src/components/public/hero-section/hero-actions.tsx
-/**
- * Hero Actions
- * ------------
- * أزرار الـ CTA الأساسية داخل الهيرو.
- * - تم حذف زر البحث نهائياً حسب طلبك.
- * - تم تعديل نص الزر الثاني إلى: "استعرض الاختبارات الأكاديمية"
- */
-
-// file: src/components/public/hero-section/hero-actions.tsx
-
 import Link from "next/link";
+import { ArrowLeft, BookOpenCheck, GraduationCap, School } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
-import type { Lang } from "@/content/hero";
-import { BookOpen, GraduationCap, School } from "lucide-react";
 
-type Props = {
-  lang: Lang;
-  typeLabel: string;
-
-  primaryHref: string;
-  secondaryHref: string;
-  tertiaryHref: string;
-
-  secondaryLabel: string; // من hero.ts
-  tertiaryLabel: string;  // ✅ من hero.ts
-};
+import type { HeroActionsProps } from "./types";
 
 export function HeroActions({
-  lang,
   typeLabel,
   primaryHref,
   secondaryHref,
   tertiaryHref,
+  primaryLabel,
   secondaryLabel,
   tertiaryLabel,
-}: Props) {
+}: HeroActionsProps) {
+  const resolvedPrimaryLabel =
+    primaryLabel || `استعراض ${typeLabel || "المؤسسات"}`;
+
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:flex lg:flex-row lg:flex-wrap lg:justify-start">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:flex lg:flex-wrap">
       <Button
         asChild
         size="lg"
-        className="h-12 w-full rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 px-5 text-base shadow-lg hover:from-blue-700 hover:to-cyan-600 lg:h-14 lg:w-auto lg:px-8 lg:text-lg"
+        className="h-12 rounded-lg bg-teal-700 px-5 text-base font-bold text-white shadow-sm transition-colors hover:bg-teal-800 sm:h-12 lg:w-auto lg:px-7"
       >
-        <Link href={primaryHref} prefetch={false} className="flex w-full items-center justify-center gap-3">
-          <BookOpen className="h-6 w-6" aria-hidden />
-          {lang === "ar" ? `استعراض ${typeLabel}` : `Browse ${typeLabel}`}
+        <Link href={primaryHref} prefetch={false} className="flex w-full items-center justify-center gap-2">
+          <BookOpenCheck className="h-5 w-5" aria-hidden />
+          {resolvedPrimaryLabel}
+          <ArrowLeft className="h-4 w-4" aria-hidden />
         </Link>
       </Button>
 
@@ -52,23 +35,22 @@ export function HeroActions({
         asChild
         size="lg"
         variant="outline"
-        className="h-12 w-full rounded-xl border-2 bg-white/80 px-5 text-base shadow-lg backdrop-blur-sm hover:bg-gray-50 dark:bg-gray-800/80 dark:hover:bg-gray-700 lg:h-14 lg:w-auto lg:px-8 lg:text-lg"
+        className="h-12 rounded-lg border-teal-200 bg-background/80 px-5 text-base font-bold text-foreground shadow-sm hover:border-teal-300 hover:bg-teal-50 dark:border-teal-900/70 dark:bg-background/70 dark:hover:bg-teal-950/30 lg:w-auto lg:px-6"
       >
-        <Link href={secondaryHref} prefetch={false} className="flex w-full items-center justify-center gap-3">
-          <GraduationCap className="h-6 w-6" aria-hidden />
+        <Link href={secondaryHref} prefetch={false} className="flex w-full items-center justify-center gap-2">
+          <GraduationCap className="h-5 w-5 text-teal-700 dark:text-teal-300" aria-hidden />
           {secondaryLabel}
         </Link>
       </Button>
 
-      {/* ✅ NEW: زر الاختبارات المدرسية */}
       <Button
         asChild
         size="lg"
         variant="outline"
-        className="h-12 w-full rounded-xl border-2 bg-white/80 px-5 text-base shadow-lg backdrop-blur-sm hover:bg-gray-50 dark:bg-gray-800/80 dark:hover:bg-gray-700 sm:col-span-2 lg:col-span-1 lg:h-14 lg:w-auto lg:px-8 lg:text-lg"
+        className="h-12 rounded-lg border-slate-200 bg-background/80 px-5 text-base font-bold text-foreground shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-background/70 dark:hover:bg-slate-900 sm:col-span-2 lg:col-span-1 lg:w-auto lg:px-6"
       >
-        <Link href={tertiaryHref} prefetch={false} className="flex w-full items-center justify-center gap-3">
-          <School className="h-6 w-6" aria-hidden />
+        <Link href={tertiaryHref} prefetch={false} className="flex w-full items-center justify-center gap-2">
+          <School className="h-5 w-5 text-slate-700 dark:text-slate-300" aria-hidden />
           {tertiaryLabel}
         </Link>
       </Button>

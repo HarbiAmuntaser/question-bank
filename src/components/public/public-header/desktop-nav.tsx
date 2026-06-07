@@ -33,11 +33,11 @@ export function DesktopNav({ pathname, nav, currentCC, onChangeCountry }: Props)
                 // Header links are visible on every page, so only prefetch the home route.
                 prefetch={key === "home"}
                 className={[
-                  "group relative inline-flex h-10 w-max items-center justify-center rounded-lg px-3 text-sm font-medium transition-colors",
+                  "group relative inline-flex h-10 w-max items-center justify-center rounded-lg px-3 text-sm font-semibold transition-colors",
                   "hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                   active
                     ? "text-primary after:absolute after:bottom-1 after:left-3 after:right-3 after:h-0.5 after:rounded-full after:bg-primary"
-                    : "text-muted-foreground",
+                    : "text-foreground/80",
                 ].join(" ")}
                 aria-current={active ? "page" : undefined}
                 aria-label={label}

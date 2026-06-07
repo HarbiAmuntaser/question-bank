@@ -46,7 +46,7 @@ export function MobileNav({ pathname, nav, currentCC, onChangeCountry }: Props) 
 
         <div className="mt-6 flex flex-col gap-4">
           <div className="grid gap-3 rounded-lg border bg-muted/30 p-3">
-            <div className="text-xs text-muted-foreground">الدولة</div>
+            <div className="text-xs font-semibold text-foreground/75">الدولة</div>
             <CountrySwitcher cc={currentCC} onChange={onChangeCountry} compact />
           </div>
 
@@ -60,8 +60,8 @@ export function MobileNav({ pathname, nav, currentCC, onChangeCountry }: Props) 
                   // Keep prefetch limited to the home link to reduce background requests.
                   prefetch={key === "home"}
                   className={[
-                    "flex min-h-11 items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-                    active ? "font-semibold text-primary" : "text-muted-foreground hover:text-foreground",
+                    "flex min-h-11 items-center rounded-lg px-3 py-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                    active ? "text-primary" : "text-foreground/80 hover:text-foreground",
                   ].join(" ")}
                   aria-current={active ? "page" : undefined}
                   aria-label={label}

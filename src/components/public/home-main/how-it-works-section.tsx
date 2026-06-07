@@ -27,8 +27,9 @@ const STEPS = [
 
 export function HowItWorksSection() {
   return (
-    <section className="container py-8 sm:py-12" aria-labelledby="how-it-works-heading">
-      <div className="grid gap-6 rounded-2xl border bg-muted/25 p-5 shadow-sm sm:p-6 lg:grid-cols-[320px_minmax(0,1fr)] lg:gap-8 lg:p-8">
+    <section className="py-8 sm:py-12" aria-labelledby="how-it-works-heading">
+      <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="grid gap-6 rounded-2xl border bg-muted/25 p-5 shadow-sm sm:p-6 lg:grid-cols-[320px_minmax(0,1fr)] lg:gap-8 lg:p-8">
         <div className="lg:border-l lg:pl-8">
           <p className="text-sm font-semibold text-primary">رحلة الطالب</p>
           <h2 id="how-it-works-heading" className="mt-2 text-2xl font-bold leading-tight sm:text-3xl">
@@ -66,6 +67,7 @@ export function HowItWorksSection() {
             </div>
           ))}
         </div>
+      </div>
       </div>
     </section>
   );
