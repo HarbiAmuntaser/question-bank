@@ -10,7 +10,8 @@ import { CheckCircle2, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { RichQuestionContent } from "@/components/shared/rich-question-content";
 
-import { detectTextDir, detectTextLang } from "./text-direction";
+import { detectTextDir } from "./text-direction";
+import { getQuestionLang, pointsLabel, questionNumberLabel } from "./question-language";
 import { QuestionOptions } from "./question-options";
 
 interface QuestionDisplayProps {
@@ -40,21 +41,21 @@ export function QuestionDisplay({ question, questionNumber, answer, onAnswerChan
 
   // ✅ اكتشاف ذكي لاتجاه البطاقة حسب نص السؤال
   const dir = useMemo(() => detectTextDir(question.questionText), [question.questionText]);
-  const lang = useMemo(() => detectTextLang(question.questionText), [question.questionText]);
+  const lang = useMemo(() => getQuestionLang(question.questionText), [question.questionText]);
 
   return (
     <Card className="w-full border bg-card/95 shadow-sm" dir={dir} lang={lang}>
       <CardHeader className="p-4 sm:p-6">
         <div className={cn("flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between", dir === "rtl" ? "text-right" : "text-left")}>
           <CardTitle className="text-lg font-semibold leading-tight sm:text-xl">
-            {lang === "en" ? `Question ${questionNumber}` : `السؤال ${questionNumber}`}
+            {questionNumberLabel(questionNumber, lang)}
           </CardTitle>
 
           <div className={cn("flex flex-wrap items-center gap-2", dir === "rtl" ? "justify-start sm:justify-end" : "justify-start")}>
             <Badge className={cn("rounded-md", levelClass)}>{levelText}</Badge>
             <Badge variant="outline" className="flex items-center gap-1 rounded-md bg-background">
               <Star className="h-3 w-3" aria-hidden />
-              {question.points} {lang === "en" ? "pts" : "نقطة"}
+              {pointsLabel(question.points, lang)}
             </Badge>
           </div>
         </div>
@@ -100,10 +101,15 @@ export function QuestionDisplay({ question, questionNumber, answer, onAnswerChan
           <QuestionOptions question={question} answer={answer} onAnswerChange={onAnswerChange} dir={dir} />
         </div>
 
-        {/* حالة الحفظ */}
+        {/* مؤشر حفظ هادئ حتى لا يزاحم نص السؤال والخيارات. */}
         {answer ? (
-          <div className={cn("flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-300", dir === "rtl" ? "justify-start" : "justify-start")}>
-            <CheckCircle2 className="h-4 w-4" aria-hidden />
+          <div
+            className={cn(
+              "inline-flex w-fit items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50/70 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/25 dark:text-emerald-300",
+              dir === "rtl" ? "self-start" : "self-start"
+            )}
+          >
+            <CheckCircle2 className="h-3.5 w-3.5" aria-hidden />
             <span>{lang === "en" ? "Answer saved" : "تم حفظ الإجابة"}</span>
           </div>
         ) : null}

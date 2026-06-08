@@ -57,7 +57,7 @@ export function HeroSection({
               {formatBadge(copy.badgeTemplate, countryLabel)}
             </div>
 
-            <h1 className="text-balance text-4xl font-extrabold leading-[1.16] tracking-normal text-foreground sm:text-5xl lg:text-6xl">
+            <h1 className="text-balance text-4xl font-extrabold leading-[1.16] tracking-normal text-foreground sm:text-5xl lg:text-4xl">
               {copy.title}
               <span className="mt-2 block bg-gradient-to-l from-teal-700 via-emerald-600 to-cyan-600 bg-clip-text text-transparent dark:from-teal-300 dark:via-emerald-300 dark:to-cyan-300">
                 {copy.highlightedTitle}

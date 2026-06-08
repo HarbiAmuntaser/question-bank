@@ -1,8 +1,9 @@
+
 /**
  * Hero content for Mustawak.
  *
- * The displayed copy is Arabic-only. The `en` key is kept as an alias for
- * compatibility with older props/imports until a full i18n layer is needed.
+ * المحتوى المعروض عربي فقط حاليًا.
+ * تم الإبقاء على مفتاح en كنسخة عربية مؤقتة حتى لا تنكسر أي استدعاءات قديمة.
  */
 
 export type Lang = "ar" | "en";
@@ -81,22 +82,22 @@ export const TYPE_LABELS: Record<InstitutionType, { ar: string; en: string }> = 
 const sharedFeatures: HeroFeature[] = [
   {
     icon: "book",
-    title: "تنظيم حسب المسار",
-    description: "انتقل من الجهة التعليمية إلى التخصص ثم المقرر والاختبار بسهولة.",
+    title: "مسار واضح للمراجعة",
+    description: "ابدأ من الجهة التعليمية، ثم التخصص والمقرر، وصولًا إلى الاختبار المناسب.",
     gradient: "from-teal-500 to-cyan-500",
     bgColor: "bg-teal-50 dark:bg-teal-950/30",
   },
   {
     icon: "trophy",
-    title: "تدريب أقرب للواقع",
-    description: "نماذج منظمة تساعدك على قياس جاهزيتك قبل الاختبار.",
+    title: "تدريب يقيس جاهزيتك",
+    description: "اختبارات منظمة تساعدك على معرفة مستواك وتحديد ما يحتاج إلى مراجعة.",
     gradient: "from-emerald-500 to-teal-500",
     bgColor: "bg-emerald-50 dark:bg-emerald-950/30",
   },
   {
     icon: "users",
-    title: "تجربة واضحة",
-    description: "واجهة عربية مباشرة ونتائج مفهومة بدون تعقيد.",
+    title: "تجربة عربية مبسطة",
+    description: "واجهة واضحة وسهلة الاستخدام تساعد الطالب على الوصول للمحتوى دون تعقيد.",
     gradient: "from-cyan-500 to-sky-500",
     bgColor: "bg-cyan-50 dark:bg-cyan-950/30",
   },
@@ -126,26 +127,26 @@ const basePreview: HeroPreview = {
   scoreValue: "82%",
   progressLabel: "مؤشر الجاهزية",
   progressValue: 82,
-  successNote: "مؤشر جيد، راجع الأسئلة الصعبة قبل موعد الاختبار.",
+  successNote: "مؤشر جيد، واصل التدريب وراجع الأسئلة التي تحتاج إلى تركيز أكبر.",
 };
 
 const defaultCopy: HeroCopy = {
-  badgeTemplate: "منصة مستواك للطلاب في {{country}}",
+  badgeTemplate: "منصة مستواك للتدريب والاختبارات في {{country}}",
   title: "اختبر جاهزيتك",
   highlightedTitle: "وتدرّب بثقة",
-  subtitle: "نماذج وأسئلة منظمة تصل بك إلى الاختبار المناسب بسرعة.",
+  subtitle: "منصة تساعدك على الوصول إلى الاختبار المناسب وقياس مستواك بوضوح.",
   description:
-    "نماذج اختبارات وأسئلة منظمة حسب الدولة، الجهة التعليمية، التخصص، والمقرر؛ لتراجع بطريقة أوضح وتقيس مستواك قبل الاختبار.",
+    "استعرض نماذج اختبارات وأسئلة منظمة حسب الدولة، الجهة التعليمية، التخصص، والمقرر؛ لتراجع بطريقة أسهل وتعرف مستوى استعدادك قبل الاختبار.",
   preview: basePreview,
   stats: [
-    { label: "جهات تعليمية", description: "قابل للتوسع" },
-    { label: "مقررات منظمة", description: "تصنيف واضح" },
-    { label: "اختبارات تدريبية", description: "تدريب وقياس" },
+    { label: "جهات تعليمية", description: "تنظيم حسب الدولة والمسار" },
+    { label: "مقررات منظمة", description: "وصول أسرع للمحتوى المطلوب" },
+    { label: "اختبارات تدريبية", description: "مراجعة وقياس للجاهزية" },
   ],
   slides: buildSlides(
     "اختبر جاهزيتك",
     "وتدرّب بثقة",
-    "نماذج اختبارات وأسئلة منظمة تساعدك على معرفة مستواك."
+    "نماذج اختبارات وأسئلة منظمة تساعدك على معرفة مستواك قبل الاختبار."
   ),
   features: sharedFeatures,
   ctaPrimaryLabel: "استعراض المؤسسات",
@@ -156,15 +157,41 @@ const defaultCopy: HeroCopy = {
 
 const saCopy: HeroCopy = {
   ...defaultCopy,
+  badgeTemplate: "منصة مستواك لطلاب {{country}}",
+  subtitle: "نماذج وأسئلة منظمة حسب الجامعات والتخصصات والمقررات.",
+  description:
+    "اختر جامعتك، ثم تخصصك ومقررك، وابدأ التدريب على اختبارات تساعدك على قياس جاهزيتك قبل الاختبار الحقيقي.",
+  preview: {
+    ...basePreview,
+    title: "اختبار جامعي تدريبي",
+    description: "راجع مقررًا جامعيًا بطريقة أقرب للاختبار",
+    questions: "25 سؤال",
+    duration: "30 دقيقة",
+    level: "متوسط",
+    scoreValue: "82%",
+    progressValue: 82,
+    successNote: "مستوى جيد، ركّز على الأسئلة الصعبة وكرّر المحاولة لتحسين جاهزيتك.",
+  },
   ctaPrimaryLabel: "استعراض الجامعات",
 };
 
 const yeCopy: HeroCopy = {
   ...defaultCopy,
-  badgeTemplate: "منصة مستواك للطلاب في {{country}}",
+  badgeTemplate: "منصة مستواك لطلاب {{country}}",
   subtitle: "اختبارات منظمة تساعدك على المراجعة وقياس الجاهزية.",
   description:
-    "اختر الجهة التعليمية ثم التخصص والمقرر، وابدأ التدريب على نماذج واضحة تساعدك على قياس مستواك قبل الاختبار.",
+    "ابدأ من الجهة التعليمية، اختر التخصص أو المقرر، ثم تدرّب على نماذج واضحة تساعدك على معرفة مستواك قبل الاختبار.",
+  preview: {
+    ...basePreview,
+    title: "اختبار مراجعة تدريبي",
+    description: "تدرّب على أسئلة منظمة قبل الاختبار",
+    questions: "20 سؤال",
+    duration: "25 دقيقة",
+    level: "مناسب للمراجعة",
+    scoreValue: "78%",
+    progressValue: 78,
+    successNote: "مؤشر جيد، استمر في المراجعة وركّز على النقاط التي تحتاج إلى تحسين.",
+  },
   ctaPrimaryLabel: "استعراض المؤسسات",
 };
 

@@ -6,7 +6,8 @@ import { Textarea } from "@/components/ui/textarea";
 import type { QuestionWithOptions, QuizAnswer } from "@/types";
 import { cn } from "@/lib/utils";
 import { RichQuestionContent } from "@/components/shared/rich-question-content";
-import { detectTextDir, detectTextLang, type TextDir } from "./text-direction";
+import { detectTextDir, type TextDir } from "./text-direction";
+import { getQuestionLang, trueFalseLabel } from "./question-language";
 
 type Props = {
   question: QuestionWithOptions;
@@ -56,9 +57,9 @@ export function QuestionOptions({ question, answer, onAnswerChange, dir }: Props
   );
 
   // True/False labels حسب لغة السؤال
-  const qLang = detectTextLang(question.questionText);
-  const tfTrue = qLang === "en" ? "True" : "صحيح";
-  const tfFalse = qLang === "en" ? "False" : "خطأ";
+  const qLang = getQuestionLang(question.questionText);
+  const tfTrue = trueFalseLabel(true, qLang);
+  const tfFalse = trueFalseLabel(false, qLang);
 
   const maxText = question.questionType === "essay" ? 2000 : 500;
   const currentLen = (answer?.textAnswer ?? "").length;

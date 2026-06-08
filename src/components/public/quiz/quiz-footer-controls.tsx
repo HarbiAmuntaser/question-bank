@@ -4,6 +4,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ArrowRight, CheckCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export function QuizFooterControls({
   isLast,
@@ -11,15 +12,17 @@ export function QuizFooterControls({
   onPrev,
   onNext,
   onSubmit,
+  className,
 }: {
   isLast: boolean;
   isFirst: boolean;
   onPrev: () => void;
   onNext: () => void;
   onSubmit: () => void;
+  className?: string;
 }) {
   return (
-    <Card className="border bg-card/95 shadow-sm">
+    <Card className={cn("border bg-card/95 shadow-sm", className)}>
       <CardContent className="p-4 sm:p-5">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:flex lg:justify-between">
           <Button variant="outline" onClick={onPrev} disabled={isFirst} aria-disabled={isFirst} className="h-12 w-full gap-2 rounded-lg lg:w-auto">

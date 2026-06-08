@@ -77,6 +77,7 @@ export async function GET(_req: Request, { params }: RouteContext) {
         questionType: q.questionType,
         difficultyLevel: q.difficultyLevel,
         points: q.points,
+        explanation: q.explanation,
         imageUrl: q.imageUrl,
         tags: q.tags ?? [],
         options: q.options,

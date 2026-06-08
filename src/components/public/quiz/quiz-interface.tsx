@@ -3,7 +3,6 @@
 
 import { useCallback, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 
 import type { QuizWithQuestions, QuizSession, QuizAnswer } from "@/types";
@@ -55,6 +54,20 @@ function DialogLazyFallback() {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/70 p-4 backdrop-blur-sm">
       <div className="rounded-lg border bg-card px-4 py-3 text-sm text-muted-foreground shadow-sm">
         جاري تحميل النافذة...
+      </div>
+    </div>
+  );
+}
+
+function QuizLoadingState() {
+  return (
+    <div className="flex min-h-[420px] items-center justify-center px-4" aria-live="polite">
+      <div
+        className="h-10 w-10 animate-spin rounded-full border-2 border-muted border-t-primary"
+        role="status"
+        aria-label="جاري تحميل الاختبار"
+      >
+        <span className="sr-only">جاري تحميل الاختبار</span>
       </div>
     </div>
   );
@@ -179,16 +192,7 @@ export function QuizInterface({ quiz }: { quiz: QuizWithQuestions }) {
   }, [handleSubmitQuiz]);
 
   if (!isReady) {
-    return (
-      <div className="flex min-h-[420px] items-center justify-center px-4">
-        <div className="rounded-lg border bg-card/95 p-6 text-center shadow-sm" aria-live="polite">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl border bg-muted/30">
-            <Image src="/images/institutions/default.svg" alt="" width={64} height={64} className="h-full w-full object-cover opacity-90" />
-          </div>
-          <p className="text-sm leading-relaxed text-muted-foreground sm:text-base">جاري تحضير الاختبار...</p>
-        </div>
-      </div>
-    );
+    return <QuizLoadingState />;
   }
 
   if (needsResumeChoice && resumeInfo) {
@@ -204,16 +208,7 @@ export function QuizInterface({ quiz }: { quiz: QuizWithQuestions }) {
   }
 
   if (!session) {
-    return (
-      <div className="flex min-h-[420px] items-center justify-center px-4">
-        <div className="rounded-lg border bg-card/95 p-6 text-center shadow-sm" aria-live="polite">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl border bg-muted/30">
-            <Image src="/images/institutions/default.svg" alt="" width={64} height={64} className="h-full w-full object-cover opacity-90" />
-          </div>
-          <p className="text-sm leading-relaxed text-muted-foreground sm:text-base">جاري تحضير الاختبار...</p>
-        </div>
-      </div>
-    );
+    return <QuizLoadingState />;
   }
 
   const total = quiz.questions.length;
@@ -221,7 +216,7 @@ export function QuizInterface({ quiz }: { quiz: QuizWithQuestions }) {
   const isLast = currentQuestionIndex === total - 1;
 
   return (
-    <div className="mx-auto max-w-6xl space-y-5 px-3 py-4 sm:px-4 sm:py-6 lg:space-y-6 lg:px-0">
+    <div className="mx-auto max-w-6xl space-y-5 px-3 pb-28 pt-4 sm:px-4 sm:pb-32 sm:pt-6 lg:space-y-6 lg:px-0 lg:py-6">
       <QuizHeader
         title={quiz.title}
         description={quiz.description}
@@ -243,16 +238,6 @@ export function QuizInterface({ quiz }: { quiz: QuizWithQuestions }) {
             answer={answers[currentQuestion.id]}
             onAnswerChange={(answer) => setAnswer(currentQuestion.id, answer)}
           />
-
-          <div className="lg:hidden">
-            <QuizFooterControls
-              isFirst={isFirst}
-              isLast={isLast}
-              onPrev={() => setCurrentQuestionIndex(Math.max(0, currentQuestionIndex - 1))}
-              onNext={() => setCurrentQuestionIndex(Math.min(total - 1, currentQuestionIndex + 1))}
-              onSubmit={() => setShowSubmissionDialog(true)}
-            />
-          </div>
 
           <QuizMobileNav
             questions={quiz.questions}
@@ -280,6 +265,22 @@ export function QuizInterface({ quiz }: { quiz: QuizWithQuestions }) {
           onNext={() => setCurrentQuestionIndex(Math.min(total - 1, currentQuestionIndex + 1))}
           onSubmit={() => setShowSubmissionDialog(true)}
         />
+      </div>
+
+      <div
+        className="fixed left-3 right-3 z-40 lg:hidden"
+        style={{ bottom: "calc(env(safe-area-inset-bottom) + 0.75rem)" }}
+      >
+        <div className="mx-auto max-w-3xl">
+          <QuizFooterControls
+            isFirst={isFirst}
+            isLast={isLast}
+            onPrev={() => setCurrentQuestionIndex(Math.max(0, currentQuestionIndex - 1))}
+            onNext={() => setCurrentQuestionIndex(Math.min(total - 1, currentQuestionIndex + 1))}
+            onSubmit={() => setShowSubmissionDialog(true)}
+            className="bg-card/95 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-card/90"
+          />
+        </div>
       </div>
 
       {showSubmissionDialog ? (
