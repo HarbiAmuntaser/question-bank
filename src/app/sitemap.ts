@@ -367,6 +367,65 @@ async function quizEntries(): Promise<SitemapEntry[]> {
   });
 }
 
+async function blogEntries(): Promise<SitemapEntry[]> {
+  const posts = await prisma.blogPost.findMany({
+    where: {
+      status: "published",
+      publishedAt: { not: null, lte: new Date() },
+    },
+    orderBy: { updatedAt: "desc" },
+    take: DYNAMIC_LIMIT,
+    select: {
+      id: true,
+      slug: true,
+      visibility: true,
+      publishedAt: true,
+      createdAt: true,
+      updatedAt: true,
+      countries: { select: { countryCode: true } },
+    },
+  });
+
+  const seoRows = posts.length
+    ? await prisma.seoMeta.findMany({
+        where: {
+          ownerType: "blog_post",
+          locale: "ar",
+          ownerId: { in: posts.map((post) => post.id) },
+        },
+        select: { ownerId: true, noindex: true },
+      })
+    : [];
+  const noindexPostIds = new Set(seoRows.filter((seo) => seo.noindex).map((seo) => seo.ownerId));
+
+  return posts.flatMap((post) => {
+    if (noindexPostIds.has(post.id)) return [];
+
+    const countries = post.visibility === "global"
+      ? Object.keys(SUPPORTED_COUNTRIES)
+      : post.countries
+          .map((country) => supportedCountry(country.countryCode))
+          .filter((cc): cc is CountryCode => Boolean(cc));
+
+    return countries.map((cc) =>
+      entry(`/${cc}/blog/${encodeURIComponent(post.slug)}`, {
+        lastModified: latestDate(post.updatedAt, post.publishedAt, post.createdAt),
+        changeFrequency: "weekly",
+        priority: 0.65,
+      }),
+    );
+  });
+}
+
+async function safeDynamicEntries(label: string, loader: () => Promise<SitemapEntry[]>) {
+  try {
+    return await loader();
+  } catch {
+    console.warn(`[sitemap] Failed to load ${label}; using static fallback for this section.`);
+    return [];
+  }
+}
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
   const staticEntries: MetadataRoute.Sitemap = [
@@ -379,6 +438,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
           priority: 0.8,
         }),
       ),
+      entry(`/${cc}/blog`, { lastModified: now, changeFrequency: "daily", priority: 0.7 }),
     ]),
     entry("/public/privacy", { lastModified: now, changeFrequency: "monthly", priority: 0.5 }),
     entry("/public/terms", { lastModified: now, changeFrequency: "monthly", priority: 0.5 }),
@@ -389,10 +449,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ];
 
   const dynamicEntries = await Promise.all([
-    institutionEntries(),
-    majorEntries(),
-    subjectEntries(),
-    quizEntries(),
+    safeDynamicEntries("institutions", institutionEntries),
+    safeDynamicEntries("majors", majorEntries),
+    safeDynamicEntries("subjects", subjectEntries),
+    safeDynamicEntries("quizzes", quizEntries),
+    safeDynamicEntries("blog posts", blogEntries),
   ]);
 
   return [...staticEntries, ...dynamicEntries.flat()];

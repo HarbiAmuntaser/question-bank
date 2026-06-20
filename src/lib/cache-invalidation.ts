@@ -1,5 +1,6 @@
 import { revalidatePath, revalidateTag } from "next/cache";
 
+import { SUPPORTED_COUNTRIES } from "@/config/regions";
 import { CACHE_TAGS } from "@/lib/cache-tags";
 
 function revalidateTags(tags: Array<string | null | undefined>) {
@@ -25,6 +26,67 @@ function revalidateInstitutionPaths(countryCodes: string[]) {
     revalidatePath(`/${cc}/school`);
     revalidatePath(`/${cc}/academy`);
   }
+}
+
+type BlogCacheSnapshot = {
+  slug?: string | null;
+  visibility?: string | null;
+  countries?: Array<string | null | undefined>;
+  status?: string | null;
+  publishedAt?: Date | string | null;
+};
+
+type BlogCacheInput = {
+  postId?: string | null;
+  previous?: BlogCacheSnapshot | null;
+  next?: BlogCacheSnapshot | null;
+  taxonomy?: "topics" | "tags";
+  allCountries?: boolean;
+};
+
+const allBlogCountries = Object.keys(SUPPORTED_COUNTRIES);
+
+function blogSnapshotCountries(snapshot?: BlogCacheSnapshot | null) {
+  if (!snapshot) return [];
+  if (snapshot.visibility === "global") return allBlogCountries;
+  return normalizedCountryCodes(snapshot.countries ?? []).filter((cc) => cc in SUPPORTED_COUNTRIES);
+}
+
+export function revalidateBlogCache(input: BlogCacheInput = {}) {
+  const affectedCountries = input.allCountries || (!input.previous && !input.next)
+    ? allBlogCountries
+    : Array.from(
+        new Set([
+          ...blogSnapshotCountries(input.previous),
+          ...blogSnapshotCountries(input.next),
+        ]),
+      );
+  const slugs = Array.from(
+    new Set(
+      [input.previous?.slug, input.next?.slug]
+        .map((slug) => slug?.trim())
+        .filter((slug): slug is string => Boolean(slug)),
+    ),
+  );
+
+  revalidateTags([
+    CACHE_TAGS.admin.blog,
+    CACHE_TAGS.public.blog,
+    input.postId ? CACHE_TAGS.public.blogPost(input.postId) : null,
+    ...slugs.map((slug) => CACHE_TAGS.public.blogSlug(slug)),
+    ...affectedCountries.map((cc) => CACHE_TAGS.public.blogCountry(cc)),
+    input.taxonomy === "topics" ? CACHE_TAGS.public.blogTopics : null,
+    input.taxonomy === "tags" ? CACHE_TAGS.public.blogTags : null,
+  ]);
+
+  for (const cc of affectedCountries) {
+    revalidatePath(`/${cc}/blog`);
+    for (const slug of slugs) {
+      revalidatePath(`/${cc}/blog/${encodeURIComponent(slug)}`);
+    }
+  }
+
+  revalidatePath("/sitemap.xml");
 }
 
 export function revalidateUniversityCache(
@@ -157,4 +219,8 @@ export function revalidateSeoCache(input: { ownerType?: string | null; ownerId?:
     ownerType === "exam" ? CACHE_TAGS.public.quizzes : null,
     ownerType === "exam" && ownerId ? CACHE_TAGS.public.quiz(ownerId) : null,
   ]);
+
+  if (ownerType === "blog_post") {
+    revalidateBlogCache({ postId: ownerId, allCountries: true });
+  }
 }

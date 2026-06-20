@@ -392,6 +392,7 @@ model Attachment {
   meta                Json?
   createdAt           DateTime             @default(now())
   blogPostAttachments BlogPostAttachment[] @relation("BlogPostAttachmentFile")
+  blogPostCovers      BlogPost[]           @relation("BlogPostCoverAttachment")
 
   @@index([ownerType, ownerId])
   @@map("attachments")
@@ -760,20 +761,37 @@ enum BlogPostStatus {
   archived
 }
 
+enum BlogVisibility {
+  global
+  countries
+}
+
+enum BlogRelatedOwnerType {
+  university
+  major
+  subject
+  chapter
+  quiz
+}
+
 model BlogPost {
   id          String  @id @default(uuid())
   title       String
+  slug        String
   excerpt     String? // ملخص يظهر في القوائم/SEO fallback
   content     Json // محتوى المحرر (TipTap/EditorJS...الخ)
   contentText String? // نص مبسّط (اختياري) للاستخدام في previews لاحقًا
   contentHtml String? @db.Text // ✅ NEW: HTML جاهز للـ SEO/OG/Preview
 
-  status        BlogPostStatus @default(draft)
-  publishedAt   DateTime?
-  coverImageUrl String? // صورة غلاف سريعة للقوائم (اختياري)
+  status            BlogPostStatus @default(draft)
+  visibility        BlogVisibility @default(global)
+  publishedAt       DateTime?
+  coverAttachmentId String?
+  coverAttachment   Attachment?    @relation("BlogPostCoverAttachment", fields: [coverAttachmentId], references: [id], onDelete: SetNull)
 
-  // اختيارية حسب كلامك (لاحقًا تخصيص حسب الجلسة)
-  countryCode String?
+  readingMinutes Int?
+  featured       Boolean @default(false)
+  sortOrder      Int     @default(0)
 
   // اللغة الآن عربي، لكن نتركها للتوسع
   language ContentLanguage @default(ar)
@@ -785,6 +803,8 @@ model BlogPost {
   secondaryTopics BlogPostSecondaryTopic[]
   tags            BlogPostTag[]
   attachments     BlogPostAttachment[]
+  countries       BlogPostCountry[]
+  relatedEntities BlogPostRelatedEntity[]
 
   viewEvents BlogPostViewEvent[]
   viewsCount Int                 @default(0)
@@ -798,20 +818,21 @@ model BlogPost {
   creator User? @relation("BlogPostCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
   updater User? @relation("BlogPostUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
 
+  @@unique([language, slug])
   @@index([status, publishedAt])
+  @@index([visibility, status])
   @@index([primaryTopicId])
-  @@index([countryCode])
+  @@index([coverAttachmentId])
+  @@index([featured, sortOrder])
   @@map("blog_posts")
 }
 
 model BlogTopic {
   id          String  @id @default(uuid())
   name        String // اسم الموضوع
+  slug        String
   description String?
   isActive    Boolean @default(true)
-
-  // اختياري للتخصيص لاحقًا
-  countryCode String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -821,19 +842,17 @@ model BlogTopic {
   secondaryPosts BlogPostSecondaryTopic[]
 
   @@unique([name])
+  @@unique([slug])
   @@index([isActive])
-  @@index([countryCode])
   @@map("blog_topics")
 }
 
 model BlogTag {
   id          String  @id @default(uuid())
   name        String // اسم الوسم
+  slug        String
   description String?
   isActive    Boolean @default(true)
-
-  // اختياري للتخصيص لاحقًا
-  countryCode String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -842,9 +861,36 @@ model BlogTag {
   posts BlogPostTag[]
 
   @@unique([name])
+  @@unique([slug])
   @@index([isActive])
-  @@index([countryCode])
   @@map("blog_tags")
+}
+
+model BlogPostCountry {
+  postId      String
+  countryCode String
+  createdAt   DateTime @default(now())
+
+  post BlogPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@id([postId, countryCode])
+  @@index([countryCode])
+  @@map("blog_post_countries")
+}
+
+model BlogPostRelatedEntity {
+  postId    String
+  ownerType BlogRelatedOwnerType
+  ownerId   String
+  sortOrder Int                  @default(0)
+  createdAt DateTime             @default(now())
+
+  post BlogPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@id([postId, ownerType, ownerId])
+  @@index([ownerType, ownerId])
+  @@index([postId, sortOrder])
+  @@map("blog_post_related_entities")
 }
 
 // ✅ Secondary topics (Post ↔ Topic) — حل الـ Primary/Secondary

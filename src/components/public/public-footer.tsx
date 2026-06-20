@@ -35,6 +35,7 @@ export function PublicFooter({ cc: ccProp }: Props) {
 
   const browseLinks: FooterLink[] = [
     { label: "الصفحة الرئيسية", href: `/${cc}` },
+    { label: "المدونة", href: `/${cc}/blog` },
     { label: "الجامعات", href: `/${cc}/university` },
     { label: "المدارس", href: `/${cc}/school` },
     { label: "الأكاديميات", href: `/${cc}/academy` },

@@ -19,6 +19,7 @@ export const CACHE_TAGS = {
   admin: {
     analytics: "admin:analytics",
     attachments: "admin:attachments",
+    blog: "admin:blog",
     chapters: "admin:chapters",
     dashboard: "admin:dashboard",
     exams: "admin:exams",
@@ -31,6 +32,12 @@ export const CACHE_TAGS = {
     users: "admin:users",
   },
   public: {
+    blog: "public:blog",
+    blogCountry: (cc: string) => `public:blog:country:${cc.toUpperCase()}`,
+    blogPost: (id: string) => `public:blog:post:${id}`,
+    blogSlug: (slug: string) => `public:blog:slug:${slug}`,
+    blogTopics: "public:blog:topics",
+    blogTags: "public:blog:tags",
     institutions: "public:institutions",
     institutionsCountry: (cc: string) => `public:institutions:country:${cc.toUpperCase()}`,
     institution: (id: string) => `public:institution:${id}`,
