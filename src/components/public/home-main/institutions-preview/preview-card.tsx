@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { BookOpen, Building2, GraduationCap, MapPin, Star } from "lucide-react";
+import { BookOpen, Building2, MapPin, Star } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -91,19 +91,18 @@ export function InstitutionPreviewCard({
 
       <CardContent className="flex flex-1 flex-col justify-between gap-4">
         {location ? (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <div className="flex items-center gap-2 text-sm font-medium text-foreground/70">
             <MapPin className="h-4 w-4" aria-hidden />
             <span className="line-clamp-1">{location}</span>
           </div>
         ) : (
-          <div className="text-sm text-muted-foreground">
+          <div className="text-sm font-medium text-foreground/75">
             استكشف المحتوى المتاح داخل هذه المؤسسة.
           </div>
         )}
 
         <Button asChild className="h-11 w-full rounded-lg text-sm sm:text-base">
-          <Link href={href} prefetch={false} className="flex items-center justify-center gap-2">
-            <GraduationCap className="h-5 w-5" aria-hidden />
+          <Link href={href} prefetch={false} className="flex items-center justify-center">
             استكشف
           </Link>
         </Button>
@@ -183,7 +182,7 @@ function DirectoryInstitutionCard({
             </CardTitle>
 
             {location ? (
-              <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
+              <div className="mt-3 flex items-center gap-2 text-sm font-medium text-foreground/70">
                 <MapPin className="h-4 w-4 shrink-0" aria-hidden />
                 <span className="line-clamp-1">{location}</span>
               </div>
@@ -193,18 +192,18 @@ function DirectoryInstitutionCard({
 
         <div className="grid grid-cols-2 gap-3">
           <div className="rounded-lg border bg-muted/30 p-3">
-            <p className="text-xs font-medium text-muted-foreground">التخصصات</p>
+            <p className="text-xs font-medium text-foreground/70">التخصصات</p>
             <p className="mt-1 text-xl font-bold text-foreground">{majorCount ?? "-"}</p>
           </div>
           <div className="rounded-lg border bg-muted/30 p-3">
-            <p className="text-xs font-medium text-muted-foreground">الاختبارات</p>
+            <p className="text-xs font-medium text-foreground/70">الاختبارات</p>
             <p className="mt-1 text-xl font-bold text-foreground">{quizCount ?? "-"}</p>
           </div>
         </div>
 
         {shownMajors.length > 0 ? (
           <div className="space-y-2">
-            <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+            <div className="flex items-center gap-2 text-xs font-semibold text-foreground/70">
               <BookOpen className="h-4 w-4" aria-hidden />
               تخصصات بارزة
             </div>
@@ -212,7 +211,7 @@ function DirectoryInstitutionCard({
               {shownMajors.map((major) => (
                 <span
                   key={major.id}
-                  className="line-clamp-1 rounded-full border bg-background px-3 py-1 text-xs text-muted-foreground"
+                  className="line-clamp-1 rounded-full border bg-background px-3 py-1 text-xs font-medium text-foreground/75"
                 >
                   {major.name}
                 </span>
@@ -220,14 +219,13 @@ function DirectoryInstitutionCard({
             </div>
           </div>
         ) : (
-          <p className="text-sm leading-7 text-muted-foreground">
+          <p className="text-sm font-medium leading-7 text-foreground/75">
             استكشف التخصصات والمقررات والاختبارات المتاحة داخل هذه الجامعة.
           </p>
         )}
 
         <Button asChild className="mt-auto h-11 w-full rounded-lg text-sm sm:text-base">
-          <Link href={href} prefetch={false} className="flex items-center justify-center gap-2">
-            <GraduationCap className="h-5 w-5" aria-hidden />
+          <Link href={href} prefetch={false} className="flex items-center justify-center">
             استعرض التخصصات
           </Link>
         </Button>

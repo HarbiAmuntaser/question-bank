@@ -6,7 +6,45 @@ import { X } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
-const Dialog = DialogPrimitive.Root
+type DialogProps = React.ComponentPropsWithoutRef<typeof DialogPrimitive.Root>
+
+function hasOpenDialogElement() {
+  return Boolean(document.querySelector('[role="dialog"], [role="alertdialog"]'))
+}
+
+function cleanupStaleBodyPointerEvents() {
+  if (typeof document === "undefined" || typeof window === "undefined") return
+
+  const cleanup = () => {
+    if (!hasOpenDialogElement() && document.body.style.pointerEvents === "none") {
+      document.body.style.pointerEvents = ""
+    }
+  }
+
+  window.requestAnimationFrame(cleanup)
+  window.setTimeout(cleanup, 300)
+}
+
+const Dialog = ({ open, defaultOpen, onOpenChange, ...props }: DialogProps) => {
+  const isControlled = open !== undefined
+  const [uncontrolledOpen, setUncontrolledOpen] = React.useState(defaultOpen ?? false)
+  const currentOpen = isControlled ? open : uncontrolledOpen
+
+  const handleOpenChange = React.useCallback(
+    (nextOpen: boolean) => {
+      if (!isControlled) setUncontrolledOpen(nextOpen)
+      onOpenChange?.(nextOpen)
+      if (!nextOpen) cleanupStaleBodyPointerEvents()
+    },
+    [isControlled, onOpenChange]
+  )
+
+  React.useEffect(() => {
+    if (!currentOpen) cleanupStaleBodyPointerEvents()
+  }, [currentOpen])
+
+  return <DialogPrimitive.Root {...props} open={currentOpen} onOpenChange={handleOpenChange} />
+}
 
 const DialogTrigger = DialogPrimitive.Trigger
 

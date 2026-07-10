@@ -150,7 +150,7 @@ export default async function AdminDashboard() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-foreground">لوحة التحكم</h1>
-        <p className="mt-2 text-muted-foreground">مرحباً بك في لوحة إدارة مستواك</p>
+        <p className="mt-2 font-medium text-foreground/70">مرحباً بك في لوحة إدارة مستواك</p>
       </div>
 
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
@@ -164,7 +164,7 @@ export default async function AdminDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold arabic-numbers">{stat.value.toLocaleString("ar-SA")}</div>
-                <p className="text-xs text-muted-foreground">{stat.description}</p>
+                <p className="text-xs font-medium text-foreground/65">{stat.description}</p>
               </CardContent>
             </Card>
           )
@@ -175,7 +175,7 @@ export default async function AdminDashboard() {
         <Card>
           <CardHeader>
             <CardTitle>النشاط الأخير</CardTitle>
-            <CardDescription>آخر أنشطة النظام الفعلية</CardDescription>
+            <CardDescription className="text-foreground/70">آخر أنشطة النظام الفعلية</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -185,13 +185,13 @@ export default async function AdminDashboard() {
                     <div className={`h-2 w-2 rounded-full ${getActivityDotColor(activity.type)}`} />
                     <div className="flex-1">
                       <p className="text-sm font-medium">{activity.title}</p>
-                      <p className="text-xs text-muted-foreground">{activity.subtitle}</p>
+                      <p className="text-xs font-medium text-foreground/65">{activity.subtitle}</p>
                     </div>
-                    <p className="text-xs text-muted-foreground">{formatRelativeTime(activity.createdAt)}</p>
+                    <p className="text-xs font-medium text-foreground/65">{formatRelativeTime(activity.createdAt)}</p>
                   </div>
                 ))
               ) : (
-                <p className="text-sm text-muted-foreground">لا توجد أنشطة حديثة لعرضها</p>
+                <p className="text-sm text-foreground/70">لا توجد أنشطة حديثة لعرضها</p>
               )}
             </div>
           </CardContent>
@@ -200,7 +200,7 @@ export default async function AdminDashboard() {
         <Card>
           <CardHeader>
             <CardTitle>مؤشرات النظام</CardTitle>
-            <CardDescription>مؤشرات تشغيل حقيقية من قاعدة البيانات</CardDescription>
+            <CardDescription className="text-foreground/70">مؤشرات تشغيل حقيقية من قاعدة البيانات</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">

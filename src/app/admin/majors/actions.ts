@@ -3,6 +3,7 @@
 
 import { revalidatePath, revalidateTag } from "next/cache";
 import { getRequestOrigin } from "@/lib/server/request-origin";
+import { normalizeDegreeType } from "@/lib/degree-types";
 
 function normalize(v: FormDataEntryValue | null): string | null {
   const s = (v ?? "").toString().trim();
@@ -18,7 +19,7 @@ export async function createMajorAction(formData: FormData) {
     universityId: (formData.get("universityId") ?? "").toString(),
     name: (formData.get("name") ?? "").toString().trim(),
     code: normalize(formData.get("code")),            // "" => null
-    degreeType: normalize(formData.get("degreeType")),// "" => null
+    degreeType: normalizeDegreeType(formData.get("degreeType")),
     durationYears: (() => {
       const raw = (formData.get("durationYears") ?? "").toString().trim();
       if (!raw) return null;
@@ -47,7 +48,7 @@ export async function createMajorAction(formData: FormData) {
     revalidateTag("majors");
     revalidatePath("/admin/majors");
     return { success: true as const, message: "تم إنشاء التخصص بنجاح" };
-  } catch (e) {
+  } catch {
     return { success: false as const, message: "خطأ غير متوقع" };
   }
 }
@@ -57,7 +58,7 @@ export async function updateMajorAction(id: string, formData: FormData) {
     universityId: normalize(formData.get("universityId")) ?? undefined,
     name: normalize(formData.get("name")) ?? undefined,
     code: normalize(formData.get("code")),            // قد تصبح null
-    degreeType: normalize(formData.get("degreeType")),// قد تصبح null
+    degreeType: normalizeDegreeType(formData.get("degreeType")),
     durationYears: (() => {
       const raw = (formData.get("durationYears") ?? "").toString().trim();
       if (!raw) return null;

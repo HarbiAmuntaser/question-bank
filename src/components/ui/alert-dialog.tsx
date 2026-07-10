@@ -6,7 +6,45 @@ import * as AlertDialogPrimitive from "@radix-ui/react-alert-dialog"
 import { cn } from "@/lib/utils"
 import { buttonVariants } from "@/components/ui/button"
 
-const AlertDialog = AlertDialogPrimitive.Root
+type AlertDialogProps = React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Root>
+
+function hasOpenDialogElement() {
+  return Boolean(document.querySelector('[role="dialog"], [role="alertdialog"]'))
+}
+
+function cleanupStaleBodyPointerEvents() {
+  if (typeof document === "undefined" || typeof window === "undefined") return
+
+  const cleanup = () => {
+    if (!hasOpenDialogElement() && document.body.style.pointerEvents === "none") {
+      document.body.style.pointerEvents = ""
+    }
+  }
+
+  window.requestAnimationFrame(cleanup)
+  window.setTimeout(cleanup, 300)
+}
+
+const AlertDialog = ({ open, defaultOpen, onOpenChange, ...props }: AlertDialogProps) => {
+  const isControlled = open !== undefined
+  const [uncontrolledOpen, setUncontrolledOpen] = React.useState(defaultOpen ?? false)
+  const currentOpen = isControlled ? open : uncontrolledOpen
+
+  const handleOpenChange = React.useCallback(
+    (nextOpen: boolean) => {
+      if (!isControlled) setUncontrolledOpen(nextOpen)
+      onOpenChange?.(nextOpen)
+      if (!nextOpen) cleanupStaleBodyPointerEvents()
+    },
+    [isControlled, onOpenChange]
+  )
+
+  React.useEffect(() => {
+    if (!currentOpen) cleanupStaleBodyPointerEvents()
+  }, [currentOpen])
+
+  return <AlertDialogPrimitive.Root {...props} open={currentOpen} onOpenChange={handleOpenChange} />
+}
 
 const AlertDialogTrigger = AlertDialogPrimitive.Trigger
 

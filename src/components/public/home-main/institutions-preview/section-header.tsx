@@ -1,7 +1,7 @@
 // file: src/components/public/home-main/institutions-preview/section-header.tsx
 
 import Link from "next/link";
-import { GraduationCap } from "lucide-react";
+import { MapPin } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
@@ -24,7 +24,7 @@ export function InstitutionsSectionHeader({
     <div className="mb-6 flex flex-col gap-4 sm:mb-8 md:flex-row md:items-end md:justify-between">
       <div className="flex items-start gap-3">
         <div className="rounded-lg bg-primary/10 p-3 text-primary" aria-hidden>
-          <GraduationCap className="h-6 w-6" />
+          <MapPin className="h-6 w-6" />
         </div>
 
         <div>

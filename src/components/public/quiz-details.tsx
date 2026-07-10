@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import type { InstitutionType } from "@/config/regions";
 import { fetchJSON } from "@/lib/server/student-fetch";
 import { stripPrefix, encodeSlugPath } from "@/lib/public/slug-utils";
+import { getDegreeTypeLabel } from "@/lib/degree-types";
 
 import { GraduationCap, ArrowRight, Trophy, Share2 } from "lucide-react";
 import { LazyQuizShare } from "@/components/public/lazy-quiz-share";
@@ -180,7 +181,7 @@ export async function QuizDetails({
     <div className="space-y-6 lg:space-y-8">
       <Card className={surfaceCardClass}>
         <CardHeader className="px-5 text-center sm:px-6">
-          <div className="mb-2 flex flex-wrap items-center justify-center gap-2 text-xs font-medium text-muted-foreground">
+          <div className="mb-2 flex flex-wrap items-center justify-center gap-2 text-xs font-medium text-foreground/70">
             <Link
               href={subjectLink}
               prefetch={false}
@@ -193,7 +194,7 @@ export async function QuizDetails({
           </div>
 
           <CardTitle className="text-2xl font-bold leading-tight sm:text-3xl">{quiz.title}</CardTitle>
-          <CardDescription className="text-sm leading-relaxed text-muted-foreground sm:text-base" dir="rtl">
+          <CardDescription className="text-sm leading-relaxed text-foreground/75 sm:text-base" dir="rtl">
             {quiz.description || "صفحة تفاصيل الاختبار قبل البدء."}
           </CardDescription>
 
@@ -203,13 +204,13 @@ export async function QuizDetails({
             {typeof quiz.totalPoints === "number" ? (
               <Badge variant="outline">{quiz.totalPoints} نقطة</Badge>
             ) : null}
-            {major.degreeType ? <Badge variant="outline">{major.degreeType}</Badge> : null}
+            {major.degreeType ? <Badge variant="outline">{getDegreeTypeLabel(major.degreeType)}</Badge> : null}
             {subject.code ? <Badge variant="secondary">{subject.code}</Badge> : null}
           </div>
 
           <Separator className="mx-auto my-4 max-w-md" />
 
-          <div className="flex flex-wrap justify-center gap-3 text-sm leading-relaxed text-muted-foreground">
+          <div className="flex flex-wrap justify-center gap-3 text-sm font-medium leading-relaxed text-foreground/70">
             <Link
               href={uniLink}
               prefetch={false}
@@ -243,7 +244,7 @@ export async function QuizDetails({
           <div className={actionPanelClass}>
             <div className="mb-4 text-center">
               <h2 className="text-lg font-semibold leading-tight sm:text-xl">جاهز للبدء؟</h2>
-              <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+              <p className="mt-1 text-sm leading-relaxed text-foreground/75">
                 تحقق من بيانات الاختبار ثم انتقل إلى صفحة الحل.
               </p>
             </div>
@@ -260,7 +261,7 @@ export async function QuizDetails({
           </div>
 
           <div className="space-y-3 rounded-lg border bg-background/70 p-4 text-center">
-            <div className="flex items-center justify-center gap-2 leading-relaxed text-muted-foreground">
+            <div className="flex items-center justify-center gap-2 leading-relaxed text-foreground/70">
               <Share2 className="h-4 w-4" aria-hidden />
               <span className="text-sm">شارك رابط الاختبار مع زملائك</span>
             </div>

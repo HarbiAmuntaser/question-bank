@@ -17,8 +17,10 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
+import { DEGREE_TYPE_OPTIONS, normalizeDegreeType } from "@/lib/degree-types";
 import type { MajorWithRelations } from "@/types";
 
 interface MajorDialogProps {
@@ -108,7 +110,18 @@ export function MajorDialog({ children, major, open, onOpenChange }: MajorDialog
               <Label htmlFor="degreeType" className="text-right">
                 نوع الدرجة
               </Label>
-              <Input id="degreeType" name="degreeType" defaultValue={major?.degreeType || ""} className="col-span-3" placeholder="مثال: بكالوريوس" />
+              <Select name="degreeType" defaultValue={normalizeDegreeType(major?.degreeType)}>
+                <SelectTrigger id="degreeType" className="col-span-3">
+                  <SelectValue placeholder="اختر نوع الدرجة" />
+                </SelectTrigger>
+                <SelectContent>
+                  {DEGREE_TYPE_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="grid grid-cols-4 items-center gap-4">

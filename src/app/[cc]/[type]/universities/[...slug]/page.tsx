@@ -7,11 +7,12 @@ import { PublicHeader } from "@/components/public/public-header/public-header";
 import { PublicFooter } from "@/components/public/public-footer";
 import { UniversityHero } from "@/components/public/university-hero";
 import { MajorsList } from "@/components/public/majors-list";
+import { UniversityDegreeSelector } from "@/components/public/university-degree-selector";
 import { MajorDetails } from "@/components/public/major-details";
 import { SubjectDetails } from "@/components/public/subject-details";
 import { QuizDetails } from "@/components/public/quiz-details";
 import { StudySummaryDetails } from "@/components/public/study-summaries/study-summary-details";
-import type { UniversityPublicLite } from "@/types/public-university";
+import type { MajorPublicLite, UniversityPublicLite } from "@/types/public-university";
 
 import { normalizeCountry, isSupportedType } from "@/lib/route-helpers";
 import type { InstitutionType } from "@/config/regions";
@@ -29,10 +30,31 @@ import { fetchJSON } from "@/lib/server/student-fetch";
 import { getPublishedSubjectSummaryBySlug, getStudySummarySeoMeta } from "@/lib/server/study-summaries";
 import { SITE_NAME, SITE_URL } from "@/lib/seo";
 import { educationPageRobots } from "@/lib/search-indexing";
+import { DEGREE_TYPE_OPTIONS, normalizeDegreeType, type DegreeTypeValue } from "@/lib/degree-types";
 
 export const revalidate = 21600;
 
 type PageParams = { cc: string; type: string; slug: string[] };
+type PageSearchParams = { degree?: string | string[] };
+
+function getFirstSearchValue(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function buildDegreeGroups(majors: MajorPublicLite[]) {
+  const counts = new Map<DegreeTypeValue, number>();
+
+  for (const major of majors) {
+    const degree = normalizeDegreeType(major.degreeType);
+    counts.set(degree, (counts.get(degree) ?? 0) + 1);
+  }
+
+  return DEGREE_TYPE_OPTIONS.map((option) => ({
+    value: option.value,
+    label: option.label,
+    count: counts.get(option.value) ?? 0,
+  })).filter((group) => group.count > 0);
+}
 
 /* -------------------------
    Minimal Types (بدون any)
@@ -536,10 +558,12 @@ export async function generateMetadata({ params }: { params: Promise<PageParams>
 
 export default async function UniversitiesCatchAllPage({
   params,
+  searchParams,
 }: {
   params: Promise<PageParams>;
+  searchParams: Promise<PageSearchParams>;
 }) {
-  const p = await params;
+  const [p, sp] = await Promise.all([params, searchParams]);
 
   const cc = normalizeCountry(p.cc);
   const typeRaw = (p.type || "").toLowerCase();
@@ -659,6 +683,41 @@ export default async function UniversitiesCatchAllPage({
   const baseSlug = (uni.seo?.slug ?? uni.code ?? uni.id).toString();
   const universitySlugForLinks = stripPrefix(baseSlug, "جامعات");
   const uniTyped = uni as UniversityPublicLite;
+  const allMajors = uniTyped.majors ?? [];
+  const isUniversityType = type === "university";
+  const degreeGroups = isUniversityType ? buildDegreeGroups(allMajors) : [];
+  const requestedDegreeRaw = getFirstSearchValue(sp.degree);
+  const requestedDegree = requestedDegreeRaw ? normalizeDegreeType(requestedDegreeRaw) : null;
+  const requestedDegreeAvailable = requestedDegree
+    ? degreeGroups.some((group) => group.value === requestedDegree)
+    : false;
+  const selectedDegree =
+    requestedDegree && requestedDegreeAvailable
+      ? requestedDegree
+      : degreeGroups.length === 1
+        ? degreeGroups[0].value
+        : null;
+  const universityBasePath = `/${cc}/${type}/universities/${encodeSlugPath(universitySlugForLinks)}`;
+  const visibleMajors =
+    isUniversityType && selectedDegree
+      ? allMajors.filter((major) => normalizeDegreeType(major.degreeType) === selectedDegree)
+      : allMajors;
+
+  if (isUniversityType && degreeGroups.length > 1 && !selectedDegree) {
+    return (
+      <div className="min-h-screen bg-background">
+        <PublicHeader />
+        <main>
+          <UniversityDegreeSelector
+            universityName={uniTyped.name}
+            basePath={universityBasePath}
+            groups={degreeGroups}
+          />
+        </main>
+        <PublicFooter cc={cc} />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -681,7 +740,7 @@ export default async function UniversitiesCatchAllPage({
               cc={cc}
               type={type}
               universitySlug={universitySlugForLinks}
-              majors={uniTyped.majors ?? []}
+              majors={visibleMajors}
             />
           </div>
         </section>

@@ -3,6 +3,7 @@
 import { getServerSession } from "next-auth";
 
 import { authOptions } from "@/lib/auth";
+import { getDegreeTypeLabel } from "@/lib/degree-types";
 import { prisma } from "@/lib/prisma";
 
 export type AdminLookupType = "university" | "major" | "subject" | "chapter";
@@ -94,7 +95,9 @@ export async function searchMajorsAction(args: { universityId?: string; query?: 
     id: row.id,
     label: row.name,
     code: row.code,
-    subLabel: [row.code, row.degreeType, row.university?.name].filter(Boolean).join(" - ") || undefined,
+    subLabel: [row.code, row.degreeType ? getDegreeTypeLabel(row.degreeType) : null, row.university?.name]
+      .filter(Boolean)
+      .join(" - ") || undefined,
   }));
 }
 
@@ -186,7 +189,9 @@ export async function resolveAdminLookupAction(type: AdminLookupType, id: string
           id: row.id,
           label: row.name,
           code: row.code,
-          subLabel: [row.code, row.degreeType, row.university?.name].filter(Boolean).join(" - ") || undefined,
+          subLabel: [row.code, row.degreeType ? getDegreeTypeLabel(row.degreeType) : null, row.university?.name]
+            .filter(Boolean)
+            .join(" - ") || undefined,
         }
       : null;
   }

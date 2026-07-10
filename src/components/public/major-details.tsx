@@ -20,6 +20,7 @@ import { MajorSubscriptionCallout } from "@/components/public/subscription-acces
 import { CACHE_TAGS, cacheTags } from "@/lib/cache-tags";
 import { fetchJSON } from "@/lib/server/student-fetch";
 import { stripPrefix, encodeSlugPath } from "@/lib/public/slug-utils";
+import { getDegreeTypeLabel, normalizeDegreeType } from "@/lib/degree-types";
 
 export const revalidate = 21600;
 
@@ -82,7 +83,7 @@ function normalizeComparableText(value: string | null | undefined) {
 }
 
 function normalizeDegreeLabel(value: string | null | undefined) {
-  return (value ?? "").trim();
+  return normalizeDegreeType(value);
 }
 
 function degreeSortRank(value: string) {
@@ -275,7 +276,7 @@ export async function MajorDetails({
       {/* Header Card */}
       <Card className={surfaceCardClass}>
         <CardHeader className="px-5 text-center sm:px-6">
-          <div className="mb-2 flex flex-wrap items-center justify-center gap-2 text-xs font-medium text-muted-foreground">
+          <div className="mb-2 flex flex-wrap items-center justify-center gap-2 text-xs font-medium text-foreground/70">
             <Link
               href={uniLink}
               prefetch={false}
@@ -289,16 +290,16 @@ export async function MajorDetails({
 
           <CardTitle className="text-2xl font-bold leading-tight sm:text-3xl">{major.name}</CardTitle>
 
-          <CardDescription className="text-sm leading-relaxed text-muted-foreground sm:text-base" dir="rtl">
-            {major.degreeType ? major.degreeType : "تخصص"}
+          <CardDescription className="text-sm font-medium leading-relaxed text-foreground/70 sm:text-base" dir="rtl">
+            {major.degreeType ? getDegreeTypeLabel(major.degreeType) : "تخصص"}
             {major.durationYears ? ` • ${major.durationYears} سنوات` : ""}
           </CardDescription>
 
-          <p className="mx-auto mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
+          <p className="mx-auto mt-2 max-w-2xl text-sm leading-relaxed text-foreground/75 sm:text-base">
             استعرض المواد والاختبارات المرتبطة بهذا التخصص واختر المسار المناسب للبدء.
           </p>
 
-          <div className="mt-3 flex flex-wrap items-center justify-center gap-3 text-sm leading-relaxed text-muted-foreground">
+          <div className="mt-3 flex flex-wrap items-center justify-center gap-3 text-sm font-medium leading-relaxed text-foreground/70">
             <Link
               href={uniLink}
               prefetch={false}
@@ -318,7 +319,7 @@ export async function MajorDetails({
               <span className="text-2xl sm:text-3xl font-bold arabic-numbers">
                 {major._count?.subjects ?? subjects.length}
               </span>
-              <span className="mt-1 block text-sm font-medium text-muted-foreground">مواد دراسية</span>
+              <span className="mt-1 block text-sm font-medium text-foreground/70">مواد دراسية</span>
             </div>
 
             {typeof major._count?.quizzes === "number" ? (
@@ -326,7 +327,7 @@ export async function MajorDetails({
                 <span className="text-2xl sm:text-3xl font-bold arabic-numbers">
                   {major._count.quizzes}
                 </span>
-                <span className="mt-1 block text-sm font-medium text-muted-foreground">اختبارات متاحة</span>
+                <span className="mt-1 block text-sm font-medium text-foreground/70">اختبارات متاحة</span>
               </div>
             ) : null}
           </div>
@@ -352,7 +353,7 @@ export async function MajorDetails({
                 <GraduationCap className="h-5 w-5 text-primary" aria-hidden />
                 <h2 className="text-lg font-bold leading-tight sm:text-xl">نوع الدرجة</h2>
               </div>
-              <p className="text-sm leading-relaxed text-muted-foreground sm:text-base">
+              <p className="text-sm leading-relaxed text-foreground/75 sm:text-base">
                 اختر درجة البرنامج لعرض المقررات المرتبطة بها ضمن هذا التخصص.
               </p>
             </div>
@@ -373,7 +374,7 @@ export async function MajorDetails({
                       href={majorHrefHier(ccNorm, typeNorm, canonicalUni, canonicalMajor, major.id, option)}
                       prefetch={false}
                     >
-                      {optionDegree}
+                      {getDegreeTypeLabel(optionDegree)}
                     </Link>
                   </Button>
                 );
@@ -387,7 +388,7 @@ export async function MajorDetails({
       <section id="subjects-section" className="space-y-5">
         <div className="text-center">
           <h2 className="text-xl font-bold leading-tight sm:text-2xl">المواد الدراسية في هذا التخصص</h2>
-          <p className="mt-1 text-sm leading-relaxed text-muted-foreground sm:text-base">اختر مادة لاستكشاف اختباراتِها</p>
+          <p className="mt-1 text-sm leading-relaxed text-foreground/70 sm:text-base">اختر مادة لاستكشاف اختباراتِها</p>
         </div>
 
         {subjects.length > 0 ? (
@@ -418,11 +419,11 @@ export async function MajorDetails({
                 </CardHeader>
 
                 <CardContent className="flex flex-1 flex-col justify-between gap-4 pt-0 pb-6">
-                  <p className="line-clamp-2 text-sm leading-relaxed text-muted-foreground">
+                  <p className="line-clamp-2 text-sm leading-relaxed text-foreground/75">
                     {s.description || "لا يوجد وصف مختصر لهذه المادة حالياً."}
                   </p>
 
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <div className="flex items-center justify-between text-xs font-medium text-foreground/65">
                     <span>{s.semester ? `الفصل: ${s.semester}` : "—"}</span>
                     <span>{s.year ? `السنة: ${s.year}` : "—"}</span>
                   </div>
@@ -439,7 +440,7 @@ export async function MajorDetails({
           })}
         </div>
       ) : (
-        <div className="text-center text-muted-foreground py-10">
+        <div className="py-10 text-center text-foreground/70">
           لا توجد مواد دراسية متاحة لهذا التخصص بعد.
         </div>
       )}

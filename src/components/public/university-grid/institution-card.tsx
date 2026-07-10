@@ -1,7 +1,7 @@
 // file: src/components/public/university-grid/institution-card.tsx
 
 import Link from "next/link";
-import { BookOpen, Building2, GraduationCap, MapPin } from "lucide-react";
+import { BookOpen, Building2, MapPin } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,7 +24,7 @@ type Props = {
 function StatPill({ label, value }: { label: string; value: number }) {
   return (
     <div className="rounded-lg border bg-muted/30 p-3">
-      <p className="text-xs font-medium text-muted-foreground">{label}</p>
+      <p className="text-xs font-medium text-foreground/70">{label}</p>
       <p className="mt-1 text-xl font-bold text-foreground">{value}</p>
     </div>
   );
@@ -83,7 +83,7 @@ export function InstitutionGridCard({
             </CardTitle>
 
             {location ? (
-              <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
+              <div className="mt-3 flex items-center gap-2 text-sm font-medium text-foreground/70">
                 <MapPin className="h-4 w-4 shrink-0" aria-hidden />
                 <span className="line-clamp-1">{location}</span>
               </div>
@@ -101,15 +101,14 @@ export function InstitutionGridCard({
             ) : null}
           </div>
         ) : (
-          <div className="flex items-start gap-2 rounded-lg border bg-muted/30 p-3 text-sm leading-6 text-muted-foreground">
+          <div className="flex items-start gap-2 rounded-lg border bg-muted/30 p-3 text-sm font-medium leading-6 text-foreground/75">
             <BookOpen className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />
             استكشف المحتوى التعليمي والاختبارات المتاحة داخل هذه المؤسسة.
           </div>
         )}
 
         <Button asChild className="mt-auto h-11 w-full rounded-lg text-sm sm:text-base">
-          <Link href={href} prefetch={false} className="flex items-center justify-center gap-2">
-            <GraduationCap className="h-5 w-5" aria-hidden />
+          <Link href={href} prefetch={false} className="flex items-center justify-center">
             {ctaText}
           </Link>
         </Button>

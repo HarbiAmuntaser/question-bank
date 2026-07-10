@@ -9,6 +9,7 @@ import { Pagination } from "@/components/Pagination";
 import { MajorActions } from "./major-actions";
 import { UniversityFilter } from "./UniversityFilter";
 import { AdminTableShell } from "@/components/admin/admin-table-shell";
+import { getDegreeTypeLabel } from "@/lib/degree-types";
 
 // ------- Types matching API -------
 export interface MajorRow {
@@ -153,7 +154,7 @@ export async function MajorsTable({
                   </code>
                 </TableCell>
                 <TableCell>
-                  <Badge variant="outline">{major.degreeType ?? "غير محدد"}</Badge>
+                  <Badge variant="outline">{getDegreeTypeLabel(major.degreeType)}</Badge>
                 </TableCell>
                 <TableCell>
                   <div className="text-sm arabic-numbers">{major.subjectsCount}</div>

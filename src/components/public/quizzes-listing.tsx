@@ -16,6 +16,7 @@ import {
   type PublicQuizAccessItem,
 } from "@/components/public/subscription-access";
 import { cn } from "@/lib/utils";
+import { getDegreeTypeLabel } from "@/lib/degree-types";
 
 type QuizItem = {
   id: string; title: string; description: string | null; timeLimit: number; createdAt: string | Date;
@@ -172,7 +173,7 @@ useEffect(() => {
             <SelectTrigger className={filterControlClass}><SelectValue placeholder="نوع الدرجة" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">جميع أنواع الدرجات</SelectItem>
-              {degreeTypes.map((t) => (<SelectItem key={t} value={t}>{t}</SelectItem>))}
+              {degreeTypes.map((t) => (<SelectItem key={t} value={t}>{getDegreeTypeLabel(t)}</SelectItem>))}
             </SelectContent>
           </Select>
 

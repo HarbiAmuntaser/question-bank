@@ -21,6 +21,7 @@ import { SubjectLearningSwitcher } from "@/components/public/subject-learning-sw
 import { getPublishedSubjectSummaries } from "@/lib/server/study-summaries";
 import { fetchJSON } from "@/lib/server/student-fetch";
 import { stripPrefix, encodeSlugPath } from "@/lib/public/slug-utils";
+import { getDegreeTypeLabel } from "@/lib/degree-types";
 
 export const revalidate = 21600;
 
@@ -179,7 +180,7 @@ export async function SubjectDetails({
     <div className="space-y-6 lg:space-y-8">
       <Card className={surfaceCardClass}>
         <CardHeader className="px-5 text-center sm:px-6">
-          <div className="mb-2 flex flex-wrap items-center justify-center gap-2 text-xs font-medium text-muted-foreground">
+          <div className="mb-2 flex flex-wrap items-center justify-center gap-2 text-xs font-medium text-foreground/70">
             <Link
               href={majorLink}
               prefetch={false}
@@ -193,12 +194,12 @@ export async function SubjectDetails({
 
           <CardTitle className="text-2xl font-bold leading-tight sm:text-3xl">{subject.name}</CardTitle>
 
-          <CardDescription className="text-sm leading-relaxed text-muted-foreground sm:text-base" dir="rtl">
-            {subject.major?.degreeType ? subject.major.degreeType : "مادة"}
+          <CardDescription className="text-sm font-medium leading-relaxed text-foreground/70 sm:text-base" dir="rtl">
+            {subject.major?.degreeType ? getDegreeTypeLabel(subject.major.degreeType) : "مادة"}
             {typeof subject.creditHours === "number" ? ` • ${subject.creditHours} ساعات` : ""}
           </CardDescription>
 
-          <p className="mx-auto mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
+          <p className="mx-auto mt-2 max-w-2xl text-sm leading-relaxed text-foreground/75 sm:text-base">
             راجع بيانات المادة والاختبارات المتاحة قبل اختيار الاختبار المناسب.
           </p>
 
@@ -212,7 +213,7 @@ export async function SubjectDetails({
 
           <Separator className="mx-auto my-4 max-w-md" />
 
-          <div className="flex flex-wrap justify-center gap-3 text-sm leading-relaxed text-muted-foreground">
+          <div className="flex flex-wrap justify-center gap-3 text-sm font-medium leading-relaxed text-foreground/70">
             <Link
               href={uniLink}
               prefetch={false}
@@ -235,7 +236,7 @@ export async function SubjectDetails({
 
         <CardContent className="space-y-6 pb-6">
           {subject.description ? (
-            <p className="mx-auto max-w-3xl text-center text-sm leading-relaxed text-muted-foreground sm:text-base">
+            <p className="mx-auto max-w-3xl text-center text-sm leading-relaxed text-foreground/75 sm:text-base">
               {subject.description}
             </p>
           ) : null}

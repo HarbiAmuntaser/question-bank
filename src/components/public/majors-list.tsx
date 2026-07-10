@@ -4,6 +4,7 @@ import { BookOpenCheck, Clock, GraduationCap } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
+import { getDegreeTypeLabel } from "@/lib/degree-types";
 
 import type { MajorPublicLite } from "@/types/public-university";
 
@@ -104,7 +105,7 @@ export function MajorsList({ majors, cc, type, universitySlug }: MajorsListProps
               <div className="flex flex-wrap gap-2">
                 {major.degreeType ? (
                   <Badge variant="outline" className="rounded-full px-3 py-1 text-xs">
-                    {major.degreeType}
+                    {getDegreeTypeLabel(major.degreeType)}
                   </Badge>
                 ) : null}
                 {hasSubjectsCount ? (

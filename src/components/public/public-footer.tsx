@@ -60,11 +60,11 @@ export function PublicFooter({ cc: ccProp }: Props) {
               </span>
               <div className="min-w-0 leading-tight">
                 <div className="text-lg font-extrabold text-foreground">مستواك</div>
-                <div className="text-xs font-semibold text-foreground/65">إصدار {countryLabel}</div>
+                <div className="text-xs font-semibold text-foreground/75">إصدار {countryLabel}</div>
               </div>
             </div>
 
-            <p className="max-w-sm text-sm font-medium leading-7 text-foreground/70">
+            <p className="max-w-sm text-sm font-medium leading-7 text-foreground/80">
               منصة تعليمية للمراجعة والتدريب عبر اختبارات منظمة للجامعات والمدارس والأكاديميات، مع تجربة عربية واضحة
               ومناسبة للجوال والتابلت وسطح المكتب.
             </p>
@@ -75,7 +75,7 @@ export function PublicFooter({ cc: ccProp }: Props) {
 
           <div className="space-y-4">
             <h3 className="text-base font-bold text-foreground">التواصل</h3>
-            <p className="text-sm font-medium leading-7 text-foreground/70">
+            <p className="text-sm font-medium leading-7 text-foreground/80">
               قنوات التواصل الرسمية ستتوفر قريبًا عبر موقع{" "}
               <span dir="ltr" className="whitespace-nowrap">
                 mustawak.com
@@ -83,7 +83,7 @@ export function PublicFooter({ cc: ccProp }: Props) {
               . لا نعرض بريدًا أو رقمًا غير مفعل.
             </p>
 
-            <p className="rounded-lg border bg-muted/30 p-3 text-sm font-medium leading-6 text-foreground/70">
+            <p className="rounded-lg border bg-muted/30 p-3 text-sm font-medium leading-6 text-foreground/80">
               تابع هذه الصفحة لاحقًا لمعرفة وسائل الدعم المعتمدة وخيارات المتابعة الرسمية.
             </p>
           </div>
@@ -91,7 +91,7 @@ export function PublicFooter({ cc: ccProp }: Props) {
 
         <div className="my-8 h-px bg-border" />
 
-        <div className="flex flex-col gap-4 text-sm font-medium text-foreground/70 md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-col gap-4 text-sm font-medium text-foreground/80 md:flex-row md:items-center md:justify-between">
           <p>© {year} مستواك. جميع الحقوق محفوظة.</p>
           <nav className="flex flex-wrap gap-x-5 gap-y-2" aria-label="روابط السياسات">
             {policyLinks.map((link) => (
@@ -122,7 +122,7 @@ function FooterLinkItem({ link }: { link: FooterLink }) {
     <Link
       href={link.href}
       prefetch={false}
-      className="inline-flex min-h-9 w-fit items-center rounded-md font-semibold text-foreground/75 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+      className="inline-flex min-h-9 w-fit items-center rounded-md font-semibold text-foreground/85 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
     >
       {link.label}
     </Link>

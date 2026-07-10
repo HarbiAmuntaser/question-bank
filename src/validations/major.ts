@@ -1,5 +1,6 @@
 // src/validations/major.ts
 import { z } from "zod";
+import { normalizeDegreeType } from "@/lib/degree-types";
 
 // مساعد يطبّع السلسلة: "" => undefined
 const emptyToUndefined = z
@@ -20,7 +21,7 @@ export const createMajorSchema = z.object({
   universityId: z.string().min(1, "universityId required"),
   name: z.string().min(2, "name too short").transform((s) => s.trim()),
   code: emptyToUndefined.optional().nullable().transform((v) => v ?? null),
-  degreeType: emptyToUndefined.optional().nullable().transform((v) => v ?? null),
+  degreeType: emptyToUndefined.optional().nullable().transform((v) => normalizeDegreeType(v)),
   durationYears: z
     .union([z.coerce.number().int().min(1).max(10), z.null(), z.undefined()])
     .transform((v) => (v === undefined ? null : v)),
