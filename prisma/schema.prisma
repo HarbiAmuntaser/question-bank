@@ -56,6 +56,17 @@ enum AttachmentKind {
   other
 }
 
+enum AttachmentStorageProvider {
+  local
+  external_url
+  r2
+}
+
+enum AttachmentVisibility {
+  public
+  private
+}
+
 // SEO
 // ✅ SEO
 enum SeoOwnerType {
@@ -69,6 +80,7 @@ enum SeoOwnerType {
   blog_post
   blog_topic
   blog_tag
+  study_summary
 }
 
 // ✅ Attachments
@@ -80,6 +92,13 @@ enum AttachmentOwnerType {
   exam
 
   blog_post
+  study_summary
+}
+
+enum StudySummaryStatus {
+  draft
+  published
+  archived
 }
 
 // Site is monolingual Arabic for SEO output, keep enum to allow future EN if needed
@@ -201,6 +220,7 @@ model Subject {
   chapters           Chapter[]
   Quiz               Quiz[]
   exams              ExamPaper[]
+  studySummaries     StudySummary[]
   paidAccessPlans    PaidAccessPlan[]    @relation("SubjectPaidAccessPlans")
   accessEntitlements AccessEntitlement[] @relation("SubjectAccessEntitlements")
 
@@ -230,6 +250,7 @@ model Chapter {
   quizAttempts      QuizAttempt[]
   sessionProgress   SessionProgress[]
   platformAnalytics PlatformAnalytics[] @relation("MostPopularChapter")
+  studySummaries    StudySummary[]
 
   @@unique([subjectId, chapterNumber])
   @@map("chapters")
@@ -383,19 +404,69 @@ model ExamQuestion {
 // Attachment (polymorphic)
 // -----------------
 model Attachment {
-  id                  String               @id @default(uuid())
+  id                  String                    @id @default(uuid())
   ownerType           AttachmentOwnerType
   ownerId             String
   kind                AttachmentKind
-  url                 String
+  url                 String?
   title               String?
   meta                Json?
-  createdAt           DateTime             @default(now())
-  blogPostAttachments BlogPostAttachment[] @relation("BlogPostAttachmentFile")
-  blogPostCovers      BlogPost[]           @relation("BlogPostCoverAttachment")
+  storageProvider     AttachmentStorageProvider @default(external_url)
+  visibility          AttachmentVisibility      @default(public)
+  bucket              String?
+  storageKey          String?
+  contentType         String?
+  sizeBytes           Int?
+  originalName        String?
+  checksumSha256      String?
+  createdAt           DateTime                  @default(now())
+  updatedAt           DateTime                  @updatedAt
+  blogPostAttachments BlogPostAttachment[]      @relation("BlogPostAttachmentFile")
+  blogPostCovers      BlogPost[]                @relation("BlogPostCoverAttachment")
+  studySummaryPdfs    StudySummary[]            @relation("StudySummaryPdf")
 
   @@index([ownerType, ownerId])
+  @@index([storageProvider])
+  @@index([visibility])
+  @@index([bucket, storageKey])
   @@map("attachments")
+}
+
+// -----------------
+// Study summaries
+// -----------------
+model StudySummary {
+  id              String             @id @default(uuid())
+  subjectId       String
+  chapterId       String?
+  title           String
+  slug            String
+  excerpt         String?
+  content         Json?
+  contentText     String?
+  contentHtml     String?            @db.Text
+  pdfAttachmentId String?
+  status          StudySummaryStatus @default(draft)
+  accessType      QuizAccessType     @default(inherit)
+  publishedAt     DateTime?
+  language        ContentLanguage    @default(ar)
+  readingMinutes  Int?
+  sortOrder       Int                @default(0)
+  isFeatured      Boolean            @default(false)
+  createdBy       String?
+  updatedBy       String?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  subject       Subject     @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  chapter       Chapter?    @relation(fields: [chapterId], references: [id], onDelete: SetNull)
+  pdfAttachment Attachment? @relation("StudySummaryPdf", fields: [pdfAttachmentId], references: [id], onDelete: SetNull)
+
+  @@unique([subjectId, slug, language])
+  @@index([subjectId, status, publishedAt])
+  @@index([chapterId])
+  @@index([pdfAttachmentId])
+  @@map("study_summaries")
 }
 
 // -----------------

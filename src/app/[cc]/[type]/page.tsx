@@ -12,6 +12,7 @@ import { UniversityGrid } from "@/components/public/university-grid/university-g
 import type { UniversityGridItem } from "@/components/public/university-grid/types";
 import { fetchJSON } from "@/lib/server/student-fetch";
 import { SITE_NAME, SITE_URL } from "@/lib/seo";
+import { educationPageRobots } from "@/lib/search-indexing";
 
 // ISR للصفحة نفسها (الواجهة) — محتوى الشبكة يجلب Client-side
 export const revalidate = 3600;
@@ -101,7 +102,7 @@ export async function generateMetadata({ params }: { params: Promise<PageParams>
       title,
       description,
     },
-    robots: { index: true, follow: true },
+    robots: educationPageRobots(),
     metadataBase: new URL(SITE_URL),
   };
 }

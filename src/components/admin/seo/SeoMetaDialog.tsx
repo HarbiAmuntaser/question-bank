@@ -146,6 +146,8 @@ export function SeoMetaDialog({
   }
 
   const ownerErrorText = useMemo(() => errors.ownerId, [errors.ownerId]);
+  const metaTitleLength = (state.metaTitle ?? "").trim().length;
+  const metaDescriptionLength = (state.metaDescription ?? "").trim().length;
 
   function validateClient(): FieldErrors {
     const e: FieldErrors = {};
@@ -316,6 +318,9 @@ export function SeoMetaDialog({
             <div className="space-y-2">
               <Label>Meta Title</Label>
               <Input value={state.metaTitle ?? ""} onChange={(e) => updateField("metaTitle", e.target.value)} />
+              <p className="text-xs text-muted-foreground arabic-numbers">
+                عنوان واضح وغير مكرر. الطول الحالي: {metaTitleLength}/160
+              </p>
               <ErrorText text={errors.metaTitle} />
             </div>
             <div className="space-y-2">
@@ -325,6 +330,9 @@ export function SeoMetaDialog({
                 onChange={(e) => updateField("metaDescription", e.target.value)}
                 rows={3}
               />
+              <p className="text-xs text-muted-foreground arabic-numbers">
+                وصف مختصر ومقنع بدون حشو كلمات مفتاحية. الطول الحالي: {metaDescriptionLength}/320
+              </p>
               <ErrorText text={errors.metaDescription} />
             </div>
           </div>

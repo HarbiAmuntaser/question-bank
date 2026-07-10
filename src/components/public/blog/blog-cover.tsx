@@ -6,14 +6,14 @@ export function BlogCover({
   eager = false,
   className = "aspect-[16/9]",
 }: {
-  attachment: { url: string; title: string | null } | null;
+  attachment: { url: string | null; title: string | null } | null;
   alt: string;
   eager?: boolean;
   className?: string;
 }) {
   return (
     <div className={`relative overflow-hidden bg-muted ${className}`}>
-      {attachment ? (
+      {attachment?.url ? (
         // Attachment.url is provider-agnostic and may later point to R2 or Blob.
         // eslint-disable-next-line @next/next/no-img-element
         <img

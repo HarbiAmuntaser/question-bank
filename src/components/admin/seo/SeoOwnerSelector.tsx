@@ -17,6 +17,9 @@ const ownerTypeOptions: Array<{ value: OwnerType; label: string }> = [
   { value: "subject", label: "مقرر" },
   { value: "chapter", label: "وحدة" },
   { value: "exam", label: "امتحان" },
+  { value: "blog_post", label: "مقال مدونة" },
+  { value: "blog_topic", label: "موضوع مدونة" },
+  { value: "study_summary", label: "ملخص دراسي" },
 ]
 
 // ✅ بدل fetch: ننادي Server Action (يرسل x-admin-key)
@@ -44,6 +47,9 @@ async function resolveOwner(type: OwnerType, id: string) {
       subject?: ComboOption | null
       chapter?: ComboOption | null
       exam?: ComboOption | null
+      blog_post?: ComboOption | null
+      blog_topic?: ComboOption | null
+      study_summary?: ComboOption | null
     }
   }
 }
@@ -70,6 +76,9 @@ export function SeoOwnerSelector({
   const [subject, setSubject] = React.useState<ComboOption | null>(null)
   const [chapter, setChapter] = React.useState<ComboOption | null>(null)
   const [exam, setExam] = React.useState<ComboOption | null>(null)
+  const [blogPost, setBlogPost] = React.useState<ComboOption | null>(null)
+  const [blogTopic, setBlogTopic] = React.useState<ComboOption | null>(null)
+  const [summary, setSummary] = React.useState<ComboOption | null>(null)
 
   // ✅ Resolve عند فتح التعديل
   React.useEffect(() => {
@@ -86,6 +95,9 @@ export function SeoOwnerSelector({
       setSubject(chain.subject ?? null)
       setChapter(chain.chapter ?? null)
       setExam(chain.exam ?? null)
+      setBlogPost(chain.blog_post ?? null)
+      setBlogTopic(chain.blog_topic ?? null)
+      setSummary(chain.study_summary ?? null)
     })()
 
     return () => {
@@ -102,6 +114,9 @@ export function SeoOwnerSelector({
     setSubject(null)
     setChapter(null)
     setExam(null)
+    setBlogPost(null)
+    setBlogTopic(null)
+    setSummary(null)
   }
 
   const setFinal = (opt: ComboOption | null) => {
@@ -365,6 +380,116 @@ export function SeoOwnerSelector({
               disabled={lockOwnerId || !subject}
               fetcher={(q) => fetchOwners({ type: "exam", query: q, subjectId: subject?.id })}
               depsKey={`exam::${subject?.id ?? ""}`}
+            />
+          </div>
+        </div>
+      ) : null}
+
+      {type === "blog_post" ? (
+        <div className="space-y-2">
+          <Label>مقال المدونة</Label>
+          <AsyncCombobox
+            value={blogPost}
+            onChange={(v) => {
+              setBlogPost(v)
+              setFinal(v)
+            }}
+            placeholder="ابحث بعنوان المقال أو slug"
+            disabled={lockOwnerId}
+            fetcher={(q) => fetchOwners({ type: "blog_post", query: q })}
+            depsKey="blog-post"
+          />
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            يتم استخدام معرف المقال الداخلي كـ ownerId، بينما يبقى slug خاصًا برابط المقال العام.
+          </p>
+        </div>
+      ) : null}
+
+      {type === "blog_topic" ? (
+        <div className="space-y-2">
+          <Label>موضوع المدونة</Label>
+          <AsyncCombobox
+            value={blogTopic}
+            onChange={(v) => {
+              setBlogTopic(v)
+              setFinal(v)
+            }}
+            placeholder="ابحث باسم الموضوع أو slug"
+            disabled={lockOwnerId}
+            fetcher={(q) => fetchOwners({ type: "blog_topic", query: q })}
+            depsKey="blog-topic"
+          />
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            استخدم عنوانًا ووصفًا يشرحان محتوى صفحة الموضوع، وتجنب تكرار نفس بيانات SEO بين المواضيع.
+          </p>
+        </div>
+      ) : null}
+
+      {type === "study_summary" ? (
+<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+<div className="space-y-2 min-w-0">
+            <Label>الجامعة</Label>
+            <AsyncCombobox
+              value={uni}
+              onChange={(v) => {
+                setUni(v)
+                setMajor(null)
+                setSubject(null)
+                setSummary(null)
+                setFinal(null)
+              }}
+              placeholder="اختر جامعة"
+              disabled={lockOwnerId}
+              fetcher={(q) => fetchOwners({ type: "university", query: q })}
+              depsKey="uni-for-study-summary"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>التخصص</Label>
+            <AsyncCombobox
+              value={major}
+              onChange={(v) => {
+                setMajor(v)
+                setSubject(null)
+                setSummary(null)
+                setFinal(null)
+              }}
+              placeholder="اختر تخصص"
+              disabled={lockOwnerId || !uni}
+              fetcher={(q) => fetchOwners({ type: "major", query: q, universityId: uni?.id })}
+              depsKey={`major-for-study-summary::${uni?.id ?? ""}`}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>المقرر</Label>
+            <AsyncCombobox
+              value={subject}
+              onChange={(v) => {
+                setSubject(v)
+                setSummary(null)
+                setFinal(null)
+              }}
+              placeholder="اختر مقرر"
+              disabled={lockOwnerId || !major}
+              fetcher={(q) => fetchOwners({ type: "subject", query: q, majorId: major?.id })}
+              depsKey={`subject-for-study-summary::${major?.id ?? ""}`}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>الملخص</Label>
+            <AsyncCombobox
+              value={summary}
+              onChange={(v) => {
+                setSummary(v)
+                setFinal(v)
+              }}
+              placeholder="اختر ملخصًا"
+              disabled={lockOwnerId || !subject}
+              fetcher={(q) => fetchOwners({ type: "study_summary", query: q, subjectId: subject?.id })}
+              depsKey={`study-summary::${subject?.id ?? ""}`}
             />
           </div>
         </div>

@@ -5,11 +5,22 @@ import { buttonVariants } from "@/components/ui/button";
 import type { CountryCode } from "@/config/regions";
 import { cn } from "@/lib/utils";
 
-function pageHref(cc: CountryCode, page: number) {
-  return page <= 1 ? `/${cc}/blog` : `/${cc}/blog?page=${page}`;
+function pageHref(cc: CountryCode, page: number, basePath?: string) {
+  const path = basePath ?? `/${cc}/blog`;
+  return page <= 1 ? path : `${path}?page=${page}`;
 }
 
-export function PublicBlogPagination({ cc, page, totalPages }: { cc: CountryCode; page: number; totalPages: number }) {
+export function PublicBlogPagination({
+  cc,
+  page,
+  totalPages,
+  basePath,
+}: {
+  cc: CountryCode;
+  page: number;
+  totalPages: number;
+  basePath?: string;
+}) {
   if (totalPages <= 1) return null;
 
   return (
@@ -17,13 +28,13 @@ export function PublicBlogPagination({ cc, page, totalPages }: { cc: CountryCode
       <p className="text-sm text-muted-foreground">صفحة {page} من {totalPages}</p>
       <div className="flex items-center gap-2">
         {page > 1 ? (
-          <Link href={pageHref(cc, page - 1)} className={cn(buttonVariants({ variant: "outline" }), "h-11 gap-2")}>
+          <Link href={pageHref(cc, page - 1, basePath)} className={cn(buttonVariants({ variant: "outline" }), "h-11 gap-2")}>
             <ChevronRight className="h-4 w-4" aria-hidden />
             السابق
           </Link>
         ) : null}
         {page < totalPages ? (
-          <Link href={pageHref(cc, page + 1)} className={cn(buttonVariants({ variant: "outline" }), "h-11 gap-2")}>
+          <Link href={pageHref(cc, page + 1, basePath)} className={cn(buttonVariants({ variant: "outline" }), "h-11 gap-2")}>
             التالي
             <ChevronLeft className="h-4 w-4" aria-hidden />
           </Link>

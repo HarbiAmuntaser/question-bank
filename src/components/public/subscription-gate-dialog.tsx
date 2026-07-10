@@ -291,7 +291,7 @@ export function SubscriptionGateDialog({
               <Button
                 asChild
                 variant="outline"
-                className="h-11 gap-2 rounded-lg border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100 dark:border-sky-900/60 dark:bg-sky-950/30 dark:text-sky-300"
+                className="h-11 gap-2 rounded-lg border-[hsl(var(--brand-cyan)_/_0.22)] bg-[hsl(var(--brand-cyan)_/_0.08)] text-[hsl(var(--brand-cyan))] hover:bg-[hsl(var(--brand-cyan)_/_0.12)] dark:border-[hsl(var(--brand-cyan)_/_0.35)] dark:bg-[hsl(var(--brand-cyan)_/_0.14)]"
                 onClick={() => recordContactClick("telegram")}
               >
                 <a href={telegram} target="_blank" rel="noreferrer">

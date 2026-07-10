@@ -42,6 +42,9 @@ const ownerTypeOptions = [
   { value: "subject", label: "مقرر" },
   { value: "chapter", label: "وحدة" },
   { value: "exam", label: "امتحان" },
+  { value: "blog_post", label: "مقال مدونة" },
+  { value: "blog_topic", label: "موضوع مدونة" },
+  { value: "study_summary", label: "ملخص دراسي" },
 ];
 
 const localeOptions = [
@@ -49,6 +52,10 @@ const localeOptions = [
   { value: "ar", label: "العربية" },
   { value: "en", label: "English" },
 ];
+
+function ownerTypeLabel(value: string) {
+  return ownerTypeOptions.find((option) => option.value === value)?.label ?? value;
+}
 
 export function SeoMetaPageClient({ initialData }: { initialData: InitialData }) {
   const { filters, setFilters, loading, error, rows, pagination, reload } = useSeoMetaList(undefined, initialData);
@@ -205,7 +212,7 @@ export function SeoMetaPageClient({ initialData }: { initialData: InitialData })
                       <td className="py-3 font-mono text-xs" dir="ltr">
                         {row.id}
                       </td>
-                      <td className="py-3 capitalize">{row.ownerType}</td>
+                      <td className="py-3">{ownerTypeLabel(row.ownerType)}</td>
                       <td className="py-3 uppercase">{row.locale}</td>
                       <td className="py-3">{row.slug}</td>
                       <td className="py-3">{row.metaTitle ?? "-"}</td>
@@ -271,8 +278,8 @@ export function SeoMetaPageClient({ initialData }: { initialData: InitialData })
           if (!next) setEditingRecord(null);
           setDialogOpen(next);
         }}
-        ownerType={editingRecord?.ownerType ?? "major"}
-        ownerId={editingRecord?.ownerId ?? ""}
+        ownerType={editingRecord?.ownerType ?? (filters.ownerType || "major")}
+        ownerId={editingRecord?.ownerId ?? filters.ownerId ?? ""}
         initialData={editingRecord ?? undefined}
         onSaved={reload}
         lockOwner={false}

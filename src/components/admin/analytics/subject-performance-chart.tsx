@@ -12,7 +12,14 @@ interface SubjectPerformanceChartProps {
   data: AnalyticsData["subjectPerformance"]
 }
 
-const COLORS = ["#2563eb", "#16a34a", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4"]
+const COLORS = [
+  "hsl(var(--primary))",
+  "hsl(var(--brand-emerald))",
+  "hsl(var(--brand-amber))",
+  "#ef4444",
+  "hsl(var(--brand-cyan))",
+  "#64748b",
+]
 
 interface ChartTooltipPayloadItem {
   color?: string
@@ -100,7 +107,7 @@ export function SubjectPerformanceChart({ data }: SubjectPerformanceChartProps) 
                   <XAxis dataKey="subjectName" tick={{ fontSize: 12 }} angle={-35} textAnchor="end" height={80} />
                   <YAxis tick={{ fontSize: 12 }} />
                   <Tooltip content={<SubjectBarTooltip />} />
-                  <Bar dataKey="averageScore" fill="#2563eb" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="averageScore" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -116,7 +123,7 @@ export function SubjectPerformanceChart({ data }: SubjectPerformanceChartProps) 
             <div className="h-[320px]">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie data={pieData} cx="50%" cy="50%" outerRadius={90} fill="#2563eb" dataKey="value" nameKey="name">
+                  <Pie data={pieData} cx="50%" cy="50%" outerRadius={90} fill="hsl(var(--primary))" dataKey="value" nameKey="name">
                     {pieData.map((entry, index) => (
                       <Cell key={`${entry.name}-${index}`} fill={entry.color} />
                     ))}
@@ -145,8 +152,8 @@ export function SubjectPerformanceChart({ data }: SubjectPerformanceChartProps) 
 
                 <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-3">
                   <div className="flex items-center gap-3">
-                    <div className="rounded-full bg-blue-100 p-2 dark:bg-blue-900">
-                      <Target className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                    <div className="rounded-full bg-primary/10 p-2">
+                      <Target className="h-4 w-4 text-primary" />
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">متوسط الدرجات</p>
@@ -155,8 +162,8 @@ export function SubjectPerformanceChart({ data }: SubjectPerformanceChartProps) 
                   </div>
 
                   <div className="flex items-center gap-3">
-                    <div className="rounded-full bg-green-100 p-2 dark:bg-green-900">
-                      <Users className="h-4 w-4 text-green-600 dark:text-green-400" />
+                    <div className="rounded-full bg-[hsl(var(--brand-emerald)_/_0.10)] p-2">
+                      <Users className="h-4 w-4 text-[hsl(var(--brand-emerald))]" />
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">محاولات الاختبارات</p>
@@ -165,8 +172,8 @@ export function SubjectPerformanceChart({ data }: SubjectPerformanceChartProps) 
                   </div>
 
                   <div className="flex items-center gap-3">
-                    <div className="rounded-full bg-purple-100 p-2 dark:bg-purple-900">
-                      <BookOpen className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                    <div className="rounded-full bg-[hsl(var(--brand-cyan)_/_0.10)] p-2">
+                      <BookOpen className="h-4 w-4 text-[hsl(var(--brand-cyan))]" />
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">عدد الأسئلة</p>

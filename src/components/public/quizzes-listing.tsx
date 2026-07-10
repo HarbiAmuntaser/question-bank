@@ -229,7 +229,7 @@ useEffect(() => {
                       هذا الاختبار يتطلب اشتراكًا، لكنه يبقى ظاهرًا حتى تعرف محتوى المادة قبل التفعيل.
                     </p>
                   ) : quiz.isFreePreview ? (
-                    <p className="rounded-lg bg-sky-50 px-3 py-2 text-xs leading-relaxed text-sky-800 dark:bg-sky-950/30 dark:text-sky-200">
+                    <p className="rounded-lg bg-[hsl(var(--brand-cyan)_/_0.08)] px-3 py-2 text-xs leading-relaxed text-[hsl(var(--brand-cyan))] dark:bg-[hsl(var(--brand-cyan)_/_0.14)]">
                       اختبار تجربة مجانية يمكنك البدء به مباشرة.
                     </p>
                   ) : null}

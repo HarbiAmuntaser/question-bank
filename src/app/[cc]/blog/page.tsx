@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { BookOpenText } from "lucide-react";
+import Link from "next/link";
+import { BookOpenText, Tags } from "lucide-react";
 import { notFound } from "next/navigation";
 
 import { BlogPostCard } from "@/components/public/blog/blog-post-card";
@@ -14,8 +15,9 @@ import { SITE_NAME, SITE_URL } from "@/lib/seo";
 type PageParams = { cc: string };
 type PageSearchParams = { page?: string };
 
-const BLOG_TITLE = "مدونة مستواك | نصائح ومقالات تعليمية";
-const BLOG_DESCRIPTION = "مقالات تعليمية ونصائح عملية للمذاكرة والاستعداد للاختبارات من منصة مستواك.";
+const BLOG_TITLE = "مدونة مستواك | مقالات تعليمية وتدريبية";
+const BLOG_DESCRIPTION =
+  "محتوى تعليمي وتدريبي يساعدك على تطوير معرفتك، فهم المسارات الأكاديمية والمهنية، والاستعداد للتعلم والاختبارات بطريقة أوضح.";
 
 export async function generateMetadata({ params }: { params: Promise<PageParams> }): Promise<Metadata> {
   const { cc: rawCc } = await params;
@@ -38,6 +40,54 @@ export async function generateMetadata({ params }: { params: Promise<PageParams>
   };
 }
 
+function BlogTopicsPreview({
+  cc,
+  topics,
+}: {
+  cc: string;
+  topics?: Array<{ id: string; name: string; slug: string; description: string | null }>;
+}) {
+  const safeTopics = Array.isArray(topics) ? topics : [];
+  if (!safeTopics.length) return null;
+
+  return (
+    <section className="space-y-3" aria-labelledby="blog-topics-heading">
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-primary/20 bg-primary/5 text-primary">
+            <Tags className="h-4 w-4" aria-hidden />
+          </span>
+          <h2 id="blog-topics-heading" className="text-base font-bold tracking-tight sm:text-lg">
+            استكشف حسب المجال
+          </h2>
+        </div>
+        <span className="hidden text-xs font-medium text-muted-foreground sm:inline">
+          اسحب لعرض المزيد
+        </span>
+      </div>
+
+      <div className="relative">
+        <div
+          className="flex gap-2 overflow-x-auto overscroll-x-contain rounded-lg border bg-card/80 p-2 shadow-sm [scrollbar-width:thin] md:p-3"
+          aria-label="مجالات المدونة"
+        >
+          {safeTopics.map((topic) => (
+            <Link
+              key={topic.id}
+              href={`/${cc}/blog/topics/${encodeURIComponent(topic.slug)}`}
+              className="inline-flex min-h-10 shrink-0 items-center rounded-md border border-primary/20 bg-background px-3.5 py-2 text-sm font-semibold text-foreground/85 transition-colors hover:border-primary/35 hover:bg-primary/5 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              title={topic.description ?? undefined}
+            >
+              {topic.name}
+            </Link>
+          ))}
+        </div>
+        <div className="pointer-events-none absolute inset-y-0 left-0 w-10 rounded-l-lg bg-gradient-to-r from-background to-transparent" aria-hidden />
+      </div>
+    </section>
+  );
+}
+
 export default async function PublicBlogPage({
   params,
   searchParams,
@@ -58,14 +108,15 @@ export default async function PublicBlogPage({
       <PublicHeader />
 
       <main>
-        <section className="border-b bg-card/40">
+        <section className="border-b bg-gradient-to-b from-primary/5 to-background">
           <div className="mx-auto max-w-7xl px-4 py-12 text-center sm:px-6 sm:py-16 lg:px-8">
             <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary">
               <BookOpenText className="h-6 w-6" aria-hidden />
             </div>
+            <p className="mb-3 text-sm font-semibold text-primary">محتوى تعليمي وتدريبي</p>
             <h1 className="text-3xl font-extrabold leading-tight tracking-tight sm:text-4xl">مدونة مستواك</h1>
-            <p className="mx-auto mt-4 max-w-2xl text-base leading-8 text-muted-foreground sm:text-lg">
-              مقالات تعليمية ونصائح للمذاكرة والاستعداد للاختبارات، مكتوبة لتساعدك على التعلم بطريقة أوضح وأكثر تنظيمًا.
+            <p className="mx-auto mt-4 max-w-3xl text-base leading-8 text-muted-foreground sm:text-lg">
+              مقالات ورؤى تساعدك على تطوير معرفتك، فهم المسارات الأكاديمية والمهنية، واختيار المحتوى التعليمي أو التدريبي المناسب لك بثقة.
             </p>
           </div>
         </section>
@@ -73,6 +124,8 @@ export default async function PublicBlogPage({
         <div className="mx-auto max-w-7xl space-y-12 px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
           {hasContent ? (
             <>
+              <BlogTopicsPreview cc={cc} topics={blog.topics} />
+
               <FeaturedPosts posts={blog.featured} cc={cc} />
 
               <section className="space-y-6" aria-labelledby="latest-blog-heading">

@@ -6,8 +6,7 @@ const config: Config = {
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
     "*.{js,ts,jsx,tsx,mdx}",
- "./src/content/**/*.{ts,tsx}", // ✅ أضف هذا
-
+    "./src/content/**/*.{ts,tsx}",
   ],
   theme: {
     extend: {
@@ -45,8 +44,12 @@ const config: Config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        // Enhanced brand colors
+        // Brand colors. Legacy names remain as aliases during the theme migration.
         brand: {
+          teal: "hsl(var(--brand-teal))",
+          cyan: "hsl(var(--brand-cyan))",
+          emerald: "hsl(var(--brand-emerald))",
+          amber: "hsl(var(--brand-amber))",
           purple: "hsl(var(--brand-purple))",
           blue: "hsl(var(--brand-blue))",
           pink: "hsl(var(--brand-pink))",

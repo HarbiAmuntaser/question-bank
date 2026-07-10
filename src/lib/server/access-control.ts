@@ -45,6 +45,19 @@ type QuizContext = {
   majorId: string | null;
 };
 
+type StudySummaryContext = {
+  summaryId: string;
+  accessType: QuizAccessType;
+  subjectId: string | null;
+  majorId: string | null;
+};
+
+export type StudySummaryAccessStatus = AccessStatus & {
+  summaryId: string | null;
+  accessType: QuizAccessType | null;
+  effectiveAccessType: Exclude<QuizAccessType, "inherit"> | null;
+};
+
 export class RedeemCodeError extends Error {
   constructor(
     public code:
@@ -187,6 +200,58 @@ async function resolveQuizContext(quizId: string): Promise<QuizContext | null> {
     subjectId: subject?.id ?? null,
     majorId: subject?.majorId ?? null,
   };
+}
+
+function studySummaryNotFound(summaryId: string): StudySummaryAccessStatus {
+  return {
+    allowed: false,
+    requiresSubscription: false,
+    reason: "not_found",
+    scopeType: null,
+    majorId: null,
+    subjectId: null,
+    plan: null,
+    entitlementId: null,
+    summaryId,
+    accessType: null,
+    effectiveAccessType: null,
+  };
+}
+
+async function resolveStudySummaryContexts(summaryIds: string[]): Promise<Map<string, StudySummaryContext>> {
+  const ids = Array.from(new Set(summaryIds.map((id) => id.trim()).filter(Boolean)));
+  if (!ids.length) return new Map();
+
+  const now = new Date();
+  const rows = await prisma.studySummary.findMany({
+    where: {
+      id: { in: ids },
+      status: "published",
+      publishedAt: { lte: now },
+    },
+    select: {
+      id: true,
+      accessType: true,
+      subjectId: true,
+      subject: { select: { majorId: true } },
+    },
+  });
+
+  return new Map(
+    rows.map((row) => [
+      row.id,
+      {
+        summaryId: row.id,
+        accessType: row.accessType,
+        subjectId: row.subjectId,
+        majorId: row.subject.majorId,
+      },
+    ]),
+  );
+}
+
+async function resolveStudySummaryContext(summaryId: string): Promise<StudySummaryContext | null> {
+  return (await resolveStudySummaryContexts([summaryId])).get(summaryId) ?? null;
 }
 
 export async function checkScopeAccess(input: {
@@ -336,6 +401,133 @@ export async function checkQuizAccess(input: {
     subjectId: context.subjectId,
     majorId: context.majorId,
   });
+}
+
+function withStudySummaryAccessMeta(
+  access: AccessStatus,
+  context: StudySummaryContext,
+  effectiveAccessType: Exclude<QuizAccessType, "inherit">,
+): StudySummaryAccessStatus {
+  return {
+    ...access,
+    summaryId: context.summaryId,
+    accessType: context.accessType,
+    effectiveAccessType,
+  };
+}
+
+async function checkStudySummaryContextAccess(input: {
+  context: StudySummaryContext;
+  anonymousSessionId?: string | null;
+}): Promise<StudySummaryAccessStatus> {
+  const { context } = input;
+
+  if (context.accessType === "free") {
+    return withStudySummaryAccessMeta(
+      {
+        allowed: true,
+        requiresSubscription: false,
+        reason: "free",
+        scopeType: null,
+        majorId: context.majorId,
+        subjectId: context.subjectId,
+        plan: null,
+        entitlementId: null,
+      },
+      context,
+      "free",
+    );
+  }
+
+  if (context.accessType === "paid" && !context.subjectId && !context.majorId) {
+    return withStudySummaryAccessMeta(
+      {
+        allowed: false,
+        requiresSubscription: true,
+        reason: "missing_context",
+        scopeType: null,
+        majorId: null,
+        subjectId: null,
+        plan: null,
+        entitlementId: null,
+      },
+      context,
+      "paid",
+    );
+  }
+
+  if (context.accessType === "paid") {
+    const entitlement = await findEntitlement({
+      anonymousSessionId: input.anonymousSessionId,
+      subjectId: context.subjectId,
+      majorId: context.majorId,
+    });
+    const subjectPlan = context.subjectId ? await activePlanForScope("subject", context.subjectId) : null;
+    const majorPlan = !subjectPlan && context.majorId ? await activePlanForScope("major", context.majorId) : null;
+    const plan = subjectPlan ?? majorPlan;
+
+    return withStudySummaryAccessMeta(
+      {
+        allowed: Boolean(entitlement),
+        requiresSubscription: !entitlement,
+        reason: entitlement ? "entitled" : "paid_access_required",
+        scopeType: context.subjectId ? "subject" : context.majorId ? "major" : null,
+        majorId: context.majorId,
+        subjectId: context.subjectId,
+        plan: plan ? serializePlan(plan) : null,
+        entitlementId: entitlement?.id ?? null,
+      },
+      context,
+      "paid",
+    );
+  }
+
+  const inheritedAccess = await checkScopeAccess({
+    anonymousSessionId: input.anonymousSessionId,
+    subjectId: context.subjectId,
+    majorId: context.majorId,
+  });
+
+  return withStudySummaryAccessMeta(
+    inheritedAccess,
+    context,
+    inheritedAccess.reason === "no_paid_plan" ? "free" : "paid",
+  );
+}
+
+export async function checkStudySummaryAccess(input: {
+  summaryId: string;
+  anonymousSessionId?: string | null;
+}): Promise<StudySummaryAccessStatus> {
+  const context = await resolveStudySummaryContext(input.summaryId);
+  if (!context) return studySummaryNotFound(input.summaryId);
+
+  return checkStudySummaryContextAccess({
+    context,
+    anonymousSessionId: input.anonymousSessionId,
+  });
+}
+
+export async function getStudySummaryAccessMap(input: {
+  summaryIds: string[];
+  anonymousSessionId?: string | null;
+}): Promise<Record<string, StudySummaryAccessStatus>> {
+  const ids = Array.from(new Set(input.summaryIds.map((id) => id.trim()).filter(Boolean)));
+  if (!ids.length) return {};
+
+  const contexts = await resolveStudySummaryContexts(ids);
+  const entries = await Promise.all(
+    ids.map(async (id) => {
+      const context = contexts.get(id);
+      const access = context
+        ? await checkStudySummaryContextAccess({ context, anonymousSessionId: input.anonymousSessionId })
+        : studySummaryNotFound(id);
+
+      return [id, access] as const;
+    }),
+  );
+
+  return Object.fromEntries(entries);
 }
 
 function validateCodeWindow(code: {

@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { ArrowLeft, Clock3, Sparkles } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
 import type { CountryCode } from "@/config/regions";
 import type { PublicBlogPost } from "@/lib/server/blog";
 
@@ -24,17 +23,25 @@ export function FeaturedPosts({ posts, cc }: { posts: PublicBlogPost[]; cc: Coun
       <div className="grid gap-5 lg:grid-cols-3">
         {posts.map((post, index) => {
           const href = `/${cc}/blog/${encodeURIComponent(post.slug)}`;
+          const topicHref = `/${cc}/blog/topics/${encodeURIComponent(post.primaryTopic.slug)}`;
           return (
             <article key={post.id} className="overflow-hidden rounded-lg border bg-card shadow-sm lg:first:col-span-2 lg:first:row-span-2">
-              <BlogCover
-                attachment={post.coverAttachment}
-                alt={post.title}
-                eager={index === 0}
-                className={index === 0 ? "aspect-[16/8]" : "aspect-[16/9]"}
-              />
+              <Link href={href} className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label={`قراءة ${post.title}`}>
+                <BlogCover
+                  attachment={post.coverAttachment}
+                  alt={post.title}
+                  eager={index === 0}
+                  className={index === 0 ? "aspect-[16/8]" : "aspect-[16/9]"}
+                />
+              </Link>
               <div className="space-y-4 p-5 sm:p-6">
                 <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                  <Badge>{post.primaryTopic.name}</Badge>
+                  <Link
+                    href={topicHref}
+                    className="rounded-md bg-primary px-2.5 py-1 font-semibold text-primary-foreground transition-colors hover:bg-primary/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    {post.primaryTopic.name}
+                  </Link>
                   <time dateTime={post.publishedAt}>{formatDate(post.publishedAt)}</time>
                   {post.readingMinutes ? (
                     <span className="inline-flex items-center gap-1">

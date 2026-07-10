@@ -17,9 +17,9 @@ export function HeroBackground({ animate }: { animate: boolean }) {
           className="absolute inset-0 bg-gradient-to-r opacity-10"
           animate={{
             background: [
-              "linear-gradient(45deg, #10b981, #3b82f6)",
-              "linear-gradient(45deg, #3b82f6, #8b5cf6)",
-              "linear-gradient(45deg, #8b5cf6, #10b981)",
+              "linear-gradient(45deg, hsl(var(--brand-emerald)), hsl(var(--brand-cyan)))",
+              "linear-gradient(45deg, hsl(var(--brand-cyan)), hsl(var(--brand-teal)))",
+              "linear-gradient(45deg, hsl(var(--brand-teal)), hsl(var(--brand-emerald)))",
             ],
           }}
           transition={{ duration: 8, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}

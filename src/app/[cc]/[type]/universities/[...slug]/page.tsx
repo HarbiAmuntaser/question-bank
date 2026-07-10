@@ -10,6 +10,7 @@ import { MajorsList } from "@/components/public/majors-list";
 import { MajorDetails } from "@/components/public/major-details";
 import { SubjectDetails } from "@/components/public/subject-details";
 import { QuizDetails } from "@/components/public/quiz-details";
+import { StudySummaryDetails } from "@/components/public/study-summaries/study-summary-details";
 import type { UniversityPublicLite } from "@/types/public-university";
 
 import { normalizeCountry, isSupportedType } from "@/lib/route-helpers";
@@ -25,7 +26,9 @@ import {
 
 import { CACHE_TAGS, cacheTags } from "@/lib/cache-tags";
 import { fetchJSON } from "@/lib/server/student-fetch";
+import { getPublishedSubjectSummaryBySlug, getStudySummarySeoMeta } from "@/lib/server/study-summaries";
 import { SITE_NAME, SITE_URL } from "@/lib/seo";
+import { educationPageRobots } from "@/lib/search-indexing";
 
 export const revalidate = 21600;
 
@@ -244,6 +247,7 @@ function parseUniversitiesCatchAll(segs: string[]) {
   const majorsIdx = findIndexCI(segs, "majors");
   const subjectsIdx = findIndexCI(segs, "subjects");
   const quizzesIdx = findIndexCI(segs, "quizzes");
+  const summariesIdx = findIndexCI(segs, "summaries");
 
   if (majorsIdx < 0) {
     return {
@@ -275,11 +279,23 @@ function parseUniversitiesCatchAll(segs: string[]) {
     };
   }
 
+  if (summariesIdx > subjectsIdx) {
+    return {
+      kind: "summary" as const,
+      universitySlugPath: joinSlug(segs.slice(0, majorsIdx)),
+      majorSlugPath: joinSlug(segs.slice(majorsIdx + 1, subjectsIdx)),
+      subjectSlugPath: joinSlug(segs.slice(subjectsIdx + 1, summariesIdx)),
+      summarySlugPath: joinSlug(segs.slice(summariesIdx + 1)),
+      quizSlugPath: "",
+    };
+  }
+
   return {
     kind: "subject" as const,
     universitySlugPath: joinSlug(segs.slice(0, majorsIdx)),
     majorSlugPath: joinSlug(segs.slice(majorsIdx + 1, subjectsIdx)),
     subjectSlugPath: joinSlug(segs.slice(subjectsIdx + 1)),
+    summarySlugPath: "",
     quizSlugPath: "",
   };
 }
@@ -343,10 +359,52 @@ export async function generateMetadata({ params }: { params: Promise<PageParams>
         type: "website",
         url: canonical,
       },
-      robots: {
-        index: seo?.noindex ? false : true,
-        follow: seo?.nofollow ? false : true,
+      robots: educationPageRobots(seo),
+    };
+  }
+
+  // ---- Study summary metadata ----
+  if (parsed.kind === "summary") {
+    const { universitySlugPath, majorSlugPath, subjectSlugPath, summarySlugPath } = parsed;
+    if (!universitySlugPath || !majorSlugPath || !subjectSlugPath || !summarySlugPath) {
+      return { title: "غير موجود", robots: { index: false, follow: false } };
+    }
+
+    const { subject } = await fetchSubjectBySlugOrCode(subjectSlugPath);
+    if (!subject) {
+      return { title: "ملخص غير موجود", robots: { index: false, follow: false } };
+    }
+
+    const summary = await getPublishedSubjectSummaryBySlug(subject.id, stripPrefix(summarySlugPath, "ملخصات"));
+    if (!summary) {
+      return { title: "ملخص غير موجود", robots: { index: false, follow: false } };
+    }
+
+    const seo = await getStudySummarySeoMeta(summary.id).catch(() => null);
+    const canonicalUni = stripPrefix(subject.major?.university?.seo?.slug || universitySlugPath, "جامعات");
+    const canonicalMajor = stripPrefix(subject.major?.seo?.slug || majorSlugPath, "تخصصات");
+    const canonicalSubject = stripPrefix(subject.seo?.slug || subjectSlugPath, "مواد");
+    const canonicalSummary = stripPrefix(summary.slug, "ملخصات");
+    const canonicalPath = `/${cc}/${type}/universities/${encodeSlugPath(canonicalUni)}/majors/${encodeSlugPath(
+      canonicalMajor,
+    )}/subjects/${encodeSlugPath(canonicalSubject)}/summaries/${encodeSlugPath(canonicalSummary)}`;
+    const canonical = `${SITE_URL}${canonicalPath}`;
+    const title = seo?.metaTitle || `${summary.title} | ${SITE_NAME}`;
+    const description =
+      seo?.metaDescription || summary.excerpt || `اقرأ ملخص ${summary.title} ضمن مادة ${subject.name} على ${SITE_NAME}.`;
+
+    return {
+      title,
+      description,
+      alternates: { canonical },
+      openGraph: {
+        title: seo?.ogTitle || title,
+        description: seo?.ogDescription || description,
+        images: seo?.ogImageUrl ? [{ url: seo.ogImageUrl }] : undefined,
+        type: "article",
+        url: canonical,
       },
+      robots: educationPageRobots(seo),
     };
   }
 
@@ -391,10 +449,7 @@ export async function generateMetadata({ params }: { params: Promise<PageParams>
         type: "website",
         url: canonical,
       },
-      robots: {
-        index: seo?.noindex ? false : true,
-        follow: seo?.nofollow ? false : true,
-      },
+      robots: educationPageRobots(seo),
     };
   }
 
@@ -434,7 +489,7 @@ export async function generateMetadata({ params }: { params: Promise<PageParams>
         type: "website",
         url: canonical,
       },
-      robots: { index: true, follow: true },
+      robots: educationPageRobots(),
     };
   }
 
@@ -471,10 +526,7 @@ export async function generateMetadata({ params }: { params: Promise<PageParams>
       type: "website",
       url: canonical,
     },
-    robots: {
-      index: seo?.noindex ? false : true,
-      follow: seo?.nofollow ? false : true,
-    },
+    robots: educationPageRobots(seo),
   };
 }
 
@@ -512,6 +564,28 @@ export default async function UniversitiesCatchAllPage({
             majorSlugPath={majorSlugPath}
             subjectSlugPath={subjectSlugPath}
             quizSlugPath={quizSlugPath}
+          />
+        </main>
+        <PublicFooter cc={cc} />
+      </div>
+    );
+  }
+
+  if (parsed.kind === "summary") {
+    const { universitySlugPath, majorSlugPath, subjectSlugPath, summarySlugPath } = parsed;
+    if (!universitySlugPath || !majorSlugPath || !subjectSlugPath || !summarySlugPath) notFound();
+
+    return (
+      <div className="flex flex-col min-h-screen">
+        <PublicHeader />
+        <main className="flex-1 container mx-auto py-8 px-4 md:px-6">
+          <StudySummaryDetails
+            cc={cc}
+            type={type}
+            universitySlugPath={universitySlugPath}
+            majorSlugPath={majorSlugPath}
+            subjectSlugPath={subjectSlugPath}
+            summarySlugPath={summarySlugPath}
           />
         </main>
         <PublicFooter cc={cc} />

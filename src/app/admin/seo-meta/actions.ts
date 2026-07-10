@@ -118,8 +118,16 @@ export async function deleteSeoMetaAction(id: string) {
 
 
 // ✅ NEW
-export type SeoOwnerType = "university" | "major" | "subject" | "chapter" | "exam"
-export type ComboOption = { id: string; label: string; meta?: string | null }
+export type SeoOwnerType =
+  | "university"
+  | "major"
+  | "subject"
+  | "chapter"
+  | "exam"
+  | "blog_post"
+  | "blog_topic"
+  | "study_summary"
+export type ComboOption = { id: string; label: string; subLabel?: string; meta?: string | null }
 
 // =========================
 // existing helpers (as-is)

@@ -12,6 +12,8 @@ import {
 import { DEFAULT_COUNTRY, type CountryCode, type InstitutionType } from "@/config/regions";
 
 const SECURE_MAX_AGE = 60 * 60 * 24 * 365;
+const CANONICAL_HOST = "mustawak.com";
+const LEGACY_PUBLIC_HOSTS = new Set(["question-bank-ebon.vercel.app"]);
 
 function applySecurityHeaders(res: NextResponse) {
   res.headers.set("X-Content-Type-Options", "nosniff");
@@ -21,6 +23,25 @@ function applySecurityHeaders(res: NextResponse) {
   if (process.env.NODE_ENV === "production") {
     res.headers.set("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload");
   }
+}
+
+function redirectLegacyPublicHost(req: NextRequest) {
+  if (process.env.NODE_ENV !== "production") return null;
+
+  const host = (req.headers.get("x-forwarded-host") ?? req.headers.get("host") ?? "")
+    .split(":")[0]
+    .toLowerCase();
+
+  if (!LEGACY_PUBLIC_HOSTS.has(host)) return null;
+
+  const url = req.nextUrl.clone();
+  url.protocol = "https:";
+  url.hostname = CANONICAL_HOST;
+  url.port = "";
+
+  const res = NextResponse.redirect(url, 308);
+  applySecurityHeaders(res);
+  return res;
 }
 
 function isBypassedPath(pathname: string): boolean {
@@ -145,6 +166,9 @@ const adminMiddleware = withAuth(
 );
 
 export default function middleware(req: NextRequest, event: NextFetchEvent) {
+  const legacyRedirect = redirectLegacyPublicHost(req);
+  if (legacyRedirect) return legacyRedirect;
+
   if (req.nextUrl.pathname.startsWith("/admin")) {
     return adminMiddleware(req as NextRequestWithAuth, event);
   }

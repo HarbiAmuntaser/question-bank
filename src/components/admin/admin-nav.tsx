@@ -41,6 +41,7 @@ export const adminNavigation: AdminNavEntry[] = [
   { name: "التخصصات", href: "/admin/majors", icon: GraduationCap },
   { name: "المقررات", href: "/admin/subjects", icon: BookOpen },
   { name: "الفصول", href: "/admin/chapters", icon: FileText },
+  { name: "الملخصات", href: "/admin/summaries", icon: FileText },
   { name: "الأسئلة", href: "/admin/questions", icon: FileQuestion },
   { name: "مولد الاختبارات", href: "/admin/quiz-generator", icon: Shuffle },
   { name: "الاختبارات المنشأة", href: "/admin/quizzes", icon: ClipboardList },

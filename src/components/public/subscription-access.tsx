@@ -90,7 +90,7 @@ function accessStateClass(label: string) {
     case "مجاني":
       return "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-300";
     case "تجربة مجانية":
-      return "border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-900/60 dark:bg-sky-950/30 dark:text-sky-300";
+      return "border-[hsl(var(--brand-cyan)_/_0.22)] bg-[hsl(var(--brand-cyan)_/_0.08)] text-[hsl(var(--brand-cyan))] dark:border-[hsl(var(--brand-cyan)_/_0.35)] dark:bg-[hsl(var(--brand-cyan)_/_0.14)]";
     case "مشترك":
       return "border-primary/25 bg-primary/10 text-primary";
     default:
@@ -327,7 +327,7 @@ export function SubjectQuizzesAccessGrid({
                   الاختبار ظاهر لك بالكامل في القائمة، ويمكن فتحه بعد تفعيل كود الاشتراك.
                 </p>
               ) : q.isFreePreview ? (
-                <p className="rounded-lg bg-sky-50 px-3 py-2 text-xs leading-relaxed text-sky-800 dark:bg-sky-950/30 dark:text-sky-200">
+                <p className="rounded-lg bg-[hsl(var(--brand-cyan)_/_0.08)] px-3 py-2 text-xs leading-relaxed text-[hsl(var(--brand-cyan))] dark:bg-[hsl(var(--brand-cyan)_/_0.14)]">
                   تجربة مجانية مناسبة للتعرّف على أسلوب الأسئلة قبل الاشتراك.
                 </p>
               ) : null}

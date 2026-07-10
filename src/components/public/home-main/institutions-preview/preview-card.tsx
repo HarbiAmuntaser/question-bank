@@ -77,7 +77,7 @@ export function InstitutionPreviewCard({
 
         <div className="absolute right-3 top-3">
           <Badge className="rounded-md bg-background/90 text-foreground shadow-sm">
-            <Star className="ml-1 h-3 w-3 text-yellow-500" aria-hidden />
+            <Star className="ml-1 h-3 w-3 text-[hsl(var(--brand-amber))]" aria-hidden />
             موصى بها
           </Badge>
         </div>

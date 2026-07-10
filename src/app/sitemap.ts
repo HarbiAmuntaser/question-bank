@@ -3,6 +3,7 @@ import type { MetadataRoute } from "next";
 import { SUPPORTED_COUNTRIES, type CountryCode, type InstitutionType } from "@/config/regions";
 import { prisma } from "@/lib/prisma";
 import { encodeSlugPath, stripPrefix } from "@/lib/public/slug-utils";
+import { BLOG_TOPIC_INDEX_MIN_POSTS, getSearchIndexingMode } from "@/lib/search-indexing";
 
 const SITE_URL = "https://mustawak.com";
 const DYNAMIC_LIMIT = 1000;
@@ -59,7 +60,7 @@ function seoMap(rows: Array<{ ownerId: string; slug: string; noindex: boolean }>
   );
 }
 
-async function seoRows(ownerType: "university" | "major" | "subject" | "exam", ownerIds: string[]) {
+async function seoRows(ownerType: "university" | "major" | "subject" | "exam" | "study_summary", ownerIds: string[]) {
   if (!ownerIds.length) return new Map<string, SeoLookup>();
 
   const rows = await prisma.seoMeta.findMany({
@@ -367,6 +368,95 @@ async function quizEntries(): Promise<SitemapEntry[]> {
   });
 }
 
+async function studySummaryEntries(): Promise<SitemapEntry[]> {
+  const summaries = await prisma.studySummary.findMany({
+    where: {
+      status: "published",
+      publishedAt: { not: null, lte: new Date() },
+      language: "ar",
+      subject: {
+        isActive: true,
+        major: {
+          isActive: true,
+          university: {
+            isActive: true,
+            countryCode: { in: Object.keys(SUPPORTED_COUNTRIES) },
+          },
+        },
+      },
+    },
+    orderBy: { updatedAt: "desc" },
+    take: DYNAMIC_LIMIT,
+    select: {
+      id: true,
+      slug: true,
+      publishedAt: true,
+      createdAt: true,
+      updatedAt: true,
+      subject: {
+        select: {
+          id: true,
+          code: true,
+          createdAt: true,
+          updatedAt: true,
+          major: {
+            select: {
+              id: true,
+              code: true,
+              updatedAt: true,
+              university: {
+                select: {
+                  id: true,
+                  code: true,
+                  countryCode: true,
+                  institutionType: true,
+                  updatedAt: true,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  const [summarySeo, subjectSeo, majorSeo, universitySeo] = await Promise.all([
+    seoRows("study_summary", summaries.map((summary) => summary.id)),
+    seoRows("subject", summaries.map((summary) => summary.subject.id)),
+    seoRows("major", summaries.map((summary) => summary.subject.major.id)),
+    seoRows("university", summaries.map((summary) => summary.subject.major.university.id)),
+  ]);
+
+  return summaries.flatMap((summary) => {
+    if (summarySeo.get(summary.id)?.noindex) return [];
+
+    const subject = summary.subject;
+    const cc = supportedCountry(subject.major.university.countryCode);
+    if (!cc) return [];
+
+    const type = supportedType(cc, subject.major.university.institutionType);
+    if (!type) return [];
+
+    const universitySlug = routeSlug(
+      universitySeo.get(subject.major.university.id),
+      subject.major.university.code ?? subject.major.university.id,
+      "جامعات",
+    );
+    const majorSlug = routeSlug(majorSeo.get(subject.major.id), subject.major.code ?? subject.major.id, "تخصصات");
+    const subjectSlug = routeSlug(subjectSeo.get(subject.id), subject.code ?? subject.id, "مواد");
+    const summarySlug = encodeSlugPath(stripPrefix(summary.slug, "ملخصات"));
+    if (!universitySlug || !majorSlug || !subjectSlug || !summarySlug) return [];
+
+    return [
+      entry(`/${cc}/${type}/universities/${universitySlug}/majors/${majorSlug}/subjects/${subjectSlug}/summaries/${summarySlug}`, {
+        lastModified: latestDate(summary.updatedAt, summary.publishedAt, summary.createdAt, subject.updatedAt),
+        changeFrequency: "weekly",
+        priority: 0.55,
+      }),
+    ];
+  });
+}
+
 async function blogEntries(): Promise<SitemapEntry[]> {
   const posts = await prisma.blogPost.findMany({
     where: {
@@ -417,6 +507,135 @@ async function blogEntries(): Promise<SitemapEntry[]> {
   });
 }
 
+async function blogTopicEntries(): Promise<SitemapEntry[]> {
+  const posts = await prisma.blogPost.findMany({
+    where: {
+      status: "published",
+      publishedAt: { not: null, lte: new Date() },
+      OR: [
+        { primaryTopic: { isActive: true } },
+        { secondaryTopics: { some: { topic: { isActive: true } } } },
+      ],
+    },
+    orderBy: { updatedAt: "desc" },
+    take: DYNAMIC_LIMIT,
+    select: {
+      id: true,
+      visibility: true,
+      publishedAt: true,
+      createdAt: true,
+      updatedAt: true,
+      countries: { select: { countryCode: true } },
+      primaryTopic: {
+        select: {
+          id: true,
+          slug: true,
+          isActive: true,
+          updatedAt: true,
+        },
+      },
+      secondaryTopics: {
+        select: {
+          topic: {
+            select: {
+              id: true,
+              slug: true,
+              isActive: true,
+              updatedAt: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  const topicIds = Array.from(
+    new Set(
+      posts
+        .flatMap((post) => [
+          post.primaryTopic?.isActive ? post.primaryTopic.id : null,
+          ...post.secondaryTopics.map(({ topic }) => (topic.isActive ? topic.id : null)),
+        ])
+        .filter((id): id is string => Boolean(id)),
+    ),
+  );
+
+  const seoRows = topicIds.length
+    ? await prisma.seoMeta.findMany({
+        where: {
+          ownerType: "blog_topic",
+          locale: "ar",
+          ownerId: { in: topicIds },
+        },
+        select: { ownerId: true, noindex: true },
+      })
+    : [];
+  const noindexTopicIds = new Set(seoRows.filter((seo) => seo.noindex).map((seo) => seo.ownerId));
+
+  const topicCountryMap = new Map<
+    string,
+    {
+      cc: CountryCode;
+      topicId: string;
+      slug: string;
+      postIds: Set<string>;
+      lastModified: Date;
+    }
+  >();
+
+  for (const post of posts) {
+    const countries = post.visibility === "global"
+      ? Object.keys(SUPPORTED_COUNTRIES)
+      : post.countries
+          .map((country) => supportedCountry(country.countryCode))
+          .filter((cc): cc is CountryCode => Boolean(cc));
+
+    const topics = Array.from(
+      new Map(
+        [
+          post.primaryTopic?.isActive ? post.primaryTopic : null,
+          ...post.secondaryTopics.map(({ topic }) => (topic.isActive ? topic : null)),
+        ]
+          .filter((topic): topic is NonNullable<typeof post.primaryTopic> => Boolean(topic))
+          .map((topic) => [topic.id, topic]),
+      ).values(),
+    ).filter((topic) => !noindexTopicIds.has(topic.id));
+
+    for (const topic of topics) {
+      for (const cc of countries) {
+        const supportedCc = supportedCountry(cc);
+        if (!supportedCc) continue;
+
+        const key = `${supportedCc}:${topic.id}`;
+        const existing = topicCountryMap.get(key);
+        if (existing) {
+          existing.postIds.add(post.id);
+          existing.lastModified = latestDate(existing.lastModified, topic.updatedAt, post.updatedAt, post.publishedAt, post.createdAt);
+          continue;
+        }
+
+        topicCountryMap.set(key, {
+          cc: supportedCc,
+          topicId: topic.id,
+          slug: topic.slug,
+          postIds: new Set([post.id]),
+          lastModified: latestDate(topic.updatedAt, post.updatedAt, post.publishedAt, post.createdAt),
+        });
+      }
+    }
+  }
+
+  return Array.from(topicCountryMap.values())
+    .filter((item) => item.postIds.size >= BLOG_TOPIC_INDEX_MIN_POSTS)
+    .map((item) =>
+      entry(`/${item.cc}/blog/topics/${encodeURIComponent(item.slug)}`, {
+        lastModified: item.lastModified,
+        changeFrequency: "weekly",
+        priority: 0.55,
+      }),
+    );
+}
+
 async function safeDynamicEntries(label: string, loader: () => Promise<SitemapEntry[]>) {
   try {
     return await loader();
@@ -428,16 +647,19 @@ async function safeDynamicEntries(label: string, loader: () => Promise<SitemapEn
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
+  const indexingMode = getSearchIndexingMode();
   const staticEntries: MetadataRoute.Sitemap = [
     ...Object.entries(SUPPORTED_COUNTRIES).flatMap(([cc, config]) => [
       entry(`/${cc}`, { lastModified: now, changeFrequency: "daily", priority: 0.9 }),
-      ...config.types.map((type) =>
-        entry(`/${cc}/${type}`, {
-          lastModified: now,
-          changeFrequency: "daily",
-          priority: 0.8,
-        }),
-      ),
+      ...(indexingMode === "full"
+        ? config.types.map((type) =>
+            entry(`/${cc}/${type}`, {
+              lastModified: now,
+              changeFrequency: "daily",
+              priority: 0.8,
+            }),
+          )
+        : []),
       entry(`/${cc}/blog`, { lastModified: now, changeFrequency: "daily", priority: 0.7 }),
     ]),
     entry("/public/privacy", { lastModified: now, changeFrequency: "monthly", priority: 0.5 }),
@@ -448,13 +670,22 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     entry("/public/contact", { lastModified: now, changeFrequency: "monthly", priority: 0.4 }),
   ];
 
-  const dynamicEntries = await Promise.all([
-    safeDynamicEntries("institutions", institutionEntries),
-    safeDynamicEntries("majors", majorEntries),
-    safeDynamicEntries("subjects", subjectEntries),
-    safeDynamicEntries("quizzes", quizEntries),
-    safeDynamicEntries("blog posts", blogEntries),
-  ]);
+  const dynamicEntries = await Promise.all(
+    indexingMode === "full"
+      ? [
+          safeDynamicEntries("institutions", institutionEntries),
+          safeDynamicEntries("majors", majorEntries),
+          safeDynamicEntries("subjects", subjectEntries),
+          safeDynamicEntries("quizzes", quizEntries),
+          safeDynamicEntries("study summaries", studySummaryEntries),
+          safeDynamicEntries("blog posts", blogEntries),
+          safeDynamicEntries("blog topics", blogTopicEntries),
+        ]
+      : [
+          safeDynamicEntries("blog posts", blogEntries),
+          safeDynamicEntries("blog topics", blogTopicEntries),
+        ],
+  );
 
   return [...staticEntries, ...dynamicEntries.flat()];
 }

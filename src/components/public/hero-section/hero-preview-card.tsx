@@ -15,29 +15,29 @@ export function HeroPreviewCard({ preview }: HeroPreviewCardProps) {
   return (
     <div className="relative mx-auto w-full max-w-md">
       <div
-        className="pointer-events-none absolute -inset-5 rounded-[2rem] bg-gradient-to-br from-teal-400/20 via-emerald-400/10 to-cyan-400/20 blur-2xl dark:from-teal-500/15 dark:via-emerald-500/10 dark:to-cyan-500/15"
+        className="pointer-events-none absolute -inset-5 rounded-[2rem] bg-gradient-to-br from-primary/20 via-[hsl(var(--brand-emerald)_/_0.10)] to-[hsl(var(--brand-cyan)_/_0.20)] blur-2xl dark:from-primary/15 dark:via-[hsl(var(--brand-emerald)_/_0.10)] dark:to-[hsl(var(--brand-cyan)_/_0.15)]"
         aria-hidden
       />
 
-      <div className="relative overflow-hidden rounded-[1.75rem] border border-teal-100/80 bg-card/95 p-4 shadow-xl shadow-teal-950/10 ring-1 ring-white/70 backdrop-blur dark:border-teal-900/50 dark:bg-slate-950/85 dark:shadow-black/30 dark:ring-white/10 sm:p-5">
+      <div className="relative overflow-hidden rounded-[1.75rem] border border-primary/15 bg-card/95 p-4 shadow-xl shadow-primary/10 ring-1 ring-white/70 backdrop-blur dark:border-primary/30 dark:bg-slate-950/85 dark:shadow-black/30 dark:ring-white/10 sm:p-5">
         <div
-          className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-l from-transparent via-teal-400/80 to-transparent"
+          className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-l from-transparent via-primary/80 to-transparent"
           aria-hidden
         />
         <div
-          className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-teal-300/15 blur-3xl dark:bg-teal-500/10"
+          className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-primary/15 blur-3xl dark:bg-primary/10"
           aria-hidden
         />
         <div
-          className="pointer-events-none absolute -bottom-20 -left-20 h-44 w-44 rounded-full bg-cyan-300/15 blur-3xl dark:bg-cyan-500/10"
+          className="pointer-events-none absolute -bottom-20 -left-20 h-44 w-44 rounded-full bg-[hsl(var(--brand-cyan)_/_0.15)] blur-3xl dark:bg-[hsl(var(--brand-cyan)_/_0.10)]"
           aria-hidden
         />
 
         <div className="relative">
           <div className="mb-5 flex items-start justify-between gap-4">
             <div className="min-w-0">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-teal-200 bg-teal-50 px-3 py-1 text-xs font-bold text-teal-800 dark:border-teal-900 dark:bg-teal-950/60 dark:text-teal-200">
-                <Sparkles className="h-3.5 w-3.5 text-amber-500" aria-hidden />
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-xs font-bold text-primary dark:border-primary/35 dark:bg-primary/10">
+                <Sparkles className="h-3.5 w-3.5 text-[hsl(var(--brand-amber))]" aria-hidden />
                 {preview.badge}
               </span>
 
@@ -50,7 +50,7 @@ export function HeroPreviewCard({ preview }: HeroPreviewCardProps) {
               </p>
             </div>
 
-            <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-teal-700 to-cyan-600 text-white shadow-lg shadow-teal-950/15 dark:from-teal-500 dark:to-cyan-500">
+            <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[image:var(--gradient-primary)] text-primary-foreground shadow-lg shadow-primary/15">
               <FileQuestion className="h-7 w-7" aria-hidden />
             </span>
           </div>
@@ -73,14 +73,14 @@ export function HeroPreviewCard({ preview }: HeroPreviewCardProps) {
             />
           </div>
 
-          <div className="mt-5 rounded-2xl border border-teal-100 bg-gradient-to-br from-teal-50/90 via-background to-cyan-50/70 p-4 dark:border-teal-900/60 dark:from-teal-950/35 dark:via-slate-950/80 dark:to-cyan-950/25">
+          <div className="mt-5 rounded-2xl border border-primary/15 bg-[linear-gradient(135deg,hsl(var(--brand-teal)_/_0.08),hsl(var(--background)),hsl(var(--brand-cyan)_/_0.08))] p-4 dark:border-primary/30 dark:bg-[linear-gradient(135deg,hsl(var(--brand-teal)_/_0.18),hsl(var(--background)),hsl(var(--brand-cyan)_/_0.12))]">
             <div className="mb-4 flex items-center justify-between gap-3">
               <div>
                 <p className="text-xs font-bold text-foreground/65">
                   {preview.scoreLabel}
                 </p>
                 <div className="mt-1 flex items-end gap-2">
-                  <p className="text-4xl font-black leading-none text-teal-700 dark:text-teal-300">
+                  <p className="text-4xl font-black leading-none text-primary">
                     {preview.scoreValue}
                   </p>
                   <span className="pb-1 text-xs font-bold text-foreground/50">
@@ -89,7 +89,7 @@ export function HeroPreviewCard({ preview }: HeroPreviewCardProps) {
                 </div>
               </div>
 
-              <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/50 dark:text-emerald-300">
+              <span className="inline-flex items-center gap-1 rounded-full border border-[hsl(var(--brand-emerald)_/_0.22)] bg-[hsl(var(--brand-emerald)_/_0.08)] px-3 py-1.5 text-xs font-bold text-[hsl(var(--brand-emerald))] dark:border-[hsl(var(--brand-emerald)_/_0.35)] dark:bg-[hsl(var(--brand-emerald)_/_0.14)]">
                 <CheckCircle2 className="h-4 w-4" aria-hidden />
                 جاهز
               </span>
@@ -97,7 +97,7 @@ export function HeroPreviewCard({ preview }: HeroPreviewCardProps) {
 
             <div className="h-3 overflow-hidden rounded-full bg-background shadow-inner ring-1 ring-border">
               <div
-                className="h-full rounded-full bg-gradient-to-l from-teal-700 via-emerald-500 to-cyan-500"
+                className="h-full rounded-full bg-[image:var(--gradient-primary)]"
                 style={{ width: `${preview.progressValue}%` }}
                 aria-hidden
               />
@@ -109,8 +109,8 @@ export function HeroPreviewCard({ preview }: HeroPreviewCardProps) {
             </div>
           </div>
 
-          <div className="mt-4 flex items-start gap-3 rounded-2xl border border-teal-100 bg-teal-50/70 p-3.5 text-sm font-semibold leading-6 text-teal-950 dark:border-teal-900/60 dark:bg-teal-950/30 dark:text-teal-100">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white text-teal-700 shadow-sm dark:bg-slate-900 dark:text-teal-300">
+          <div className="mt-4 flex items-start gap-3 rounded-2xl border border-primary/15 bg-primary/5 p-3.5 text-sm font-semibold leading-6 text-foreground dark:border-primary/30 dark:bg-primary/10">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white text-primary shadow-sm dark:bg-slate-900">
               <ShieldCheck className="h-5 w-5" aria-hidden />
             </span>
             <span>{preview.successNote}</span>
@@ -132,7 +132,7 @@ function PreviewMetric({
 }) {
   return (
     <div className="rounded-2xl border border-border/80 bg-background/80 p-3 text-center shadow-sm transition-colors dark:bg-slate-950/50">
-      <div className="mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-xl bg-teal-50 text-teal-700 dark:bg-teal-950/50 dark:text-teal-300">
+      <div className="mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-xl bg-primary/5 text-primary dark:bg-primary/10">
         {icon}
       </div>
       <p className="text-[11px] font-bold text-foreground/55">{label}</p>
@@ -140,4 +140,3 @@ function PreviewMetric({
     </div>
   );
 }
-

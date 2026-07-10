@@ -105,7 +105,7 @@ export function HeroMedia({
               <motion.div
                 animate={{ y: [-10, 10, -10] }}
                 transition={{ duration: 4, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
-                className="absolute -top-6 -right-6 w-24 h-24 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full shadow-lg flex items-center justify-center"
+                className="absolute -top-6 -right-6 w-24 h-24 bg-[image:linear-gradient(90deg,hsl(var(--brand-amber)),hsl(35_92%_50%))] rounded-full shadow-lg flex items-center justify-center"
                 aria-hidden
               >
                 <Award className="h-12 w-12 text-white" />
@@ -114,7 +114,7 @@ export function HeroMedia({
               <motion.div
                 animate={{ y: [10, -10, 10] }}
                 transition={{ duration: 3, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut", delay: 1 }}
-                className="absolute -bottom-4 -left-4 w-20 h-20 bg-gradient-to-r from-green-400 to-blue-500 rounded-full shadow-lg flex items-center justify-center"
+                className="absolute -bottom-4 -left-4 w-20 h-20 bg-[image:var(--gradient-primary)] rounded-full shadow-lg flex items-center justify-center"
                 aria-hidden
               >
                 <Star className="h-10 w-10 text-white" />

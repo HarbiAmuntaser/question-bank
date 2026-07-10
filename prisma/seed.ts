@@ -1,11 +1,3 @@
-// prisma/seed.ts
-/**
- * Seed Script
- * ===========
- * يضيف بيانات أولية (Admin + جامعات + تخصصات + مواد + فصول + أسئلة + خيارات)
- * ✅ Idempotent: يستخدم upsert حتى لا تتكرر البيانات عند إعادة التشغيل.
- */
-
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
@@ -44,7 +36,6 @@ async function main() {
       isActive: true,
     },
   });
-
   console.log("تم إنشاء/تحديث المستخدم المدير:", adminUser.email);
 
   // ---------------------------------------------------------------------------
@@ -477,4 +468,3 @@ main()
     await prisma.$disconnect();
     process.exit(1);
   });
-  

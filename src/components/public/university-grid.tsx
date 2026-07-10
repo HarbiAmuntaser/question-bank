@@ -113,7 +113,7 @@ export function UniversityGrid({
       <section className="py-16 px-4 sm:px-6 lg:px-8">
         <div className="mx-auto grid max-w-7xl grid-cols-1 gap-4 md:grid-cols-2 md:gap-6 xl:grid-cols-3 xl:gap-8">
           {Array.from({ length: 6 }).map((_, index) => (
-            <div key={index} className="overflow-hidden rounded-lg border-2 bg-white/90 shadow-lg dark:bg-gray-800/90">
+            <div key={index} className="overflow-hidden rounded-lg border-2 bg-card/95 shadow-lg">
               <div className="h-44 animate-pulse bg-muted sm:h-48" />
               <div className="space-y-5 p-6">
                 <div className="h-6 w-4/5 animate-pulse rounded bg-muted" />
@@ -145,10 +145,10 @@ export function UniversityGrid({
         {/* Header */}
         <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-12">
           <div className="flex items-center justify-center gap-3 mb-4">
-            <div className="p-3 bg-gradient-to-r from-green-500 to-emerald-400 rounded-2xl shadow-lg" aria-hidden>
-              <GraduationCap className="h-8 w-8 text-white" />
+            <div className="rounded-2xl bg-[image:var(--gradient-primary)] p-3 shadow-lg" aria-hidden>
+              <GraduationCap className="h-8 w-8 text-primary-foreground" />
             </div>
-            <h2 id="universities-heading" className="text-4xl font-bold text-gray-900 dark:text-white">
+            <h2 id="universities-heading" className="text-4xl font-bold text-foreground">
               {ui.heading}
             </h2>
           </div>
@@ -176,7 +176,7 @@ export function UniversityGrid({
                 placeholder={ui.searchPlaceholder}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                className="h-14 pr-12 text-lg border-2 border-gray-200 dark:border-gray-700 focus:border-primary rounded-2xl shadow-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm"
+                className="h-14 rounded-2xl border-2 border-border bg-background/80 pr-12 text-lg shadow-lg backdrop-blur-sm focus:border-primary"
                 inputMode="search"
               />
             </div>
@@ -194,9 +194,9 @@ export function UniversityGrid({
               whileHover={{ y: -4 }}
               className="group"
             >
-              <Card className="flex h-full flex-col overflow-hidden border-2 bg-white/90 shadow-lg backdrop-blur-sm transition-all duration-300 hover:border-primary/40 hover:shadow-xl dark:bg-gray-800/90">
+              <Card className="flex h-full flex-col overflow-hidden border-2 bg-card/95 shadow-lg backdrop-blur-sm transition-all duration-300 hover:border-primary/40 hover:shadow-xl">
                 <div className="relative h-48 overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-br from-green-600/20 via-blue-600/20 to-purple-600/20" aria-hidden />
+                  <div className="absolute inset-0 bg-[image:var(--gradient-primary)] opacity-20" aria-hidden />
                   <Image
                     src="/images/institutions/default.svg"
                     alt={u.name}
@@ -205,45 +205,45 @@ export function UniversityGrid({
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                   />
                   <div className="absolute top-4 right-4">
-                    <Badge className="bg-white/90 text-gray-900 shadow-lg" aria-label={ui.badgeAria}>
-                      <Star className="w-3 h-3 ml-1 text-yellow-500" aria-hidden />
+                    <Badge className="bg-background/90 text-foreground shadow-lg" aria-label={ui.badgeAria}>
+                      <Star className="ml-1 h-3 w-3 text-[hsl(var(--brand-amber))]" aria-hidden />
                       {ui.badgeText}
                     </Badge>
                   </div>
                 </div>
 
                 <CardHeader className="pb-4">
-                  <CardTitle className="text-xl font-bold text-gray-900 dark:text-white group-hover:text-primary transition-colors">
+                  <CardTitle className="text-xl font-bold text-foreground transition-colors group-hover:text-primary">
                     {u.name}
                   </CardTitle>
                 </CardHeader>
 
                 <CardContent className="space-y-6">
                   <div className="grid grid-cols-3 gap-4">
-                    <div className="text-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
-                      <BookOpen className="h-5 w-5 text-blue-600 mx-auto mb-1" aria-hidden />
-                      <div className="text-lg font-bold text-blue-600">{u._count.majors}</div>
-                      <p className="text-xs text-blue-700 dark:text-blue-300">{ui.statMajors}</p>
+                    <div className="rounded-xl bg-primary/5 p-3 text-center dark:bg-primary/10">
+                      <BookOpen className="mx-auto mb-1 h-5 w-5 text-primary" aria-hidden />
+                      <div className="text-lg font-bold text-primary">{u._count.majors}</div>
+                      <p className="text-xs text-foreground/70">{ui.statMajors}</p>
                     </div>
-                    <div className="text-center p-3 bg-green-50 dark:bg-green-900/20 rounded-xl">
-                      <Trophy className="h-5 w-5 text-green-600 mx-auto mb-1" aria-hidden />
-                      <div className="text-lg font-bold text-green-600">{u._count.quizzes ?? 0}</div>
-                      <p className="text-xs text-green-700 dark:text-green-300">{ui.statQuizzes}</p>
+                    <div className="rounded-xl bg-[hsl(var(--brand-emerald)_/_0.08)] p-3 text-center dark:bg-[hsl(var(--brand-emerald)_/_0.12)]">
+                      <Trophy className="mx-auto mb-1 h-5 w-5 text-[hsl(var(--brand-emerald))]" aria-hidden />
+                      <div className="text-lg font-bold text-[hsl(var(--brand-emerald))]">{u._count.quizzes ?? 0}</div>
+                      <p className="text-xs text-foreground/70">{ui.statQuizzes}</p>
                     </div>
-                    <div className="text-center p-3 bg-purple-50 dark:bg-purple-900/20 rounded-xl">
-                      <Users className="h-5 w-5 text-purple-600 mx-auto mb-1" aria-hidden />
-                      <div className="text-lg font-bold text-purple-600">
+                    <div className="rounded-xl bg-[hsl(var(--brand-cyan)_/_0.08)] p-3 text-center dark:bg-[hsl(var(--brand-cyan)_/_0.12)]">
+                      <Users className="mx-auto mb-1 h-5 w-5 text-[hsl(var(--brand-cyan))]" aria-hidden />
+                      <div className="text-lg font-bold text-[hsl(var(--brand-cyan))]">
                         {Array.isArray((u as any).majors)
                           ? (u as any).majors.reduce((sum: number, m: any) => sum + (m?._count?.subjects ?? 0), 0)
                           : 0}
                       </div>
-                      <p className="text-xs text-purple-700 dark:text-purple-300">{ui.statSubjects}</p>
+                      <p className="text-xs text-foreground/70">{ui.statSubjects}</p>
                     </div>
                   </div>
 
                   <Button
                     asChild
-                    className="w-full h-12 rounded-xl shadow-lg bg-gradient-to-r from-green-600 to-emerald-500 hover:from-green-700 hover:to-emerald-600 group-hover:shadow-xl transition-all duration-300"
+                    className="h-12 w-full rounded-xl bg-[image:var(--gradient-primary)] text-primary-foreground shadow-lg transition-all duration-300 hover:opacity-95 group-hover:shadow-xl"
                   >
                     <Link href={makeUniversityHref(u)} prefetch className="flex items-center justify-center gap-2">
                       <GraduationCap className="h-5 w-5" aria-hidden />
@@ -258,9 +258,9 @@ export function UniversityGrid({
 
         {filtered.length === 0 && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-16">
-            <div className="p-6 bg-gray-100 dark:bg-gray-800 rounded-2xl max-w-md mx-auto">
+            <div className="mx-auto max-w-md rounded-2xl bg-muted/40 p-6">
               <Search className="mx-auto mb-4 h-16 w-16 text-muted-foreground" aria-hidden />
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">{ui.noResultsTitle}</h3>
+              <h3 className="mb-2 text-xl font-semibold text-foreground">{ui.noResultsTitle}</h3>
               <p className="text-muted-foreground">{ui.noResultsText}</p>
             </div>
           </motion.div>
@@ -269,7 +269,7 @@ export function UniversityGrid({
         {/* ✅ اختياري فقط لو احتجته لاحقًا في صفحة أخرى */}
         {showViewAll && universities.length > 6 && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="text-center mt-12">
-            <Button asChild size="lg" variant="outline" className="h-14 px-8 text-lg rounded-xl shadow-lg border-2 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm hover:bg-gray-50 dark:hover:bg-gray-700">
+            <Button asChild size="lg" variant="outline" className="h-14 rounded-xl border-2 bg-background/80 px-8 text-lg shadow-lg backdrop-blur-sm hover:bg-muted/50">
               <Link href={base} prefetch>
                 {ui.viewAll} ({universities.length})
               </Link>

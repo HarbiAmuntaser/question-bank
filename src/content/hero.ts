@@ -84,22 +84,22 @@ const sharedFeatures: HeroFeature[] = [
     icon: "book",
     title: "مسار واضح للمراجعة",
     description: "ابدأ من الجهة التعليمية، ثم التخصص والمقرر، وصولًا إلى الاختبار المناسب.",
-    gradient: "from-teal-500 to-cyan-500",
-    bgColor: "bg-teal-50 dark:bg-teal-950/30",
+    gradient: "from-primary to-[hsl(var(--brand-cyan))]",
+    bgColor: "bg-primary/5 dark:bg-primary/10",
   },
   {
     icon: "trophy",
     title: "تدريب يقيس جاهزيتك",
     description: "اختبارات منظمة تساعدك على معرفة مستواك وتحديد ما يحتاج إلى مراجعة.",
-    gradient: "from-emerald-500 to-teal-500",
-    bgColor: "bg-emerald-50 dark:bg-emerald-950/30",
+    gradient: "from-[hsl(var(--brand-emerald))] to-primary",
+    bgColor: "bg-[hsl(var(--brand-emerald)_/_0.08)] dark:bg-[hsl(var(--brand-emerald)_/_0.12)]",
   },
   {
     icon: "users",
     title: "تجربة عربية مبسطة",
     description: "واجهة واضحة وسهلة الاستخدام تساعد الطالب على الوصول للمحتوى دون تعقيد.",
-    gradient: "from-cyan-500 to-sky-500",
-    bgColor: "bg-cyan-50 dark:bg-cyan-950/30",
+    gradient: "from-[hsl(var(--brand-cyan))] to-primary",
+    bgColor: "bg-[hsl(var(--brand-cyan)_/_0.08)] dark:bg-[hsl(var(--brand-cyan)_/_0.12)]",
   },
 ];
 
@@ -110,7 +110,7 @@ function buildSlides(title: string, subtitle: string, description: string): Hero
       subtitle,
       description,
       image: "/images/hero/hero-1.svg",
-      gradient: "from-teal-700 via-emerald-600 to-cyan-500",
+      gradient: "from-primary via-[hsl(var(--brand-emerald))] to-[hsl(var(--brand-cyan))]",
       icon: "graduation",
     },
   ];

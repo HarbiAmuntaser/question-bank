@@ -76,11 +76,11 @@ function formatRelativeTime(dateString: string): string {
 function getActivityDotColor(type: DashboardData["recentActivity"][number]["type"]): string {
   switch (type) {
     case "quiz":
-      return "bg-green-500"
+      return "bg-primary"
     case "question":
-      return "bg-blue-500"
+      return "bg-[hsl(var(--brand-cyan))]"
     case "chapter":
-      return "bg-orange-500"
+      return "bg-[hsl(var(--brand-amber))]"
   }
 }
 
@@ -93,7 +93,7 @@ export default async function AdminDashboard() {
       value: stats.universities,
       description: "إجمالي الجامعات المسجلة",
       icon: Building2,
-      color: "text-blue-600",
+      color: "text-primary",
     },
     {
       title: "التخصصات",
@@ -107,50 +107,50 @@ export default async function AdminDashboard() {
       value: stats.subjects,
       description: "المقررات في النظام",
       icon: BookOpen,
-      color: "text-purple-600",
+      color: "text-[hsl(var(--brand-cyan))]",
     },
     {
       title: "الفصول",
       value: stats.chapters,
       description: "فصول المقررات",
       icon: FileText,
-      color: "text-indigo-600",
+      color: "text-[hsl(var(--brand-amber))]",
     },
     {
       title: "الأسئلة",
       value: stats.questions,
       description: "إجمالي الأسئلة المنشأة",
       icon: FileQuestion,
-      color: "text-orange-600",
+      color: "text-primary",
     },
     {
       title: "الاختبارات",
       value: stats.quizzes,
       description: "الاختبارات المُنشأة",
       icon: ClipboardList,
-      color: "text-pink-600",
+      color: "text-[hsl(var(--brand-cyan))]",
     },
     {
       title: "محاولات الاختبار",
       value: stats.quizAttempts,
       description: "محاولات الطلاب في الاختبارات",
       icon: Users,
-      color: "text-red-600",
+      color: "text-[hsl(var(--brand-emerald))]",
     },
     {
       title: "الجلسات النشطة",
       value: stats.activeSessions,
       description: "آخر 24 ساعة",
       icon: TrendingUp,
-      color: "text-cyan-600",
+      color: "text-primary",
     },
   ]
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">لوحة التحكم</h1>
-        <p className="mt-2 text-gray-600 dark:text-gray-400">مرحباً بك في لوحة إدارة مستواك</p>
+        <h1 className="text-3xl font-bold text-foreground">لوحة التحكم</h1>
+        <p className="mt-2 text-muted-foreground">مرحباً بك في لوحة إدارة مستواك</p>
       </div>
 
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">

@@ -141,6 +141,13 @@ export async function PATCH(req: Request, ctx: Ctx) {
         typeof input.contentHtml !== "undefined" || typeof input.contentText !== "undefined"
           ? contentPayload(input.contentHtml, input.contentText)
           : null;
+      const updater =
+        auth.userId !== "api-key"
+          ? await tx.user.findUnique({
+              where: { id: auth.userId },
+              select: { id: true },
+            })
+          : null;
 
       const data: Prisma.BlogPostUpdateInput = {
         ...(typeof input.title !== "undefined" ? { title: input.title } : {}),
@@ -164,7 +171,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
               contentText: content.contentText,
             }
           : {}),
-        ...(auth.userId !== "api-key" ? { updater: { connect: { id: auth.userId } } } : {}),
+        ...(updater ? { updater: { connect: { id: updater.id } } } : {}),
         ...(typeof input.tagIds !== "undefined"
           ? {
               tags: {
@@ -199,17 +206,21 @@ export async function PATCH(req: Request, ctx: Ctx) {
       };
     });
 
-    revalidateBlogCache({
-      postId: updated.id,
-      previous,
-      next: {
-        slug: updated.slug,
-        status: updated.status,
-        visibility: updated.visibility,
-        publishedAt: updated.publishedAt,
-        countries: updated.countries.map((country) => country.countryCode),
-      },
-    });
+    try {
+      revalidateBlogCache({
+        postId: updated.id,
+        previous,
+        next: {
+          slug: updated.slug,
+          status: updated.status,
+          visibility: updated.visibility,
+          publishedAt: updated.publishedAt,
+          countries: updated.countries.map((country) => country.countryCode),
+        },
+      });
+    } catch (error) {
+      console.error("failed_to_revalidate_blog_post_cache", error instanceof Error ? error.message : "unknown_error");
+    }
 
     return json({ data: serializePost(updated), message: "blog_post_updated" }, { status: 200, headers: privateHeaders() });
   } catch (error) {

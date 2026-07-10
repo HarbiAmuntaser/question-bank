@@ -5,7 +5,7 @@ import { verifyAdmin } from "@/lib/admin-auth";
 
 export const dynamic = "force-dynamic";
 
-type OwnerType = "university" | "major" | "subject" | "chapter" | "exam";
+type OwnerType = "university" | "major" | "subject" | "chapter" | "exam" | "blog_post" | "blog_topic" | "study_summary";
 
 function pick(v: string | null) {
   const t = (v ?? "").trim();
@@ -207,6 +207,122 @@ export async function GET(req: Request) {
         },
       });
     }
+
+    if (type === "study_summary") {
+      const summary = await prisma.studySummary.findUnique({
+        where: { id },
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+          subject: {
+            select: {
+              id: true,
+              name: true,
+              code: true,
+              major: {
+                select: {
+                  id: true,
+                  name: true,
+                  code: true,
+                  university: { select: { id: true, name: true, code: true, countryCode: true } },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      if (!summary) return bad("not_found", undefined, 404);
+
+      const u = summary.subject?.major?.university;
+      const m = summary.subject?.major;
+
+      return json({
+        data: {
+          ownerType: type,
+          chain: {
+            university: u
+              ? { id: u.id, label: u.name, subLabel: `${u.countryCode}${u.code ? ` • ${u.code}` : ""}` }
+              : null,
+            major: m ? { id: m.id, label: m.name, subLabel: m.code ? `• ${m.code}` : "" } : null,
+            subject: summary.subject
+              ? { id: summary.subject.id, label: summary.subject.name, subLabel: summary.subject.code ? `• ${summary.subject.code}` : "" }
+              : null,
+            study_summary: {
+              id: summary.id,
+              label: summary.title,
+              subLabel: summary.slug,
+            },
+          },
+        },
+      });
+    }
+
+    if (type === "blog_post") {
+      const post = await prisma.blogPost.findUnique({
+        where: { id },
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+          status: true,
+          publishedAt: true,
+          updatedAt: true,
+        },
+      });
+
+      if (!post) return bad("not_found", undefined, 404);
+
+      const date = post.publishedAt ?? post.updatedAt;
+      return json({
+        data: {
+          ownerType: type,
+          chain: {
+            blog_post: {
+              id: post.id,
+              label: post.title,
+              subLabel: `${post.slug} • ${post.status} • ${date.toLocaleDateString("ar-SA")}`,
+            },
+          },
+        },
+      });
+    }
+
+    if (type === "blog_topic") {
+      const topic = await prisma.blogTopic.findUnique({
+        where: { id },
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          description: true,
+          isActive: true,
+          _count: {
+            select: {
+              primaryPosts: true,
+              secondaryPosts: true,
+            },
+          },
+        },
+      });
+
+      if (!topic) return bad("not_found", undefined, 404);
+
+      const postsCount = topic._count.primaryPosts + topic._count.secondaryPosts;
+      return json({
+        data: {
+          ownerType: type,
+          chain: {
+            blog_topic: {
+              id: topic.id,
+              label: topic.name,
+              subLabel: `${topic.slug} • ${topic.isActive ? "نشط" : "غير نشط"} • ${postsCount} مقال`,
+            },
+          },
+        },
+      });
+    }
   }
 
   // -----------------------
@@ -315,6 +431,115 @@ if (type === "exam") {
       label: q.title?.trim() ? q.title : `اختبار • ${q.id.slice(0, 8)}`,
       subLabel: q.subject ? `${q.subject.name}${q.subject.code ? ` • ${q.subject.code}` : ""}` : "",
     })),
+  });
+}
+
+if (type === "study_summary") {
+  const where: any = {};
+  if (subjectId) where.subjectId = subjectId;
+  if (query) {
+    where.OR = [
+      { title: { contains: query, mode: "insensitive" } },
+      { slug: { contains: query, mode: "insensitive" } },
+    ];
+  }
+
+  const rows = await prisma.studySummary.findMany({
+    where,
+    orderBy: [{ updatedAt: "desc" }, { title: "asc" }],
+    take,
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      status: true,
+      subject: { select: { name: true, code: true } },
+    },
+  });
+
+  return json({
+    data: rows.map((summary) => ({
+      id: summary.id,
+      label: summary.title,
+      subLabel: `${summary.subject?.name ?? ""}${summary.subject?.code ? ` • ${summary.subject.code}` : ""} • ${summary.status} • ${summary.slug}`.trim(),
+    })),
+  });
+}
+
+if (type === "blog_post") {
+  const where: any = {};
+  if (query) {
+    where.OR = [
+      { title: { contains: query, mode: "insensitive" } },
+      { slug: { contains: query, mode: "insensitive" } },
+      { excerpt: { contains: query, mode: "insensitive" } },
+    ];
+  }
+
+  const rows = await prisma.blogPost.findMany({
+    where,
+    orderBy: [{ updatedAt: "desc" }, { title: "asc" }],
+    take,
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      status: true,
+      publishedAt: true,
+      updatedAt: true,
+    },
+  });
+
+  return json({
+    data: rows.map((post) => {
+      const date = post.publishedAt ?? post.updatedAt;
+      return {
+        id: post.id,
+        label: post.title,
+        subLabel: `${post.slug} • ${post.status} • ${date.toLocaleDateString("ar-SA")}`,
+      };
+    }),
+  });
+}
+
+if (type === "blog_topic") {
+  const where: any = {};
+  if (query) {
+    where.OR = [
+      { name: { contains: query, mode: "insensitive" } },
+      { slug: { contains: query, mode: "insensitive" } },
+      { description: { contains: query, mode: "insensitive" } },
+    ];
+  }
+
+  const rows = await prisma.blogTopic.findMany({
+    where,
+    orderBy: [{ isActive: "desc" }, { name: "asc" }],
+    take,
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      description: true,
+      isActive: true,
+      _count: {
+        select: {
+          primaryPosts: true,
+          secondaryPosts: true,
+        },
+      },
+    },
+  });
+
+  return json({
+    data: rows.map((topic) => {
+      const postsCount = topic._count.primaryPosts + topic._count.secondaryPosts;
+      return {
+        id: topic.id,
+        label: topic.name,
+        subLabel: `${topic.slug} • ${topic.isActive ? "نشط" : "غير نشط"} • ${postsCount} مقال`,
+      };
+    }),
   });
 }
 

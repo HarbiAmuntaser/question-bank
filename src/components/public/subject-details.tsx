@@ -13,10 +13,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 
-import { BookOpen, GraduationCap, ArrowRight } from "lucide-react";
+import { GraduationCap, ArrowRight } from "lucide-react";
 import type { InstitutionType } from "@/config/regions";
 
-import { SubjectQuizzesAccessGrid, type PublicQuizAccessItem } from "@/components/public/subscription-access";
+import type { PublicQuizAccessItem } from "@/components/public/subscription-access";
+import { SubjectLearningSwitcher } from "@/components/public/subject-learning-switcher";
+import { getPublishedSubjectSummaries } from "@/lib/server/study-summaries";
 import { fetchJSON } from "@/lib/server/student-fetch";
 import { stripPrefix, encodeSlugPath } from "@/lib/public/slug-utils";
 
@@ -152,6 +154,7 @@ export async function SubjectDetails({
     0,
   );
   const quizzes = quizzesRes.ok && quizzesRes.data ? quizzesRes.data : [];
+  const summaries = await getPublishedSubjectSummaries(subject.id);
 
   const quizDetailsHref = (q: QuizLite) => {
     const raw = (q.seo?.slug || q.id || "").toString().trim();
@@ -237,31 +240,13 @@ export async function SubjectDetails({
             </p>
           ) : null}
 
-          <div className="flex justify-center">
-            <Button asChild className="h-11 w-full rounded-lg sm:w-auto">
-              <a href="#subject-quizzes" className="flex items-center justify-center gap-2">
-                <BookOpen className="h-4 w-4" aria-hidden />
-                عرض الاختبارات
-              </a>
-            </Button>
-          </div>
-
-          <section id="subject-quizzes" className="space-y-5">
-            <div className="text-center">
-              <h2 className="text-xl font-bold sm:text-2xl">اختبارات هذه المادة</h2>
-              <p className="mt-1 text-sm leading-relaxed text-muted-foreground sm:text-base">
-                تظهر الاختبارات المرتبطة بهذا المقرر ضمن درجة التخصص المختارة سابقًا.
-              </p>
-            </div>
-
-            {quizzes.length > 0 ? (
-              <SubjectQuizzesAccessGrid quizzes={quizCards} subjectId={subject.id} majorId={subject.major.id} />
-            ) : (
-              <div className="py-10 text-center text-muted-foreground">
-                لا توجد اختبارات لهذه المادة بعد.
-              </div>
-            )}
-          </section>
+          <SubjectLearningSwitcher
+            quizzes={quizCards}
+            summaries={summaries}
+            subjectId={subject.id}
+            majorId={subject.major.id}
+            basePath={basePath}
+          />
 
           <div className="flex flex-col justify-center gap-3 pt-2 sm:flex-row">
             <Button asChild variant="outline" className={outlineButtonClass}>

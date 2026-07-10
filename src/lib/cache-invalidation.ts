@@ -44,6 +44,19 @@ type BlogCacheInput = {
   allCountries?: boolean;
 };
 
+export type StudySummaryCacheSnapshot = {
+  id?: string | null;
+  slug?: string | null;
+  subjectId?: string | null;
+  subjectPath?: string | null;
+  summaryPath?: string | null;
+};
+
+type StudySummaryCacheInput = {
+  previous?: StudySummaryCacheSnapshot | null;
+  next?: StudySummaryCacheSnapshot | null;
+};
+
 const allBlogCountries = Object.keys(SUPPORTED_COUNTRIES);
 
 function blogSnapshotCountries(snapshot?: BlogCacheSnapshot | null) {
@@ -139,8 +152,10 @@ export function revalidateSubjectCache(input: { id?: string | null; majorId?: st
     CACHE_TAGS.admin.subjects,
     CACHE_TAGS.public.subjects,
     input.id ? CACHE_TAGS.public.subject(input.id) : null,
+    input.id ? CACHE_TAGS.public.summariesBySubject(input.id) : null,
     input.majorId ? CACHE_TAGS.public.subjectsByMajor(input.majorId) : null,
     input.id ? CACHE_TAGS.public.quizzesBySubject(input.id) : null,
+    CACHE_TAGS.public.summaries,
     CACHE_TAGS.public.majors,
     CACHE_TAGS.public.institutions,
     CACHE_TAGS.public.quizzes,
@@ -148,6 +163,38 @@ export function revalidateSubjectCache(input: { id?: string | null; majorId?: st
     CACHE_TAGS.public.stats,
     "student-stats",
   ]);
+}
+
+export function revalidateStudySummaryCache(input: StudySummaryCacheInput = {}) {
+  const snapshots = [input.previous, input.next].filter(Boolean) as StudySummaryCacheSnapshot[];
+  const summaryIds = Array.from(new Set(snapshots.map((item) => item.id?.trim()).filter(Boolean) as string[]));
+  const subjectIds = Array.from(new Set(snapshots.map((item) => item.subjectId?.trim()).filter(Boolean) as string[]));
+  const paths = Array.from(
+    new Set(
+      snapshots
+        .flatMap((item) => [item.subjectPath, item.summaryPath])
+        .map((path) => path?.trim())
+        .filter((path): path is string => Boolean(path)),
+    ),
+  );
+
+  revalidateTags([
+    "student-summaries",
+    "student-summary-detail",
+    CACHE_TAGS.admin.summaries,
+    CACHE_TAGS.public.summaries,
+    CACHE_TAGS.public.subjects,
+    CACHE_TAGS.public.seo,
+    ...summaryIds.map((id) => CACHE_TAGS.public.summary(id)),
+    ...subjectIds.map((id) => CACHE_TAGS.public.subject(id)),
+    ...subjectIds.map((id) => CACHE_TAGS.public.summariesBySubject(id)),
+  ]);
+
+  for (const path of paths) {
+    revalidatePath(path);
+  }
+
+  revalidatePath("/sitemap.xml");
 }
 
 export function revalidateChapterCache(input: { subjectId?: string | null } = {}) {
@@ -214,6 +261,10 @@ export function revalidateSeoCache(input: { ownerType?: string | null; ownerId?:
     ownerType === "subject" ? "student-subject-detail" : null,
     ownerType === "subject" ? CACHE_TAGS.public.subjects : null,
     ownerType === "subject" && ownerId ? CACHE_TAGS.public.subject(ownerId) : null,
+    ownerType === "study_summary" ? "student-summaries" : null,
+    ownerType === "study_summary" ? "student-summary-detail" : null,
+    ownerType === "study_summary" ? CACHE_TAGS.public.summaries : null,
+    ownerType === "study_summary" && ownerId ? CACHE_TAGS.public.summary(ownerId) : null,
     ownerType === "exam" ? "student-quizzes" : null,
     ownerType === "exam" ? "student-quiz-preview" : null,
     ownerType === "exam" ? CACHE_TAGS.public.quizzes : null,
@@ -222,5 +273,13 @@ export function revalidateSeoCache(input: { ownerType?: string | null; ownerId?:
 
   if (ownerType === "blog_post") {
     revalidateBlogCache({ postId: ownerId, allCountries: true });
+  }
+
+  if (ownerType === "blog_topic") {
+    revalidateBlogCache({ taxonomy: "topics", allCountries: true });
+  }
+
+  if (ownerType === "study_summary") {
+    revalidateStudySummaryCache({ next: { id: ownerId } });
   }
 }

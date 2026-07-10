@@ -64,7 +64,7 @@ export function PublicHeader() {
       className="sticky top-0 z-50 w-full border-b bg-background/95 text-foreground backdrop-blur supports-[backdrop-filter]:bg-background/75"
       role="banner"
     >
-      <div className="container flex h-16 items-center justify-between">
+      <div className="mx-auto flex h-16 w-full max-w-screen-2xl items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* الشعار */}
         <Brand homeHref={homeHref} />
 

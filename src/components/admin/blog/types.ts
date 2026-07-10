@@ -56,7 +56,7 @@ export type BlogPostRow = {
   contentHtml: string | null;
   contentText: string | null;
   coverAttachmentId: string | null;
-  coverAttachment: { id: string; url: string; title: string | null } | null;
+  coverAttachment: { id: string; url: string | null; title: string | null } | null;
   primaryTopic: BlogPostTopicOption;
   tags: BlogPostTagOption[];
   countries: BlogCountryCode[];

@@ -76,18 +76,18 @@ export function PerformanceCharts({ timeSeriesData }: PerformanceChartsProps) {
                   <Line
                     type="monotone"
                     dataKey="averageScore"
-                    stroke="#2563eb"
+                    stroke="hsl(var(--primary))"
                     strokeWidth={2}
                     name="متوسط الدرجات"
-                    dot={{ fill: "#2563eb", strokeWidth: 2, r: 3 }}
+                    dot={{ fill: "hsl(var(--primary))", strokeWidth: 2, r: 3 }}
                   />
                   <Line
                     type="monotone"
                     dataKey="attempts"
-                    stroke="#16a34a"
+                    stroke="hsl(var(--brand-emerald))"
                     strokeWidth={2}
                     name="محاولات الاختبارات"
-                    dot={{ fill: "#16a34a", strokeWidth: 2, r: 3 }}
+                    dot={{ fill: "hsl(var(--brand-emerald))", strokeWidth: 2, r: 3 }}
                   />
                 </LineChart>
               </ResponsiveContainer>
@@ -112,7 +112,7 @@ export function PerformanceCharts({ timeSeriesData }: PerformanceChartsProps) {
                   <XAxis dataKey="date" tickFormatter={formatDate} tick={{ fontSize: 12 }} />
                   <YAxis tick={{ fontSize: 12 }} />
                   <Tooltip content={<CustomTooltip />} />
-                  <Bar dataKey="newStudentSessions" fill="#f59e0b" name="جلسات طلاب جديدة" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="newStudentSessions" fill="hsl(var(--brand-amber))" name="جلسات طلاب جديدة" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>

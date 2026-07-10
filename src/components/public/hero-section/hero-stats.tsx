@@ -15,7 +15,7 @@ export function HeroStats({ stats }: HeroStatsProps) {
             key={item.label}
             className="rounded-xl border bg-background/70 p-4 shadow-sm dark:bg-slate-950/40"
           >
-            <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-teal-50 text-teal-700 dark:bg-teal-950/50 dark:text-teal-300">
+            <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-primary/5 text-primary dark:bg-primary/10">
               <Icon className="h-5 w-5" aria-hidden />
             </div>
             <p className="text-sm font-extrabold text-foreground">{item.label}</p>

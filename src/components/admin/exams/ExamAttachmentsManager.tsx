@@ -27,7 +27,7 @@ type AttachmentRecord = {
   ownerId: string;
   ownerType: string;
   kind: "image" | "pdf" | "solution" | "other";
-  url: string;
+  url: string | null;
   title?: string | null;
   meta?: Record<string, unknown> | null;
   createdAt: string;
@@ -104,20 +104,20 @@ export function ExamAttachmentsManager({
                       <Badge variant="outline">{kindLabels[attachment.kind] ?? attachment.kind}</Badge>
                     </TableCell>
                     <TableCell>
-                      <a href={attachment.url} target="_blank" rel="noreferrer" className="text-primary hover:underline">
+                      {attachment.url ? <a href={attachment.url} target="_blank" rel="noreferrer" className="text-primary hover:underline">
                         فتح الرابط
-                      </a>
+                      </a> : <span className="text-muted-foreground">غير متاح</span>}
                     </TableCell>
                     <TableCell className="arabic-numbers">
                       {new Date(attachment.createdAt).toLocaleDateString("ar-EG")}
                     </TableCell>
                     <TableCell className="text-left">
                       <div className="flex gap-2">
-                        <Button variant="ghost" size="sm" asChild>
+                        {attachment.url ? <Button variant="ghost" size="sm" asChild>
                           <a href={attachment.url} target="_blank" rel="noreferrer" aria-label="تحميل المرفق">
                             <Download className="h-4 w-4" aria-hidden />
                           </a>
-                        </Button>
+                        </Button> : null}
                         <Button
                           variant="ghost"
                           size="sm"

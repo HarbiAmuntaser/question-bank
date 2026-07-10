@@ -10,6 +10,7 @@ export const seoOwnerTypes = [
   "blog_post",
   "blog_topic",
   "blog_tag",
+  "study_summary",
 ] as const;
 
 export const seoLocales = ["ar", "en"] as const;

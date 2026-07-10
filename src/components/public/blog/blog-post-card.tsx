@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { ArrowLeft, Clock3 } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
 import type { CountryCode } from "@/config/regions";
 import type { PublicBlogPost } from "@/lib/server/blog";
 
@@ -17,6 +16,7 @@ function formatDate(date: string) {
 
 export function BlogPostCard({ post, cc, eager = false }: { post: PublicBlogPost; cc: CountryCode; eager?: boolean }) {
   const href = `/${cc}/blog/${encodeURIComponent(post.slug)}`;
+  const topicHref = `/${cc}/blog/topics/${encodeURIComponent(post.primaryTopic.slug)}`;
 
   return (
     <article className="group flex h-full flex-col overflow-hidden rounded-lg border bg-card shadow-sm transition-colors hover:border-primary/35">
@@ -26,7 +26,12 @@ export function BlogPostCard({ post, cc, eager = false }: { post: PublicBlogPost
 
       <div className="flex flex-1 flex-col gap-4 p-5">
         <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-          <Badge variant="outline">{post.primaryTopic.name}</Badge>
+          <Link
+            href={topicHref}
+            className="rounded-md border border-primary/20 bg-primary/5 px-2.5 py-1 font-semibold text-primary transition-colors hover:border-primary/35 hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            {post.primaryTopic.name}
+          </Link>
           <time dateTime={post.publishedAt}>{formatDate(post.publishedAt)}</time>
           {post.readingMinutes ? (
             <span className="inline-flex items-center gap-1">

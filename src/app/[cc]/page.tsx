@@ -13,6 +13,7 @@
  */
 
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 
 import { PublicHeader } from "@/components/public/public-header/public-header";
 import { PublicFooter } from "@/components/public/public-footer";
@@ -31,6 +32,7 @@ import {
 import { SUPPORTED_COUNTRIES, type CountryCode } from "@/config/regions";
 import { CACHE_TAGS, cacheTags } from "@/lib/cache-tags";
 import { fetchJSON } from "@/lib/server/student-fetch";
+import { SITE_NAME, SITE_URL } from "@/lib/seo";
 
 type PageParams = { cc: string };
 type PreviewType = "university" | "school" | "academy";
@@ -87,6 +89,36 @@ async function fetchPlatformStats() {
   } catch {
     return null;
   }
+}
+
+export async function generateMetadata({ params }: { params: Promise<PageParams> }): Promise<Metadata> {
+  const { cc: rawCc } = await params;
+  const cc = normalizeAndValidateCc(rawCc);
+
+  if (!cc) {
+    return { title: "Not Found", robots: { index: false, follow: false } };
+  }
+
+  const countryLabel = SUPPORTED_COUNTRIES[cc].label;
+  const canonical = `${SITE_URL}/${cc}`;
+  const title = `${SITE_NAME} | ${countryLabel}`;
+  const description = `${SITE_NAME} منصة تعليمية وتدريبية تساعدك على الوصول إلى المحتوى المناسب حسب الدولة والجهة التعليمية.`;
+
+  return {
+    title,
+    description,
+    alternates: { canonical },
+    openGraph: {
+      title,
+      description,
+      url: canonical,
+      siteName: SITE_NAME,
+      type: "website",
+      locale: "ar",
+    },
+    robots: { index: true, follow: true },
+    metadataBase: new URL(SITE_URL),
+  };
 }
 
 export default async function CountryHome({ params }: { params: Promise<PageParams> }) {
