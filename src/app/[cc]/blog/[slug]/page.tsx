@@ -24,7 +24,8 @@ export async function generateMetadata({ params }: { params: Promise<PageParams>
   const description = seo?.metaDescription || post.excerpt || post.contentText?.slice(0, 160) || `مقال تعليمي من ${SITE_NAME}`;
   const ogTitle = seo?.ogTitle || title;
   const ogDescription = seo?.ogDescription || description;
-  const ogImageUrl = seo?.ogImageUrl || post.coverAttachment?.url;
+  const shareImageUrl = seo?.ogImageUrl?.trim() || post.coverAttachment?.url?.trim() || `${SITE_URL}/brand/mustawak-og.png`;
+  const shareImageAlt = post.coverAttachment?.title || post.title;
 
   return {
     title,
@@ -42,7 +43,13 @@ export async function generateMetadata({ params }: { params: Promise<PageParams>
       description: ogDescription,
       publishedTime: post.publishedAt,
       locale: "ar",
-      images: ogImageUrl ? [{ url: ogImageUrl, alt: post.coverAttachment?.title || post.title }] : undefined,
+      images: [{ url: shareImageUrl, alt: shareImageAlt }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: ogTitle,
+      description: ogDescription,
+      images: [shareImageUrl],
     },
   };
 }

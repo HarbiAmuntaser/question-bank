@@ -92,11 +92,13 @@ export async function GET(req: Request) {
   if (!auth.ok) return adminUnauth()
 
   const url = new URL(req.url)
+  const pageParam = url.searchParams.get("page")
+  const pageSizeParam = url.searchParams.get("pageSize")
   const parsed = listAttachmentsQuerySchema.safeParse({
     ownerType: url.searchParams.get("ownerType"),
     ownerId: url.searchParams.get("ownerId"),
-    page: url.searchParams.get("page"),
-    pageSize: url.searchParams.get("pageSize"),
+    page: pageParam ?? undefined,
+    pageSize: pageSizeParam ?? undefined,
   })
 
   if (!parsed.success) {
