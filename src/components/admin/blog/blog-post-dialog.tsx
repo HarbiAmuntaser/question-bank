@@ -85,6 +85,28 @@ function toDateTimeLocal(value: string | null) {
   return local.toISOString().slice(0, 16);
 }
 
+function normalizeBlogPostFormData(formData: FormData) {
+  const normalized = new FormData();
+  formData.forEach((value, key) => normalized.append(key, value));
+
+  const status = String(normalized.get("status") ?? "");
+  const rawPublishedAt = normalized.get("publishedAt");
+  const publishedAt = typeof rawPublishedAt === "string" ? rawPublishedAt.trim() : "";
+
+  if (publishedAt) {
+    const parsed = new Date(publishedAt);
+    if (!Number.isNaN(parsed.getTime())) {
+      normalized.set("publishedAt", parsed.toISOString());
+    }
+  } else if (status === "published") {
+    normalized.set("publishedAt", new Date().toISOString());
+  } else {
+    normalized.delete("publishedAt");
+  }
+
+  return normalized;
+}
+
 function escapeHtmlAttribute(value: string) {
   return value
     .replace(/&/g, "&amp;")
@@ -499,7 +521,8 @@ export function BlogPostDialog({
 
   const handleSubmit = async (formData: FormData) => {
     startTransition(async () => {
-      const result = post ? await updateBlogPostAction(post.id, formData) : await createBlogPostAction(formData);
+      const normalizedFormData = normalizeBlogPostFormData(formData);
+      const result = post ? await updateBlogPostAction(post.id, normalizedFormData) : await createBlogPostAction(normalizedFormData);
 
       if (result.success) {
         toast({ title: "تم الحفظ", description: result.message });
