@@ -32,7 +32,7 @@ import {
 import { SUPPORTED_COUNTRIES, type CountryCode } from "@/config/regions";
 import { CACHE_TAGS, cacheTags } from "@/lib/cache-tags";
 import { fetchJSON } from "@/lib/server/student-fetch";
-import { SITE_NAME, SITE_URL } from "@/lib/seo";
+import { SITE_NAME, SITE_URL, withSiteName } from "@/lib/seo";
 
 type PageParams = { cc: string };
 type PreviewType = "university" | "school" | "academy";
@@ -101,7 +101,8 @@ export async function generateMetadata({ params }: { params: Promise<PageParams>
 
   const countryLabel = SUPPORTED_COUNTRIES[cc].label;
   const canonical = `${SITE_URL}/${cc}`;
-  const title = `${SITE_NAME} | ${countryLabel}`;
+  const title = countryLabel;
+  const socialTitle = withSiteName(title);
   const description = `${SITE_NAME} منصة تعليمية وتدريبية تساعدك على الوصول إلى المحتوى المناسب حسب الدولة والجهة التعليمية.`;
 
   return {
@@ -109,7 +110,7 @@ export async function generateMetadata({ params }: { params: Promise<PageParams>
     description,
     alternates: { canonical },
     openGraph: {
-      title,
+      title: socialTitle,
       description,
       url: canonical,
       siteName: SITE_NAME,

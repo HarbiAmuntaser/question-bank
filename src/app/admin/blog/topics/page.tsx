@@ -5,7 +5,7 @@ import { BlogTaxonomyTable } from "@/components/admin/blog/blog-taxonomy-table";
 import { TableSkeleton } from "@/components/ui/table-skeleton";
 
 export const metadata: Metadata = {
-  title: "مواضيع المدونة | مستواك",
+  title: "مواضيع المدونة",
 };
 
 type BlogTopicsSearchParams = {

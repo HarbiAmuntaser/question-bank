@@ -5,7 +5,7 @@ import { BookOpenCheck, Building2, ClipboardCheck, Layers3 } from "lucide-react"
 const STEPS = [
   {
     title: "اختر الجهة التعليمية",
-    description: "ابدأ من الجامعة، المدرسة، أو الأكاديمية المناسبة لمسارك.",
+    description: "ابدأ من الجامعة، المدرسة، أو المسار التدريبي المناسب لهدفك.",
     Icon: Building2,
   },
   {

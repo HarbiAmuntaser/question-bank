@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export const metadata: Metadata = {
-  title: "مركز المساعدة | مستواك",
+  title: "مركز المساعدة",
   description:
     "إرشادات مختصرة تساعدك على استخدام منصة مستواك، الوصول إلى الاختبارات، فهم الاشتراكات اليدوية، ومراجعة الأسئلة الشائعة.",
   alternates: {
@@ -145,4 +145,3 @@ export default function HelpCenterPage() {
     </StaticPageShell>
   );
 }
-

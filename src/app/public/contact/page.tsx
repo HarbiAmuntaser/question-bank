@@ -6,7 +6,7 @@ import { StaticPageShell, StaticSectionCard } from "@/components/public/static-p
 import { Button } from "@/components/ui/button";
 
 export const metadata: Metadata = {
-  title: "التواصل | مستواك",
+  title: "التواصل",
   description:
     "تعرف على قنوات التواصل الرسمية لمنصة مستواك، وراجع مركز المساعدة والأسئلة الشائعة للحصول على إرشادات استخدام المنصة.",
   alternates: {
@@ -82,4 +82,3 @@ export default function ContactPage() {
     </StaticPageShell>
   );
 }
-

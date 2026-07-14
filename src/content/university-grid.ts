@@ -56,11 +56,11 @@ const byType: Record<InstType, Partial<GridTexts>> = {
     ctaExplore: "استكشف المدرسة",
   },
   academy: {
-    heading: "الأكاديميات",
-    subheading: "اعثر على الأكاديميات والدورات المعتمدة",
+    heading: "المسارات التدريبية",
+    subheading: "تدرّب على مهارات البرمجة، اللغة الإنجليزية، المحاسبة، الحاسب، والمهارات المهنية",
     statMajors: "برنامج",
     statSubjects: "وحدة",
-    ctaExplore: "استكشف الأكاديمية",
+    ctaExplore: "استكشف المسار",
   },
 };
 

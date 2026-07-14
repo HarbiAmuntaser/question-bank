@@ -1,6 +1,6 @@
 export const SITE = {
   NAME: "مستواك",
-  DESCRIPTION: "منصة تعليمية عربية للتدريب والمراجعة عبر اختبارات منظمة للجامعات والمدارس والأكاديميات.",
+  DESCRIPTION: "منصة تعليمية عربية للتدريب والمراجعة عبر اختبارات منظمة للجامعات والمدارس والمسارات التدريبية.",
   DOMAIN: "mustawak.com",
   URL: (process.env.NEXT_PUBLIC_SITE_URL ?? "https://mustawak.com").replace(/\/+$/, ""),
   LOCALE: "ar",

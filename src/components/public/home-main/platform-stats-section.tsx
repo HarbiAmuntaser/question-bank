@@ -36,7 +36,7 @@ export function PlatformStatsSection({ stats }: { stats: PlatformStatsSnapshot |
     {
       label: "التخصصات",
       value: stats?.totalMajors,
-      description: "مسارات أكاديمية مرتبطة بالمؤسسات.",
+      description: "مسارات تعليمية وتدريبية مرتبطة بالمؤسسات.",
       Icon: Layers3,
     },
     {

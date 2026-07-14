@@ -5,7 +5,7 @@ import { StaticArticleCard, StaticPageShell } from "@/components/public/static-p
 const lastUpdated = "4 يونيو 2026";
 
 export const metadata: Metadata = {
-  title: "سياسة ملفات تعريف الارتباط | مستواك",
+  title: "سياسة ملفات تعريف الارتباط",
   description:
     "تعرّف على كيفية استخدام منصة مستواك لملفات تعريف الارتباط اللازمة لحفظ الجلسة المجهولة، تفعيل الاشتراكات، وتحسين تجربة الاستخدام.",
   alternates: {
@@ -139,4 +139,3 @@ export default function CookiesPolicyPage() {
     </StaticPageShell>
   );
 }
-

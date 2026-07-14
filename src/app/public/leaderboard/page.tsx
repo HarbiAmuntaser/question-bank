@@ -5,7 +5,7 @@ import { StaticPageShell, StaticSectionCard } from "@/components/public/static-p
 import { Button } from "@/components/ui/button";
 
 export const metadata: Metadata = {
-  title: "لوحة المتصدرين | مستواك",
+  title: "لوحة المتصدرين",
   description: "صفحة المتصدرين في مستواك ستتوفر لاحقًا عند جاهزية بيانات حقيقية.",
   alternates: {
     canonical: "/public/leaderboard",

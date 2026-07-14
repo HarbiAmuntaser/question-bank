@@ -76,7 +76,7 @@ export const COUNTRY_LABELS: Record<string, { ar: string; en: string }> = {
 export const TYPE_LABELS: Record<InstitutionType, { ar: string; en: string }> = {
   university: { ar: "الجامعات", en: "الجامعات" },
   school: { ar: "المدارس", en: "المدارس" },
-  academy: { ar: "الأكاديميات", en: "الأكاديميات" },
+  academy: { ar: "المسارات التدريبية", en: "المسارات التدريبية" },
 };
 
 const sharedFeatures: HeroFeature[] = [
@@ -150,7 +150,7 @@ const defaultCopy: HeroCopy = {
   ),
   features: sharedFeatures,
   ctaPrimaryLabel: "استعراض المؤسسات",
-  ctaSecondaryLabel: "استعراض الاختبارات الأكاديمية",
+  ctaSecondaryLabel: "استعراض المسارات التدريبية",
   ctaTertiaryLabel: "استعراض الاختبارات المدرسية",
   searchPlaceholder: "ابحث عن جامعة، تخصص، مقرر، أو اختبار...",
 };

@@ -27,7 +27,7 @@ export function getTypeLabel(type: InstType) {
     case "school":
       return "المدارس";
     case "academy":
-      return "الأكاديميات";
+      return "المسارات التدريبية";
     default:
       return "الجامعات";
   }

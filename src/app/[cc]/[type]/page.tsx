@@ -11,7 +11,7 @@ import type { CountryCode, InstitutionType } from "@/config/regions";
 import { UniversityGrid } from "@/components/public/university-grid/university-grid";
 import type { UniversityGridItem } from "@/components/public/university-grid/types";
 import { fetchJSON } from "@/lib/server/student-fetch";
-import { SITE_NAME, SITE_URL } from "@/lib/seo";
+import { SITE_NAME, SITE_URL, withSiteName } from "@/lib/seo";
 import { educationPageRobots } from "@/lib/search-indexing";
 
 // ISR للصفحة نفسها (الواجهة) — محتوى الشبكة يجلب Client-side
@@ -31,7 +31,7 @@ function typeLabel(type: InstitutionType) {
     case "school":
       return "المدارس";
     case "academy":
-      return "الأكاديميات";
+      return "المسارات التدريبية";
     default:
       return "الجامعات";
   }
@@ -75,13 +75,14 @@ export async function generateMetadata({ params }: { params: Promise<PageParams>
 
   const type = typeRaw as InstitutionType;
 
-  const title = `${typeLabel(type)} في ${cc === "YE" ? "اليمن" : "السعودية"} | ${SITE_NAME}`;
+  const title = `${typeLabel(type)} في ${cc === "YE" ? "اليمن" : "السعودية"}`;
+  const socialTitle = withSiteName(title);
   const description =
     type === "university"
       ? "استكشف جميع الجامعات، التخصصات والمقررات، وابدأ التحضير عبر مكتبة الاختبارات."
       : type === "school"
         ? "استكشف المدارس والمحتوى التعليمي حسب الدولة، وتصفح التخصصات والمواد."
-        : "استكشف الأكاديميات والمحتوى التدريبي حسب الدولة، وتصفح المسارات التعليمية.";
+        : "تدرّب على مهارات البرمجة، اللغة الإنجليزية، المحاسبة، الحاسب، والمهارات المهنية من خلال اختبارات وملخصات منظمة.";
 
   const canonical = `${SITE_URL}/${cc}/${type}`;
 
@@ -90,7 +91,7 @@ export async function generateMetadata({ params }: { params: Promise<PageParams>
     description,
     alternates: { canonical },
     openGraph: {
-      title,
+      title: socialTitle,
       description,
       url: canonical,
       siteName: SITE_NAME,
@@ -99,7 +100,7 @@ export async function generateMetadata({ params }: { params: Promise<PageParams>
     },
     twitter: {
       card: "summary_large_image",
-      title,
+      title: socialTitle,
       description,
     },
     robots: educationPageRobots(),

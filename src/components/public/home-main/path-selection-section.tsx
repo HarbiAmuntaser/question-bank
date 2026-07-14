@@ -31,9 +31,9 @@ export function PathSelectionSection({ cc }: { cc: string }) {
       Icon: School,
     },
     {
-      title: "الأكاديميات",
-      description: "اختبارات تدريبية ومهنية يمكن التوسع فيها لاحقًا.",
-      buttonLabel: "استعرض الأكاديميات",
+      title: "المسارات التدريبية",
+      description: "تدرّب على مهارات البرمجة، اللغة الإنجليزية، المحاسبة، الحاسب، والمهارات المهنية.",
+      buttonLabel: "استعرض المسارات التدريبية",
       href: `/${cc}/academy`,
       Icon: GraduationCap,
     },

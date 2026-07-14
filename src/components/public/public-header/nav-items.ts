@@ -13,7 +13,7 @@ export type NavItem = {
 const TYPES: Array<{ key: InstitutionType; label: string; Icon: LucideIcon }> = [
   { key: "university", label: "الجامعات", Icon: Building2 },
   { key: "school", label: "المدارس", Icon: School },
-  { key: "academy", label: "الأكاديميات", Icon: GraduationCap },
+  { key: "academy", label: "المسارات التدريبية", Icon: GraduationCap },
 ];
 
 export function buildNavItems(cc: string): NavItem[] {

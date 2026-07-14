@@ -16,6 +16,7 @@ type PageParams = { cc: string };
 type PageSearchParams = { page?: string };
 
 const BLOG_TITLE = "مدونة مستواك | مقالات تعليمية وتدريبية";
+const BLOG_METADATA_TITLE = "المدونة | مقالات تعليمية وتدريبية";
 const BLOG_DESCRIPTION =
   "محتوى تعليمي وتدريبي يساعدك على تطوير معرفتك، فهم المسارات الأكاديمية والمهنية، والاستعداد للتعلم والاختبارات بطريقة أوضح.";
 
@@ -26,7 +27,7 @@ export async function generateMetadata({ params }: { params: Promise<PageParams>
 
   const canonical = `${SITE_URL}/${cc}/blog`;
   return {
-    title: BLOG_TITLE,
+    title: BLOG_METADATA_TITLE,
     description: BLOG_DESCRIPTION,
     alternates: { canonical },
     openGraph: {

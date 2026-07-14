@@ -12,7 +12,7 @@ export const CC_NAMES = {
 export const TYPE_NAMES = {
   university: { ar: "الجامعات", en: "Universities" },
   school: { ar: "المدارس", en: "Schools" },
-  academy: { ar: "الأكاديميات", en: "Academies" },
+  academy: { ar: "المسارات التدريبية", en: "Training Tracks" },
 } as const;
 
 export const INSTITUTION_GRID_COPY = {
@@ -38,12 +38,12 @@ export const INSTITUTION_GRID_COPY = {
           ? "استكشف الجامعة"
           : type === "school"
           ? "استكشف المدرسة"
-          : "استكشف الأكاديمية"
+          : "استكشف المسار التدريبي"
         : type === "university"
         ? "Explore university"
         : type === "school"
         ? "Explore school"
-        : "Explore academy",
+        : "Explore training track",
     viewAll: (type: InstitutionType, lang: Lang) =>
       lang === "ar" ? `عرض جميع ${TYPE_NAMES[type].ar}` : `View all ${TYPE_NAMES[type].en}`,
   },

@@ -6,7 +6,7 @@ import { BlogPostCard } from "@/components/public/blog/blog-post-card";
 import { PublicFooter } from "@/components/public/public-footer";
 import { PublicHeader } from "@/components/public/public-header/public-header";
 import { getPublicBlogPost, getRelatedBlogPosts, parseBlogCountry, prepareSeoSchemaJson } from "@/lib/server/blog";
-import { SITE_NAME, SITE_URL } from "@/lib/seo";
+import { SITE_NAME, SITE_URL, stripSiteNameFromTitle } from "@/lib/seo";
 
 type PageParams = { cc: string; slug: string };
 
@@ -20,7 +20,7 @@ export async function generateMetadata({ params }: { params: Promise<PageParams>
 
   const seo = post.seo;
   const canonical = seo?.canonicalUrl || `${SITE_URL}/${cc}/blog/${encodeURIComponent(post.slug)}`;
-  const title = seo?.metaTitle || post.title;
+  const title = stripSiteNameFromTitle(seo?.metaTitle) || post.title;
   const description = seo?.metaDescription || post.excerpt || post.contentText?.slice(0, 160) || `مقال تعليمي من ${SITE_NAME}`;
   const ogTitle = seo?.ogTitle || title;
   const ogDescription = seo?.ogDescription || description;

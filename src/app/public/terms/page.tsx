@@ -5,7 +5,7 @@ import { StaticArticleCard, StaticPageShell } from "@/components/public/static-p
 const lastUpdated = "4 يونيو 2026";
 
 export const metadata: Metadata = {
-  title: "شروط الاستخدام | مستواك",
+  title: "شروط الاستخدام",
   description:
     "اطّلع على شروط استخدام منصة مستواك، وطبيعة المحتوى التعليمي، والاشتراكات اليدوية، وحقوق الملكية وحدود المسؤولية.",
   alternates: {
@@ -131,4 +131,3 @@ export default function TermsOfServicePage() {
     </StaticPageShell>
   );
 }
-

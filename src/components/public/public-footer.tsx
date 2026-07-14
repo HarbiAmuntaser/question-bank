@@ -38,7 +38,7 @@ export function PublicFooter({ cc: ccProp }: Props) {
     { label: "المدونة", href: `/${cc}/blog` },
     { label: "الجامعات", href: `/${cc}/university` },
     { label: "المدارس", href: `/${cc}/school` },
-    { label: "الأكاديميات", href: `/${cc}/academy` },
+    { label: "المسارات التدريبية", href: `/${cc}/academy` },
   ];
 
   return (
@@ -65,7 +65,7 @@ export function PublicFooter({ cc: ccProp }: Props) {
             </div>
 
             <p className="max-w-sm text-sm font-medium leading-7 text-foreground/80">
-              منصة تعليمية للمراجعة والتدريب عبر اختبارات منظمة للجامعات والمدارس والأكاديميات، مع تجربة عربية واضحة
+              منصة تعليمية للمراجعة والتدريب عبر اختبارات منظمة للجامعات والمدارس والمسارات التدريبية، مع تجربة عربية واضحة
               ومناسبة للجوال والتابلت وسطح المكتب.
             </p>
           </div>

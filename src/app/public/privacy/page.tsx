@@ -5,7 +5,7 @@ import { StaticArticleCard, StaticPageShell } from "@/components/public/static-p
 const lastUpdated = "4 يونيو 2026";
 
 export const metadata: Metadata = {
-  title: "سياسة الخصوصية | مستواك",
+  title: "سياسة الخصوصية",
   description:
     "تعرّف على كيفية تعامل منصة مستواك مع البيانات، الجلسات المجهولة، ملفات الارتباط، الاشتراكات اليدوية، وبيانات الاختبارات.",
   alternates: {
@@ -164,4 +164,3 @@ export default function PrivacyPolicyPage() {
     </StaticPageShell>
   );
 }
-

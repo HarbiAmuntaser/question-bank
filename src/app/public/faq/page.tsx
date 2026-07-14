@@ -4,7 +4,7 @@ import { StaticPageShell, StaticSectionCard } from "@/components/public/static-p
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 export const metadata: Metadata = {
-  title: "الأسئلة الشائعة | مستواك",
+  title: "الأسئلة الشائعة",
   description:
     "إجابات مختصرة عن استخدام منصة مستواك، طريقة الوصول إلى الاختبارات، الاشتراكات اليدوية، المحتوى التعليمي، وفقدان الوصول.",
   alternates: {
@@ -203,4 +203,3 @@ export default function FAQPage() {
     </StaticPageShell>
   );
 }
-

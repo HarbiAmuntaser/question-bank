@@ -28,7 +28,7 @@ import {
 import { CACHE_TAGS, cacheTags } from "@/lib/cache-tags";
 import { fetchJSON } from "@/lib/server/student-fetch";
 import { getPublishedSubjectSummaryBySlug, getStudySummarySeoMeta } from "@/lib/server/study-summaries";
-import { SITE_NAME, SITE_URL } from "@/lib/seo";
+import { SITE_NAME, SITE_URL, stripSiteNameFromTitle, withSiteName } from "@/lib/seo";
 import { educationPageRobots } from "@/lib/search-indexing";
 import { DEGREE_TYPE_OPTIONS, normalizeDegreeType, type DegreeTypeValue } from "@/lib/degree-types";
 
@@ -366,7 +366,8 @@ export async function generateMetadata({ params }: { params: Promise<PageParams>
 
     const canonical = `${SITE_URL}${canonicalPath}`;
 
-    const title = seo?.metaTitle || `${quiz.title} | ${SITE_NAME}`;
+    const title = stripSiteNameFromTitle(seo?.metaTitle) || quiz.title;
+    const socialTitle = seo?.ogTitle || withSiteName(title);
     const description = seo?.metaDescription || quiz.description || `شاهد تفاصيل اختبار "${quiz.title}" ثم ابدأ.`;
     const ogImage = seo?.ogImageUrl || quiz.context.university.logoUrl || undefined;
 
@@ -375,7 +376,7 @@ export async function generateMetadata({ params }: { params: Promise<PageParams>
       description,
       alternates: { canonical },
       openGraph: {
-        title: seo?.ogTitle || title,
+        title: socialTitle,
         description: seo?.ogDescription || description,
         images: ogImage ? [{ url: ogImage }] : undefined,
         type: "website",
@@ -411,7 +412,8 @@ export async function generateMetadata({ params }: { params: Promise<PageParams>
       canonicalMajor,
     )}/subjects/${encodeSlugPath(canonicalSubject)}/summaries/${encodeSlugPath(canonicalSummary)}`;
     const canonical = `${SITE_URL}${canonicalPath}`;
-    const title = seo?.metaTitle || `${summary.title} | ${SITE_NAME}`;
+    const title = stripSiteNameFromTitle(seo?.metaTitle) || summary.title;
+    const socialTitle = seo?.ogTitle || withSiteName(title);
     const description =
       seo?.metaDescription || summary.excerpt || `اقرأ ملخص ${summary.title} ضمن مادة ${subject.name} على ${SITE_NAME}.`;
 
@@ -420,7 +422,7 @@ export async function generateMetadata({ params }: { params: Promise<PageParams>
       description,
       alternates: { canonical },
       openGraph: {
-        title: seo?.ogTitle || title,
+        title: socialTitle,
         description: seo?.ogDescription || description,
         images: seo?.ogImageUrl ? [{ url: seo.ogImageUrl }] : undefined,
         type: "article",
@@ -456,7 +458,8 @@ export async function generateMetadata({ params }: { params: Promise<PageParams>
 
     const canonical = `${SITE_URL}${canonicalPath}`;
 
-    const title = seo?.metaTitle || `${subject.name} | ${SITE_NAME}`;
+    const title = stripSiteNameFromTitle(seo?.metaTitle) || subject.name;
+    const socialTitle = seo?.ogTitle || withSiteName(title);
     const description = seo?.metaDescription || `استكشف اختبارات مادة ${subject.name} ضمن ${SITE_NAME}.`;
     const ogImage = seo?.ogImageUrl || subject.major?.university?.logoUrl || undefined;
 
@@ -465,7 +468,7 @@ export async function generateMetadata({ params }: { params: Promise<PageParams>
       description,
       alternates: { canonical },
       openGraph: {
-        title: seo?.ogTitle || title,
+        title: socialTitle,
         description: seo?.ogDescription || description,
         images: ogImage ? [{ url: ogImage }] : undefined,
         type: "website",
@@ -496,7 +499,8 @@ export async function generateMetadata({ params }: { params: Promise<PageParams>
 
     const canonical = `${SITE_URL}${canonicalPath}`;
 
-    const title = `${major.name} | ${SITE_NAME}`;
+    const title = major.name;
+    const socialTitle = withSiteName(title);
     const description = `استكشف مواد تخصص ${major.name} واستعد للاختبارات.`;
     const ogImage = major.university?.logoUrl || undefined;
 
@@ -505,7 +509,7 @@ export async function generateMetadata({ params }: { params: Promise<PageParams>
       description,
       alternates: { canonical },
       openGraph: {
-        title,
+        title: socialTitle,
         description,
         images: ogImage ? [{ url: ogImage }] : undefined,
         type: "website",
@@ -533,7 +537,8 @@ export async function generateMetadata({ params }: { params: Promise<PageParams>
   const canonicalPath = `/${cc}/${type}/universities/${encodeSlugPath(canonicalSlug)}`;
   const canonical = `${SITE_URL}${canonicalPath}`;
 
-  const title = seo?.metaTitle || uni?.name || `جامعة | ${SITE_NAME}`;
+  const title = stripSiteNameFromTitle(seo?.metaTitle) || uni?.name || "جامعة";
+  const socialTitle = seo?.ogTitle || withSiteName(title);
   const description = seo?.metaDescription || `استكشف التخصصات والمقررات والاختبارات المتاحة.`;
   const ogImage = seo?.ogImageUrl || uni?.logoUrl || undefined;
 
@@ -542,7 +547,7 @@ export async function generateMetadata({ params }: { params: Promise<PageParams>
     description,
     alternates: { canonical },
     openGraph: {
-      title: seo?.ogTitle || title,
+      title: socialTitle,
       description: seo?.ogDescription || description,
       images: ogImage ? [{ url: ogImage }] : undefined,
       type: "website",

@@ -5,7 +5,7 @@ import { BlogPostsTable } from "@/components/admin/blog/blog-posts-table";
 import { TableSkeleton } from "@/components/ui/table-skeleton";
 
 export const metadata: Metadata = {
-  title: "مقالات المدونة | مستواك",
+  title: "مقالات المدونة",
 };
 
 type BlogPostsSearchParams = {

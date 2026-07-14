@@ -5,7 +5,7 @@ import { SummariesTable, type SummariesSearchParams } from "@/components/admin/s
 import { TableSkeleton } from "@/components/ui/table-skeleton";
 
 export const metadata: Metadata = {
-  title: "الملخصات الدراسية | مستواك",
+  title: "الملخصات الدراسية",
 };
 
 export default async function AdminSummariesPage({

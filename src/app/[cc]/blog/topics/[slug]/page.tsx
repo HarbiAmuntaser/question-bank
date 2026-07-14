@@ -9,7 +9,7 @@ import { PublicFooter } from "@/components/public/public-footer";
 import { PublicHeader } from "@/components/public/public-header/public-header";
 import { buttonVariants } from "@/components/ui/button";
 import { getPublicBlogTopicPage, parseBlogCountry, prepareSeoSchemaJson } from "@/lib/server/blog";
-import { SITE_NAME, SITE_URL } from "@/lib/seo";
+import { SITE_NAME, SITE_URL, stripSiteNameFromTitle, withSiteName } from "@/lib/seo";
 import { blogTopicRobots } from "@/lib/search-indexing";
 import { cn } from "@/lib/utils";
 
@@ -31,9 +31,9 @@ export async function generateMetadata({ params }: { params: Promise<PageParams>
   const { topic } = topicPage;
   const seo = topic.seo;
   const canonical = seo?.canonicalUrl || `${SITE_URL}/${cc}/blog/topics/${encodeURIComponent(topic.slug)}`;
-  const title = seo?.metaTitle || `${topic.name} | مدونة مستواك`;
+  const title = stripSiteNameFromTitle(seo?.metaTitle) || `${topic.name} | المدونة`;
   const description = seo?.metaDescription || topic.description || topicDescription(topic.name);
-  const ogTitle = seo?.ogTitle || title;
+  const ogTitle = seo?.ogTitle || withSiteName(title);
   const ogDescription = seo?.ogDescription || description;
 
   return {

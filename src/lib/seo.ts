@@ -9,8 +9,30 @@ export const SITE_URL =
   process.env.NEXT_PUBLIC_BASE_URL?.replace(/\/+$/, "") ||
   `https://${SITE_DOMAIN}`;
 
+export function stripSiteNameFromTitle(value: string | null | undefined) {
+  const title = value?.trim() ?? "";
+  if (!title) return "";
+
+  const suffixes = [` | ${SITE_NAME}`, `| ${SITE_NAME}`, ` - ${SITE_NAME}`, `- ${SITE_NAME}`];
+  for (const suffix of suffixes) {
+    if (title.endsWith(suffix)) return title.slice(0, -suffix.length).trim();
+  }
+
+  const prefixes = [`${SITE_NAME} | `, `${SITE_NAME}|`, `${SITE_NAME} - `, `${SITE_NAME}-`];
+  for (const prefix of prefixes) {
+    if (title.startsWith(prefix)) return title.slice(prefix.length).trim();
+  }
+
+  return title;
+}
+
+export function withSiteName(value: string) {
+  const title = stripSiteNameFromTitle(value);
+  return title && title !== SITE_NAME ? `${title} | ${SITE_NAME}` : SITE_NAME;
+}
+
 const SITE_DESCRIPTION =
-  "مستواك منصة تعليمية عربية للتدريب والمراجعة عبر اختبارات منظمة للجامعات والمدارس والأكاديميات.";
+  "مستواك منصة تعليمية عربية للتدريب والمراجعة عبر اختبارات منظمة للجامعات والمدارس والمسارات التدريبية.";
 const BRAND_ICON = "/brand/mustawak-favicon-32.png";
 const BRAND_APPLE_ICON = "/brand/mustawak-apple-touch-icon.png";
 const BRAND_LOGO = "/brand/mustawak-og.png";
