@@ -318,7 +318,7 @@ export function SubjectQuizzesAccessGrid({
             </CardHeader>
 
             <CardContent className="flex flex-1 flex-col justify-between gap-4 pt-0 pb-6">
-              <p className="line-clamp-2 text-sm leading-relaxed text-muted-foreground">
+              <p className="hidden">
                 {q.description || "لا يوجد وصف مختصر لهذا الاختبار."}
               </p>
 

@@ -32,6 +32,7 @@ const getUniversityByCodeCached = (code: string, variants: string[]) =>
           // ✅ جديد (مهم للمسارات الجديدة /{cc}/{type})
           countryCode: true,
           institutionType: true,
+          visibility: true,
 
           isActive: true,
           createdAt: true,

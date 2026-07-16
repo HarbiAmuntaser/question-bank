@@ -7,12 +7,7 @@ import { BookOpenText, Clock, FileText, Layers3, Lock, ShieldCheck, Star, Unlock
 import type { AccessStatus } from "@/components/public/subscription-access";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { encodeSlugPath } from "@/lib/public/slug-utils";
 import { cn } from "@/lib/utils";
 
@@ -34,14 +29,6 @@ export type PublicStudySummaryCard = {
 
 const sectionCardClass = "overflow-hidden border bg-card/95 shadow-sm dark:bg-gray-900/80";
 const accessBadgeClass = "h-7 rounded-md px-2.5 text-xs font-medium";
-
-function formatDate(value: string) {
-  return new Date(value).toLocaleDateString("ar-SA", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-}
 
 function accessLabel(summary: PublicStudySummaryCard, access?: AccessStatus | null, loading?: boolean) {
   if (summary.accessType === "free") return "مجاني";
@@ -131,9 +118,7 @@ function SummaryCard({
             </div>
 
             <CardTitle className="line-clamp-2 text-lg font-bold leading-7 sm:text-xl">{summary.title}</CardTitle>
-            {summary.excerpt ? (
-              <p className="line-clamp-2 text-sm leading-6 text-muted-foreground">{summary.excerpt}</p>
-            ) : null}
+            {summary.excerpt ? <p className="line-clamp-2 text-sm leading-6 text-muted-foreground">{summary.excerpt}</p> : null}
           </div>
 
           <div className="flex flex-wrap gap-2 sm:justify-end">
@@ -169,10 +154,7 @@ function SummaryCard({
               onRedeemed={onRedeemed}
             />
           ) : null}
-
         </div>
-
-        <p className="text-xs text-muted-foreground arabic-numbers">نشر في {formatDate(summary.publishedAt)}</p>
       </CardContent>
     </Card>
   );

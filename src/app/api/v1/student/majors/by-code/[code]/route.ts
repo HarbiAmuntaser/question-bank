@@ -21,6 +21,7 @@ const getMajorDetailsCached = (id: string) =>
               logoUrl: true,
               countryCode: true,
               institutionType: true,
+              visibility: true,
             },
           },
           subjects: {

@@ -24,6 +24,7 @@ export interface UniversityMinimal {
 
   countryCode: string;
   institutionType: "university" | "school" | "academy";
+  visibility?: "country" | "global";
   
 }
 

@@ -3,6 +3,7 @@ import { z } from "zod";
 
 export const sortByEnum = z.enum(["name", "createdAt"]);
 export const sortOrderEnum = z.enum(["asc", "desc"]);
+export const institutionVisibilityEnum = z.enum(["country", "global"]);
 
 
 export const listQuerySchema = z.object({
@@ -23,6 +24,7 @@ logoUrl: z.string().url().max(500).optional().nullable(),
 isActive: z.boolean().optional().default(true),
   countryCode: z.string().length(2).toUpperCase(),
   institutionType: z.enum(["university","school","academy"]),
+  visibility: institutionVisibilityEnum.optional().default("country"),
 });
 
 
@@ -37,6 +39,7 @@ export const updateUniversitySchema = z.object({
   // اختياريتان في التحديث
   countryCode: z.string().length(2).toUpperCase().optional(),
   institutionType: z.enum(["university","school","academy"]).optional(),
+  visibility: institutionVisibilityEnum.optional(),
 });
 
 

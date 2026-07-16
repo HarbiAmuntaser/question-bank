@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BookOpenCheck, Clock, GraduationCap } from "lucide-react";
+import { GraduationCap } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -79,18 +79,11 @@ export function MajorsList({ majors, cc, type, universitySlug }: MajorsListProps
 
                 <div className="min-w-0 flex-1">
                   <div className="mb-2 flex flex-wrap items-center gap-2">
-                    <Badge
-                      variant="secondary"
-                      className="rounded-full px-2.5 py-1 text-[11px] font-semibold"
-                    >
+                    <Badge variant="secondary" className="rounded-full px-2.5 py-1 text-[11px] font-semibold">
                       {programLabel}
                     </Badge>
                     {major.code ? (
-                      <Badge
-                        variant="outline"
-                        className="rounded-full px-2.5 py-1 text-[11px]"
-                        dir="ltr"
-                      >
+                      <Badge variant="outline" className="rounded-full px-2.5 py-1 text-[11px]" dir="ltr">
                         {major.code}
                       </Badge>
                     ) : null}
@@ -113,22 +106,6 @@ export function MajorsList({ majors, cc, type, universitySlug }: MajorsListProps
                     {subjectsCount} مقرر
                   </Badge>
                 ) : null}
-              </div>
-
-              <div className="flex items-start gap-2 rounded-lg border bg-muted/30 p-3 text-sm leading-6 text-muted-foreground">
-                {major.durationYears ? (
-                  <>
-                    <Clock className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />
-                    <span className="arabic-numbers">
-                      مدة الدراسة: {major.durationYears} سنوات
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <BookOpenCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />
-                    <span>مواد واختبارات مرتبطة بهذا المسار.</span>
-                  </>
-                )}
               </div>
 
               <Button asChild className="mt-auto h-11 w-full rounded-lg text-sm sm:text-base">

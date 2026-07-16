@@ -27,6 +27,7 @@ export interface UniversityDTO {
   // الحقول الجديدة
   countryCode: string; // مثال: "SA"
   institutionType: "university" | "school" | "academy";
+  visibility: "country" | "global";
 }
 
 export interface CreateUniversityInput {
@@ -39,6 +40,7 @@ export interface CreateUniversityInput {
   // إجباريتان عند الإنشاء
   countryCode: string; // ISO-3166 alpha-2 (مثال SA, YE)
   institutionType: "university" | "school" | "academy";
+  visibility?: "country" | "global";
 }
 
 export interface UpdateUniversityInput {
@@ -51,6 +53,7 @@ export interface UpdateUniversityInput {
   // اختياريتان عند التحديث (نحدّثهما فقط إذا أُرسلا)
   countryCode?: string;
   institutionType?: "university" | "school" | "academy";
+  visibility?: "country" | "global";
 }
 
 async function getApiBase(): Promise<string> {
@@ -77,6 +80,7 @@ async function parseJson<T>(res: Response): Promise<T | ApiError> {
 export async function createUniversityAction(formData: FormData): Promise<ActionResult> {
   const rawCountry = String(formData.get("countryCode") ?? "").trim().toUpperCase();
   const rawType = String(formData.get("institutionType") ?? "").trim();
+  const rawVisibility = String(formData.get("visibility") ?? "country").trim();
 
   const payload: CreateUniversityInput = {
     name: String(formData.get("name") ?? "").trim(),
@@ -88,6 +92,7 @@ export async function createUniversityAction(formData: FormData): Promise<Action
     // إجباريتان
     countryCode: rawCountry,
     institutionType: rawType as CreateUniversityInput["institutionType"],
+    visibility: rawType === "academy" && rawVisibility === "global" ? "global" : "country",
   };
 
   if (!payload.name) return { success: false, message: "الاسم مطلوب" };
@@ -119,6 +124,7 @@ export async function updateUniversityAction(id: string, formData: FormData): Pr
   // نقرأ القيم إن أُرسلت — ونتجاهل الفارغ ("") حتى لا نمسّ القيم القديمة
   const rawCountry = formData.get("countryCode");
   const rawType = formData.get("institutionType");
+  const rawVisibility = formData.get("visibility");
 
   const payload: UpdateUniversityInput = {
     name: (String(formData.get("name") ?? "").trim() || undefined),
@@ -144,6 +150,14 @@ export async function updateUniversityAction(id: string, formData: FormData): Pr
       return { success: false, message: "نوع المؤسسة غير صالح (university | school | academy)" };
     }
     payload.institutionType = it as UpdateUniversityInput["institutionType"];
+  }
+
+  if (typeof rawVisibility === "string" && rawVisibility.trim().length > 0) {
+    const visibility = rawVisibility.trim();
+    if (!["country", "global"].includes(visibility)) {
+      return { success: false, message: "نطاق الظهور غير صالح" };
+    }
+    payload.visibility = visibility as UpdateUniversityInput["visibility"];
   }
 
   const base = await getApiBase();

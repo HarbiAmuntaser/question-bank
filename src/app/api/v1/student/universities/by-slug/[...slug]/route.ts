@@ -86,6 +86,7 @@ const getUniversityDetailsCached = (id: string) =>
           logoUrl: true,
           countryCode: true,
           institutionType: true,
+          visibility: true,
           isActive: true,
           createdAt: true,
           updatedAt: true,

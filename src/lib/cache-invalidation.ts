@@ -103,9 +103,11 @@ export function revalidateBlogCache(input: BlogCacheInput = {}) {
 }
 
 export function revalidateUniversityCache(
-  input: { id?: string | null; countryCode?: string | null; previousCountryCode?: string | null } = {},
+  input: { id?: string | null; countryCode?: string | null; previousCountryCode?: string | null; allCountries?: boolean } = {},
 ) {
-  const countryCodes = normalizedCountryCodes([input.countryCode, input.previousCountryCode]);
+  const countryCodes = input.allCountries
+    ? Object.keys(SUPPORTED_COUNTRIES)
+    : normalizedCountryCodes([input.countryCode, input.previousCountryCode]);
 
   revalidateTags([
     "universities",

@@ -2,23 +2,15 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 
 import type { InstitutionType } from "@/config/regions";
 import { fetchJSON } from "@/lib/server/student-fetch";
 import { stripPrefix, encodeSlugPath } from "@/lib/public/slug-utils";
-import { getDegreeTypeLabel } from "@/lib/degree-types";
 
-import { GraduationCap, ArrowRight, Trophy, Share2 } from "lucide-react";
+import { ArrowRight, Share2 } from "lucide-react";
 import { LazyQuizShare } from "@/components/public/lazy-quiz-share";
 import { QuizDetailsAccessGate } from "@/components/public/subscription-access";
 
@@ -49,6 +41,7 @@ type QuizPreview = {
       logoUrl: string | null;
       countryCode: string | null;
       institutionType: string | null;
+      visibility?: "country" | "global" | null;
       seo?: SeoLite;
     };
     major: {
@@ -75,7 +68,6 @@ function normalizeInstitutionType(v: string | null): InstitutionType | null {
 async function fetchQuizPreviewBySlugOrId(quizSlugPathRaw: string) {
   const quizSlugPath = stripPrefix(quizSlugPathRaw, "اختبارات");
 
-  // 1) slug
   const bySlug = await fetchJSON<QuizPreview>(
     `/api/v1/student/quizzes/preview/by-slug/${encodeSlugPath(quizSlugPath)}`,
     { cache: "no-store" },
@@ -83,7 +75,6 @@ async function fetchQuizPreviewBySlugOrId(quizSlugPathRaw: string) {
   );
   if (bySlug.ok && bySlug.data) return { quiz: bySlug.data };
 
-  // 2) fallback id
   if (!quizSlugPath.includes("/")) {
     const byId = await fetchJSON<QuizPreview>(
       `/api/v1/student/quizzes/preview/by-id/${encodeURIComponent(quizSlugPath)}`,
@@ -109,7 +100,7 @@ export async function QuizDetails({
   universitySlugPath: string;
   majorSlugPath: string;
   subjectSlugPath: string;
-  quizSlugPath: string; // slug أو id (وقد يكون متعدد المقاطع)
+  quizSlugPath: string;
 }) {
   const ccNorm = (cc || "SA").toUpperCase();
   const typeNorm = type;
@@ -121,7 +112,6 @@ export async function QuizDetails({
   const major = quiz.context.major;
   const subject = quiz.context.subject;
 
-  // canonical slugs
   const canonicalUni = stripPrefix(uni?.seo?.slug || universitySlugPath, "جامعات");
   const canonicalMajor = stripPrefix(major?.seo?.slug || majorSlugPath, "تخصصات");
   const canonicalSubject = stripPrefix(subject?.seo?.slug || subjectSlugPath, "مواد");
@@ -132,22 +122,25 @@ export async function QuizDetails({
   const currentSubject = stripPrefix(subjectSlugPath, "مواد");
   const currentQuiz = stripPrefix(quizSlugPath, "اختبارات");
 
-  // cc/type mismatch
   const uniCC = (uni.countryCode || "").toUpperCase();
   const uniType = normalizeInstitutionType(uni.institutionType);
+  const isGlobalAcademy = uniType === "academy" && uni.visibility === "global";
 
   const canonicalPath =
-    `/${uniCC || ccNorm}/${uniType || typeNorm}` +
+    `/${isGlobalAcademy ? ccNorm : uniCC || ccNorm}/${uniType || typeNorm}` +
     `/universities/${encodeSlugPath(canonicalUni)}` +
     `/majors/${encodeSlugPath(canonicalMajor)}` +
     `/subjects/${encodeSlugPath(canonicalSubject)}` +
     `/quizzes/${encodeSlugPath(canonicalQuiz)}`;
 
-  if (uniCC && uniType && (uniCC !== ccNorm || uniType !== typeNorm)) {
+  if (uniType && uniType !== typeNorm) {
     redirect(canonicalPath);
   }
 
-  // slug mismatch (uni/major/subject/quiz) داخل نفس cc/type
+  if (uniCC && uniType && !isGlobalAcademy && uniCC !== ccNorm) {
+    redirect(canonicalPath);
+  }
+
   if (
     canonicalUni !== currentUni ||
     canonicalMajor !== currentMajor ||
@@ -158,7 +151,7 @@ export async function QuizDetails({
       `/${ccNorm}/${typeNorm}/universities/${encodeSlugPath(canonicalUni)}` +
         `/majors/${encodeSlugPath(canonicalMajor)}` +
         `/subjects/${encodeSlugPath(canonicalSubject)}` +
-        `/quizzes/${encodeSlugPath(canonicalQuiz)}`
+        `/quizzes/${encodeSlugPath(canonicalQuiz)}`,
     );
   }
 
@@ -171,72 +164,27 @@ export async function QuizDetails({
     `/${ccNorm}/${typeNorm}/universities/${encodeSlugPath(canonicalUni)}` +
     `/majors/${encodeSlugPath(canonicalMajor)}`;
 
-  const uniLink = `/${ccNorm}/${typeNorm}/universities/${encodeSlugPath(canonicalUni)}`;
-
-  // ✅ رابط مشاركة (نسبي يكفي — QuizShare سيحوله لمطلق على العميل)
   const shareUrl = canonicalPath;
   const shareText = `جرّب اختبار: ${quiz.title}`;
 
   return (
     <div className="space-y-6 lg:space-y-8">
       <Card className={surfaceCardClass}>
-        <CardHeader className="px-5 text-center sm:px-6">
-          <div className="mb-2 flex flex-wrap items-center justify-center gap-2 text-xs font-medium text-foreground/70">
-            <Link
-              href={subjectLink}
-              prefetch={false}
-              className="rounded-md transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-            >
-              {subject.name}
-            </Link>
-            <span aria-hidden>/</span>
-            <span>تفاصيل الاختبار</span>
-          </div>
+        <CardHeader className="space-y-3 px-5 text-center sm:px-6">
+          <div className="text-xs font-medium text-foreground/70">تفاصيل الاختبار</div>
 
           <CardTitle className="text-2xl font-bold leading-tight sm:text-3xl">{quiz.title}</CardTitle>
-          <CardDescription className="text-sm leading-relaxed text-foreground/75 sm:text-base" dir="rtl">
-            {quiz.description || "صفحة تفاصيل الاختبار قبل البدء."}
-          </CardDescription>
 
-          <div className="mt-3 flex flex-wrap justify-center gap-2">
+          {quiz.description ? (
+            <p className="mx-auto max-w-3xl text-sm leading-relaxed text-foreground/75 sm:text-base">
+              {quiz.description}
+            </p>
+          ) : null}
+
+          <div className="flex flex-wrap justify-center gap-2 pt-1">
             <Badge variant="secondary">{quiz.totalQuestions ?? 0} سؤال</Badge>
             <Badge variant="outline">{quiz.timeLimit} دقيقة</Badge>
-            {typeof quiz.totalPoints === "number" ? (
-              <Badge variant="outline">{quiz.totalPoints} نقطة</Badge>
-            ) : null}
-            {major.degreeType ? <Badge variant="outline">{getDegreeTypeLabel(major.degreeType)}</Badge> : null}
-            {subject.code ? <Badge variant="secondary">{subject.code}</Badge> : null}
-          </div>
-
-          <Separator className="mx-auto my-4 max-w-md" />
-
-          <div className="flex flex-wrap justify-center gap-3 text-sm font-medium leading-relaxed text-foreground/70">
-            <Link
-              href={uniLink}
-              prefetch={false}
-              className="flex min-h-9 items-center gap-2 rounded-md px-1 transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-            >
-              <GraduationCap className="h-4 w-4" aria-hidden />
-              {uni.name}
-            </Link>
-            <span>•</span>
-            <Link
-              href={majorLink}
-              prefetch={false}
-              className="flex min-h-9 items-center gap-2 rounded-md px-1 transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-            >
-              <ArrowRight className="h-4 w-4" aria-hidden />
-              {major.name}
-            </Link>
-            <span>•</span>
-            <Link
-              href={subjectLink}
-              prefetch={false}
-              className="flex min-h-9 items-center gap-2 rounded-md px-1 transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-            >
-              <Trophy className="h-4 w-4" aria-hidden />
-              {subject.name}
-            </Link>
+            {typeof quiz.totalPoints === "number" ? <Badge variant="outline">{quiz.totalPoints} نقطة</Badge> : null}
           </div>
         </CardHeader>
 
@@ -244,9 +192,6 @@ export async function QuizDetails({
           <div className={actionPanelClass}>
             <div className="mb-4 text-center">
               <h2 className="text-lg font-semibold leading-tight sm:text-xl">جاهز للبدء؟</h2>
-              <p className="mt-1 text-sm leading-relaxed text-foreground/75">
-                تحقق من بيانات الاختبار ثم انتقل إلى صفحة الحل.
-              </p>
             </div>
 
             <QuizDetailsAccessGate
@@ -270,12 +215,14 @@ export async function QuizDetails({
 
           <div className="mt-2 flex flex-col justify-center gap-3 sm:flex-row">
             <Button asChild variant="outline" className={outlineButtonClass}>
-              <Link href={subjectLink} prefetch={false}>
+              <Link href={subjectLink} prefetch={false} className="flex items-center gap-2">
+                <ArrowRight className="h-4 w-4" aria-hidden />
                 الرجوع للمادة
               </Link>
             </Button>
             <Button asChild variant="outline" className={outlineButtonClass}>
-              <Link href={majorLink} prefetch={false}>
+              <Link href={majorLink} prefetch={false} className="flex items-center gap-2">
+                <ArrowRight className="h-4 w-4" aria-hidden />
                 الرجوع للتخصص
               </Link>
             </Button>

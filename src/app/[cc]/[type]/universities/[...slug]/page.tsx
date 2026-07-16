@@ -77,6 +77,7 @@ type University = {
   logoUrl?: string | null;
   countryCode?: string | null;
   institutionType?: string | null;
+  visibility?: "country" | "global" | null;
   seo?: { slug?: string | null } | null;
   majors?: unknown[];
 };
@@ -670,12 +671,17 @@ export default async function UniversitiesCatchAllPage({
 
   const uniCC = (uni.countryCode || "").toUpperCase();
   const uniType = (uni.institutionType || "").toLowerCase();
+  const isGlobalAcademy = uniType === "academy" && uni.visibility === "global";
 
   const canonicalSlugFromUni = uni.seo?.slug ?? null;
   const finalSlug = stripPrefix(canonicalSlugFromUni || slugPath, "جامعات");
 
   // mismatch → redirect للمسار الصحيح
-  if (uniCC && uniType && (uniCC !== cc || uniType !== type)) {
+  if (uniType && uniType !== type) {
+    redirect(`/${isGlobalAcademy ? cc : uniCC}/${uniType}/universities/${encodeSlugPath(finalSlug)}`);
+  }
+
+  if (uniCC && uniType && !isGlobalAcademy && uniCC !== cc) {
     redirect(`/${uniCC}/${uniType}/universities/${encodeSlugPath(finalSlug)}`);
   }
 
@@ -730,9 +736,9 @@ export default async function UniversitiesCatchAllPage({
       <main>
         <UniversityHero university={uniTyped} />
 
-        <section id="majors-section" className="px-4 py-10 sm:px-6 sm:py-12 lg:px-8 lg:py-14">
+        <section id="majors-section" className="px-4 pb-10 pt-4 sm:px-6 sm:pb-12 sm:pt-5 lg:px-8 lg:pb-14 lg:pt-6">
           <div className="mx-auto max-w-7xl">
-            <div className="mb-8 space-y-2 sm:mb-10">
+            <div className="mb-6 space-y-2 sm:mb-8">
               <h2 className="text-2xl font-bold leading-tight text-gray-900 dark:text-white sm:text-3xl">
                 التخصصات المتاحة
               </h2>

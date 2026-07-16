@@ -154,10 +154,15 @@ export async function POST(req: Request) {
 
         countryCode: parsed.data.countryCode.toUpperCase(),
         institutionType: parsed.data.institutionType,
+        visibility: parsed.data.institutionType === "academy" ? parsed.data.visibility : "country",
       },
     });
 
-    revalidateUniversityCache({ id: created.id, countryCode: created.countryCode });
+    revalidateUniversityCache({
+      id: created.id,
+      countryCode: created.countryCode,
+      allCountries: created.institutionType === "academy" && created.visibility === "global",
+    });
     return json({ data: created }, 201);
   } catch (e) {
     // إعادة رد JSON واضح بدل انهيار 500 غير مهيكل

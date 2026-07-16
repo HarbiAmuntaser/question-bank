@@ -35,6 +35,7 @@ interface UniversityDetailsDTO {
   // 👇 جديد
   countryCode: string;
   institutionType: "university" | "school" | "academy";
+  visibility: "country" | "global";
 }
 
 export function UniversityDetailsDialog({

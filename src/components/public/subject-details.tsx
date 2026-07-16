@@ -2,18 +2,10 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 
-import { GraduationCap, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import type { InstitutionType } from "@/config/regions";
 
 import type { PublicQuizAccessItem } from "@/components/public/subscription-access";
@@ -21,7 +13,6 @@ import { SubjectLearningSwitcher } from "@/components/public/subject-learning-sw
 import { getPublishedSubjectSummaries } from "@/lib/server/study-summaries";
 import { fetchJSON } from "@/lib/server/student-fetch";
 import { stripPrefix, encodeSlugPath } from "@/lib/public/slug-utils";
-import { getDegreeTypeLabel } from "@/lib/degree-types";
 
 export const revalidate = 21600;
 
@@ -53,6 +44,7 @@ type SubjectDto = {
       logoUrl: string | null;
       countryCode: string | null;
       institutionType: string | null;
+      visibility?: "country" | "global" | null;
       seo?: SeoLite;
     };
   };
@@ -125,8 +117,17 @@ export async function SubjectDetails({
 
   const subjCC = (subject.major.university?.countryCode || "").toUpperCase();
   const subjType = normalizeInstitutionType(subject.major.university?.institutionType || null);
+  const isGlobalAcademy = subjType === "academy" && subject.major.university?.visibility === "global";
 
-  if (subjCC && subjType && (subjCC !== ccNorm || subjType !== typeNorm)) {
+  if (subjType && subjType !== typeNorm) {
+    redirect(
+      `/${isGlobalAcademy ? ccNorm : subjCC}/${subjType}/universities/${encodeSlugPath(canonicalUni)}/majors/${encodeSlugPath(
+        canonicalMajor,
+      )}/subjects/${encodeSlugPath(canonicalSubject)}`,
+    );
+  }
+
+  if (subjCC && subjType && !isGlobalAcademy && subjCC !== ccNorm) {
     redirect(
       `/${subjCC}/${subjType}/universities/${encodeSlugPath(canonicalUni)}/majors/${encodeSlugPath(
         canonicalMajor,
@@ -146,7 +147,9 @@ export async function SubjectDetails({
     canonicalMajor,
   )}/subjects/${encodeSlugPath(canonicalSubject)}`;
 
-  const majorLink = `/${ccNorm}/${typeNorm}/universities/${encodeSlugPath(canonicalUni)}/majors/${encodeSlugPath(canonicalMajor)}`;
+  const majorLink = `/${ccNorm}/${typeNorm}/universities/${encodeSlugPath(canonicalUni)}/majors/${encodeSlugPath(
+    canonicalMajor,
+  )}`;
   const uniLink = `/${ccNorm}/${typeNorm}/universities/${encodeSlugPath(canonicalUni)}`;
 
   const quizzesRes = await fetchJSON<QuizLite[]>(
@@ -179,68 +182,17 @@ export async function SubjectDetails({
   return (
     <div className="space-y-6 lg:space-y-8">
       <Card className={surfaceCardClass}>
-        <CardHeader className="px-5 text-center sm:px-6">
-          <div className="mb-2 flex flex-wrap items-center justify-center gap-2 text-xs font-medium text-foreground/70">
-            <Link
-              href={majorLink}
-              prefetch={false}
-              className="rounded-md transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-            >
-              {subject.major.name}
-            </Link>
-            <span aria-hidden>/</span>
-            <span>تفاصيل المادة</span>
-          </div>
-
+        <CardHeader className="space-y-3 px-5 text-center sm:px-6">
+          <div className="text-xs font-medium text-foreground/70">تفاصيل المادة</div>
           <CardTitle className="text-2xl font-bold leading-tight sm:text-3xl">{subject.name}</CardTitle>
-
-          <CardDescription className="text-sm font-medium leading-relaxed text-foreground/70 sm:text-base" dir="rtl">
-            {subject.major?.degreeType ? getDegreeTypeLabel(subject.major.degreeType) : "مادة"}
-            {typeof subject.creditHours === "number" ? ` • ${subject.creditHours} ساعات` : ""}
-          </CardDescription>
-
-          <p className="mx-auto mt-2 max-w-2xl text-sm leading-relaxed text-foreground/75 sm:text-base">
-            راجع بيانات المادة والاختبارات المتاحة قبل اختيار الاختبار المناسب.
-          </p>
-
-          <div className="mt-3 flex flex-wrap justify-center gap-2">
-            {subject.code ? <Badge variant="secondary">{subject.code}</Badge> : null}
-            {typeof subject.semester === "number" ? <Badge variant="outline">الفصل: {subject.semester}</Badge> : null}
-            {typeof subject.year === "number" ? <Badge variant="outline">السنة: {subject.year}</Badge> : null}
-            {typeof subject._count?.chapters === "number" ? <Badge variant="outline">{subject._count.chapters} فصول</Badge> : null}
-            {typeof subject._count?.quizzes === "number" ? <Badge variant="outline">{subject._count.quizzes} اختبارات</Badge> : null}
-          </div>
-
-          <Separator className="mx-auto my-4 max-w-md" />
-
-          <div className="flex flex-wrap justify-center gap-3 text-sm font-medium leading-relaxed text-foreground/70">
-            <Link
-              href={uniLink}
-              prefetch={false}
-              className="flex min-h-9 items-center gap-2 rounded-md px-1 transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-            >
-              <GraduationCap className="h-4 w-4" aria-hidden />
-              {subject.major.university.name}
-            </Link>
-            <span>•</span>
-            <Link
-              href={majorLink}
-              prefetch={false}
-              className="flex min-h-9 items-center gap-2 rounded-md px-1 transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-            >
-              <ArrowRight className="h-4 w-4" aria-hidden />
-              {subject.major.name}
-            </Link>
-          </div>
-        </CardHeader>
-
-        <CardContent className="space-y-6 pb-6">
           {subject.description ? (
-            <p className="mx-auto max-w-3xl text-center text-sm leading-relaxed text-foreground/75 sm:text-base">
+            <p className="mx-auto max-w-3xl text-sm leading-relaxed text-foreground/75 sm:text-base">
               {subject.description}
             </p>
           ) : null}
+        </CardHeader>
 
+        <CardContent className="space-y-6 pb-6">
           <SubjectLearningSwitcher
             quizzes={quizCards}
             summaries={summaries}
@@ -259,8 +211,8 @@ export async function SubjectDetails({
 
             <Button asChild variant="outline" className={outlineButtonClass}>
               <Link href={uniLink} prefetch={false} className="flex items-center gap-2">
-                <GraduationCap className="h-4 w-4" aria-hidden />
-                الرجوع إلى الجامعة
+                <ArrowRight className="h-4 w-4" aria-hidden />
+                الرجوع إلى المؤسسة
               </Link>
             </Button>
           </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import type React from "react";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -32,6 +32,7 @@ export interface UniversityMinimal {
 
   countryCode: string;
   institutionType: "university" | "school" | "academy";
+  visibility?: "country" | "global";
 }
 
 interface UniversityDialogProps {
@@ -48,12 +49,19 @@ export function UniversityDialog({
   onOpenChange,
 }: UniversityDialogProps) {
   const [isOpen, setIsOpen] = useState<boolean>(false);
+  const [selectedInstitutionType, setSelectedInstitutionType] = useState<"university" | "school" | "academy">(
+    university?.institutionType ?? "university",
+  );
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
   const isControlled = open !== undefined && onOpenChange !== undefined;
   const dialogOpen = isControlled ? open : isOpen;
   const setDialogOpen = isControlled ? onOpenChange! : setIsOpen;
+
+  useEffect(() => {
+    if (dialogOpen) setSelectedInstitutionType(university?.institutionType ?? "university");
+  }, [dialogOpen, university?.institutionType]);
 
   const handleSubmit = async (formData: FormData) => {
     startTransition(async () => {
@@ -126,7 +134,10 @@ export function UniversityDialog({
               <select
                 id="institutionType"
                 name="institutionType"
-                defaultValue={university?.institutionType ?? "university"}
+                value={selectedInstitutionType}
+                onChange={(event) =>
+                  setSelectedInstitutionType(event.target.value as "university" | "school" | "academy")
+                }
                 className="col-span-3 border rounded-md h-10 px-3 bg-background"
                 required
               >
@@ -135,6 +146,26 @@ export function UniversityDialog({
                 <option value="academy">أكاديمية</option>
               </select>
             </div>
+
+            {selectedInstitutionType === "academy" ? (
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="visibility" className="text-right">
+                  نطاق الظهور
+                </Label>
+                <select
+                  id="visibility"
+                  name="visibility"
+                  defaultValue={university?.visibility ?? "country"}
+                  className="col-span-3 border rounded-md h-10 px-3 bg-background"
+                  required
+                >
+                  <option value="country">خاص بالدولة الحالية</option>
+                  <option value="global">عام لكل الدول</option>
+                </select>
+              </div>
+            ) : (
+              <input type="hidden" name="visibility" value="country" />
+            )}
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="name" className="text-right">
                 الاسم

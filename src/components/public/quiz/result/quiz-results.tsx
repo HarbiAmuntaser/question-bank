@@ -7,8 +7,6 @@ import { useQuizResults } from "./use-quiz-results";
 import { ResultPrintStyles } from "./result-print-styles";
 import { ResultSummaryCard } from "./result-summary-card";
 import { ResultBestCard } from "./result-best-card";
-import { ResultStatsCard } from "./result-stats-card";
-import { ResultSessionCard } from "./result-session-card";
 import { ResultPerformanceCard } from "./result-performance-card";
 import { ResultActions } from "./result-actions";
 import { ResultLoading } from "./result-loading";
@@ -36,11 +34,6 @@ export function QuizResults({
 
       <ResultBestCard attemptsCount={state.attemptsCount} best={state.best} isCurrentBest={state.isCurrentBest} />
 
-      <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:gap-6">
-        <ResultStatsCard current={state.current} quizTimeLimitMin={quiz.timeLimit} />
-        <ResultSessionCard current={state.current} quizTimeLimitMin={quiz.timeLimit} />
-      </div>
-
       <ResultPerformanceCard current={state.current} />
 
       {/* ✅ تمرير sessionId لإظهار أزرار المراجعة */}
@@ -48,7 +41,6 @@ export function QuizResults({
         quizId={quiz.id}
         sessionId={sessionId}
         backToSubjectUrl={backToSubjectUrl}
-        shareText={state.shareText}
       />
     </div>
   );

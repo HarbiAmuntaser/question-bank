@@ -1,9 +1,8 @@
 // file: src/components/public/university-grid/institution-card.tsx
 
 import Link from "next/link";
-import { BookOpen, Building2, MapPin } from "lucide-react";
+import { BookOpen, Building2 } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 
@@ -33,16 +32,10 @@ function StatPill({ label, value }: { label: string; value: number }) {
 export function InstitutionGridCard({
   name,
   href,
-  code,
-  city,
-  region,
   majorCount,
   quizCount,
-  badgeText,
-  badgeAria,
   ctaText,
 }: Props) {
-  const location = [city, region].filter(Boolean).join(" • ");
   const hasStats = typeof majorCount === "number" || typeof quizCount === "number";
 
   return (
@@ -59,51 +52,21 @@ export function InstitutionGridCard({
           </div>
 
           <div className="min-w-0 flex-1">
-            <div className="mb-2 flex flex-wrap items-center gap-2">
-              <Badge
-                variant="secondary"
-                className="rounded-full px-2.5 py-1 text-[11px] font-semibold"
-                aria-label={badgeAria}
-              >
-                {badgeText}
-              </Badge>
-              {code ? (
-                <Badge
-                  variant="outline"
-                  className="rounded-full px-2.5 py-1 text-[11px]"
-                  dir="ltr"
-                >
-                  {code}
-                </Badge>
-              ) : null}
-            </div>
-
             <CardTitle className="line-clamp-2 text-lg font-bold leading-snug text-foreground transition-colors group-hover:text-primary sm:text-xl">
               {name}
             </CardTitle>
-
-            {location ? (
-              <div className="mt-3 flex items-center gap-2 text-sm font-medium text-foreground/70">
-                <MapPin className="h-4 w-4 shrink-0" aria-hidden />
-                <span className="line-clamp-1">{location}</span>
-              </div>
-            ) : null}
           </div>
         </div>
 
         {hasStats ? (
           <div className="grid grid-cols-2 gap-3">
-            {typeof majorCount === "number" ? (
-              <StatPill label="المسارات" value={majorCount} />
-            ) : null}
-            {typeof quizCount === "number" ? (
-              <StatPill label="الاختبارات" value={quizCount} />
-            ) : null}
+            {typeof majorCount === "number" ? <StatPill label="المسارات" value={majorCount} /> : null}
+            {typeof quizCount === "number" ? <StatPill label="الاختبارات" value={quizCount} /> : null}
           </div>
         ) : (
           <div className="flex items-start gap-2 rounded-lg border bg-muted/30 p-3 text-sm font-medium leading-6 text-foreground/75">
             <BookOpen className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />
-            استكشف المحتوى التعليمي والاختبارات المتاحة داخل هذه المؤسسة.
+            استكشف المحتوى التعليمي والاختبارات المتاحة داخل هذا المسار.
           </div>
         )}
 

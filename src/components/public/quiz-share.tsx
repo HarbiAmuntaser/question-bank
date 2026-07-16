@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Share2, Copy, Check } from "lucide-react";
+import { Check, Share2 } from "lucide-react";
 
 type WebShareData = {
   title?: string;
@@ -19,7 +19,6 @@ function canShare(n: Navigator): n is NavigatorWithShare {
 }
 
 function toAbsoluteUrl(url: string) {
-  // لو الرابط نسبي: /SA/... نحوله لمطلق على العميل
   if (!url) return url;
   if (/^https?:\/\//i.test(url)) return url;
   const origin = typeof window !== "undefined" ? window.location.origin : "";
@@ -31,7 +30,7 @@ export function QuizShare({
   title,
   text,
 }: {
-  url: string;     // يمكن يكون نسبي أو مطلق
+  url: string;
   title: string;
   text?: string;
 }) {
@@ -42,10 +41,7 @@ export function QuizShare({
   async function copyLink() {
     try {
       await navigator.clipboard.writeText(absUrl);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1200);
     } catch {
-      // fallback بسيط
       const ta = document.createElement("textarea");
       ta.value = absUrl;
       ta.style.position = "fixed";
@@ -55,14 +51,13 @@ export function QuizShare({
       ta.select();
       document.execCommand("copy");
       document.body.removeChild(ta);
-
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1200);
     }
+
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1200);
   }
 
   async function share() {
-    // إن لم تتوفر مشاركة أصلية → ننسخ الرابط
     if (!canShare(navigator)) return copyLink();
 
     try {
@@ -72,20 +67,15 @@ export function QuizShare({
         url: absUrl,
       });
     } catch {
-      // المستخدم قد يغلق نافذة المشاركة — لا مشكلة
+      // User may close the native share sheet.
     }
   }
 
   return (
-    <div className="flex flex-col justify-center gap-2 sm:flex-row" aria-live="polite">
+    <div className="flex justify-center" aria-live="polite">
       <Button type="button" onClick={share} className="h-11 w-full gap-2 rounded-lg sm:w-auto" aria-label="مشاركة رابط الاختبار">
-        <Share2 className="h-4 w-4" aria-hidden />
-        مشاركة الاختبار
-      </Button>
-
-      <Button type="button" variant="outline" onClick={copyLink} className="h-11 w-full gap-2 rounded-lg sm:w-auto" aria-label={copied ? "تم نسخ رابط الاختبار" : "نسخ رابط الاختبار"}>
-        {copied ? <Check className="h-4 w-4" aria-hidden /> : <Copy className="h-4 w-4" aria-hidden />}
-        {copied ? "تم النسخ" : "نسخ الرابط"}
+        {copied ? <Check className="h-4 w-4" aria-hidden /> : <Share2 className="h-4 w-4" aria-hidden />}
+        {copied ? "تم نسخ الرابط" : "مشاركة الاختبار"}
       </Button>
     </div>
   );

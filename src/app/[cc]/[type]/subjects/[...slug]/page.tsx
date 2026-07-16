@@ -37,6 +37,7 @@ type SubjectLite = {
       seo?: { slug: string | null };
       countryCode: string | null;
       institutionType: string | null;
+      visibility?: "country" | "global" | null;
     };
   };
 };
@@ -114,9 +115,10 @@ export default async function SubjectCompatPage({ params }: { params: Promise<Pa
   const realType = (
     subject?.major?.university?.institutionType || type
   ).toLowerCase();
+  const isGlobalAcademy = realType === "academy" && subject?.major?.university?.visibility === "global";
 
   redirect(
-    `/${realCC}/${realType}` +
+    `/${isGlobalAcademy ? cc : realCC}/${realType}` +
       `/universities/${encodeSlugPath(uniSlug)}` +
       `/majors/${encodeSlugPath(majorSlug)}` +
       `/subjects/${encodeSlugPath(subSlug)}`

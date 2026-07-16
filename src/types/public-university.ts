@@ -24,4 +24,5 @@ export type UniversityPublicLite = {
   seo?: SeoLite | null;
   countryCode?: string | null;
   institutionType?: "university" | "school" | "academy" | null;
+  visibility?: "country" | "global" | null;
 };

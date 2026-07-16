@@ -44,6 +44,7 @@ const getSubjectDetailsCached = (id: string) =>
                   logoUrl: true,
                   countryCode: true,
                   institutionType: true,
+                  visibility: true,
                 },
               },
             },

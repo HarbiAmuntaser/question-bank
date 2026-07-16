@@ -54,20 +54,27 @@ async function listUniversities(q: Q) {
         : [{ name: "asc" as const }];
 
     // فلترة الدولة والنوع (مع البحث)
+    const countryWhere =
+      cc && instType === "academy"
+        ? { OR: [{ countryCode: cc }, { visibility: "global" as const }] }
+        : cc
+          ? { countryCode: cc }
+          : {};
+    const searchWhere = search
+      ? {
+          OR: [
+            { name: { contains: search, mode: "insensitive" as const } },
+            { code: { contains: search, mode: "insensitive" as const } },
+            { city: { contains: search, mode: "insensitive" as const } },
+            { region: { contains: search, mode: "insensitive" as const } },
+          ],
+        }
+      : {};
+
     const where: any = {
       isActive: true,
-      ...(cc ? { countryCode: cc } : {}),
       ...(instType ? { institutionType: instType } : {}),
-      ...(search
-        ? {
-            OR: [
-              { name: { contains: search, mode: "insensitive" as const } },
-              { code: { contains: search, mode: "insensitive" as const } },
-              { city: { contains: search, mode: "insensitive" as const } },
-              { region: { contains: search, mode: "insensitive" as const } },
-            ],
-          }
-        : {}),
+      AND: [countryWhere, searchWhere].filter((item) => Object.keys(item).length > 0),
     };
 
     const universities = await prisma.university.findMany({
@@ -115,6 +122,7 @@ async function listUniversities(q: Q) {
       logoUrl: u.logoUrl,
       countryCode: u.countryCode ?? null,
       institutionType: u.institutionType ?? null,
+      visibility: u.visibility ?? "country",
       _count: {
         majors: u._count.majors,
         quizzes: quizzesCounts[idx] ?? 0,

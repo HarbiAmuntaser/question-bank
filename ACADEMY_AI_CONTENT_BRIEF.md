@@ -438,6 +438,14 @@ Academy، Major، Subject، Chapters، Quiz، 20 سؤال اختيار من مت
 
 ---
 
+### ملاحظة قبل قوالب JSON التقنية
+
+القوالب التالية بصيغة JSON هي **مرجع تقني لفهم الحقول والعلاقات فقط**.
+
+الصيغة الافتراضية المطلوبة من الشات عند إنشاء بيانات عامة هي جداول Markdown منظمة، وليست JSON، لأن هذه البيانات غالبًا ستدخل يدويًا من لوحة الإدارة.
+
+الاستثناء الوحيد هو الأسئلة `Questions`، إذ يفضل إخراجها بصيغة JSON منظمة لأنها قد تستخدم للاستيراد أو النسخ المنظم.
+
 ## 9. قالب Academy JSON
 
 استخدم هذا القالب للمسار التدريبي الكبير.
@@ -937,15 +945,20 @@ paid
 اعمل ككاتب محتوى تعليمي لمنصة مستواك.
 أريد إنشاء مسار تدريبي كامل عن "Python للمبتدئين" داخل قسم المسارات التدريبية.
 
-أخرج النتائج بصيغ JSON منفصلة:
-- Academy
-- Major
-- Subject
-- Chapters
-- Quiz
-- 20 Questions
-- StudySummary
-- SeoMeta لكل صفحة مهمة
+أخرج البيانات العامة في جداول Markdown منظمة بالأعمدة:
+الحقل | القيمة | ملاحظة الإدخال إن وجدت
+
+واجعل الأسئلة فقط بصيغة JSON قابلة للاستيراد أو النسخ المنظم.
+
+رتّب النتيجة بهذا الشكل:
+- Academy Table
+- Major Table
+- Subject Table
+- Chapters Table إن وجدت
+- Quiz Table
+- StudySummary Table
+- SeoMeta Table لكل صفحة مهمة
+- Questions JSON فقط
 
 التزم بقواعد:
 - الواجهة عربية.
@@ -994,13 +1007,8 @@ paid
 أنشئ ملخصًا تدريبيًا عربيًا لمادة JavaScript حول الدوال.
 
 أخرج:
-- title
-- slug
-- excerpt
-- contentHtml
-- contentText
-- readingMinutes
-- SeoMeta مقترح
+- StudySummary Table بالأعمدة: الحقل | القيمة | ملاحظة الإدخال إن وجدت
+- SeoMeta Table مقترح بالأعمدة: الحقل | القيمة | ملاحظة الإدخال إن وجدت
 
 استخدم HTML بسيطًا فقط.
 لا تستخدم script أو style.
@@ -1092,6 +1100,10 @@ paid
 ### القوالب إرشادية
 
 بعض القوالب في هذا الملف إرشادية لتسهيل التفكير والتنظيم.
+
+قوالب JSON الخاصة بـ Academy وMajor وSubject وChapter وQuiz وStudySummary وSeoMeta هي مراجع تقنية فقط، وليست صيغة الإخراج الافتراضية عند طلب إنشاء بيانات عامة من الشات.
+
+الصيغة الافتراضية للبيانات العامة هي جداول Markdown منظمة، أما الأسئلة فقط فتبقى بصيغة JSON.
 
 الإدخال النهائي يتم حسب الحقول المتاحة فعلًا في لوحة الإدارة. إذا اختلف اسم حقل في لوحة الإدارة عن القالب، استخدم الحقل الموجود في لوحة الإدارة ولا تفترض وجود حقل جديد.
 
@@ -1200,21 +1212,134 @@ paid
 عند طلب بيانات من الشات، اطلب أن تكون النتيجة منظمة بهذا الشكل:
 
 ```text
-1. Academy JSON
-2. Major JSON
-3. Subject JSON
-4. Chapters JSON
-5. Quiz JSON
-6. Questions JSON
-7. StudySummary JSON
-8. SeoMeta JSON
+1. Academy Table
+2. Major Table
+3. Subject Table
+4. Chapters Table إن وجدت
+5. Quiz Table
+6. StudySummary Table
+7. SeoMeta Table
+8. Questions JSON فقط
 9. ملاحظات الجودة
 10. Checklist قبل الإدخال
 ```
 
 مهم:
 
-- لا تخلط كل شيء في JSON واحد ضخم إلا إذا طُلب ذلك.
+- البيانات العامة مثل Academy وMajor وSubject وChapter وQuiz وStudySummary وSeoMeta تظهر افتراضيًا كجداول Markdown.
+- الأسئلة فقط تظهر بصيغة JSON لأنها قد تستخدم للاستيراد أو النسخ المنظم.
+- لا تخلط كل شيء في JSON واحد ضخم إلا إذا طُلب ذلك صراحة.
 - اجعل كل مستوى منفصلًا ليسهل نسخه يدويًا.
 - وضّح العلاقات باستخدام slugs أو أسماء واضحة.
 - لا تفترض وجود IDs لأن IDs تنشأ داخل النظام.
+
+### شكل الجدول المفضل
+
+استخدم دائمًا الأعمدة التالية للبيانات العامة:
+
+```markdown
+| الحقل | القيمة | ملاحظة الإدخال إن وجدت |
+|---|---|---|
+```
+
+### مثال Academy Table
+
+```markdown
+| الحقل | القيمة | ملاحظة الإدخال إن وجدت |
+|---|---|---|
+| institutionType | academy | قيمة داخلية ثابتة |
+| name | أكاديمية البرمجة | الاسم الظاهر للمستخدم |
+| code / slug | programming-academy | يفضل أن يكون إنجليزيًا قصيرًا |
+| countryCode | SA | غيّرها إلى YE عند الحاجة |
+| description | مسار تدريبي يساعد المتدربين على تعلم أساسيات البرمجة من خلال مواد واختبارات منظمة. | لا تستخدم كلمة جامعة |
+| isActive | true | فعّلها عند جاهزية الحد الأدنى |
+```
+
+### مثال Major Table
+
+```markdown
+| الحقل | القيمة | ملاحظة الإدخال إن وجدت |
+|---|---|---|
+| academySlug | programming-academy | للربط اليدوي بالمسار الكبير |
+| name | لغات البرمجة | الاسم الظاهر |
+| code / slug | programming-languages | slug إنجليزي واضح |
+| degreeType | other | لا يمثل شهادة حقيقية هنا |
+| description | تصنيف تدريبي يضم مواد تساعد المتدرب على فهم لغات البرمجة الأساسية. | وصف مختصر ومفيد |
+| isActive | true | حسب الجاهزية |
+```
+
+### مثال Subject Table
+
+```markdown
+| الحقل | القيمة | ملاحظة الإدخال إن وجدت |
+|---|---|---|
+| majorSlug | programming-languages | للربط اليدوي بالمسار الفرعي |
+| name | Python | يمكن أن يبقى اسم التقنية بالإنجليزية |
+| code / slug | python | قصير وواضح |
+| description | مادة تدريبية تشرح أساسيات Python وتساعد المتدرب على اختبار فهمه للمفاهيم الأولى. | الوصف عربي |
+| isActive | true | لا تنشر صفحة فارغة |
+```
+
+### مثال SeoMeta Table
+
+```markdown
+| الحقل | القيمة | ملاحظة الإدخال إن وجدت |
+|---|---|---|
+| ownerType | subject | حسب المستوى: university / major / subject / exam / study_summary |
+| ownerIdHint | python | مجرد تلميح يدوي، وليس ID حقيقيًا |
+| locale | ar | الواجهة الحالية عربية |
+| slug | python | نفس slug الصفحة عند الإمكان |
+| metaTitle | أساسيات Python للمبتدئين | لا تضف "| مستواك" |
+| metaDescription | تدرّب على أساسيات Python من خلال ملخصات وأسئلة منظمة تساعدك على فهم المتغيرات والأنواع والشروط. | بدون حشو كلمات مفتاحية |
+| canonicalUrl | https://mustawak.com/SA/academy/universities/programming-academy/majors/programming-languages/subjects/python | استخدم mustawak.com |
+| noindex | true | اتركها true حتى تكتمل الصفحة |
+| schemaJson | null | اختياري فقط |
+```
+
+### Questions JSON فقط
+
+عند إخراج الأسئلة، استخدم JSON فقط بهذا الشكل العام:
+
+```json
+[
+  {
+    "questionText": "ما وظيفة المتغير في Python؟",
+    "questionType": "multiple_choice",
+    "difficultyLevel": "easy",
+    "points": 1,
+    "options": [
+      {
+        "optionText": "تخزين قيمة يمكن استخدامها لاحقًا",
+        "isCorrect": true,
+        "optionOrder": 1
+      },
+      {
+        "optionText": "تشغيل البرنامج فقط",
+        "isCorrect": false,
+        "optionOrder": 2
+      }
+    ],
+    "explanation": "المتغير يستخدم لتخزين قيمة باسم محدد حتى يمكن الرجوع إليها لاحقًا.",
+    "tags": ["Python", "المتغيرات"],
+    "isActive": true
+  }
+]
+```
+
+## Academy Global Visibility Notes
+
+Use these notes when preparing academy content for manual entry:
+
+- `visibility = global` means the academy training path can appear in all supported countries, such as `/SA/academy` and `/YE/academy`, without duplicating the same record.
+- `visibility = country` means the academy training path appears only under the stored `countryCode`.
+- Keep `countryCode` required even for global academy records. Treat it as the primary/default country for the record, not as an exclusivity rule.
+- Prefer `visibility = global` for general training content such as Python, JavaScript, Excel, English, accounting, and computer skills.
+- Do not create a duplicate YE record when the same academy path is global.
+- If `visibility = global`, avoid copy that implies the training path is specific to Saudi Arabia, Yemen, or any single country.
+- This applies to `institutionType = academy` only. Universities and schools remain country-specific.
+
+Suggested Academy table row:
+
+```markdown
+| visibility | global | استخدم global للمسارات العامة، أو country إذا كان المسار خاصًا بدولة واحدة |
+```

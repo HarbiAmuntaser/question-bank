@@ -64,6 +64,9 @@ export async function PUT(req: Request, { params }: RouteContext) {
   if (typeof payload.institutionType !== "undefined" && payload.institutionType) {
     data.institutionType = payload.institutionType as any;
   }
+  const nextInstitutionType = payload.institutionType ?? exists.institutionType;
+  const requestedVisibility = payload.visibility ?? exists.visibility;
+  data.visibility = nextInstitutionType === "academy" ? requestedVisibility : "country";
 
   // خصائص اختيارية قابلة لأن تكون null
   if (Object.prototype.hasOwnProperty.call(payload, "code")) data.code = payload.code ?? null;
@@ -77,6 +80,7 @@ export async function PUT(req: Request, { params }: RouteContext) {
     id: updated.id,
     countryCode: updated.countryCode,
     previousCountryCode: exists.countryCode,
+    allCountries: updated.institutionType === "academy" || exists.institutionType === "academy",
   });
   return json({ data: updated });
 }
@@ -90,7 +94,7 @@ export async function DELETE(req: Request, { params }: RouteContext) {
 
   const target = await prisma.university.findUnique({
     where: { id },
-    select: { countryCode: true },
+    select: { countryCode: true, institutionType: true, visibility: true },
   });
   const hasMajors = await prisma.major.count({ where: { universityId: id } });
   if (hasMajors > 0) return bad("لا يمكن حذف الجامعة لوجود تخصصات مرتبطة بها");
@@ -101,6 +105,10 @@ export async function DELETE(req: Request, { params }: RouteContext) {
     return bad("فشل الحذف. تأكد من عدم وجود علاقات أخرى");
   }
 
-  revalidateUniversityCache({ id, countryCode: target?.countryCode });
+  revalidateUniversityCache({
+    id,
+    countryCode: target?.countryCode,
+    allCountries: target?.institutionType === "academy" && target?.visibility === "global",
+  });
   return json({ data: true });
 }

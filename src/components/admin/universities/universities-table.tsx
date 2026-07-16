@@ -32,6 +32,7 @@ export interface UniversityRow {
 
   countryCode: string; // مثال: "SA"
   institutionType: "university" | "school" | "academy";
+  visibility: "country" | "global";
 }
 
 export interface PaginationMeta {

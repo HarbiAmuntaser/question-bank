@@ -148,6 +148,11 @@ enum InstitutionType {
   academy
 }
 
+enum InstitutionVisibility {
+  country
+  global
+}
+
 model University {
   id        String   @id @default(uuid())
   name      String
@@ -161,13 +166,16 @@ model University {
   updatedAt DateTime @updatedAt
 
   // 🔒 الآن إلزامية مع قيم افتراضية
-  countryCode     String          @default("SA")
-  institutionType InstitutionType @default(university)
+  countryCode     String                @default("SA")
+  institutionType InstitutionType       @default(university)
+  visibility      InstitutionVisibility @default(country)
 
   creator User?   @relation("UniversityCreatedBy", fields: [createdBy], references: [id])
   majors  Major[]
 
   @@index([countryCode, institutionType, isActive])
+  @@index([institutionType, visibility, isActive])
+  @@index([visibility])
   @@map("universities")
 }
 

@@ -42,6 +42,7 @@ type SubjectDto = {
       code: string | null;
       countryCode: string | null;
       institutionType: string | null;
+      visibility?: "country" | "global" | null;
       seo?: SeoLite;
     };
   };
@@ -124,8 +125,17 @@ export async function StudySummaryDetails({
 
   const subjectCountry = (subject.major.university?.countryCode || "").toUpperCase();
   const subjectType = normalizeInstitutionType(subject.major.university?.institutionType || null);
+  const isGlobalAcademy = subjectType === "academy" && subject.major.university?.visibility === "global";
 
-  if (subjectCountry && subjectType && (subjectCountry !== ccNorm || subjectType !== type)) {
+  if (subjectType && subjectType !== type) {
+    redirect(
+      `/${isGlobalAcademy ? ccNorm : subjectCountry}/${subjectType}/universities/${encodeSlugPath(canonicalUni)}/majors/${encodeSlugPath(
+        canonicalMajor,
+      )}/subjects/${encodeSlugPath(canonicalSubject)}/summaries/${encodeSlugPath(canonicalSummary)}`,
+    );
+  }
+
+  if (subjectCountry && subjectType && !isGlobalAcademy && subjectCountry !== ccNorm) {
     redirect(
       `/${subjectCountry}/${subjectType}/universities/${encodeSlugPath(canonicalUni)}/majors/${encodeSlugPath(
         canonicalMajor,
