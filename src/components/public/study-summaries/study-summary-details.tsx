@@ -272,7 +272,7 @@ export async function StudySummaryDetails({
           <div className="mx-auto max-w-3xl rounded-lg border bg-background/70 p-5 sm:p-6">
             {protectedContent?.contentHtml ? (
               <div
-                className="prose prose-sm max-w-none leading-8 text-foreground prose-p:leading-8 prose-li:leading-8 dark:prose-invert sm:prose-base"
+                className="summary-content"
                 dangerouslySetInnerHTML={{ __html: prepareTrustedSummaryHtml(protectedContent.contentHtml) }}
               />
             ) : protectedContent?.contentText ? (
