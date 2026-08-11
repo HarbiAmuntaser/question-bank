@@ -68,6 +68,13 @@ function buildHeaders(): Headers {
   return h;
 }
 
+function optionalLocationField(formData: FormData, key: "city" | "region"): string | null {
+  const value = formData.get(key);
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
 async function parseJson<T>(res: Response): Promise<T | ApiError> {
   const txt = await res.text();
   try {
@@ -85,8 +92,8 @@ export async function createUniversityAction(formData: FormData): Promise<Action
   const payload: CreateUniversityInput = {
     name: String(formData.get("name") ?? "").trim(),
     code: (formData.get("code") as string | null) ?? null,
-    city: (formData.get("city") as string | null) ?? null,
-    region: (formData.get("region") as string | null) ?? null,
+    city: optionalLocationField(formData, "city"),
+    region: optionalLocationField(formData, "region"),
     isActive: formData.get("isActive") === "on",
 
     // إجباريتان
@@ -129,8 +136,8 @@ export async function updateUniversityAction(id: string, formData: FormData): Pr
   const payload: UpdateUniversityInput = {
     name: (String(formData.get("name") ?? "").trim() || undefined),
     code: ((formData.get("code") as string | null) ?? null),
-    city: ((formData.get("city") as string | null) ?? null),
-    region: ((formData.get("region") as string | null) ?? null),
+    city: optionalLocationField(formData, "city"),
+    region: optionalLocationField(formData, "region"),
     isActive: formData.get("isActive") === null ? undefined : formData.get("isActive") === "on",
   };
 

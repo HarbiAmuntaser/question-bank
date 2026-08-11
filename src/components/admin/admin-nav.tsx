@@ -57,7 +57,6 @@ export const adminNavigation: AdminNavEntry[] = [
     ],
   },
   { name: "التحليلات", href: "/admin/analytics", icon: BarChart3 },
-  { name: "نماذج اختبارات", href: "/admin/exams", icon: File },
   { name: "seo", href: "/admin/seo-meta", icon: File },
   { name: "المستخدمين", href: "/admin/users", icon: User },
 ];

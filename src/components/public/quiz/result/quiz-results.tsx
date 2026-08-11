@@ -10,15 +10,18 @@ import { ResultBestCard } from "./result-best-card";
 import { ResultPerformanceCard } from "./result-performance-card";
 import { ResultActions } from "./result-actions";
 import { ResultLoading } from "./result-loading";
+import { ResultStudyGuidance, type ResultStudySummaryReference } from "./result-study-guidance";
 
 export function QuizResults({
   quiz,
   sessionId,
   backToSubjectUrl,
+  studySummaries = [],
 }: {
   quiz: QuizWithQuestions;
   sessionId: string;
   backToSubjectUrl?: string;
+  studySummaries?: ResultStudySummaryReference[];
 }) {
   const state = useQuizResults({ quiz, sessionId });
 
@@ -35,6 +38,14 @@ export function QuizResults({
       <ResultBestCard attemptsCount={state.attemptsCount} best={state.best} isCurrentBest={state.isCurrentBest} />
 
       <ResultPerformanceCard current={state.current} />
+
+      <ResultStudyGuidance
+        quiz={quiz}
+        current={state.current}
+        completedAnswers={state.completedAnswers}
+        summaries={studySummaries}
+        reviewWrongHref={`/quiz/${encodeURIComponent(quiz.id)}/review?session=${encodeURIComponent(sessionId)}&onlyWrong=1`}
+      />
 
       {/* ✅ تمرير sessionId لإظهار أزرار المراجعة */}
       <ResultActions

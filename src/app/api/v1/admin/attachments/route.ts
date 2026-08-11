@@ -65,7 +65,6 @@ function checksumSha256(buffer: Buffer) {
 }
 
 function revalidateAttachmentCaches() {
-  revalidateTag("exams")
   revalidateTag(CACHE_TAGS.admin.attachments)
 }
 

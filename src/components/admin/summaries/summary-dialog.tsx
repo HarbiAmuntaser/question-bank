@@ -68,6 +68,30 @@ function toDateTimeLocal(value: string | null) {
   return local.toISOString().slice(0, 16);
 }
 
+function normalizePublishedAt(formData: FormData, originalPublishedAt: string | null, status: StudySummaryStatus) {
+  const rawPublishedAt = formData.get("publishedAt");
+  const publishedAt = typeof rawPublishedAt === "string" ? rawPublishedAt.trim() : "";
+
+  if (publishedAt) {
+    if (originalPublishedAt && publishedAt === toDateTimeLocal(originalPublishedAt)) {
+      formData.set("publishedAt", originalPublishedAt);
+      return;
+    }
+
+    const parsed = new Date(publishedAt);
+    if (!Number.isNaN(parsed.getTime())) {
+      formData.set("publishedAt", parsed.toISOString());
+    }
+    return;
+  }
+
+  if (status === "published") {
+    formData.set("publishedAt", new Date().toISOString());
+  } else {
+    formData.delete("publishedAt");
+  }
+}
+
 type FieldErrors = Record<string, string[]>;
 
 function FieldError({ message }: { message?: string }) {
@@ -273,6 +297,7 @@ export function SummaryDialog({
     formData.set("accessType", accessType);
     formData.set("language", language);
     formData.set("isFeatured", isFeatured ? "true" : "false");
+    normalizePublishedAt(formData, summary?.publishedAt ?? null, status);
 
     startTransition(async () => {
       const result = summary

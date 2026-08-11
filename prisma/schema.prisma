@@ -36,19 +36,7 @@ enum ContentLanguage {
   en
 }
 
-// Exams & Attachments
-enum ExamTerm {
-  first
-  second
-  summer
-}
-
-enum ExamSession {
-  regular
-  makeup
-  special
-}
-
+// Attachments
 enum AttachmentKind {
   image
   pdf
@@ -89,7 +77,6 @@ enum AttachmentOwnerType {
   quiz
   chapter
   subject
-  exam
 
   blog_post
   study_summary
@@ -131,7 +118,6 @@ model User {
   questionsCreated         Question[]          @relation("QuestionCreatedBy")
   quizzesCreated           Quiz[]              @relation("QuizCreatedBy")
   quizAttempts             QuizAttempt[]
-  examsCreated             ExamPaper[]         @relation("ExamPaperCreatedBy")
   blogPostsCreated         BlogPost[]          @relation("BlogPostCreatedBy")
   blogPostsUpdated         BlogPost[]          @relation("BlogPostUpdatedBy")
   blogPostViewEvents       BlogPostViewEvent[] @relation("BlogPostViewUser")
@@ -227,7 +213,6 @@ model Subject {
   creator            User?               @relation("SubjectCreatedBy", fields: [createdBy], references: [id])
   chapters           Chapter[]
   Quiz               Quiz[]
-  exams              ExamPaper[]
   studySummaries     StudySummary[]
   paidAccessPlans    PaidAccessPlan[]    @relation("SubjectPaidAccessPlans")
   accessEntitlements AccessEntitlement[] @relation("SubjectAccessEntitlements")
@@ -289,7 +274,6 @@ model Question {
   options       QuestionOption[]
   userAnswers   UserAnswer[]
   quizQuestions QuizQuestion[]
-  examMappings  ExamQuestion[]
 
   @@map("questions")
 }
@@ -356,56 +340,6 @@ model QuizQuestion {
   @@unique([quizId, questionId])
   @@unique([quizId, questionOrder])
   @@map("quiz_questions")
-}
-
-// -----------------
-// ExamPaper (official past papers)
-// -----------------
-model ExamPaper {
-  id          String          @id @default(uuid())
-  subjectId   String
-  year        Int
-  term        ExamTerm
-  session     ExamSession     @default(regular)
-  code        String?
-  source      String?
-  fileUrl     String?
-  pagesCount  Int?
-  isPublished Boolean         @default(true)
-  language    ContentLanguage @default(ar)
-  createdBy   String?
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
-
-  // Relations
-  subject   Subject        @relation(fields: [subjectId], references: [id], onDelete: Cascade)
-  creator   User?          @relation("ExamPaperCreatedBy", fields: [createdBy], references: [id])
-  questions ExamQuestion[]
-
-  @@unique([subjectId, year, term, session, code])
-  @@index([subjectId, year, term])
-  @@map("exam_papers")
-}
-
-// -----------------
-// ExamQuestion (link Question <-> ExamPaper)
-// -----------------
-model ExamQuestion {
-  id             String @id @default(uuid())
-  examPaperId    String
-  questionId     String
-  questionNumber Int
-  page           Int?
-  points         Int    @default(1)
-
-  // Relations
-  examPaper ExamPaper @relation(fields: [examPaperId], references: [id], onDelete: Cascade)
-  question  Question  @relation(fields: [questionId], references: [id])
-
-  @@unique([examPaperId, questionNumber])
-  @@unique([examPaperId, questionId])
-  @@index([questionId])
-  @@map("exam_questions")
 }
 
 // -----------------

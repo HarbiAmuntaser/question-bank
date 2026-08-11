@@ -1,7 +1,7 @@
 // src/validations/attachment.ts
 import { z } from "zod"
 
-export const attachmentOwnerTypes = ["question", "quiz", "chapter", "subject", "exam", "blog_post", "study_summary"] as const
+export const attachmentOwnerTypes = ["question", "quiz", "chapter", "subject", "blog_post", "study_summary"] as const
 export const attachmentKinds = ["image", "pdf", "solution", "other"] as const
 export const attachmentStorageProviders = ["local", "external_url", "r2"] as const
 export const attachmentVisibilities = ["public", "private"] as const

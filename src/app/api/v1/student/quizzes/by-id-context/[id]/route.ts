@@ -84,6 +84,7 @@ export async function GET(_req: Request, { params }: RouteContext) {
               select: {
                 id: true,
                 chapterId: true,
+                chapter: { select: { id: true, name: true, chapterNumber: true } },
                 questionText: true,
                 questionType: true,
                 difficultyLevel: true,
@@ -110,6 +111,8 @@ export async function GET(_req: Request, { params }: RouteContext) {
       .filter((q) => q?.isActive)
       .map((q) => ({
         id: q.id,
+        chapterId: q.chapterId,
+        chapter: q.chapter,
         questionText: q.questionText,
         questionType: q.questionType,
         difficultyLevel: q.difficultyLevel,

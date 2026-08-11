@@ -22,7 +22,6 @@ export const CACHE_TAGS = {
     blog: "admin:blog",
     chapters: "admin:chapters",
     dashboard: "admin:dashboard",
-    exams: "admin:exams",
     majors: "admin:majors",
     questions: "admin:questions",
     quizzes: "admin:quizzes",

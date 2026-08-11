@@ -1,0 +1,43 @@
+[
+  {
+    "questionText": "ضع نص السؤال، ثم اعرض كود Python المستقل بهذه الصيغة:\n\n```python\nvalue = 1\nprint(value)\n```",
+    "questionType": "multiple_choice",
+    "difficultyLevel": "medium",
+    "points": 1,
+    "explanation": "ضع شرحًا مختصرًا وواضحًا، واكتب الدوال أو المعرّفات المضمنة مثل `print()` باستخدام backticks.",
+    "tags": [
+      "وسم الفصل"
+    ],
+    "isActive": true,
+    "options": [
+      {
+        "text": "ضع الخيار الصحيح أو القيمة المضمنة مثل `1` هنا.",
+        "isCorrect": true
+      },
+      {
+        "text": "الخيار الثاني.",
+        "isCorrect": false
+      },
+      {
+        "text": "الخيار الثالث.",
+        "isCorrect": false
+      },
+      {
+        "text": "الخيار الرابع.",
+        "isCorrect": false
+      }
+    ]
+  },
+  {
+    "questionText": "ضع نص العبارة هنا، واكتب الدالة أو المعرّف المضمن مثل `function_name()` باستخدام backticks.",
+    "questionType": "true_false",
+    "difficultyLevel": "easy",
+    "points": 1,
+    "explanation": "ضع شرحًا مختصرًا، واستخدم inline code للمصطلحات البرمجية مثل `identifier`.",
+    "tags": [
+      "وسم الفصل"
+    ],
+    "isActive": true,
+    "tfAnswer": true
+  }
+]

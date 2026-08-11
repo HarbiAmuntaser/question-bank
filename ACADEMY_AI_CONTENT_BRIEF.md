@@ -339,7 +339,7 @@ financial-statements-quiz
 ```text
 python-variables-summary
 javascript-functions-summary
-present-simple-summary
+present-simple-summary0
 excel-formulas-summary
 financial-statements-summary
 ```
@@ -1343,3 +1343,295 @@ Suggested Academy table row:
 ```markdown
 | visibility | global | استخدم global للمسارات العامة، أو country إذا كان المسار خاصًا بدولة واحدة |
 ```
+
+## Latest Platform Update: Quiz Result Study Guidance
+
+This section explains an important update that affects how academy content should be prepared.
+
+The platform now shows a study guidance section after a student finishes a quiz. This feature is currently rule-based, not AI-generated inside the website. It analyzes the student's answers and suggests what to review next based on the existing content structure.
+
+### What The Result Guidance Does
+
+After a student submits a quiz, the result page can now show:
+
+- The chapters or learning areas where the student made mistakes.
+- The number of wrong or unanswered questions in each chapter.
+- The question numbers that need review.
+- The most repeated tags in wrong answers.
+- A short note about difficulty level, such as whether mistakes were mostly in easy, medium, or hard questions.
+- Suggested study summaries if published summaries exist for the same chapter.
+- A direct link to review wrong questions.
+
+This means content quality now affects the usefulness of result guidance. Good chapters, tags, explanations, and summaries will make the result page much more helpful.
+
+### No AI Is Required Inside The Website For This Feature
+
+The platform does not need built-in AI to provide this first version of guidance.
+
+The current logic uses:
+
+- `Question.chapterId`
+- `Question.tags`
+- `Question.difficultyLevel`
+- `Question.explanation`
+- `StudySummary.chapterId`
+- published summaries connected to the same subject or chapter
+
+AI tools can still help the site owner create better content before entering it into the admin panel, but the website itself currently gives guidance from structured data.
+
+### What The AI Content Assistant Should Produce Differently
+
+When generating academy content, the AI assistant should now pay extra attention to:
+
+1. Creating clear chapters.
+2. Assigning each question to the most relevant chapter.
+3. Adding useful tags to every question.
+4. Writing concise explanations for every question.
+5. Creating optional study summaries for important chapters.
+6. Keeping summaries aligned with the same chapter names and concepts used in questions.
+
+If these fields are weak or missing, the result page can still work, but its guidance will be less specific.
+
+### Chapter Guidance Requirements
+
+Each Subject should preferably have clear chapters or learning units.
+
+Good chapter examples for a Python subject:
+
+| الحقل | القيمة | ملاحظة الإدخال إن وجدت |
+|---|---|---|
+| subjectSlug | python | للربط اليدوي بالمادة |
+| name | المتغيرات وأنواع البيانات | اسم واضح ومحدد |
+| chapterNumber | 1 | ترتيب منطقي |
+| description | يتعلم المتدرب معنى المتغيرات وأهم أنواع البيانات الأساسية في Python. | وصف مختصر |
+| learningObjectives | تعريف المتغير، استخدام النصوص والأرقام، فهم التحويل بين الأنواع | أهداف قابلة للاختبار |
+
+Avoid broad chapters such as:
+
+- أساسيات عامة
+- أشياء مهمة
+- متفرقات
+
+Use specific chapters because the result guidance depends on them.
+
+### Question Tags Requirements
+
+Tags should describe the exact concept being tested.
+
+Good tags:
+
+- Python
+- المتغيرات
+- أنواع البيانات
+- input
+- print
+- الشروط
+- الدوال
+- القوائم
+- Excel
+- الصيغ
+- الخلايا
+
+Weak tags:
+
+- مهم
+- اختبار
+- سؤال
+- عام
+- صعب
+
+Recommended rule:
+
+- Add 2 to 4 tags per question.
+- Use repeated tags intentionally across questions that test the same concept.
+- Do not create many slightly different tags for the same idea.
+- Use the same spelling consistently.
+
+Example:
+
+```json
+{
+  "questionText": "ما ناتج الكود التالي؟\nprint(type(10))",
+  "questionType": "multiple_choice",
+  "difficultyLevel": "easy",
+  "points": 1,
+  "tags": ["Python", "أنواع البيانات", "type"],
+  "explanation": "الدالة type تعرض نوع القيمة. العدد 10 من نوع int في Python.",
+  "options": [
+    { "optionText": "<class 'int'>", "isCorrect": true, "optionOrder": 1 },
+    { "optionText": "<class 'str'>", "isCorrect": false, "optionOrder": 2 },
+    { "optionText": "<class 'float'>", "isCorrect": false, "optionOrder": 3 },
+    { "optionText": "error", "isCorrect": false, "optionOrder": 4 }
+  ],
+  "isActive": true
+}
+```
+
+### Question Explanation Requirements
+
+Every question should include a helpful explanation.
+
+The explanation should:
+
+- Explain why the correct answer is correct.
+- Mention the tested concept.
+- Be short and direct.
+- Avoid long lectures.
+- Avoid saying only "لأنها الإجابة الصحيحة".
+- Avoid copying from official exams, books, or protected sources.
+
+Good explanation:
+
+> المتغير يستخدم لتخزين قيمة باسم محدد، حتى يمكن الرجوع إليها واستخدامها لاحقًا داخل البرنامج.
+
+Weak explanation:
+
+> هذه هي الإجابة الصحيحة.
+
+### Difficulty Distribution For Better Guidance
+
+Use difficulty levels carefully:
+
+- `easy`: checks basic recognition or simple use.
+- `medium`: checks understanding or applying one concept.
+- `hard`: checks deeper application, combined concepts, or debugging.
+
+Recommended distribution for a 20-question beginner quiz:
+
+| difficultyLevel | العدد التقريبي |
+|---|---:|
+| easy | 7 |
+| medium | 10 |
+| hard | 3 |
+
+This helps the result page tell the student if mistakes are concentrated in basic or advanced questions.
+
+### Study Summaries And Result Guidance
+
+Study summaries are optional, but they improve result guidance significantly.
+
+If a chapter has a published StudySummary, the result page can suggest it when the student makes mistakes in that chapter.
+
+Recommended StudySummary table:
+
+| الحقل | القيمة | ملاحظة الإدخال إن وجدت |
+|---|---|---|
+| subjectSlug | python | للمساعدة في الربط اليدوي |
+| chapterSlug / chapterName | المتغيرات وأنواع البيانات | اربطه بالفصل الصحيح في لوحة الإدارة |
+| title | ملخص المتغيرات وأنواع البيانات في Python | عنوان واضح |
+| slug | python-variables-data-types-summary | slug إنجليزي واضح |
+| excerpt | شرح مختصر للمتغيرات، النصوص، الأرقام، والتحويل بين أنواع البيانات في Python. | يظهر في البطاقات |
+| contentHtml | محتوى HTML منظم | اختياري |
+| contentText | نص مبسط | اختياري |
+| pdfAttachmentId | يترك فارغًا إذا لا يوجد PDF | اختياري |
+| status | published أو draft | لا تنشر إلا إذا كان المحتوى جاهزًا |
+| accessType | inherit / free / paid | حسب سياسة الوصول |
+
+Important:
+
+- A summary can be linked to the whole subject only.
+- A summary can also be linked to a specific chapter.
+- For better result guidance, link summaries to chapters whenever possible.
+- If a course has no summaries, the result page still works and will guide the student to review wrong questions and explanations.
+
+### PDF Page Numbers
+
+The current platform does not automatically know page numbers inside a PDF.
+
+If the owner wants the AI assistant to prepare PDF-related guidance, write it as editorial notes only, not as a guaranteed platform field.
+
+Example optional editorial note:
+
+| الحقل | القيمة | ملاحظة |
+|---|---|---|
+| reviewHint | راجع قسم المتغيرات في الصفحات 3-5 من ملف PDF إن كان مطابقًا للنسخة النهائية. | ملاحظة تحريرية فقط |
+
+Do not claim page numbers unless the final PDF is known and stable.
+
+### When Summaries Are Not Required
+
+Some academy, school, or training quizzes may not need summaries.
+
+Examples:
+
+- Diagnostic quizzes.
+- Practice-only quizzes.
+- School ministry-style model quizzes.
+- Short review quizzes.
+
+In these cases:
+
+- Keep questions clear.
+- Add good explanations.
+- Add useful tags.
+- Do not force a StudySummary if there is no real content to add.
+
+The result page should still provide useful guidance from wrong questions, tags, chapters, and explanations.
+
+### Recommended AI Output For A Complete Testable Unit
+
+When asking an AI tool to create content for a training unit, prefer this output order:
+
+1. Subject table.
+2. Chapters table.
+3. StudySummary table for each important chapter, if needed.
+4. Quiz table.
+5. Questions JSON only.
+6. SEO table.
+7. Quality notes.
+8. Checklist before entry.
+
+Do not put everything in one huge JSON object unless specifically requested.
+
+### Prompt Example For AI Tools
+
+Use a prompt like this when generating a unit:
+
+```text
+أنشئ وحدة تدريبية لمادة Python داخل المسارات التدريبية في مستواك.
+
+المطلوب:
+- Subject Table مختصر.
+- Chapters Table بعدد 4 فصول واضحة.
+- StudySummary Table لفصلين مهمين فقط.
+- Quiz Table لاختبار تدريبي واحد.
+- Questions JSON يحتوي 20 سؤال اختيار من متعدد.
+
+مهم:
+- اربط كل سؤال بفصل واضح.
+- أضف 2 إلى 4 tags لكل سؤال.
+- أضف explanation مختصر لكل سؤال.
+- وزع الصعوبة بين easy و medium و hard.
+- لا تدّعِ أن الاختبار رسمي أو معتمد.
+- لا تضف "| مستواك" داخل metaTitle.
+- اجعل المخرجات مناسبة للإدخال اليدوي في لوحة الإدارة.
+```
+
+### Checklist For Result Guidance Readiness
+
+Before entering academy quiz content, verify:
+
+- هل كل سؤال مرتبط بفصل واضح؟
+- هل أسماء الفصول دقيقة وليست عامة جدًا؟
+- هل لكل سؤال explanation مفيد؟
+- هل لكل سؤال tags مناسبة ومتناسقة؟
+- هل difficultyLevel منطقي؟
+- هل يوجد ملخص منشور للفصول المهمة إن كان ذلك مناسبًا؟
+- هل الملخص مرتبط بنفس الفصل الذي تختبره الأسئلة؟
+- هل المحتوى يعمل حتى لو لم توجد ملخصات؟
+- هل الأسئلة أصلية وغير منسوخة؟
+- هل لا توجد ادعاءات رسمية أو اعتماد غير صحيح؟
+- هل SEO لا يحتوي تكرار "مستواك"؟
+
+### Important Content Principle
+
+The result guidance feature is only as good as the structure of the content.
+
+For useful student guidance:
+
+- Chapter = where the student struggled.
+- Tags = what exact concept needs review.
+- Explanation = why the answer is correct.
+- StudySummary = where the student can study next.
+
+This should guide how academy content is generated from now on.

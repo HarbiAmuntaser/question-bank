@@ -1,0 +1,363 @@
+<p>تحتاج البرامج إلى الاحتفاظ بالمعلومات حتى تتمكن من استخدامها لاحقًا. قد تكون هذه المعلومات اسم متعلم، أو عمرًا، أو طولًا، أو حالة منطقية توضح ما إذا كان المستخدم مبتدئًا. في Python نستخدم المتغيرات لإعطاء هذه القيم أسماء واضحة، بينما يحدد نوع البيانات طبيعة كل قيمة والطريقة المناسبة للتعامل معها.</p>
+
+<h2>أهداف التعلم</h2>
+
+<p>بعد دراسة هذا الملخص، يُتوقع أن تستطيع:</p>
+
+<ul>
+  <li>شرح معنى المتغير في Python.</li>
+  <li>استخدام علامة الإسناد لربط اسم بقيمة.</li>
+  <li>اختيار أسماء متغيرات صحيحة وواضحة.</li>
+  <li>التمييز بين الأنواع الأساسية: int وfloat وstr وbool.</li>
+  <li>فهم استخدام القيمة None.</li>
+  <li>استخدام type() لمعرفة نوع قيمة.</li>
+  <li>إجراء تحويلات أساسية باستخدام int() وfloat() وstr() وbool().</li>
+  <li>اكتشاف بعض الأخطاء الشائعة في الأسماء والتحويلات.</li>
+</ul>
+
+<h2>ما المتغير؟</h2>
+
+<p>المتغير اسم نستخدمه للإشارة إلى قيمة داخل البرنامج. يساعد الاسم الواضح على تذكر معنى القيمة واستخدامها في مواضع أخرى من الكود.</p>
+
+<pre dir="ltr"><code>student_name = "سارة"
+age = 15
+height = 1.62
+is_beginner = True</code></pre>
+
+<p>في المثال السابق:</p>
+
+<ul>
+  <li><code>student_name</code> اسم متغير يشير إلى النص <code>"سارة"</code>.</li>
+  <li><code>age</code> اسم متغير يشير إلى العدد الصحيح <code>15</code>.</li>
+  <li><code>height</code> اسم متغير يشير إلى العدد العشري <code>1.62</code>.</li>
+  <li><code>is_beginner</code> اسم متغير يشير إلى القيمة المنطقية <code>True</code>.</li>
+</ul>
+
+<h2>الإسناد باستخدام علامة =</h2>
+
+<p>تسمى عملية ربط اسم المتغير بقيمة عملية الإسناد. تستخدم Python علامة <code>=</code> لتنفيذ الإسناد.</p>
+
+<pre dir="ltr"><code>age = 15</code></pre>
+
+<p>تقرأ هذه العبارة بمعنى: أسند القيمة <code>15</code> إلى المتغير <code>age</code>. لا تعني العلامة هنا سؤالًا عن المساواة، بل تعني تخزين القيمة تحت اسم محدد.</p>
+
+<h3>اسم المتغير وقيمته</h3>
+
+<p>اسم المتغير ليس هو القيمة نفسها. في العبارة التالية:</p>
+
+<pre dir="ltr"><code>student_name = "سارة"</code></pre>
+
+<ul>
+  <li><code>student_name</code> هو الاسم الذي نستخدمه داخل الكود.</li>
+  <li><code>"سارة"</code> هي القيمة التي يشير إليها الاسم.</li>
+</ul>
+
+<p>وجود علامتي الاقتباس حول <code>"سارة"</code> يعني أن القيمة نص، أما اسم المتغير فلا يوضع عادةً بين علامتي اقتباس.</p>
+
+<h2>إعادة إسناد قيمة جديدة</h2>
+
+<p>يمكن أن يشير المتغير إلى قيمة جديدة لاحقًا. تسمى هذه العملية إعادة الإسناد.</p>
+
+<pre dir="ltr"><code>age = 15
+age = 16</code></pre>
+
+<p>بعد تنفيذ السطر الثاني تصبح قيمة <code>age</code> هي <code>16</code>. لا يحتاج البرنامج إلى إنشاء اسم جديد في كل مرة تتغير فيها القيمة.</p>
+
+<p>يمكن كذلك أن يتغير نوع القيمة المرتبطة بالمتغير:</p>
+
+<pre dir="ltr"><code>status = True
+status = "مكتمل"</code></pre>
+
+<p>في السطر الأول يشير <code>status</code> إلى قيمة من نوع <code>bool</code>، ثم يشير في السطر الثاني إلى قيمة من نوع <code>str</code>. يكفي في هذا المستوى معرفة أن Python تسمح بإعادة إسناد قيمة من نوع مختلف، دون الدخول في تفاصيل الأنواع الديناميكية المتقدمة.</p>
+
+<h2>قواعد تسمية المتغيرات</h2>
+
+<p>يجب أن يلتزم اسم المتغير بعدد من القواعد الأساسية:</p>
+
+<ul>
+  <li>يمكن أن يحتوي على حروف وأرقام والشرطة السفلية <code>_</code>.</li>
+  <li>لا يجوز أن يبدأ برقم.</li>
+  <li>لا يجوز أن يحتوي على مسافة.</li>
+  <li>لا يجوز استخدام كلمة محجوزة في Python مثل <code>class</code>.</li>
+  <li>الأحرف الكبيرة والصغيرة مختلفة، لذلك <code>age</code> يختلف عن <code>Age</code>.</li>
+</ul>
+
+<h3>أسماء صحيحة</h3>
+
+<pre dir="ltr"><code>student_name = "سارة"
+age2 = 16
+course_status = "بدأ"
+is_beginner = True</code></pre>
+
+<h3>أسماء غير صحيحة</h3>
+
+<pre dir="ltr"><code>2age = 16
+student name = "سارة"
+class = "Python"</code></pre>
+
+<p>الاسم الأول يبدأ برقم، والثاني يحتوي على مسافة، والثالث يستخدم كلمة محجوزة.</p>
+
+<h3>اختيار اسم واضح</h3>
+
+<p>قد يكون الاسم القصير صالحًا، لكنه لا يكون دائمًا واضحًا. الاسم <code>age</code> أوضح من <code>a</code> عندما تمثل القيمة عمر المتعلم. تساعد الأسماء الواضحة على قراءة الكود ومراجعته.</p>
+
+<h2>أنواع البيانات الأساسية</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>النوع</th>
+      <th>الاستخدام</th>
+      <th>مثال</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>int</td>
+      <td>الأعداد الصحيحة دون جزء عشري</td>
+      <td><code>15</code></td>
+    </tr>
+    <tr>
+      <td>float</td>
+      <td>الأعداد التي تحتوي على جزء عشري</td>
+      <td><code>1.62</code></td>
+    </tr>
+    <tr>
+      <td>str</td>
+      <td>النصوص والمحارف</td>
+      <td><code>"سارة"</code></td>
+    </tr>
+    <tr>
+      <td>bool</td>
+      <td>القيم المنطقية</td>
+      <td><code>True</code> أو <code>False</code></td>
+    </tr>
+    <tr>
+      <td>None</td>
+      <td>عدم وجود قيمة محددة حاليًا</td>
+      <td><code>None</code></td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>النوع int</h2>
+
+<p>يستخدم <code>int</code> للأعداد الصحيحة التي لا تحتوي على جزء عشري.</p>
+
+<pre dir="ltr"><code>age = 15
+completed_lessons = 3
+temperature = -2</code></pre>
+
+<p>القيم <code>15</code> و<code>3</code> و<code>-2</code> كلها من نوع <code>int</code>.</p>
+
+<h2>النوع float</h2>
+
+<p>يستخدم <code>float</code> للأعداد التي تحتوي على جزء عشري.</p>
+
+<pre dir="ltr"><code>height = 1.62
+progress = 25.5
+temperature = -2.5</code></pre>
+
+<p>وجود النقطة العشرية يجعل القيمة من نوع <code>float</code>، حتى عندما يكون الجزء العشري صفرًا، مثل <code>15.0</code>.</p>
+
+<h2>النوع str</h2>
+
+<p>يستخدم <code>str</code> للنصوص. توضع القيمة النصية بين علامتي اقتباس مفردتين أو مزدوجتين.</p>
+
+<pre dir="ltr"><code>student_name = "سارة"
+course_name = 'Python'
+age_text = "15"</code></pre>
+
+<p>القيمة <code>"15"</code> نص وليست عددًا؛ لأن وجود علامتي الاقتباس يجعلها من نوع <code>str</code>.</p>
+
+<h2>النوع bool</h2>
+
+<p>يستخدم <code>bool</code> لتمثيل حالتين منطقيتين فقط:</p>
+
+<ul>
+  <li><code>True</code></li>
+  <li><code>False</code></li>
+</ul>
+
+<pre dir="ltr"><code>is_beginner = True
+course_completed = False</code></pre>
+
+<p>يجب كتابة الحرف الأول كبيرًا. القيمتان <code>true</code> و<code>false</code> ليستا الصياغة الصحيحة للقيم المنطقية في Python.</p>
+
+<h2>القيمة None</h2>
+
+<p>تستخدم <code>None</code> عندما لا توجد قيمة محددة حاليًا.</p>
+
+<pre dir="ltr"><code>final_result = None</code></pre>
+
+<p>لا تعني <code>None</code> العدد صفرًا، ولا تعني نصًا فارغًا، بل تمثل غياب قيمة محددة.</p>
+
+<p>يمكن لاحقًا إسناد قيمة حقيقية إلى المتغير نفسه:</p>
+
+<pre dir="ltr"><code>final_result = None
+final_result = "ناجح"</code></pre>
+
+<h2>معرفة النوع باستخدام type()</h2>
+
+<p>تعيد الدالة <code>type()</code> نوع القيمة أو المتغير.</p>
+
+<p>نستخدم <code>print()</code> هنا لإظهار نتيجة <code>type()</code> عند تشغيل الكود من ملف Python.</p>
+
+<pre dir="ltr"><code>age = 15
+print(type(age))</code></pre>
+
+<p>تظهر النتيجة:</p>
+
+<pre dir="ltr"><code>&lt;class 'int'&gt;</code></pre>
+
+<p>أمثلة أخرى:</p>
+
+<pre dir="ltr"><code>height = 1.62
+print(type(height))
+
+student_name = "سارة"
+print(type(student_name))
+
+is_beginner = True
+print(type(is_beginner))
+
+notes = None
+print(type(notes))</code></pre>
+
+<p>تظهر الأنواع <code>float</code> و<code>str</code> و<code>bool</code> و<code>NoneType</code> بالترتيب.</p>
+
+<h2>التحويل بين الأنواع</h2>
+
+<p>يمكن استخدام دوال التحويل الأساسية لإنشاء قيمة من نوع جديد.</p>
+
+<h3>التحويل إلى int</h3>
+
+<pre dir="ltr"><code>age_text = "15"
+age_number = int(age_text)</code></pre>
+
+<p>تصبح قيمة <code>age_number</code> عددًا صحيحًا من نوع <code>int</code>.</p>
+
+<p>يمكن تحويل قيمة عشرية إلى عدد صحيح:</p>
+
+<pre dir="ltr"><code>height = 1.62
+whole_number = int(height)</code></pre>
+
+<p>تكون النتيجة <code>1</code>؛ لأن <code>int()</code> يقتطع الجزء الكسري باتجاه الصفر، ولا يقرّب القيمة إلى أقرب عدد صحيح.</p>
+
+<h3>التحويل إلى float</h3>
+
+<pre dir="ltr"><code>price_text = "12.5"
+price_number = float(price_text)</code></pre>
+
+<p>تصبح القيمة <code>12.5</code> من نوع <code>float</code>.</p>
+
+<p>يمكن كذلك تحويل عدد صحيح إلى عدد عشري:</p>
+
+<pre dir="ltr"><code>lesson_count = 3
+lesson_count_float = float(lesson_count)</code></pre>
+
+<p>تصبح القيمة الجديدة <code>3.0</code>.</p>
+
+<h3>التحويل إلى str</h3>
+
+<pre dir="ltr"><code>age = 15
+age_text = str(age)</code></pre>
+
+<p>تصبح قيمة <code>age_text</code> هي النص <code>"15"</code>.</p>
+
+<p>كما يمكن تحويل القيم المنطقية:</p>
+
+<pre dir="ltr"><code>status = True
+status_text = str(status)</code></pre>
+
+<p>تصبح القيمة النصية <code>"True"</code>.</p>
+
+<h3>التحويل إلى bool</h3>
+
+<p>يمكن استخدام <code>bool()</code> لتحويل قيم إلى قيمة منطقية.</p>
+
+<pre dir="ltr"><code>print(bool(0))
+print(bool(1))
+print(bool(""))
+print(bool("Python"))</code></pre>
+
+<p>النتائج بالترتيب:</p>
+
+<ul>
+  <li><code>False</code> للعدد صفر.</li>
+  <li><code>True</code> للعدد غير الصفري.</li>
+  <li><code>False</code> للنص الفارغ.</li>
+  <li><code>True</code> للنص غير الفارغ.</li>
+</ul>
+
+<p>انتبه إلى أن:</p>
+
+<pre dir="ltr"><code>print(bool("False"))</code></pre>
+
+<p>تعيد <code>True</code>؛ لأن القيمة نص غير فارغ، وليست القيمة المنطقية <code>False</code>.</p>
+
+<h2>أخطاء شائعة</h2>
+
+<h3>البدء برقم في اسم المتغير</h3>
+
+<pre dir="ltr"><code>2age = 15</code></pre>
+
+<p>هذا الاسم غير صالح؛ لأن اسم المتغير لا يبدأ برقم.</p>
+
+<h3>نسيان علامات الاقتباس حول النص</h3>
+
+<pre dir="ltr"><code>student_name = سارة</code></pre>
+
+<p>ستتعامل Python مع <code>سارة</code> بوصفه اسمًا، لا قيمة نصية. الصياغة الصحيحة:</p>
+
+<pre dir="ltr"><code>student_name = "سارة"</code></pre>
+
+<h3>الخلط بين النص والعدد</h3>
+
+<pre dir="ltr"><code>age = "15"</code></pre>
+
+<p>القيمة هنا من نوع <code>str</code> وليست <code>int</code>.</p>
+
+<h3>تحويل نص غير مناسب إلى عدد</h3>
+
+<pre dir="ltr"><code>age = int("خمسة عشر")</code></pre>
+
+<p>لا يمكن لـ<code>int()</code> تحويل هذا النص مباشرة إلى عدد صحيح؛ لأن النص لا يحتوي على أرقام مكتوبة بصيغة عددية مناسبة.</p>
+
+<h3>تحويل نص عشري مباشرة باستخدام int()</h3>
+
+<pre dir="ltr"><code>value = int("12.5")</code></pre>
+
+<p>هذا التحويل لا ينجح؛ لأن النص يمثل عددًا عشريًا. يمكن استخدام <code>float("12.5")</code> للحصول على قيمة عشرية.</p>
+
+<h2>تمارين قصيرة</h2>
+
+<ol>
+  <li>أنشئ متغيرًا باسم <code>student_name</code> وخزّن فيه اسمًا نصيًا.</li>
+  <li>أنشئ متغيرًا باسم <code>age</code> وخزّن فيه عددًا صحيحًا.</li>
+  <li>أنشئ متغيرًا باسم <code>height</code> وخزّن فيه عددًا عشريًا.</li>
+  <li>أنشئ متغيرًا باسم <code>is_beginner</code> وخزّن فيه قيمة منطقية.</li>
+  <li>استخدم <code>print(type(...))</code> لإظهار نوع كل قيمة عند تشغيل الكود من ملف.</li>
+  <li>حوّل النص <code>"25"</code> إلى عدد صحيح.</li>
+  <li>حوّل العدد <code>25</code> إلى نص.</li>
+  <li>صحح اسم المتغير غير الصالح <code>2student</code>.</li>
+  <li>توقع نتيجة <code>bool(0)</code> و<code>bool("0")</code>، ثم تحقق باستخدام بيئة Python.</li>
+</ol>
+
+<h2>مراجعة سريعة</h2>
+
+<ul>
+  <li>المتغير اسم يشير إلى قيمة.</li>
+  <li>تستخدم علامة <code>=</code> للإسناد.</li>
+  <li>يمكن إعادة إسناد قيمة جديدة إلى المتغير.</li>
+  <li>لا يبدأ اسم المتغير برقم ولا يحتوي على مسافة.</li>
+  <li><code>int</code> للأعداد الصحيحة.</li>
+  <li><code>float</code> للأعداد العشرية.</li>
+  <li><code>str</code> للنصوص.</li>
+  <li><code>bool</code> للقيمتين <code>True</code> و<code>False</code>.</li>
+  <li><code>None</code> تمثل عدم وجود قيمة محددة.</li>
+  <li><code>type()</code> تساعد على معرفة نوع القيمة.</li>
+  <li>تستخدم <code>int()</code> و<code>float()</code> و<code>str()</code> و<code>bool()</code> للتحويل الأساسي بين الأنواع.</li>
+</ul>
+
+<p><strong>الخطوة التالية:</strong> <a href="../quizzes/python-variables-quiz">ابدأ اختبار أساسيات المتغيرات في Python</a>.</p>

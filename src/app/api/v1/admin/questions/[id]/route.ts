@@ -2,8 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { json, bad, unauth, notFound } from "@/lib/http";
 import { verifyAdmin } from "@/lib/admin-auth";
 import { CACHE_CONTROL } from "@/lib/cache-tags";
-import { revalidateQuestionCache } from "@/lib/cache-invalidation";
-import { Prisma } from "@prisma/client";
+import { revalidateQuestionCache, revalidateQuizCache } from "@/lib/cache-invalidation";
 import { updateQuestionSchema } from "@/validations/question";
 
 export const dynamic = "force-dynamic";
@@ -114,18 +113,63 @@ export async function DELETE(req: Request, { params }: RouteContext) {
 
   const target = await prisma.question.findUnique({
     where: { id },
-    select: { chapter: { select: { subjectId: true } } },
+    select: {
+      chapter: { select: { subjectId: true } },
+      _count: { select: { userAnswers: true } },
+    },
   });
 
-  try {
-    await prisma.question.delete({ where: { id } });
-  } catch (e) {
-    if (e instanceof Prisma.PrismaClientKnownRequestError) {
-      return bad("فشل الحذف");
-    }
-    return bad("فشل الحذف");
+  if (!target) return notFound("السؤال غير موجود");
+
+  if (target._count.userAnswers > 0) {
+    return bad(
+      "لا يمكن حذف السؤال لأنه مرتبط بإجابات طلاب محفوظة. يمكنك تعطيل السؤال بدلًا من حذفه.",
+      { code: "question_has_answers", userAnswersCount: target._count.userAnswers },
+      409
+    );
   }
 
-  revalidateQuestionCache({ subjectId: target?.chapter?.subjectId });
-  return json({ data: true }, { status: 200 });
+  try {
+    const affectedQuizzes = await prisma.$transaction(async (tx) => {
+      const quizLinks = await tx.quizQuestion.findMany({
+        where: { questionId: id },
+        select: { quizId: true, quiz: { select: { subjectId: true } } },
+      });
+
+      await tx.quizQuestion.deleteMany({ where: { questionId: id } });
+      await tx.questionOption.deleteMany({ where: { questionId: id } });
+      await tx.question.delete({ where: { id } });
+
+      const uniqueQuizIds = Array.from(new Set(quizLinks.map((link) => link.quizId)));
+      for (const quizId of uniqueQuizIds) {
+        const stats = await tx.quizQuestion.aggregate({
+          where: { quizId },
+          _count: { _all: true },
+          _sum: { points: true },
+        });
+
+        await tx.quiz.update({
+          where: { id: quizId },
+          data: {
+            totalQuestions: stats._count._all,
+            totalPoints: stats._sum.points ?? 0,
+          },
+        });
+      }
+
+      return uniqueQuizIds.map((quizId) => ({
+        id: quizId,
+        subjectId: quizLinks.find((link) => link.quizId === quizId)?.quiz.subjectId ?? null,
+      }));
+    });
+
+    revalidateQuestionCache({ subjectId: target.chapter?.subjectId });
+    for (const quiz of affectedQuizzes) {
+      revalidateQuizCache({ id: quiz.id, subjectId: quiz.subjectId });
+    }
+  } catch {
+    return bad("تعذر حذف السؤال مؤقتًا. حاول مرة أخرى.", undefined, 500);
+  }
+
+  return json({ data: true, message: "تم حذف السؤال بنجاح" }, { status: 200 });
 }

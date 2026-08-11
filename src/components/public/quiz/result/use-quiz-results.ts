@@ -132,23 +132,38 @@ function pickBest(list: UiResult[]) {
     })[0];
 }
 
+function loadCompletedSession(quizId: string, sessionId: string) {
+  const keys = makeQuizKeys(quizId);
+  const candidates = [
+    sessionId ? `quiz_session_${quizId}_${sessionId}` : "",
+    keys.session,
+    sessionId ? `quiz_session_${sessionId}` : "",
+  ].filter(Boolean);
+
+  for (const key of candidates) {
+    const session = safeJsonParse<StoredCompleted>(localStorage.getItem(key));
+    if (session?.quizId === quizId && session.isCompleted === true) return session;
+  }
+
+  return null;
+}
+
 export function useQuizResults({ quiz, sessionId }: { quiz: QuizWithQuestions; sessionId: string }) {
   const [loading, setLoading] = useState(true);
   const [current, setCurrent] = useState<UiResult | null>(null);
   const [best, setBest] = useState<UiResult | null>(null);
   const [attemptsCount, setAttemptsCount] = useState(0);
+  const [completedAnswers, setCompletedAnswers] = useState<Record<string, QuizAnswer> | null>(null);
 
   useEffect(() => {
     setLoading(true);
-
-    const keys = makeQuizKeys(quiz.id);
 
     // 1) اقرأ نتيجة السيرفر لهذه الجلسة (إن وجدت)
     const graded = safeJsonParse<any>(localStorage.getItem("quiz_result_" + sessionId));
     const gradedNorm = normalizeAnyResult(graded);
 
     // 2) اقرأ session المحفوظ للاختبار (آخر محاولة) — قد لا يطابق sessionId دائمًا
-    const storedSession = safeJsonParse<StoredCompleted>(localStorage.getItem(keys.session));
+    const storedSession = loadCompletedSession(quiz.id, sessionId);
 
     // 3) إن لم توجد نتيجة سيرفر، احسب محلياً (fallback) بشرط وجود session
     const fallback =
@@ -179,6 +194,7 @@ export function useQuizResults({ quiz, sessionId }: { quiz: QuizWithQuestions; s
     setCurrent(finalCurrent);
     setBest(bestPick);
     setAttemptsCount(forThisQuiz.length);
+    setCompletedAnswers(storedSession?.answers ?? null);
 
     setLoading(false);
   }, [quiz, sessionId]);
@@ -193,5 +209,5 @@ export function useQuizResults({ quiz, sessionId }: { quiz: QuizWithQuestions; s
     return `نتيجتي في اختبار "${quiz.title}": ${Math.round(current.percentage)}% (${current.grade})`;
   }, [current, quiz.title]);
 
-  return { loading, current, best, attemptsCount, isCurrentBest, shareText };
+  return { loading, current, best, attemptsCount, isCurrentBest, shareText, completedAnswers };
 }

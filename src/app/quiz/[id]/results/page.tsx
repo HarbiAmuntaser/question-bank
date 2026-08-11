@@ -7,7 +7,9 @@ import type { QuizWithQuestions } from "@/types";
 import { fetchJSON } from "@/lib/server/student-fetch";
 import { encodeSlugPath, stripPrefix } from "@/lib/public/slug-utils";
 import { QuizResults } from "@/components/public/quiz/result/quiz-results";
+import type { ResultStudySummaryReference } from "@/components/public/quiz/result/result-study-guidance";
 import { PublicHeader } from "@/components/public/public-header/public-header";
+import { getPublishedSubjectSummaries } from "@/lib/server/study-summaries";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -99,12 +101,35 @@ export default async function QuizResultsPage({
     0
   );
   const backToSubjectUrl = ctxRes.ok ? buildSubjectUrlFromContext(ctxRes.data) : null;
+  const subjectId = ctxRes.ok ? ctxRes.data?.context?.subject?.id ?? null : null;
+  const studySummaries: ResultStudySummaryReference[] =
+    subjectId && backToSubjectUrl
+      ? await getPublishedSubjectSummaries(subjectId)
+          .then((summaries) =>
+            summaries.map((summary) => ({
+              id: summary.id,
+              title: summary.title,
+              excerpt: summary.excerpt,
+              accessType: summary.accessType,
+              chapter: summary.chapter,
+              hasReadableContent: summary.hasReadableContent,
+              hasPdf: summary.hasPdf,
+              href: `${backToSubjectUrl}/summaries/${encodeSlugPath(summary.slug)}`,
+            })),
+          )
+          .catch(() => [])
+      : [];
 
   return (
     <div className="min-h-screen bg-background">
       <PublicHeader />
       <main className="container mx-auto px-4 py-8">
-        <QuizResults quiz={quiz} sessionId={sessionId} backToSubjectUrl={backToSubjectUrl ?? undefined} />
+        <QuizResults
+          quiz={quiz}
+          sessionId={sessionId}
+          backToSubjectUrl={backToSubjectUrl ?? undefined}
+          studySummaries={studySummaries}
+        />
       </main>
     </div>
   );

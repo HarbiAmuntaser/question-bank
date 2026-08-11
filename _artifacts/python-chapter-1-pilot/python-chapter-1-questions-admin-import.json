@@ -1,0 +1,548 @@
+[
+  {
+    "questionText": "ما الوظيفة الأساسية للمتغير في Python؟",
+    "questionType": "multiple_choice",
+    "difficultyLevel": "easy",
+    "points": 1,
+    "explanation": "المتغير اسم يشير إلى قيمة، مما يسمح باستخدام القيمة أو إعادة إسناد قيمة جديدة إلى الاسم لاحقًا.",
+    "tags": [
+      "المتغيرات",
+      "الإسناد"
+    ],
+    "isActive": true,
+    "options": [
+      {
+        "text": "حذف القيم بعد إنشائها.",
+        "isCorrect": false
+      },
+      {
+        "text": "إعطاء قيمة اسمًا يمكن استخدامه داخل البرنامج.",
+        "isCorrect": true
+      },
+      {
+        "text": "تحويل Python إلى لغة أخرى.",
+        "isCorrect": false
+      },
+      {
+        "text": "تشغيل الحلقات تلقائيًا.",
+        "isCorrect": false
+      }
+    ]
+  },
+  {
+    "questionText": "ما الرمز المستخدم لإسناد قيمة إلى متغير في Python؟",
+    "questionType": "multiple_choice",
+    "difficultyLevel": "easy",
+    "points": 1,
+    "explanation": "تستخدم علامة `=` لربط اسم المتغير بقيمة، مثل `age = 15`.",
+    "tags": [
+      "الإسناد",
+      "المتغيرات"
+    ],
+    "isActive": true,
+    "options": [
+      {
+        "text": "`=`",
+        "isCorrect": true
+      },
+      {
+        "text": "`=>`",
+        "isCorrect": false
+      },
+      {
+        "text": "`:`",
+        "isCorrect": false
+      },
+      {
+        "text": "`#`",
+        "isCorrect": false
+      }
+    ]
+  },
+  {
+    "questionText": "أي اسم من الأسماء التالية صالح لمتغير في Python؟",
+    "questionType": "multiple_choice",
+    "difficultyLevel": "easy",
+    "points": 1,
+    "explanation": "الاسم `student_name` يبدأ بحرف، ولا يحتوي على مسافة، ولا يستخدم كلمة محجوزة.",
+    "tags": [
+      "أسماء المتغيرات",
+      "الأخطاء الشائعة"
+    ],
+    "isActive": true,
+    "options": [
+      {
+        "text": "`2student`",
+        "isCorrect": false
+      },
+      {
+        "text": "`student name`",
+        "isCorrect": false
+      },
+      {
+        "text": "`student_name`",
+        "isCorrect": true
+      },
+      {
+        "text": "`class`",
+        "isCorrect": false
+      }
+    ]
+  },
+  {
+    "questionText": "ما نوع القيمة `25` في Python؟",
+    "questionType": "multiple_choice",
+    "difficultyLevel": "easy",
+    "points": 1,
+    "explanation": "القيمة `25` عدد صحيح دون جزء عشري، لذلك نوعها `int`.",
+    "tags": [
+      "أنواع البيانات",
+      "int"
+    ],
+    "isActive": true,
+    "options": [
+      {
+        "text": "`str`",
+        "isCorrect": false
+      },
+      {
+        "text": "`bool`",
+        "isCorrect": false
+      },
+      {
+        "text": "`float`",
+        "isCorrect": false
+      },
+      {
+        "text": "`int`",
+        "isCorrect": true
+      }
+    ]
+  },
+  {
+    "questionText": "ما نوع القيمة `2.5` في Python؟",
+    "questionType": "multiple_choice",
+    "difficultyLevel": "easy",
+    "points": 1,
+    "explanation": "وجود الجزء العشري يجعل القيمة من نوع `float`.",
+    "tags": [
+      "أنواع البيانات",
+      "float"
+    ],
+    "isActive": true,
+    "options": [
+      {
+        "text": "`int`",
+        "isCorrect": false
+      },
+      {
+        "text": "`float`",
+        "isCorrect": true
+      },
+      {
+        "text": "`str`",
+        "isCorrect": false
+      },
+      {
+        "text": "`NoneType`",
+        "isCorrect": false
+      }
+    ]
+  },
+  {
+    "questionText": "ما نوع القيمة `\"25\"`؟",
+    "questionType": "multiple_choice",
+    "difficultyLevel": "easy",
+    "points": 1,
+    "explanation": "وجود علامتي الاقتباس يعني أن القيمة نص من نوع `str`، حتى لو احتوى النص على أرقام.",
+    "tags": [
+      "أنواع البيانات",
+      "str"
+    ],
+    "isActive": true,
+    "options": [
+      {
+        "text": "`str`",
+        "isCorrect": true
+      },
+      {
+        "text": "`int`",
+        "isCorrect": false
+      },
+      {
+        "text": "`float`",
+        "isCorrect": false
+      },
+      {
+        "text": "`bool`",
+        "isCorrect": false
+      }
+    ]
+  },
+  {
+    "questionText": "يمكن إعادة إسناد قيمة جديدة إلى متغير بعد إنشائه.",
+    "questionType": "true_false",
+    "difficultyLevel": "easy",
+    "points": 1,
+    "explanation": "يمكن كتابة إسناد جديد للاسم نفسه، وتصبح القيمة الجديدة هي القيمة التي يشير إليها المتغير.",
+    "tags": [
+      "الإسناد",
+      "المتغيرات"
+    ],
+    "isActive": true,
+    "tfAnswer": true
+  },
+  {
+    "questionText": "القيمة `None` تعني دائمًا العدد صفر.",
+    "questionType": "true_false",
+    "difficultyLevel": "easy",
+    "points": 1,
+    "explanation": "`None` تمثل عدم وجود قيمة محددة، وهي ليست العدد صفرًا وليست نصًا فارغًا.",
+    "tags": [
+      "None",
+      "أنواع البيانات"
+    ],
+    "isActive": true,
+    "tfAnswer": false
+  },
+  {
+    "questionText": "ما النوع الذي تعيده `type(status)` بعد تنفيذ الكود التالي؟\n\n```text\nstatus = True\nstatus = \"مكتمل\"\ntype(status)\n```",
+    "questionType": "multiple_choice",
+    "difficultyLevel": "medium",
+    "points": 1,
+    "explanation": "أعيد إسناد النص `\"مكتمل\"` إلى المتغير `status`، لذلك أصبح نوع القيمة الحالية `str`.",
+    "tags": [
+      "الإسناد",
+      "type",
+      "str",
+      "قراءة الكود"
+    ],
+    "isActive": true,
+    "options": [
+      {
+        "text": "`bool`",
+        "isCorrect": false
+      },
+      {
+        "text": "`int`",
+        "isCorrect": false
+      },
+      {
+        "text": "`str`",
+        "isCorrect": true
+      },
+      {
+        "text": "`NoneType`",
+        "isCorrect": false
+      }
+    ]
+  },
+  {
+    "questionText": "أي اسم هو الأنسب لتخزين حالة توضح ما إذا كان المتعلم مبتدئًا؟",
+    "questionType": "multiple_choice",
+    "difficultyLevel": "medium",
+    "points": 1,
+    "explanation": "الاسم `is_beginner` صالح وواضح ويصف طبيعة القيمة المنطقية التي سيخزنها.",
+    "tags": [
+      "أسماء المتغيرات",
+      "bool"
+    ],
+    "isActive": true,
+    "options": [
+      {
+        "text": "`x`",
+        "isCorrect": false
+      },
+      {
+        "text": "`is_beginner`",
+        "isCorrect": true
+      },
+      {
+        "text": "`1beginner`",
+        "isCorrect": false
+      },
+      {
+        "text": "`beginner status`",
+        "isCorrect": false
+      }
+    ]
+  },
+  {
+    "questionText": "ما نتيجة التحويل التالي؟\n\n```text\nbool(0)\n```",
+    "questionType": "multiple_choice",
+    "difficultyLevel": "medium",
+    "points": 1,
+    "explanation": "عند التحويل باستخدام `bool()`، يمثل العدد صفر القيمة المنطقية `False`.",
+    "tags": [
+      "bool",
+      "تحويل الأنواع"
+    ],
+    "isActive": true,
+    "options": [
+      {
+        "text": "`\"False\"`",
+        "isCorrect": false
+      },
+      {
+        "text": "`0`",
+        "isCorrect": false
+      },
+      {
+        "text": "`None`",
+        "isCorrect": false
+      },
+      {
+        "text": "`False`",
+        "isCorrect": true
+      }
+    ]
+  },
+  {
+    "questionText": "ما القيمة الناتجة عن الكود التالي؟\n\n```text\nage = int(\"42\")\n```",
+    "questionType": "multiple_choice",
+    "difficultyLevel": "medium",
+    "points": 1,
+    "explanation": "يحول `int()` النص العددي `\"42\"` إلى العدد الصحيح `42`.",
+    "tags": [
+      "int",
+      "str",
+      "تحويل الأنواع"
+    ],
+    "isActive": true,
+    "options": [
+      {
+        "text": "العدد الصحيح `42`",
+        "isCorrect": true
+      },
+      {
+        "text": "النص `\"42\"`",
+        "isCorrect": false
+      },
+      {
+        "text": "العدد العشري `42.0`",
+        "isCorrect": false
+      },
+      {
+        "text": "القيمة `False`",
+        "isCorrect": false
+      }
+    ]
+  },
+  {
+    "questionText": "ما ناتج التحويل التالي؟\n\n```text\nfloat(\"3.5\")\n```",
+    "questionType": "multiple_choice",
+    "difficultyLevel": "medium",
+    "points": 1,
+    "explanation": "يحول `float()` النص العددي العشري `\"3.5\"` إلى قيمة من نوع `float`.",
+    "tags": [
+      "float",
+      "str",
+      "تحويل الأنواع"
+    ],
+    "isActive": true,
+    "options": [
+      {
+        "text": "النص `\"3.5\"`",
+        "isCorrect": false
+      },
+      {
+        "text": "العدد الصحيح `3`",
+        "isCorrect": false
+      },
+      {
+        "text": "العدد العشري `3.5`",
+        "isCorrect": true
+      },
+      {
+        "text": "القيمة `True`",
+        "isCorrect": false
+      }
+    ]
+  },
+  {
+    "questionText": "ما القيمة الناتجة عن الكود التالي؟\n\n```text\nstatus_text = str(True)\n```",
+    "questionType": "multiple_choice",
+    "difficultyLevel": "medium",
+    "points": 1,
+    "explanation": "يحول `str()` القيمة المنطقية إلى تمثيل نصي، لذلك تكون النتيجة `\"True\"`.",
+    "tags": [
+      "str",
+      "bool",
+      "تحويل الأنواع"
+    ],
+    "isActive": true,
+    "options": [
+      {
+        "text": "القيمة المنطقية `True`",
+        "isCorrect": false
+      },
+      {
+        "text": "النص `\"True\"`",
+        "isCorrect": true
+      },
+      {
+        "text": "العدد `1`",
+        "isCorrect": false
+      },
+      {
+        "text": "القيمة `None`",
+        "isCorrect": false
+      }
+    ]
+  },
+  {
+    "questionText": "ما سبب عدم صحة السطر التالي؟\n\n```text\n2age = 15\n```",
+    "questionType": "multiple_choice",
+    "difficultyLevel": "medium",
+    "points": 1,
+    "explanation": "يمكن أن يحتوي اسم المتغير على أرقام، لكنه لا يجوز أن يبدأ برقم.",
+    "tags": [
+      "أسماء المتغيرات",
+      "الأخطاء الشائعة"
+    ],
+    "isActive": true,
+    "options": [
+      {
+        "text": "لا يجوز إسناد عدد صحيح إلى متغير.",
+        "isCorrect": false
+      },
+      {
+        "text": "يجب وضع العدد بين علامتي اقتباس.",
+        "isCorrect": false
+      },
+      {
+        "text": "يجب كتابة اسم المتغير بين علامتي اقتباس.",
+        "isCorrect": false
+      },
+      {
+        "text": "لا يجوز أن يبدأ اسم المتغير برقم.",
+        "isCorrect": true
+      }
+    ]
+  },
+  {
+    "questionText": "تعيد العبارة `bool(\"False\")` القيمة المنطقية `False`.",
+    "questionType": "true_false",
+    "difficultyLevel": "medium",
+    "points": 1,
+    "explanation": "النص `\"False\"` غير فارغ، ولذلك يحوله `bool()` إلى `True`. وجود كلمة False داخل النص لا يجعله قيمة منطقية.",
+    "tags": [
+      "bool",
+      "str",
+      "تحويل الأنواع"
+    ],
+    "isActive": true,
+    "tfAnswer": false
+  },
+  {
+    "questionText": "ما النوع النهائي للمتغير `value`؟\n\n```text\nvalue = \"12\"\nvalue = int(value)\nvalue = str(value)\ntype(value)\n```",
+    "questionType": "multiple_choice",
+    "difficultyLevel": "hard",
+    "points": 1,
+    "explanation": "تبدأ القيمة نصًا، ثم تتحول إلى `int`، ثم تتحول مرة أخرى إلى نص باستخدام `str()`، لذلك النوع النهائي هو `str`.",
+    "tags": [
+      "تحويل الأنواع",
+      "type",
+      "الإسناد",
+      "قراءة الكود"
+    ],
+    "isActive": true,
+    "options": [
+      {
+        "text": "`str`",
+        "isCorrect": true
+      },
+      {
+        "text": "`int`",
+        "isCorrect": false
+      },
+      {
+        "text": "`float`",
+        "isCorrect": false
+      },
+      {
+        "text": "`bool`",
+        "isCorrect": false
+      }
+    ]
+  },
+  {
+    "questionText": "ما القيمة النهائية للمتغير `result`؟\n\n```text\nvalue = \"0\"\nvalue = int(value)\nresult = bool(value)\n```",
+    "questionType": "multiple_choice",
+    "difficultyLevel": "hard",
+    "points": 1,
+    "explanation": "يتحول النص `\"0\"` أولًا إلى العدد الصحيح `0`، ثم يحول `bool(0)` القيمة إلى `False`، وتُسند هذه القيمة إلى المتغير `result`.",
+    "tags": [
+      "int",
+      "bool",
+      "تحويل الأنواع",
+      "قراءة الكود"
+    ],
+    "isActive": true,
+    "options": [
+      {
+        "text": "النص `\"False\"`",
+        "isCorrect": false
+      },
+      {
+        "text": "القيمة `None`",
+        "isCorrect": false
+      },
+      {
+        "text": "القيمة المنطقية `False`",
+        "isCorrect": true
+      },
+      {
+        "text": "القيمة المنطقية `True`",
+        "isCorrect": false
+      }
+    ]
+  },
+  {
+    "questionText": "ما القيمة والنوع النهائيان للمتغير `score`؟\n\n```text\nscore = 7.9\nscore = int(score)\nscore = float(score)\n```",
+    "questionType": "multiple_choice",
+    "difficultyLevel": "hard",
+    "points": 1,
+    "explanation": "يحول `int(7.9)` القيمة إلى العدد الصحيح `7` بإزالة الجزء العشري، ثم يحول `float(7)` القيمة إلى `7.0` من نوع `float`.",
+    "tags": [
+      "int",
+      "float",
+      "تحويل الأنواع",
+      "قراءة الكود"
+    ],
+    "isActive": true,
+    "options": [
+      {
+        "text": "القيمة `7.9` من نوع `float`",
+        "isCorrect": false
+      },
+      {
+        "text": "القيمة `7` من نوع `int`",
+        "isCorrect": false
+      },
+      {
+        "text": "القيمة `\"7\"` من نوع `str`",
+        "isCorrect": false
+      },
+      {
+        "text": "القيمة `7.0` من نوع `float`",
+        "isCorrect": true
+      }
+    ]
+  },
+  {
+    "questionText": "بعد تنفيذ الكود التالي، يكون `age` من نوع `float`، بينما يبقى `Age` من نوع `str`.\n\n```text\nage = 15\nAge = \"15\"\nage = float(age)\n```",
+    "questionType": "true_false",
+    "difficultyLevel": "hard",
+    "points": 1,
+    "explanation": "تتعامل Python مع `age` و`Age` بوصفهما اسمين مختلفين لأن حالة الأحرف مهمة. تحولت قيمة `age` إلى `15.0` من نوع `float`، بينما بقيت قيمة `Age` هي النص `\"15\"` من نوع `str`.",
+    "tags": [
+      "أسماء المتغيرات",
+      "float",
+      "str",
+      "قراءة الكود"
+    ],
+    "isActive": true,
+    "tfAnswer": true
+  }
+]

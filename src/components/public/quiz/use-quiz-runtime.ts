@@ -232,20 +232,21 @@ export function useQuizRuntime(quiz: QuizWithQuestions) {
   const storeCompletedSession = useCallback(
     (completedSession: QuizSession) => {
       const keys = makeQuizKeys(quiz.id);
-      localStorage.setItem(
-        keys.session,
-        JSON.stringify({
-          id: completedSession.id,
-          quizId: quiz.id,
-          startTime: completedSession.startTime instanceof Date ? completedSession.startTime.toISOString() : new Date().toISOString(),
-          answers,
-          currentIndex: currentQuestionIndex,
-          timeRemaining,
-          isCompleted: true,
-        })
-      );
+      const payload = {
+        id: completedSession.id,
+        quizId: quiz.id,
+        startTime: completedSession.startTime instanceof Date ? completedSession.startTime.toISOString() : new Date().toISOString(),
+        answers: completedSession.answers,
+        currentIndex: currentQuestionIndex,
+        timeRemaining,
+        isCompleted: true,
+      };
+
+      localStorage.setItem(keys.session, JSON.stringify(payload));
+      localStorage.setItem(`quiz_session_${quiz.id}_${completedSession.id}`, JSON.stringify(payload));
+      localStorage.setItem(`quiz_session_${completedSession.id}`, JSON.stringify(payload));
     },
-    [quiz.id, answers, currentQuestionIndex, timeRemaining]
+    [quiz.id, currentQuestionIndex, timeRemaining]
   );
 
   // ✅ بدء محاولة جديدة (يمسح active/answers فقط، ولا يمسح سجل النتائج لاحقًا)

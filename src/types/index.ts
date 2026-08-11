@@ -150,6 +150,11 @@ export type UpdateQuestionData = CreateQuestionData
 export interface Question {
   id: string
   chapterId: string
+  chapter?: {
+    id: string
+    name: string
+    chapterNumber: number | null
+  } | null
   questionText: string
   questionType: "multiple_choice" | "true_false" | "short_answer" | "essay"
   difficultyLevel: "easy" | "medium" | "hard"
