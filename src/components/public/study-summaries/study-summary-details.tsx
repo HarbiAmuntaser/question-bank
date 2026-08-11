@@ -17,6 +17,7 @@ import {
   prepareTrustedSummaryHtml,
 } from "@/lib/server/study-summaries";
 
+import { CopyableSummaryContent } from "./copyable-summary-content";
 import { StudySummarySubscribeButton } from "./study-summary-subscribe-button";
 
 const surfaceCardClass = "overflow-hidden border bg-card/95 shadow-sm dark:bg-gray-900/80";
@@ -271,10 +272,7 @@ export async function StudySummaryDetails({
             <>
           <div className="mx-auto max-w-3xl rounded-lg border bg-background/70 p-5 sm:p-6">
             {protectedContent?.contentHtml ? (
-              <div
-                className="summary-content"
-                dangerouslySetInnerHTML={{ __html: prepareTrustedSummaryHtml(protectedContent.contentHtml) }}
-              />
+              <CopyableSummaryContent html={prepareTrustedSummaryHtml(protectedContent.contentHtml)} />
             ) : protectedContent?.contentText ? (
               <p className="whitespace-pre-line text-sm leading-8 text-muted-foreground sm:text-base">
                 {protectedContent.contentText}
