@@ -4,7 +4,7 @@ import { verifyAdmin } from "@/lib/admin-auth";
 import { CACHE_CONTROL } from "@/lib/cache-tags";
 import { revalidateSubjectCache } from "@/lib/cache-invalidation";
 import type { Prisma } from "@prisma/client";
-import { updateSubjectSchema } from "@/validations/subject";
+import { updateSubjectSchema, universitySubjectAcademicPeriodSchema } from "@/validations/subject";
 
 // ملاحظة: نتوقع وجود updateSubjectSchema من "@/validations/subject"
 
@@ -54,10 +54,32 @@ export async function PUT(req: Request, ctx: Ctx) {
   const parsed = updateSubjectSchema.safeParse(body);
   if (!parsed.success) return bad("validation_error", parsed.error.flatten());
 
-  const exists = await prisma.subject.findUnique({ where: { id } });
+  const exists = await prisma.subject.findUnique({
+    where: { id },
+    select: { id: true, majorId: true, year: true, semester: true },
+  });
   if (!exists) return notFound("المقرر غير موجود");
 
   const p = parsed.data;
+  const effectiveMajorId = p.majorId ?? exists.majorId;
+  const major = await prisma.major.findUnique({
+    where: { id: effectiveMajorId },
+    select: { university: { select: { institutionType: true } } },
+  });
+  if (!major) return bad("major_not_found");
+
+  const institutionType = major.university.institutionType;
+  const effectiveYear = Object.prototype.hasOwnProperty.call(p, "year") ? p.year : exists.year;
+  const effectiveSemester = Object.prototype.hasOwnProperty.call(p, "semester") ? p.semester : exists.semester;
+
+  if (institutionType === "university") {
+    const academicPeriod = universitySubjectAcademicPeriodSchema.safeParse({
+      year: effectiveYear,
+      semester: effectiveSemester,
+    });
+    if (!academicPeriod.success) return bad("validation_error", academicPeriod.error.flatten());
+  }
+
   const data: Prisma.SubjectUpdateInput = {};
 
   if (typeof p.name !== "undefined") data.name = p.name;
@@ -74,9 +96,14 @@ export async function PUT(req: Request, ctx: Ctx) {
   if (Object.prototype.hasOwnProperty.call(p, "description"))
     data.description = p.description ?? null;
 
+  if (institutionType === "academy") {
+    data.year = null;
+    data.semester = null;
+  }
+
   const updated = await prisma.subject.update({ where: { id }, data });
 
-  revalidateSubjectCache({ id: updated.id, majorId: updated.majorId });
+  revalidateSubjectCache({ id: updated.id, majorId: updated.majorId, previousMajorId: exists.majorId });
   return json({ data: updated });
 }
 

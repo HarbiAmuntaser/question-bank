@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { json, bad } from "@/lib/http";
 import { CACHE_CONTROL, CACHE_TTL } from "@/lib/cache-tags";
+import { isPublicUniversityId } from "@/lib/server/public-content-visibility";
 
 export const dynamic = "force-dynamic";
 
@@ -74,6 +75,7 @@ export async function GET(_req: Request, { params }: RouteContext) {
     });
 
     if (!seo) return bad("not_found", undefined, 404);
+    if (!(await isPublicUniversityId(seo.ownerId))) return bad("not_found", undefined, 404);
 
     const headers = new Headers({
       "cache-control": CACHE_CONTROL.publicSMaxage(CACHE_TTL.publicLong),

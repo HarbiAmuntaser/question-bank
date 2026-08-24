@@ -5,6 +5,11 @@ import { prisma } from "@/lib/prisma";
 import { json, bad } from "@/lib/http";
 import { CACHE_CONTROL, CACHE_TAGS, CACHE_TTL } from "@/lib/cache-tags";
 import { unstable_cache } from "next/cache";
+import { getPublicVisibilityCacheKey } from "@/config/public-features";
+import {
+  isPublicSubjectId,
+  publicQuizWhere,
+} from "@/lib/server/public-content-visibility";
 
 export const dynamic = "force-dynamic";
 
@@ -40,7 +45,7 @@ const listBySubjectCached = (subjectId: string, q: Q) =>
       }
 
       const quizzes = await prisma.quiz.findMany({
-        where: { isActive: true, AND: and },
+        where: { isActive: true, ...publicQuizWhere(), AND: and },
         orderBy: { createdAt: "desc" },
         take: limit,
         select: {
@@ -70,7 +75,13 @@ const listBySubjectCached = (subjectId: string, q: Q) =>
         seo: { slug: seoMap.get(q.id) ?? null },
       }));
     },
-    ["student-quizzes-by-subject", subjectId, q.degreeType ?? "", q.limit ?? ""],
+    [
+      "student-quizzes-by-subject",
+      subjectId,
+      q.degreeType ?? "",
+      q.limit ?? "",
+      getPublicVisibilityCacheKey(),
+    ],
     {
       revalidate: CACHE_TTL.publicStable,
       tags: [
@@ -89,6 +100,8 @@ export async function GET(req: Request, { params }: RouteContext) {
   if (!id) return bad("missing_id", undefined, 400);
 
   try {
+    if (!(await isPublicSubjectId(id))) return bad("not_found", undefined, 404);
+
     const url = new URL(req.url);
     const q: Q = {
       limit: url.searchParams.get("limit"),

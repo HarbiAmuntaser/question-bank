@@ -1,13 +1,14 @@
 import { prisma } from "@/lib/prisma";
 import { json, bad } from "@/lib/http";
 import { CACHE_CONTROL, CACHE_TTL } from "@/lib/cache-tags";
+import { publicUniversityWhere } from "@/lib/server/public-content-visibility";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
     const rows = await prisma.university.findMany({
-      where: { isActive: true },
+      where: { isActive: true, ...publicUniversityWhere() },
       orderBy: { name: "asc" },
       select: { id: true, name: true },
     });

@@ -1,21 +1,59 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { createRoot, type Root } from "react-dom/client";
 import { Check, Copy } from "lucide-react";
 
 type CodeBlockTarget = {
-  id: number;
-  host: HTMLDivElement;
   pre: HTMLPreElement;
   wrapper: HTMLDivElement;
+  root: Root;
 };
+
+function CodeCopyButton({ pre }: { pre: HTMLPreElement }) {
+  const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(
+    () => () => {
+      if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
+    },
+    [],
+  );
+
+  const copyCode = async () => {
+    const code = pre.querySelector("code")?.textContent ?? pre.textContent ?? "";
+    if (!code.trim()) return;
+
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopied(true);
+
+      if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
+      resetTimerRef.current = setTimeout(() => {
+        setCopied(false);
+        resetTimerRef.current = null;
+      }, 1800);
+    } catch {
+      setCopied(false);
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      className="summary-code-block__copy-button"
+      aria-label={copied ? "تم نسخ الكود" : "نسخ الكود"}
+      title={copied ? "تم النسخ" : "نسخ الكود"}
+      onClick={copyCode}
+    >
+      {copied ? <Check aria-hidden /> : <Copy aria-hidden />}
+    </button>
+  );
+}
 
 export function CopyableSummaryContent({ html }: { html: string }) {
   const contentRef = useRef<HTMLDivElement>(null);
-  const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [targets, setTargets] = useState<CodeBlockTarget[]>([]);
-  const [copiedId, setCopiedId] = useState<number | null>(null);
 
   useEffect(() => {
     const content = contentRef.current;
@@ -23,7 +61,7 @@ export function CopyableSummaryContent({ html }: { html: string }) {
 
     const nextTargets: CodeBlockTarget[] = [];
 
-    content.querySelectorAll<HTMLPreElement>("pre").forEach((pre, id) => {
+    content.querySelectorAll<HTMLPreElement>("pre").forEach((pre) => {
       if (pre.closest(".summary-code-block")) return;
 
       const wrapper = document.createElement("div");
@@ -38,60 +76,18 @@ export function CopyableSummaryContent({ html }: { html: string }) {
       toolbar.appendChild(host);
       wrapper.append(toolbar, pre);
 
-      nextTargets.push({ id, host, pre, wrapper });
+      const root = createRoot(host);
+      root.render(<CodeCopyButton pre={pre} />);
+      nextTargets.push({ pre, wrapper, root });
     });
 
-    setTargets(nextTargets);
-
     return () => {
-      if (resetTimerRef.current) {
-        clearTimeout(resetTimerRef.current);
-        resetTimerRef.current = null;
-      }
-
-      nextTargets.forEach(({ pre, wrapper }) => {
+      nextTargets.forEach(({ pre, wrapper, root }) => {
+        root.unmount();
         if (wrapper.isConnected) wrapper.replaceWith(pre);
       });
     };
   }, [html]);
 
-  const copyCode = async (target: CodeBlockTarget) => {
-    const code = target.pre.querySelector("code")?.textContent ?? target.pre.textContent ?? "";
-    if (!code.trim()) return;
-
-    try {
-      await navigator.clipboard.writeText(code);
-      setCopiedId(target.id);
-
-      if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
-      resetTimerRef.current = setTimeout(() => {
-        setCopiedId(null);
-        resetTimerRef.current = null;
-      }, 1800);
-    } catch {
-      setCopiedId(null);
-    }
-  };
-
-  return (
-    <>
-      <div ref={contentRef} className="summary-content" dangerouslySetInnerHTML={{ __html: html }} />
-      {targets.map((target) =>
-        createPortal(
-          <button
-            key={target.id}
-            type="button"
-            className="summary-code-block__copy-button"
-            aria-label={copiedId === target.id ? "تم نسخ الكود" : "نسخ الكود"}
-            title={copiedId === target.id ? "تم النسخ" : "نسخ الكود"}
-            onClick={() => copyCode(target)}
-          >
-            {copiedId === target.id ? <Check aria-hidden /> : <Copy aria-hidden />}
-          </button>,
-          target.host,
-          target.id,
-        ),
-      )}
-    </>
-  );
+  return <div ref={contentRef} className="summary-content" dangerouslySetInnerHTML={{ __html: html }} />;
 }

@@ -7,10 +7,19 @@
  * - لاحقاً يمكن وضع Providers أو Context هنا لو احتجنا.
  */
 
-export default function RegionTypeLayout({
+import { notFound } from "next/navigation";
+
+import { isSupportedType } from "@/lib/route-helpers";
+
+export default async function RegionTypeLayout({
   children,
+  params,
 }: {
   children: React.ReactNode;
+  params: Promise<{ cc: string; type: string }>;
 }) {
+  const { cc, type } = await params;
+  if (!isSupportedType(type, cc)) notFound();
+
   return children;
 }

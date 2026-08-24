@@ -165,11 +165,17 @@ export function SubjectStudySummaries({
   basePath,
   subjectId,
   majorId,
+  heading = "ملخصات المادة",
+  description = "ابدأ بمراجعة الملخصات المتاحة، ثم انتقل إلى الاختبارات لقياس مستواك.",
+  headingId = "subject-summaries-heading",
 }: {
   summaries: PublicStudySummaryCard[];
   basePath: string;
   subjectId: string;
   majorId: string;
+  heading?: string;
+  description?: string;
+  headingId?: string;
 }) {
   const [statuses, setStatuses] = useState<Record<string, AccessStatus>>({});
   const [loading, setLoading] = useState(true);
@@ -194,14 +200,14 @@ export function SubjectStudySummaries({
   if (summaries.length === 0) return null;
 
   return (
-    <section className="space-y-5" aria-labelledby="subject-summaries-heading">
+    <section className="space-y-5" aria-labelledby={headingId}>
       <div className="text-center">
-        <h2 id="subject-summaries-heading" className="text-xl font-bold sm:text-2xl">
-          ملخصات المادة
+        <h2 id={headingId} className="text-xl font-bold sm:text-2xl">
+          {heading}
         </h2>
-        <p className="mt-1 text-sm leading-relaxed text-muted-foreground sm:text-base">
-          ابدأ بمراجعة الملخصات المتاحة، ثم انتقل إلى الاختبارات لقياس مستواك.
-        </p>
+        {description ? (
+          <p className="mt-1 text-sm leading-relaxed text-muted-foreground sm:text-base">{description}</p>
+        ) : null}
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">

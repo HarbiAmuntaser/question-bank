@@ -48,6 +48,7 @@ export type StudySummaryCacheSnapshot = {
   id?: string | null;
   slug?: string | null;
   subjectId?: string | null;
+  chapterId?: string | null;
   subjectPath?: string | null;
   summaryPath?: string | null;
 };
@@ -146,7 +147,13 @@ export function revalidateMajorCache(input: { id?: string | null; universityId?:
   ]);
 }
 
-export function revalidateSubjectCache(input: { id?: string | null; majorId?: string | null } = {}) {
+export function revalidateSubjectCache(
+  input: { id?: string | null; majorId?: string | null; previousMajorId?: string | null } = {},
+) {
+  const majorIds = Array.from(
+    new Set([input.majorId, input.previousMajorId].map((id) => id?.trim()).filter(Boolean) as string[]),
+  );
+
   revalidateTags([
     "subjects",
     "student-subjects",
@@ -155,9 +162,12 @@ export function revalidateSubjectCache(input: { id?: string | null; majorId?: st
     CACHE_TAGS.public.subjects,
     input.id ? CACHE_TAGS.public.subject(input.id) : null,
     input.id ? CACHE_TAGS.public.summariesBySubject(input.id) : null,
-    input.majorId ? CACHE_TAGS.public.subjectsByMajor(input.majorId) : null,
+    input.id ? CACHE_TAGS.public.chaptersBySubject(input.id) : null,
+    ...majorIds.map((majorId) => CACHE_TAGS.public.subjectsByMajor(majorId)),
+    ...majorIds.map((majorId) => CACHE_TAGS.public.major(majorId)),
     input.id ? CACHE_TAGS.public.quizzesBySubject(input.id) : null,
     CACHE_TAGS.public.summaries,
+    CACHE_TAGS.public.chapters,
     CACHE_TAGS.public.majors,
     CACHE_TAGS.public.institutions,
     CACHE_TAGS.public.quizzes,
@@ -171,6 +181,7 @@ export function revalidateStudySummaryCache(input: StudySummaryCacheInput = {}) 
   const snapshots = [input.previous, input.next].filter(Boolean) as StudySummaryCacheSnapshot[];
   const summaryIds = Array.from(new Set(snapshots.map((item) => item.id?.trim()).filter(Boolean) as string[]));
   const subjectIds = Array.from(new Set(snapshots.map((item) => item.subjectId?.trim()).filter(Boolean) as string[]));
+  const chapterIds = Array.from(new Set(snapshots.map((item) => item.chapterId?.trim()).filter(Boolean) as string[]));
   const paths = Array.from(
     new Set(
       snapshots
@@ -190,6 +201,8 @@ export function revalidateStudySummaryCache(input: StudySummaryCacheInput = {}) 
     ...summaryIds.map((id) => CACHE_TAGS.public.summary(id)),
     ...subjectIds.map((id) => CACHE_TAGS.public.subject(id)),
     ...subjectIds.map((id) => CACHE_TAGS.public.summariesBySubject(id)),
+    ...subjectIds.map((id) => CACHE_TAGS.public.chaptersBySubject(id)),
+    ...chapterIds.map((id) => CACHE_TAGS.public.chapter(id)),
   ]);
 
   for (const path of paths) {
@@ -199,20 +212,42 @@ export function revalidateStudySummaryCache(input: StudySummaryCacheInput = {}) 
   revalidatePath("/sitemap.xml");
 }
 
-export function revalidateChapterCache(input: { subjectId?: string | null } = {}) {
+export function revalidateChapterCache(
+  input: { id?: string | null; subjectId?: string | null; previousSubjectId?: string | null } = {},
+) {
+  const affectedSubjectIds = Array.from(
+    new Set([input.subjectId, input.previousSubjectId].map((id) => id?.trim()).filter(Boolean) as string[]),
+  );
   revalidateTags([
     "chapters",
     CACHE_TAGS.admin.chapters,
+    CACHE_TAGS.public.chapters,
+    input.id ? CACHE_TAGS.public.chapter(input.id) : null,
     CACHE_TAGS.public.subjects,
-    input.subjectId ? CACHE_TAGS.public.subject(input.subjectId) : null,
+    ...affectedSubjectIds.map((id) => CACHE_TAGS.public.subject(id)),
+    ...affectedSubjectIds.map((id) => CACHE_TAGS.public.chaptersBySubject(id)),
     CACHE_TAGS.public.quizzes,
-    input.subjectId ? CACHE_TAGS.public.quizzesBySubject(input.subjectId) : null,
+    ...affectedSubjectIds.map((id) => CACHE_TAGS.public.quizzesBySubject(id)),
+    ...affectedSubjectIds.map((id) => CACHE_TAGS.public.summariesBySubject(id)),
     CACHE_TAGS.public.stats,
     "student-stats",
   ]);
 }
 
-export function revalidateQuestionCache(input: { subjectId?: string | null } = {}) {
+export function revalidateQuestionCache(
+  input: {
+    chapterId?: string | null;
+    previousChapterId?: string | null;
+    subjectId?: string | null;
+    previousSubjectId?: string | null;
+  } = {},
+) {
+  const subjectIds = Array.from(
+    new Set([input.subjectId, input.previousSubjectId].map((id) => id?.trim()).filter(Boolean) as string[]),
+  );
+  const chapterIds = Array.from(
+    new Set([input.chapterId, input.previousChapterId].map((id) => id?.trim()).filter(Boolean) as string[]),
+  );
   revalidateTags([
     "questions",
     CACHE_TAGS.admin.questions,
@@ -220,14 +255,22 @@ export function revalidateQuestionCache(input: { subjectId?: string | null } = {
     "student-quizzes",
     "student-quiz-preview",
     "student-quizzes-by-subject",
-    input.subjectId ? CACHE_TAGS.public.subject(input.subjectId) : null,
-    input.subjectId ? CACHE_TAGS.public.quizzesBySubject(input.subjectId) : null,
+    CACHE_TAGS.public.chapters,
+    ...chapterIds.map((id) => CACHE_TAGS.public.chapter(id)),
+    ...subjectIds.map((id) => CACHE_TAGS.public.subject(id)),
+    ...subjectIds.map((id) => CACHE_TAGS.public.chaptersBySubject(id)),
+    ...subjectIds.map((id) => CACHE_TAGS.public.quizzesBySubject(id)),
     CACHE_TAGS.public.stats,
     "student-stats",
   ]);
 }
 
-export function revalidateQuizCache(input: { id?: string | null; subjectId?: string | null } = {}) {
+export function revalidateQuizCache(
+  input: { id?: string | null; subjectId?: string | null; subjectIds?: Array<string | null | undefined> } = {},
+) {
+  const subjectIds = Array.from(
+    new Set([input.subjectId, ...(input.subjectIds ?? [])].map((id) => id?.trim()).filter(Boolean) as string[]),
+  );
   revalidateTags([
     "quizzes",
     "student-quizzes",
@@ -236,7 +279,10 @@ export function revalidateQuizCache(input: { id?: string | null; subjectId?: str
     CACHE_TAGS.admin.quizzes,
     CACHE_TAGS.public.quizzes,
     input.id ? CACHE_TAGS.public.quiz(input.id) : null,
-    input.subjectId ? CACHE_TAGS.public.quizzesBySubject(input.subjectId) : null,
+    CACHE_TAGS.public.chapters,
+    ...subjectIds.map((id) => CACHE_TAGS.public.subject(id)),
+    ...subjectIds.map((id) => CACHE_TAGS.public.chaptersBySubject(id)),
+    ...subjectIds.map((id) => CACHE_TAGS.public.quizzesBySubject(id)),
     CACHE_TAGS.public.subjects,
     CACHE_TAGS.public.seo,
     CACHE_TAGS.public.stats,
@@ -263,6 +309,8 @@ export function revalidateSeoCache(input: { ownerType?: string | null; ownerId?:
     ownerType === "subject" ? "student-subject-detail" : null,
     ownerType === "subject" ? CACHE_TAGS.public.subjects : null,
     ownerType === "subject" && ownerId ? CACHE_TAGS.public.subject(ownerId) : null,
+    ownerType === "chapter" ? CACHE_TAGS.public.chapters : null,
+    ownerType === "chapter" && ownerId ? CACHE_TAGS.public.chapter(ownerId) : null,
     ownerType === "study_summary" ? "student-summaries" : null,
     ownerType === "study_summary" ? "student-summary-detail" : null,
     ownerType === "study_summary" ? CACHE_TAGS.public.summaries : null,

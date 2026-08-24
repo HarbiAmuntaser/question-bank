@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { json, bad } from "@/lib/http";
 import { CACHE_CONTROL, CACHE_TTL } from "@/lib/cache-tags";
+import { publicSubjectWhere } from "@/lib/server/public-content-visibility";
 
 export const dynamic = "force-dynamic";
 
@@ -10,7 +11,11 @@ export async function GET(req: Request) {
     const majorId = searchParams.get("majorId") || undefined;
 
     const rows = await prisma.subject.findMany({
-      where: { isActive: true, ...(majorId ? { majorId } : {}) },
+      where: {
+        isActive: true,
+        ...publicSubjectWhere(),
+        ...(majorId ? { majorId } : {}),
+      },
       orderBy: { name: "asc" },
       select: { id: true, name: true, majorId: true },
     });

@@ -70,7 +70,7 @@ export async function generateMetadata({ params }: { params: Promise<PageParams>
   const typeRaw = (p.type || "").toLowerCase();
 
   if (!isSupportedType(typeRaw, cc)) {
-    return { title: "Not Found" };
+    return { title: "Not Found", robots: { index: false, follow: false } };
   }
 
   const type = typeRaw as InstitutionType;

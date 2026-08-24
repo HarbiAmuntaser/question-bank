@@ -15,6 +15,16 @@ export const listChaptersQuerySchema = z.object({
 export const createChapterSchema = z.object({
   subjectId: z.string().min(1, "subjectId_required"),
   name: z.string().min(1, "name_required"),
+  slug: z
+    .string()
+    .trim()
+    .max(160, "slug_too_long")
+    .refine(
+      (value) => !["chapters", "quizzes", "summaries", "subjects", "majors"].includes(value.toLowerCase()),
+      "reserved_chapter_slug",
+    )
+    .nullable()
+    .optional(),
   chapterNumber: z.number().int().min(1).nullable().optional(),
   description: z.string().nullable().optional(),
   learningObjectives: z.array(z.string().min(1)).default([]),

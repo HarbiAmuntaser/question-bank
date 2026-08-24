@@ -4,6 +4,11 @@ import { SUPPORTED_COUNTRIES, type CountryCode, type InstitutionType } from "@/c
 import { prisma } from "@/lib/prisma";
 import { encodeSlugPath, stripPrefix } from "@/lib/public/slug-utils";
 import { BLOG_TOPIC_INDEX_MIN_POSTS, getSearchIndexingMode } from "@/lib/search-indexing";
+import {
+  getEnabledPublicTypes,
+  isPublicInstitutionTypeEnabled,
+} from "@/config/public-features";
+import { publicQuizWhere } from "@/lib/server/public-content-visibility";
 
 const SITE_URL = "https://mustawak.com";
 const DYNAMIC_LIMIT = 1000;
@@ -38,7 +43,9 @@ function supportedCountry(raw: string | null): CountryCode | null {
 
 function supportedType(cc: CountryCode, raw: unknown): InstitutionType | null {
   const type = String(raw ?? "").trim().toLowerCase() as InstitutionType;
-  return SUPPORTED_COUNTRIES[cc].types.includes(type) ? type : null;
+  return SUPPORTED_COUNTRIES[cc].types.includes(type) && isPublicInstitutionTypeEnabled(type)
+    ? type
+    : null;
 }
 
 function latestDate(...dates: Array<Date | null | undefined>) {
@@ -84,6 +91,7 @@ async function institutionEntries(): Promise<SitemapEntry[]> {
     where: {
       isActive: true,
       countryCode: { in: Object.keys(SUPPORTED_COUNTRIES) },
+      institutionType: { in: getEnabledPublicTypes() },
     },
     orderBy: { updatedAt: "desc" },
     take: DYNAMIC_LIMIT,
@@ -126,6 +134,7 @@ async function majorEntries(): Promise<SitemapEntry[]> {
       university: {
         isActive: true,
         countryCode: { in: Object.keys(SUPPORTED_COUNTRIES) },
+        institutionType: { in: getEnabledPublicTypes() },
       },
     },
     orderBy: { updatedAt: "desc" },
@@ -183,6 +192,7 @@ async function subjectEntries(): Promise<SitemapEntry[]> {
         university: {
           isActive: true,
           countryCode: { in: Object.keys(SUPPORTED_COUNTRIES) },
+          institutionType: { in: getEnabledPublicTypes() },
         },
       },
     },
@@ -249,6 +259,7 @@ async function quizEntries(): Promise<SitemapEntry[]> {
   const quizzes = await prisma.quiz.findMany({
     where: {
       isActive: true,
+      ...publicQuizWhere(),
     },
     orderBy: { updatedAt: "desc" },
     take: DYNAMIC_LIMIT,
@@ -381,6 +392,7 @@ async function studySummaryEntries(): Promise<SitemapEntry[]> {
           university: {
             isActive: true,
             countryCode: { in: Object.keys(SUPPORTED_COUNTRIES) },
+            institutionType: { in: getEnabledPublicTypes() },
           },
         },
       },
@@ -652,7 +664,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...Object.entries(SUPPORTED_COUNTRIES).flatMap(([cc, config]) => [
       entry(`/${cc}`, { lastModified: now, changeFrequency: "daily", priority: 0.9 }),
       ...(indexingMode === "full"
-        ? config.types.map((type) =>
+        ? config.types.filter(isPublicInstitutionTypeEnabled).map((type) =>
             entry(`/${cc}/${type}`, {
               lastModified: now,
               changeFrequency: "daily",

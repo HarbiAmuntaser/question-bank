@@ -98,6 +98,7 @@ export interface ChapterWithRelations extends Chapter {
 export interface CreateChapterData {
   subjectId: string
   name: string
+  slug?: string
   chapterNumber?: number
   description?: string
   learningObjectives?: string[]
@@ -110,6 +111,7 @@ export interface Chapter {
   id: string
   subjectId: string
   name: string
+  slug: string | null
   chapterNumber: number | null
   description: string | null
   learningObjectives: string[] | null

@@ -5,6 +5,7 @@ import { json } from "@/lib/http";
 import { CACHE_CONTROL } from "@/lib/cache-tags";
 import { getOrCreateAnonymousSession } from "@/lib/server/anonymous-session";
 import { checkQuizAccess } from "@/lib/server/access-control";
+import { isPublicQuizId } from "@/lib/server/public-content-visibility";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +24,10 @@ export async function GET(_req: Request, { params }: RouteContext) {
   if (!id) return json({ error: "missing_id" }, { status: 400, headers: privateHeaders });
 
   try {
+    if (!(await isPublicQuizId(id))) {
+      return json({ error: "not_found" }, { status: 404, headers: privateHeaders });
+    }
+
     const { session } = await getOrCreateAnonymousSession();
     const access = await checkQuizAccess({ quizId: id, anonymousSessionId: session.id });
     if (access.reason === "not_found") return json({ error: "not_found" }, { status: 404, headers: privateHeaders });

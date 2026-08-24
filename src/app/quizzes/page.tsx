@@ -5,6 +5,7 @@ import { PublicLoadingState } from "@/components/public/public-loading-state";
 import { QuizzesListing } from "@/components/public/quizzes-listing";
 import { getRequestOrigin } from "@/lib/server/request-origin";
 import { withSiteName } from "@/lib/seo";
+import { formatArabicList, getEnabledPublicTypeLabels } from "@/config/public-features";
 
 export const revalidate = 3600; // ساعة واحدة كبداية قبل رفع TTL أكثر.
 
@@ -41,7 +42,9 @@ type Pagination = { page: number; pageSize: number; total: number; totalPages: n
 
 const pageTitle = "الاختبارات";
 const socialTitle = withSiteName(pageTitle);
-const pageDescription = "تصفح اختبارات الجامعات والتخصصات والمواد بسهولة وسرعة.";
+const pageDescription = `تصفح الاختبارات والمواد المنظمة ضمن ${formatArabicList(
+  getEnabledPublicTypeLabels(),
+)} بسهولة.`;
 
 export const metadata: Metadata = {
   title: pageTitle,

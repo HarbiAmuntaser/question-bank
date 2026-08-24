@@ -4,6 +4,7 @@ import { json } from "@/lib/http";
 import { CACHE_CONTROL } from "@/lib/cache-tags";
 import { getOrCreateAnonymousSession } from "@/lib/server/anonymous-session";
 import { checkQuizAccess } from "@/lib/server/access-control";
+import { isPublicQuizId } from "@/lib/server/public-content-visibility";
 
 export const dynamic = "force-dynamic";
 
@@ -79,6 +80,10 @@ export async function POST(req: Request) {
     const quizId = body.quizId;
     const answers = body.answers;
     const timeSpent = pickTimeSpentSeconds(body.timeSpent, body.durationSec, body.duration);
+
+    if (!(await isPublicQuizId(quizId))) {
+      return json({ error: "not_found" }, { status: 404, headers: privateHeaders });
+    }
 
     const { session } = await getOrCreateAnonymousSession();
     const access = await checkQuizAccess({ quizId, anonymousSessionId: session.id });

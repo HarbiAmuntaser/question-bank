@@ -5,19 +5,24 @@ import { notFound, redirect } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
-import { ArrowRight, Trophy } from "lucide-react";
+import { ArrowRight, BookOpen } from "lucide-react";
 import type { InstitutionType } from "@/config/regions";
 
 import { MajorSubscriptionCallout } from "@/components/public/subscription-access";
+import { PublicSubjectCard } from "@/components/public/public-subject-card";
+import {
+  compareAcademicPeriods,
+  getAcademicPeriodLabel,
+  getAcademicPeriodRouteKey,
+  isValidAcademicPeriod,
+  type AcademicPeriod,
+} from "@/lib/academic-periods";
 import { fetchJSON } from "@/lib/server/student-fetch";
 import { stripPrefix, encodeSlugPath } from "@/lib/public/slug-utils";
 
 export const revalidate = 21600;
 
 const surfaceCardClass = "overflow-hidden border bg-card/95 shadow-sm transition-shadow hover:shadow-md dark:bg-gray-900/80";
-const listCardClass =
-  "group flex h-full flex-col overflow-hidden border bg-card/95 shadow-sm transition-colors hover:border-primary/40 hover:shadow-md dark:bg-gray-900/80";
-const actionButtonClass = "h-11 w-full rounded-lg text-sm sm:text-base";
 const metaTileClass = "rounded-lg border bg-muted/30 px-4 py-3";
 
 type SeoLite = { slug: string | null };
@@ -112,6 +117,29 @@ function subjectHrefHier(
   )}/subjects/${subjectEnc}`;
 }
 
+function groupSubjectsByAcademicPeriod(subjects: SubjectDto[]) {
+  const groups = new Map<string, { period: AcademicPeriod; subjects: SubjectDto[] }>();
+  const unassigned: SubjectDto[] = [];
+
+  for (const subject of subjects) {
+    if (!isValidAcademicPeriod(subject)) {
+      unassigned.push(subject);
+      continue;
+    }
+
+    const period = { year: subject.year, semester: subject.semester };
+    const key = getAcademicPeriodRouteKey(period);
+    const group = groups.get(key) ?? { period, subjects: [] };
+    group.subjects.push(subject);
+    groups.set(key, group);
+  }
+
+  return {
+    groups: Array.from(groups.values()).sort((a, b) => compareAcademicPeriods(a.period, b.period)),
+    unassigned,
+  };
+}
+
 export async function MajorDetails({
   cc,
   type,
@@ -173,6 +201,8 @@ export async function MajorDetails({
 
   const uniLink = universityHref(ccNorm, typeNorm, major.university);
   const subjects = Array.isArray(major.subjects) ? major.subjects : [];
+  const academicCatalog = groupSubjectsByAcademicPeriod(subjects);
+  const showAcademicLevels = typeNorm === "university" && academicCatalog.groups.length > 0;
 
   return (
     <div className="space-y-6 lg:space-y-8">
@@ -205,35 +235,71 @@ export async function MajorDetails({
 
       <section id="subjects-section" className="space-y-5">
         <div className="text-center">
-          <h2 className="text-xl font-bold leading-tight sm:text-2xl">المواد المتاحة</h2>
+          <h2 className="text-xl font-bold leading-tight sm:text-2xl">
+            {showAcademicLevels ? "المستويات الدراسية" : "المواد المتاحة"}
+          </h2>
         </div>
 
-        {subjects.length > 0 ? (
+        {showAcademicLevels ? (
+          <>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6 xl:grid-cols-3 xl:gap-8">
+              {academicCatalog.groups.map(({ period, subjects: periodSubjects }) => {
+                const routeKey = getAcademicPeriodRouteKey(period);
+                const href = `/${ccNorm}/${typeNorm}/universities/${encodeSlugPath(canonicalUni)}/majors/${encodeSlugPath(
+                  canonicalMajor,
+                )}/levels/${routeKey}`;
+
+                return (
+                  <Card key={routeKey} className="group flex h-full flex-col border bg-card/95 shadow-sm transition-colors hover:border-primary/40 hover:shadow-md dark:bg-gray-900/80">
+                    <CardHeader className="space-y-3 pb-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/10 text-primary">
+                        <BookOpen className="h-5 w-5" aria-hidden />
+                      </div>
+                      <CardTitle className="text-lg font-semibold leading-snug">
+                        {getAcademicPeriodLabel(major.university.countryCode || ccNorm, period)}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="flex flex-1 flex-col justify-between gap-4 pb-6 pt-0">
+                      <p className="text-sm font-medium text-foreground/75">
+                        {periodSubjects.length} {periodSubjects.length === 1 ? "مادة" : "مواد"}
+                      </p>
+                      <Button asChild className="h-11 w-full rounded-lg text-sm sm:text-base">
+                        <Link href={href} prefetch={false}>
+                          عرض مواد المستوى
+                        </Link>
+                      </Button>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+
+            {academicCatalog.unassigned.length > 0 ? (
+              <div className="space-y-4 border-t pt-6">
+                <div>
+                  <h3 className="text-lg font-semibold">مواد غير مصنفة</h3>
+                  <p className="mt-1 text-sm text-foreground/70">مواد قديمة لم تُسند إلى سنة وفصل دراسيين بعد.</p>
+                </div>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6 xl:grid-cols-3 xl:gap-8">
+                  {academicCatalog.unassigned.map((subject) => (
+                    <PublicSubjectCard
+                      key={subject.id}
+                      href={subjectHrefHier(ccNorm, typeNorm, canonicalUni, canonicalMajor, subject)}
+                      name={subject.name}
+                      description={subject.description}
+                    />
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </>
+        ) : subjects.length > 0 ? (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6 xl:grid-cols-3 xl:gap-8">
             {subjects.map((s) => {
               const href = subjectHrefHier(ccNorm, typeNorm, canonicalUni, canonicalMajor, s);
 
               return (
-                <Card key={s.id} className={listCardClass}>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="line-clamp-2 text-base font-semibold leading-snug transition-colors group-hover:text-primary sm:text-lg">
-                      {s.name}
-                    </CardTitle>
-                  </CardHeader>
-
-                  <CardContent className="flex flex-1 flex-col justify-between gap-4 pt-0 pb-6">
-                    {s.description ? (
-                      <p className="line-clamp-2 text-sm leading-relaxed text-foreground/75">{s.description}</p>
-                    ) : null}
-
-                    <Button asChild className={actionButtonClass}>
-                      <Link href={href} prefetch={false} className="flex items-center justify-center gap-2">
-                        <Trophy className="h-4 w-4" aria-hidden />
-                        فتح المادة
-                      </Link>
-                    </Button>
-                  </CardContent>
-                </Card>
+                <PublicSubjectCard key={s.id} href={href} name={s.name} description={s.description} />
               );
             })}
           </div>

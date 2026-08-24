@@ -97,11 +97,18 @@ export async function PUT(req: Request, { params }: RouteContext) {
     include: { options: true },
   });
 
-  const chapter = await prisma.chapter.findUnique({
-    where: { id: updated.chapterId },
-    select: { subjectId: true },
+  const affectedChapters = await prisma.chapter.findMany({
+    where: { id: { in: Array.from(new Set([exists.chapterId, updated.chapterId])) } },
+    select: { id: true, subjectId: true },
   });
-  revalidateQuestionCache({ subjectId: chapter?.subjectId });
+  const previousChapter = affectedChapters.find((chapter) => chapter.id === exists.chapterId);
+  const nextChapter = affectedChapters.find((chapter) => chapter.id === updated.chapterId);
+  revalidateQuestionCache({
+    chapterId: updated.chapterId,
+    previousChapterId: exists.chapterId,
+    subjectId: nextChapter?.subjectId,
+    previousSubjectId: previousChapter?.subjectId,
+  });
   return json({ data: updated }, { status: 200 });
 }
 
@@ -114,7 +121,7 @@ export async function DELETE(req: Request, { params }: RouteContext) {
   const target = await prisma.question.findUnique({
     where: { id },
     select: {
-      chapter: { select: { subjectId: true } },
+      chapter: { select: { id: true, subjectId: true } },
       _count: { select: { userAnswers: true } },
     },
   });
@@ -163,7 +170,7 @@ export async function DELETE(req: Request, { params }: RouteContext) {
       }));
     });
 
-    revalidateQuestionCache({ subjectId: target.chapter?.subjectId });
+    revalidateQuestionCache({ chapterId: target.chapter?.id, subjectId: target.chapter?.subjectId });
     for (const quiz of affectedQuizzes) {
       revalidateQuizCache({ id: quiz.id, subjectId: quiz.subjectId });
     }

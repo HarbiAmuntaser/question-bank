@@ -12,6 +12,7 @@ import { HeroActions } from "./hero-actions";
 import { HeroPreviewCard } from "./hero-preview-card";
 import type { HeroSectionProps } from "./types";
 import { buildHeroLinks, formatBadge, normalizeCc, normalizeType } from "./utils";
+import { schoolEnabled } from "@/config/public-features";
 
 export function HeroSection({
   cc: rawCc = "SA",
@@ -77,10 +78,10 @@ export function HeroSection({
                 typeLabel={typeLabel}
                 primaryHref={browseTypeHref}
                 secondaryHref={browseAcademiesHref}
-                tertiaryHref={browseSchoolsHref}
+                tertiaryHref={schoolEnabled ? browseSchoolsHref : undefined}
                 primaryLabel={copy.ctaPrimaryLabel}
                 secondaryLabel={copy.ctaSecondaryLabel}
-                tertiaryLabel={copy.ctaTertiaryLabel}
+                tertiaryLabel={schoolEnabled ? copy.ctaTertiaryLabel : undefined}
               />
             </div>
           </div>

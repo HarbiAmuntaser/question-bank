@@ -9,6 +9,11 @@ import { prisma } from "@/lib/prisma";
 import { json, bad } from "@/lib/http";
 import { cacheTags, CACHE_CONTROL, CACHE_TAGS, CACHE_TTL } from "@/lib/cache-tags";
 import { unstable_cache } from "next/cache";
+import {
+  getEnabledPublicTypes,
+  getPublicVisibilityCacheKey,
+  isPublicInstitutionTypeEnabled,
+} from "@/config/public-features";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +41,8 @@ async function listUniversities(q: Q) {
     const instType = validTypes.has(typeRaw)
       ? (typeRaw as "university" | "school" | "academy")
       : null;
+
+    if (instType && !isPublicInstitutionTypeEnabled(instType)) return [];
 
         // sort: افتراضي name، ويمكن popular للترتيب حسب عدد التخصصات
     const sortRaw = (q.sort ?? "").trim().toLowerCase();
@@ -73,7 +80,7 @@ async function listUniversities(q: Q) {
 
     const where: any = {
       isActive: true,
-      ...(instType ? { institutionType: instType } : {}),
+      institutionType: instType ?? { in: getEnabledPublicTypes() },
       AND: [countryWhere, searchWhere].filter((item) => Object.keys(item).length > 0),
     };
 
@@ -144,6 +151,7 @@ const listUniversitiesCached = (q: Q) =>
     q.withMajors ?? "",
     q.cc ?? "",
     q.type ?? "",
+    getPublicVisibilityCacheKey(),
   ],
   {
     revalidate: CACHE_TTL.publicStable,

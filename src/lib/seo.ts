@@ -1,6 +1,11 @@
 import type { Metadata } from "next";
 
 import { prisma } from "@/lib/prisma";
+import {
+  formatArabicList,
+  getEnabledPublicTypeLabels,
+  schoolEnabled,
+} from "@/config/public-features";
 
 export const SITE_NAME = "مستواك";
 export const SITE_DOMAIN = "mustawak.com";
@@ -31,8 +36,9 @@ export function withSiteName(value: string) {
   return title && title !== SITE_NAME ? `${title} | ${SITE_NAME}` : SITE_NAME;
 }
 
-const SITE_DESCRIPTION =
-  "مستواك منصة تعليمية عربية للتدريب والمراجعة عبر اختبارات منظمة للجامعات والمدارس والمسارات التدريبية.";
+const SITE_DESCRIPTION = `مستواك منصة تعليمية عربية للتدريب والمراجعة عبر اختبارات وملخصات منظمة ضمن ${formatArabicList(
+  getEnabledPublicTypeLabels(),
+)}.`;
 const BRAND_ICON = "/brand/mustawak-favicon-32.png";
 const BRAND_APPLE_ICON = "/brand/mustawak-apple-touch-icon.png";
 const BRAND_LOGO = "/brand/mustawak-og.png";
@@ -64,7 +70,7 @@ export function baseMetadata(): Metadata {
       "أسئلة تدريبية",
       "مراجعة دراسية",
       "اختبارات جامعية",
-      "اختبارات مدرسية",
+      ...(schoolEnabled ? ["اختبارات مدرسية"] : []),
       "منصة تعليمية عربية",
       "Quizzes",
       "Education",

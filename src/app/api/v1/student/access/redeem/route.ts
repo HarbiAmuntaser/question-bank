@@ -7,6 +7,7 @@ import {
   checkScopeAccess,
   redeemSubscriptionCode,
 } from "@/lib/server/access-control";
+import { isSubscriptionCodeForPublicContent } from "@/lib/server/public-content-visibility";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +28,11 @@ export async function POST(req: Request) {
     const quizId = typeof body?.quizId === "string" ? body.quizId.trim() : "";
     const subjectId = typeof body?.subjectId === "string" ? body.subjectId.trim() : "";
     const majorId = typeof body?.majorId === "string" ? body.majorId.trim() : "";
+
+    const codeTargetsPublicContent = await isSubscriptionCodeForPublicContent(code);
+    if (codeTargetsPublicContent === false) {
+      return json({ error: "invalid_code", code: "invalid_code" }, { status: 400, headers });
+    }
 
     const { session } = await getOrCreateAnonymousSession();
     const redeemed = await redeemSubscriptionCode({ code, anonymousSessionId: session.id });

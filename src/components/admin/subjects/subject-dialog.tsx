@@ -3,7 +3,12 @@
 import type React from "react";
 import { useEffect, useState, useTransition } from "react";
 
-import { createSubjectAction, updateSubjectAction } from "@/app/admin/subjects/actions";
+import {
+  createSubjectAction,
+  getSubjectInstitutionContextAction,
+  updateSubjectAction,
+  type SubjectInstitutionContext,
+} from "@/app/admin/subjects/actions";
 import { AdminLookupCombobox } from "@/components/admin/admin-lookup-combobox";
 import { Button } from "@/components/ui/button";
 import {
@@ -49,6 +54,7 @@ export function SubjectDialog({ children, subject, open, onOpenChange }: Subject
   const [isPending, startTransition] = useTransition();
   const [selectedUniversityId, setSelectedUniversityId] = useState("");
   const [selectedMajorId, setSelectedMajorId] = useState("");
+  const [institutionContext, setInstitutionContext] = useState<SubjectInstitutionContext | null>(null);
   const { toast } = useToast();
 
   const isControlled = open !== undefined && onOpenChange !== undefined;
@@ -61,10 +67,36 @@ export function SubjectDialog({ children, subject, open, onOpenChange }: Subject
     setSelectedMajorId(subject?.majorId ?? subject?.major?.id ?? "");
   }, [dialogOpen, subject]);
 
+  useEffect(() => {
+    let active = true;
+
+    if (!dialogOpen || !selectedUniversityId) {
+      setInstitutionContext(null);
+      return;
+    }
+
+    void getSubjectInstitutionContextAction(selectedUniversityId)
+      .then((context) => {
+        if (active) setInstitutionContext(context);
+      })
+      .catch(() => {
+        if (active) setInstitutionContext(null);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [dialogOpen, selectedUniversityId]);
+
   const handleUniversityChange = (value: string) => {
     setSelectedUniversityId(value);
     setSelectedMajorId("");
+    setInstitutionContext(null);
   };
+
+  const isUniversity = institutionContext?.institutionType === "university";
+  const isAcademy = institutionContext?.institutionType === "academy";
+  const showAcademicPeriodFields = Boolean(selectedUniversityId) && !isAcademy;
 
   const handleSubmit = async (formData: FormData) => {
     if (!selectedUniversityId) {
@@ -149,7 +181,7 @@ export function SubjectDialog({ children, subject, open, onOpenChange }: Subject
               <Input id="code" name="code" defaultValue={subject?.code ?? ""} className="col-span-3" placeholder="مثال: CS101" />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className={showAcademicPeriodFields ? "grid grid-cols-2 gap-4" : "grid"}>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="creditHours" className="col-span-2 text-right">
                   الساعات المعتمدة
@@ -166,29 +198,57 @@ export function SubjectDialog({ children, subject, open, onOpenChange }: Subject
                 />
               </div>
 
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="semester" className="col-span-2 text-right">
+              {showAcademicPeriodFields ? (
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="semester" className="col-span-2 text-right">
                   الفصل الدراسي
-                </Label>
-                <Input
-                  id="semester"
-                  name="semester"
-                  type="number"
-                  min="1"
-                  max="3"
-                  defaultValue={subject?.semester ?? ""}
-                  className="col-span-2"
-                  placeholder="1"
-                />
-              </div>
+                  </Label>
+                  <Input
+                    id="semester"
+                    name="semester"
+                    type="number"
+                    min="1"
+                    max={isUniversity ? 2 : 3}
+                    defaultValue={subject?.semester ?? ""}
+                    className="col-span-2"
+                    placeholder="1"
+                    required={isUniversity}
+                  />
+                </div>
+              ) : null}
             </div>
 
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="year" className="text-right">
+            {showAcademicPeriodFields ? (
+              <div className="space-y-2">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="year" className="text-right">
                 السنة الدراسية
-              </Label>
-              <Input id="year" name="year" type="number" min="1" max="6" defaultValue={subject?.year ?? ""} className="col-span-3" placeholder="1" />
-            </div>
+                  </Label>
+                  <Input
+                    id="year"
+                    name="year"
+                    type="number"
+                    min="1"
+                    max="6"
+                    defaultValue={subject?.year ?? ""}
+                    className="col-span-3"
+                    placeholder="1"
+                    required={isUniversity}
+                  />
+                </div>
+                {isUniversity ? (
+                  <p className="text-xs leading-relaxed text-foreground/70">
+                    تُستخدم السنة والفصل لتجميع مواد الجامعة. مثال: السنة الثانية والفصل الأول يظهران كمستوى ثالث في السعودية.
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+
+            {isAcademy ? (
+              <p className="rounded-md border border-primary/15 bg-primary/5 px-3 py-2 text-sm text-foreground/75">
+                مواد المسارات التدريبية لا ترتبط بسنة أو فصل دراسي.
+              </p>
+            ) : null}
 
             <div className="grid grid-cols-4 items-start gap-4">
               <Label htmlFor="description" className="pt-2 text-right">

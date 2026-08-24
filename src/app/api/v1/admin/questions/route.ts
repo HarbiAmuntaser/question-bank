@@ -220,7 +220,7 @@ export async function POST(req: Request) {
     where: { id: created.chapterId },
     select: { subjectId: true },
   });
-  revalidateQuestionCache({ subjectId: chapter?.subjectId });
+  revalidateQuestionCache({ chapterId: created.chapterId, subjectId: chapter?.subjectId });
   return json({ data: created, message: "question_created" }, 201);
 }
 

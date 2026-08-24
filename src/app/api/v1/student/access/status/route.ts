@@ -7,6 +7,14 @@ import {
   checkStudySummaryAccess,
   getStudySummaryAccessMap,
 } from "@/lib/server/access-control";
+import {
+  getPublicQuizIdSet,
+  getPublicStudySummaryIdSet,
+  isPublicMajorId,
+  isPublicQuizId,
+  isPublicStudySummaryId,
+  isPublicSubjectId,
+} from "@/lib/server/public-content-visibility";
 
 export const dynamic = "force-dynamic";
 
@@ -38,22 +46,40 @@ export async function GET(req: Request) {
       return json({ error: "missing_access_target" }, { status: 400, headers });
     }
 
-    const { session } = await getOrCreateAnonymousSession();
     if (quizIds.length > 0) {
+      const publicIds = await getPublicQuizIdSet(Array.from(new Set(quizIds)));
+      const { session } = await getOrCreateAnonymousSession();
       const entries = await Promise.all(
-        Array.from(new Set(quizIds)).map(async (id) => [id, await checkQuizAccess({ quizId: id, anonymousSessionId: session.id })] as const),
+        Array.from(publicIds).map(async (id) => [id, await checkQuizAccess({ quizId: id, anonymousSessionId: session.id })] as const),
       );
       return json({ data: { items: Object.fromEntries(entries) } }, { status: 200, headers });
     }
 
     if (summaryIds.length > 0) {
+      const publicIds = await getPublicStudySummaryIdSet(Array.from(new Set(summaryIds)));
+      const { session } = await getOrCreateAnonymousSession();
       const items = await getStudySummaryAccessMap({
-        summaryIds,
+        summaryIds: Array.from(publicIds),
         anonymousSessionId: session.id,
       });
       return json({ data: { items } }, { status: 200, headers });
     }
 
+    const targetIsPublic = quizId
+      ? await isPublicQuizId(quizId)
+      : summaryId
+        ? await isPublicStudySummaryId(summaryId)
+        : subjectId
+          ? await isPublicSubjectId(subjectId)
+          : majorId
+            ? await isPublicMajorId(majorId)
+            : false;
+
+    if (!targetIsPublic) {
+      return json({ error: "not_found" }, { status: 404, headers });
+    }
+
+    const { session } = await getOrCreateAnonymousSession();
     const access = quizId
       ? await checkQuizAccess({ quizId, anonymousSessionId: session.id })
       : summaryId

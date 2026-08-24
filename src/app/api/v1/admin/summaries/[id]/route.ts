@@ -69,6 +69,7 @@ const summaryRouteSelect = {
   id: true,
   slug: true,
   subjectId: true,
+  chapterId: true,
   subject: {
     select: {
       id: true,
@@ -161,7 +162,7 @@ async function toCacheSnapshot(row: SummaryRouteRecord | null): Promise<StudySum
   const institutionType = (university.institutionType || "").trim().toLowerCase();
 
   if (!countryCode || !institutionType) {
-    return { id: row.id, slug: row.slug, subjectId: row.subjectId };
+    return { id: row.id, slug: row.slug, subjectId: row.subjectId, chapterId: row.chapterId };
   }
 
   const [universitySlug, majorSlug, subjectSlug] = await Promise.all([
@@ -178,6 +179,7 @@ async function toCacheSnapshot(row: SummaryRouteRecord | null): Promise<StudySum
     id: row.id,
     slug: row.slug,
     subjectId: row.subjectId,
+    chapterId: row.chapterId,
     subjectPath,
     summaryPath: `${subjectPath}/summaries/${encodeSlugPath(summarySlug)}`,
   };

@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { json, bad } from "@/lib/http";
 import { CACHE_CONTROL, CACHE_TAGS, CACHE_TTL } from "@/lib/cache-tags";
 import { unstable_cache } from "next/cache";
+import { getPublicVisibilityCacheKey } from "@/config/public-features";
+import { publicMajorWhere } from "@/lib/server/public-content-visibility";
 
 export const dynamic = "force-dynamic";
 
@@ -17,8 +19,8 @@ const getMajorDetailsCached = (id: string) =>
   unstable_cache(
     async () => {
       // 1) جلب التخصص + الجامعة + المواد
-      const major = await prisma.major.findUnique({
-        where: { id, isActive: true },
+      const major = await prisma.major.findFirst({
+        where: { id, isActive: true, AND: [publicMajorWhere()] },
         include: {
           university: {
             select: {
@@ -34,6 +36,7 @@ const getMajorDetailsCached = (id: string) =>
 
           subjects: {
             orderBy: { name: "asc" },
+            where: { isActive: true },
             select: {
               id: true,
               name: true,
@@ -81,11 +84,12 @@ const getMajorDetailsCached = (id: string) =>
         },
         _count: {
           ...major._count,
+          subjects: major.subjects.length,
           quizzes: quizzesCount, // ✅ نضيفها يدويًّا
         },
       };
     },
-    ["student-major-detail-by-id", id],
+    ["student-major-detail-by-id", id, getPublicVisibilityCacheKey()],
     {
       revalidate: CACHE_TTL.publicLong,
       tags: ["student-majors", "student-major-detail", CACHE_TAGS.public.majors, CACHE_TAGS.public.major(id)],

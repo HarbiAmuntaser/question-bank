@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { checkStudySummaryAccess } from "@/lib/server/access-control";
 import { getOrCreateAnonymousSession } from "@/lib/server/anonymous-session";
 import { createPresignedGetUrl } from "@/lib/server/storage";
+import { isPublicStudySummaryId } from "@/lib/server/public-content-visibility";
 
 export const dynamic = "force-dynamic";
 
@@ -56,6 +57,10 @@ export async function GET(_req: Request, ctx: Ctx) {
 
   if (!summaryId || !uuidPattern.test(summaryId)) {
     return fail("invalid_summary_id", 400);
+  }
+
+  if (!(await isPublicStudySummaryId(summaryId))) {
+    return fail("summary_not_found", 404);
   }
 
   const now = new Date();

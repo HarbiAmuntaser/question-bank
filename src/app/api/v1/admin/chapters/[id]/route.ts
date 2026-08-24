@@ -4,9 +4,11 @@ import { verifyAdmin } from "@/lib/admin-auth";
 import { CACHE_CONTROL } from "@/lib/cache-tags";
 import { revalidateChapterCache } from "@/lib/cache-invalidation";
 import { updateChapterSchema } from "@/validations/chapter";
+import { buildChapterSlug, normalizeChapterSlug } from "@/lib/chapter-slugs";
 
 type ChapterUpdateData = {
   name?: string;
+  slug?: string;
   subject?: { connect: { id: string } };
   isActive?: boolean;
   chapterNumber?: number | null;
@@ -61,6 +63,15 @@ export async function PUT(req: Request, context: { params: Promise<{ id: string 
   const data: ChapterUpdateData = {};
 
   if (typeof p.name !== "undefined") data.name = p.name;
+  if (Object.prototype.hasOwnProperty.call(p, "slug") || (typeof p.name !== "undefined" && !exists.slug)) {
+    const slug = normalizeChapterSlug(p.slug || "") || buildChapterSlug(p.name ?? exists.name, p.chapterNumber ?? exists.chapterNumber);
+    const duplicate = await prisma.chapter.findFirst({
+      where: { subjectId: p.subjectId ?? exists.subjectId, slug, id: { not: id } },
+      select: { id: true },
+    });
+    if (duplicate) return bad("chapter_slug_already_exists");
+    data.slug = slug;
+  }
   if (typeof p.subjectId !== "undefined") data.subject = { connect: { id: p.subjectId } };
   if (typeof p.isActive !== "undefined") data.isActive = p.isActive;
 
@@ -70,7 +81,7 @@ export async function PUT(req: Request, context: { params: Promise<{ id: string 
     data.learningObjectives = Array.isArray(p.learningObjectives) ? p.learningObjectives : [];
 
   const updated = await prisma.chapter.update({ where: { id }, data });
-  revalidateChapterCache({ subjectId: updated.subjectId });
+  revalidateChapterCache({ id: updated.id, subjectId: updated.subjectId, previousSubjectId: exists.subjectId });
   return json({ data: updated });
 }
 
@@ -91,6 +102,6 @@ export async function DELETE(req: Request, context: { params: Promise<{ id: stri
     return bad("فشل الحذف. تأكد من عدم وجود علاقات (أسئلة مرتبطة)");
   }
 
-  revalidateChapterCache({ subjectId: target?.subjectId });
+  revalidateChapterCache({ id, subjectId: target?.subjectId });
   return json({ data: true });
 }

@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { json, bad } from "@/lib/http";
 import { CACHE_CONTROL, CACHE_TTL } from "@/lib/cache-tags";
+import { publicQuizWhere } from "@/lib/server/public-content-visibility";
 
 export const dynamic = "force-dynamic";
 
@@ -81,7 +82,7 @@ export async function GET(req: Request) {
       dimAND.push({ OR: searchOR });
     }
 
-    const where: any = { isActive: true };
+    const where: any = { isActive: true, ...publicQuizWhere() };
     if (dimAND.length) where.AND = dimAND;
 
     const [items, total] = await Promise.all([

@@ -5,6 +5,7 @@ import { CACHE_CONTROL } from "@/lib/cache-tags";
 import { revalidateChapterCache } from "@/lib/cache-invalidation";
 import { unstable_cache } from "next/cache";
 import { listChaptersQuerySchema, createChapterSchema } from "@/validations/chapter";
+import { buildChapterSlug, normalizeChapterSlug } from "@/lib/chapter-slugs";
 
 export const dynamic = "force-dynamic";
 
@@ -13,8 +14,10 @@ type ChapterListRow = {
   id: string;
   subjectId: string;
   name: string;
+  slug: string | null;
   chapterNumber: number | null;
   description: string | null;
+  learningObjectives: string[];
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -55,6 +58,7 @@ const listChaptersCached = unstable_cache(
       andParts.push({
         OR: [
           { name: { contains: query, mode: "insensitive" } },
+          { slug: { contains: query, mode: "insensitive" } },
           { description: { contains: query, mode: "insensitive" } },
           { subject: { name: { contains: query, mode: "insensitive" } } },
           { subject: { code: { contains: query, mode: "insensitive" } } },
@@ -92,8 +96,10 @@ const listChaptersCached = unstable_cache(
           id: true,
           subjectId: true,
           name: true,
+          slug: true,
           chapterNumber: true,
           description: true,
+          learningObjectives: true,
           isActive: true,
           createdAt: true,
           updatedAt: true,
@@ -123,8 +129,10 @@ const listChaptersCached = unstable_cache(
         id: c.id,
         subjectId: c.subjectId,
         name: c.name,
+        slug: c.slug,
         chapterNumber: c.chapterNumber,
         description: c.description,
+        learningObjectives: c.learningObjectives,
         isActive: c.isActive,
         createdAt: c.createdAt,
         updatedAt: c.updatedAt,
@@ -178,10 +186,21 @@ export async function POST(req: Request) {
   const parsed = createChapterSchema.safeParse(body);
   if (!parsed.success) return bad("validation_error", parsed.error.flatten());
 
+  const baseSlug = normalizeChapterSlug(parsed.data.slug || "") ||
+    buildChapterSlug(parsed.data.name, parsed.data.chapterNumber);
+  let slug = baseSlug;
+  let suffix = 2;
+
+  while (await prisma.chapter.findFirst({ where: { subjectId: parsed.data.subjectId, slug }, select: { id: true } })) {
+    slug = `${baseSlug}-${suffix}`;
+    suffix += 1;
+  }
+
   const created = await prisma.chapter.create({
     data: {
       subjectId: parsed.data.subjectId,
       name: parsed.data.name,
+      slug,
       chapterNumber: parsed.data.chapterNumber ?? null,
       description: parsed.data.description ?? null,
       learningObjectives: parsed.data.learningObjectives ?? [],
@@ -190,6 +209,6 @@ export async function POST(req: Request) {
     },
   });
 
-  revalidateChapterCache({ subjectId: created.subjectId });
+  revalidateChapterCache({ id: created.id, subjectId: created.subjectId });
   return json({ data: created }, 201);
 }

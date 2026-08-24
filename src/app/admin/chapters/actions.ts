@@ -42,6 +42,7 @@ export async function createChapterAction(formData: FormData) {
     const data = {
       subjectId: formData.get("subjectId") as string,
       name: formData.get("name") as string,
+      slug: (formData.get("slug") as string) || null,
       chapterNumber: Number.parseInt((formData.get("chapterNumber") as string) || "") || null,
       description: (formData.get("description") as string) || null,
       learningObjectives: learningObjectives
@@ -81,6 +82,7 @@ export async function updateChapterAction(id: string, formData: FormData) {
     const data = {
       subjectId: formData.get("subjectId") as string,
       name: formData.get("name") as string,
+      slug: (formData.get("slug") as string) || null,
       chapterNumber: Number.parseInt((formData.get("chapterNumber") as string) || "") || null,
       description: (formData.get("description") as string) || null,
       learningObjectives: learningObjectives

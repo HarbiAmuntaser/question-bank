@@ -6,6 +6,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getRequestOrigin } from "@/lib/server/request-origin";
 import { prisma } from "@/lib/prisma";
+import type { InstitutionType } from "@/config/regions";
 
 // -------- Helpers --------
 function buildQuery(params: Record<string, string | number | undefined>) {
@@ -52,6 +53,23 @@ export interface MajorOption {
   name: string;
   code: string | null;
   university: { id: string; name: string; code: string | null } | null;
+}
+
+export type SubjectInstitutionContext = {
+  countryCode: string;
+  institutionType: InstitutionType;
+};
+
+export async function getSubjectInstitutionContextAction(
+  universityId: string,
+): Promise<SubjectInstitutionContext | null> {
+  await assertAdminSession();
+  if (!universityId) return null;
+
+  return prisma.university.findUnique({
+    where: { id: universityId },
+    select: { countryCode: true, institutionType: true },
+  });
 }
 
 // يستعمله الحوار لملء قائمة التخصصات (اسم + جامعة)

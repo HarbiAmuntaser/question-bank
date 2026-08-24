@@ -5,8 +5,11 @@ import { ArrowLeft, Building2, GraduationCap, School } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { isPublicInstitutionTypeEnabled } from "@/config/public-features";
+import type { InstitutionType } from "@/config/regions";
 
 type PathCard = {
+  type: InstitutionType;
   title: string;
   description: string;
   buttonLabel: string;
@@ -15,8 +18,9 @@ type PathCard = {
 };
 
 export function PathSelectionSection({ cc }: { cc: string }) {
-  const paths: PathCard[] = [
+  const paths = ([
     {
+      type: "university",
       title: "الجامعات",
       description: "اختبارات مرتبة حسب الجامعة، التخصص، والمقرر.",
       buttonLabel: "استعرض الجامعات",
@@ -24,6 +28,7 @@ export function PathSelectionSection({ cc }: { cc: string }) {
       Icon: Building2,
     },
     {
+      type: "school",
       title: "الاختبارات الوزارية / المدارس",
       description: "نماذج تدريبية منظمة حسب الصف والمادة.",
       buttonLabel: "استعرض الاختبارات الوزارية",
@@ -31,13 +36,14 @@ export function PathSelectionSection({ cc }: { cc: string }) {
       Icon: School,
     },
     {
+      type: "academy",
       title: "المسارات التدريبية",
       description: "تدرّب على مهارات البرمجة، اللغة الإنجليزية، المحاسبة، الحاسب، والمهارات المهنية.",
       buttonLabel: "استعرض المسارات التدريبية",
       href: `/${cc}/academy`,
       Icon: GraduationCap,
     },
-  ];
+  ] satisfies PathCard[]).filter((path) => isPublicInstitutionTypeEnabled(path.type));
 
   return (
     <section className="py-8 sm:py-12" aria-labelledby="learning-paths-heading">
@@ -53,7 +59,11 @@ export function PathSelectionSection({ cc }: { cc: string }) {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3 md:gap-5 xl:gap-6">
+        <div
+          className={`grid grid-cols-1 gap-4 md:gap-5 xl:gap-6 ${
+            paths.length === 2 ? "md:grid-cols-2" : "md:grid-cols-3"
+          }`}
+        >
           {paths.map(({ title, description, buttonLabel, href, Icon }) => (
             <Card
               key={href}

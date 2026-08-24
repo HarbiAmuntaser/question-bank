@@ -6,10 +6,7 @@
  * المسار: /{cc}
  *
  * - HeroSection حسب الدولة
- * - 3 أقسام Preview:
- *   1) جامعات (type=university)
- *   2) مدارس  (type=school)
- *   3) أكاديميات (type=academy)
+ * - الأقسام العامة وروابطها تتكيف مع أنواع المؤسسات المفعلة للنشر.
  */
 
 import { notFound } from "next/navigation";

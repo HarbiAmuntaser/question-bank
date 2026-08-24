@@ -6,6 +6,12 @@ import {
   SUPPORTED_COUNTRIES,
 } from "@/config/regions";
 import { normalizeCountry } from "@/lib/route-helpers";
+import {
+  formatArabicList,
+  getEnabledPublicTypeLabels,
+  getEnabledPublicTypes,
+  PUBLIC_INSTITUTION_TYPE_LABELS,
+} from "@/config/public-features";
 
 type Props = {
   cc?: string;
@@ -31,14 +37,16 @@ const policyLinks: FooterLink[] = [
 export function PublicFooter({ cc: ccProp }: Props) {
   const cc = normalizeCountry(ccProp ?? DEFAULT_COUNTRY);
   const countryLabel = SUPPORTED_COUNTRIES[cc]?.label ?? cc;
+  const publicSectionLabels = getEnabledPublicTypeLabels(cc);
   const year = new Date().getFullYear();
 
   const browseLinks: FooterLink[] = [
     { label: "الصفحة الرئيسية", href: `/${cc}` },
     { label: "المدونة", href: `/${cc}/blog` },
-    { label: "الجامعات", href: `/${cc}/university` },
-    { label: "المدارس", href: `/${cc}/school` },
-    { label: "المسارات التدريبية", href: `/${cc}/academy` },
+    ...getEnabledPublicTypes(cc).map((type) => ({
+      label: PUBLIC_INSTITUTION_TYPE_LABELS[type],
+      href: `/${cc}/${type}`,
+    })),
   ];
 
   return (
@@ -65,8 +73,8 @@ export function PublicFooter({ cc: ccProp }: Props) {
             </div>
 
             <p className="max-w-sm text-sm font-medium leading-7 text-foreground/80">
-              منصة تعليمية للمراجعة والتدريب عبر اختبارات منظمة للجامعات والمدارس والمسارات التدريبية، مع تجربة عربية واضحة
-              ومناسبة للجوال والتابلت وسطح المكتب.
+              منصة تعليمية للمراجعة والتدريب عبر اختبارات وملخصات منظمة ضمن{" "}
+              {formatArabicList(publicSectionLabels)}، مع تجربة عربية واضحة ومناسبة للجوال والتابلت وسطح المكتب.
             </p>
           </div>
 

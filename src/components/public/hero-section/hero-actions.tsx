@@ -43,17 +43,19 @@ export function HeroActions({
         </Link>
       </Button>
 
-      <Button
-        asChild
-        size="lg"
-        variant="outline"
-        className="h-12 rounded-lg border-slate-200 bg-background/80 px-5 text-base font-bold text-foreground shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-background/70 dark:hover:bg-slate-900 sm:col-span-2 lg:col-span-1 lg:w-auto lg:px-6"
-      >
-        <Link href={tertiaryHref} prefetch={false} className="flex w-full items-center justify-center gap-2">
-          <School className="h-5 w-5 text-slate-700 dark:text-slate-300" aria-hidden />
-          {tertiaryLabel}
-        </Link>
-      </Button>
+      {tertiaryHref && tertiaryLabel ? (
+        <Button
+          asChild
+          size="lg"
+          variant="outline"
+          className="h-12 rounded-lg border-slate-200 bg-background/80 px-5 text-base font-bold text-foreground shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-background/70 dark:hover:bg-slate-900 sm:col-span-2 lg:col-span-1 lg:w-auto lg:px-6"
+        >
+          <Link href={tertiaryHref} prefetch={false} className="flex w-full items-center justify-center gap-2">
+            <School className="h-5 w-5 text-slate-700 dark:text-slate-300" aria-hidden />
+            {tertiaryLabel}
+          </Link>
+        </Button>
+      ) : null}
     </div>
   );
 }

@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { json, bad } from "@/lib/http";
 import { CACHE_CONTROL, CACHE_TAGS, CACHE_TTL } from "@/lib/cache-tags";
 import { unstable_cache } from "next/cache";
+import { getPublicVisibilityCacheKey } from "@/config/public-features";
+import { publicQuizWhere } from "@/lib/server/public-content-visibility";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +18,7 @@ const getPreviewCached = (id: string) =>
   unstable_cache(
     async () => {
       const quiz = await prisma.quiz.findFirst({
-        where: { id, isActive: true },
+        where: { id, isActive: true, ...publicQuizWhere() },
         select: {
           id: true,
           title: true,
@@ -155,7 +157,7 @@ const getPreviewCached = (id: string) =>
         },
       };
     },
-    ["student-quiz-preview-by-id", id],
+    ["student-quiz-preview-by-id", id, getPublicVisibilityCacheKey()],
     {
       revalidate: CACHE_TTL.publicLong,
       tags: ["student-quizzes", "student-quiz-preview", CACHE_TAGS.public.quizzes, CACHE_TAGS.public.quiz(id)],

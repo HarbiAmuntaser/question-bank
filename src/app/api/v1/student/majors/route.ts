@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { json, bad } from "@/lib/http";
 import { cacheTags, CACHE_CONTROL, CACHE_TAGS, CACHE_TTL } from "@/lib/cache-tags";
 import { unstable_cache } from "next/cache";
+import { getPublicVisibilityCacheKey } from "@/config/public-features";
+import { publicMajorWhere } from "@/lib/server/public-content-visibility";
 
 export const dynamic = "force-dynamic";
 
@@ -10,7 +12,11 @@ const listMajorsCached = (universityId?: string) =>
   unstable_cache(
     async () =>
       prisma.major.findMany({
-        where: { isActive: true, ...(universityId ? { universityId } : {}) },
+        where: {
+          isActive: true,
+          ...publicMajorWhere(),
+          ...(universityId ? { universityId } : {}),
+        },
         orderBy: { name: "asc" },
         select: {
           id: true,
@@ -20,7 +26,7 @@ const listMajorsCached = (universityId?: string) =>
           degreeType: true,
         },
       }),
-    ["student-majors-list", universityId ?? ""],
+    ["student-majors-list", universityId ?? "", getPublicVisibilityCacheKey()],
     {
       revalidate: CACHE_TTL.publicStable,
       tags: cacheTags(

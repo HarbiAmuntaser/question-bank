@@ -228,6 +228,7 @@ model Chapter {
   id                 String   @id @default(uuid())
   subjectId          String
   name               String
+  slug               String?
   chapterNumber      Int?
   description        String?
   learningObjectives String[]
@@ -246,6 +247,7 @@ model Chapter {
   studySummaries    StudySummary[]
 
   @@unique([subjectId, chapterNumber])
+  @@unique([subjectId, slug])
   @@map("chapters")
 }
 

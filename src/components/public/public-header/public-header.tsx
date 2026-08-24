@@ -22,6 +22,7 @@ import { DesktopNav } from "./desktop-nav";
 import { MobileNav } from "./mobile-nav";
 
 import type { CountryCode } from "@/config/regions";
+import { getDefaultPublicType, getEnabledPublicTypes } from "@/config/public-features";
 
 export function PublicHeader() {
   const pathname = usePathname() || "/";
@@ -45,7 +46,10 @@ export function PublicHeader() {
   const changeCountry = useCallback(
     (nextCC: CountryCode) => {
       if (currentType) {
-        router.push(`/${nextCC}/${currentType}`);
+        const nextType = getEnabledPublicTypes(nextCC).includes(currentType)
+          ? currentType
+          : getDefaultPublicType(nextCC);
+        router.push(`/${nextCC}/${nextType}`);
         return;
       }
 

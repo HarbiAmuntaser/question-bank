@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { json, bad } from "@/lib/http";
 import { CACHE_CONTROL, CACHE_TAGS, CACHE_TTL } from "@/lib/cache-tags";
 import { unstable_cache } from "next/cache";
+import { getPublicVisibilityCacheKey } from "@/config/public-features";
+import { publicUniversityWhere } from "@/lib/server/public-content-visibility";
 
 export const dynamic = "force-dynamic";
 
@@ -17,8 +19,8 @@ const getUniversityDetailsCached = (id: string) =>
   unstable_cache(
   async () => {
     // الجامعة + التخصصات + عدّ المواد لكل تخصص
-    const university = await prisma.university.findUnique({
-      where: { id, isActive: true },
+    const university = await prisma.university.findFirst({
+      where: { id, isActive: true, AND: [publicUniversityWhere()] },
       select: {
         id: true,
         name: true,
@@ -59,7 +61,7 @@ const getUniversityDetailsCached = (id: string) =>
       },
     };
   },
-  ["student-university-detail", id],
+  ["student-university-detail", id, getPublicVisibilityCacheKey()],
   {
     revalidate: CACHE_TTL.publicLong,
     tags: [

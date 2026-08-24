@@ -10,10 +10,10 @@ export type HeroActionsProps = {
   typeLabel: string;
   primaryHref: string;
   secondaryHref: string;
-  tertiaryHref: string;
+  tertiaryHref?: string;
   primaryLabel: string;
   secondaryLabel: string;
-  tertiaryLabel: string;
+  tertiaryLabel?: string;
 };
 
 export type HeroPreviewCardProps = {

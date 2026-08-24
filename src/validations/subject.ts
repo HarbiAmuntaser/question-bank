@@ -1,6 +1,8 @@
 // src/validations/subject.ts
 import { z } from "zod";
 
+import { MAX_ACADEMIC_YEARS, SEMESTERS_PER_ACADEMIC_YEAR } from "@/lib/academic-periods";
+
 /* ------------------------- Helpers ------------------------- */
 
 // يحول "" أو null/undefined إلى undefined (مفيد للـ query params)
@@ -69,6 +71,19 @@ export const createSubjectSchema = z.object({
 });
 
 export type CreateSubjectInput = z.infer<typeof createSubjectSchema>;
+
+export const universitySubjectAcademicPeriodSchema = z.object({
+  year: z
+    .number({ invalid_type_error: "السنة الدراسية مطلوبة لمواد الجامعة" })
+    .int()
+    .min(1)
+    .max(MAX_ACADEMIC_YEARS),
+  semester: z
+    .number({ invalid_type_error: "الفصل الدراسي مطلوب لمواد الجامعة" })
+    .int()
+    .min(1)
+    .max(SEMESTERS_PER_ACADEMIC_YEAR),
+});
 
 /* -------------------- Update Subject Schema -------------------- */
 // جميع الحقول اختيارية، مع السماح بـ null للحقل القابل لذلك.

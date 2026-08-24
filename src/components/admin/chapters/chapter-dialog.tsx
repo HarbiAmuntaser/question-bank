@@ -20,6 +20,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { buildChapterSlug, normalizeChapterSlug } from "@/lib/chapter-slugs";
 import type { ChapterWithRelations } from "@/types";
 
 interface ChapterDialogProps {
@@ -37,6 +38,9 @@ export function ChapterDialog({ children, chapter, open, onOpenChange }: Chapter
   const [selectedUniversity, setSelectedUniversity] = useState("");
   const [selectedMajor, setSelectedMajor] = useState("");
   const [selectedSubject, setSelectedSubject] = useState(chapter?.subjectId || "");
+  const [chapterName, setChapterName] = useState(chapter?.name ?? "");
+  const [chapterSlug, setChapterSlug] = useState(chapter?.slug ?? buildChapterSlug(chapter?.name ?? ""));
+  const [slugEdited, setSlugEdited] = useState(Boolean(chapter?.slug));
 
   const isControlled = open !== undefined && onOpenChange !== undefined;
   const dialogOpen = isControlled ? open : isOpen;
@@ -47,7 +51,20 @@ export function ChapterDialog({ children, chapter, open, onOpenChange }: Chapter
     setSelectedUniversity(chapter?.subject?.major?.university?.id ?? "");
     setSelectedMajor(chapter?.subject?.majorId ?? "");
     setSelectedSubject(chapter?.subjectId ?? "");
+    setChapterName(chapter?.name ?? "");
+    setChapterSlug(chapter?.slug ?? buildChapterSlug(chapter?.name ?? ""));
+    setSlugEdited(Boolean(chapter?.slug));
   }, [dialogOpen, chapter]);
+
+  const handleNameChange = (value: string) => {
+    setChapterName(value);
+    if (!slugEdited) setChapterSlug(buildChapterSlug(value));
+  };
+
+  const handleSlugChange = (value: string) => {
+    setSlugEdited(true);
+    setChapterSlug(normalizeChapterSlug(value));
+  };
 
   const handleSelectUniversity = (value: string) => {
     setSelectedUniversity(value);
@@ -144,7 +161,33 @@ export function ChapterDialog({ children, chapter, open, onOpenChange }: Chapter
               <Label htmlFor="name" className="text-right">
                 اسم الفصل
               </Label>
-              <Input id="name" name="name" defaultValue={chapter?.name} className="col-span-3" required />
+              <Input
+                id="name"
+                name="name"
+                value={chapterName}
+                onChange={(event) => handleNameChange(event.target.value)}
+                className="col-span-3"
+                required
+              />
+            </div>
+
+            <div className="grid grid-cols-4 items-start gap-4">
+              <Label htmlFor="slug" className="pt-2 text-right">
+                رابط الفصل
+              </Label>
+              <div className="col-span-3 space-y-1.5">
+                <Input
+                  id="slug"
+                  name="slug"
+                  dir="ltr"
+                  value={chapterSlug}
+                  onChange={(event) => handleSlugChange(event.target.value)}
+                  placeholder="python-basics"
+                />
+                <p className="text-xs leading-relaxed text-muted-foreground">
+                  يُنشأ تلقائيًا من اسم الفصل، ويمكن تعديله قبل الحفظ.
+                </p>
+              </div>
             </div>
 
             <div className="grid grid-cols-4 items-center gap-4">

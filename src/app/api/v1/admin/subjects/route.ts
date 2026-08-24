@@ -5,7 +5,11 @@ import { CACHE_CONTROL } from "@/lib/cache-tags";
 import { revalidateSubjectCache } from "@/lib/cache-invalidation";
 import { unstable_cache } from "next/cache";
 import type { Prisma } from "@prisma/client";
-import { createSubjectSchema, listSubjectsQuerySchema } from "@/validations/subject";
+import {
+  createSubjectSchema,
+  listSubjectsQuerySchema,
+  universitySubjectAcademicPeriodSchema,
+} from "@/validations/subject";
 
 // ملاحظة: نتوقع وجود سكيمات الفاليديشن التالية:
 // listSubjectsQuerySchema, createSubjectSchema
@@ -180,14 +184,32 @@ export async function POST(req: Request) {
   const parsed = createSubjectSchema.safeParse(body);
   if (!parsed.success) return bad("validation_error", parsed.error.flatten());
 
+  const major = await prisma.major.findUnique({
+    where: { id: parsed.data.majorId },
+    select: { university: { select: { institutionType: true } } },
+  });
+  if (!major) return bad("major_not_found");
+
+  const institutionType = major.university.institutionType;
+  if (institutionType === "university") {
+    const academicPeriod = universitySubjectAcademicPeriodSchema.safeParse({
+      year: parsed.data.year,
+      semester: parsed.data.semester,
+    });
+    if (!academicPeriod.success) return bad("validation_error", academicPeriod.error.flatten());
+  }
+
+  const year = institutionType === "academy" ? null : (parsed.data.year ?? null);
+  const semester = institutionType === "academy" ? null : (parsed.data.semester ?? null);
+
   const created = await prisma.subject.create({
     data: {
       majorId: parsed.data.majorId,
       name: parsed.data.name,
       code: parsed.data.code ?? null,
       creditHours: parsed.data.creditHours ?? null,
-      semester: parsed.data.semester ?? null,
-      year: parsed.data.year ?? null,
+      semester,
+      year,
       description: parsed.data.description ?? null,
       isActive: parsed.data.isActive,
       createdBy: auth.userId !== "api-key" ? auth.userId : null,

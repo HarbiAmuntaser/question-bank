@@ -4,6 +4,7 @@ import { json } from "@/lib/http";
 import { CACHE_CONTROL } from "@/lib/cache-tags";
 import { getOrCreateAnonymousSession } from "@/lib/server/anonymous-session";
 import { RedeemCodeError, createManualPaymentRequest } from "@/lib/server/access-control";
+import { isPublicPaidAccessPlanId } from "@/lib/server/public-content-visibility";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +26,9 @@ export async function POST(req: Request) {
 
     const planId = typeof body?.planId === "string" ? body.planId.trim() : "";
     if (!planId) return json({ error: "missing_plan_id" }, { status: 400, headers });
+    if (!(await isPublicPaidAccessPlanId(planId))) {
+      return json({ error: "plan_not_found" }, { status: 404, headers });
+    }
 
     const { session } = await getOrCreateAnonymousSession();
     const request = await createManualPaymentRequest({

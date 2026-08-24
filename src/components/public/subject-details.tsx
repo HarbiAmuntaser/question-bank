@@ -10,7 +10,15 @@ import type { InstitutionType } from "@/config/regions";
 
 import type { PublicQuizAccessItem } from "@/components/public/subscription-access";
 import { SubjectLearningSwitcher } from "@/components/public/subject-learning-switcher";
+import {
+  ChapterOverviewIntro,
+  DirectSubjectLearningContent,
+  SubjectChapterDirectory,
+  SubjectQuizzesSection,
+} from "@/components/public/subject-chapters";
+import { SubjectStudySummaries } from "@/components/public/study-summaries/subject-study-summaries";
 import { getPublishedSubjectSummaries } from "@/lib/server/study-summaries";
+import { getSubjectChapterCatalog, type PublicSubjectQuiz } from "@/lib/server/subject-chapters";
 import { fetchJSON } from "@/lib/server/student-fetch";
 import { stripPrefix, encodeSlugPath } from "@/lib/public/slug-utils";
 
@@ -152,13 +160,18 @@ export async function SubjectDetails({
   )}`;
   const uniLink = `/${ccNorm}/${typeNorm}/universities/${encodeSlugPath(canonicalUni)}`;
 
-  const quizzesRes = await fetchJSON<QuizLite[]>(
-    `/api/v1/student/quizzes/by-subject/${subject.id}?limit=200`,
-    { cache: "no-store" },
-    0,
-  );
-  const quizzes = quizzesRes.ok && quizzesRes.data ? quizzesRes.data : [];
-  const summaries = await getPublishedSubjectSummaries(subject.id);
+  const [summaries, chapterCatalog] = await Promise.all([
+    getPublishedSubjectSummaries(subject.id),
+    typeNorm === "school" ? Promise.resolve(null) : getSubjectChapterCatalog(subject.id),
+  ]);
+
+  const quizzes = typeNorm === "school"
+    ? await fetchJSON<QuizLite[]>(
+        `/api/v1/student/quizzes/by-subject/${subject.id}?limit=200`,
+        { cache: "no-store" },
+        0,
+      ).then((result) => (result.ok && result.data ? result.data : []))
+    : [];
 
   const quizDetailsHref = (q: QuizLite) => {
     const raw = (q.seo?.slug || q.id || "").toString().trim();
@@ -179,6 +192,33 @@ export async function SubjectDetails({
     chapter: q.chapter,
   }));
 
+  const catalogQuizCard = (quiz: PublicSubjectQuiz): PublicQuizAccessItem => ({
+    id: quiz.id,
+    title: quiz.title,
+    description: quiz.description,
+    timeLimit: quiz.timeLimit,
+    accessType: quiz.accessType,
+    isFreePreview: quiz.isFreePreview,
+    href: `${basePath}/quizzes/${encodeSlugPath(stripPrefix(quiz.seoSlug || quiz.id, "اختبارات"))}`,
+    _count: { questions: quiz.questionCount },
+    chapter: quiz.chapter,
+  });
+
+  const hasChapters = Boolean(chapterCatalog?.chapters.length);
+  const directCatalogQuizzes = chapterCatalog?.quizzes.map(catalogQuizCard) ?? [];
+  const generalSummaries = summaries.filter((summary) => !summary.chapter);
+  const comprehensiveQuizzes = (chapterCatalog?.quizzes ?? [])
+    .filter((quiz) => quiz.questionCount > 0 && quiz.questionChapterIds.length > 1)
+    .map(catalogQuizCard);
+  const chapterCards = (chapterCatalog?.chapters ?? []).map((chapter) => ({
+    ...chapter,
+    href: `${basePath}/chapters/${encodeURIComponent(chapter.routeKey)}`,
+    summariesCount: summaries.filter((summary) => summary.chapter?.id === chapter.id).length,
+    quizzesCount: (chapterCatalog?.quizzes ?? []).filter(
+      (quiz) => quiz.questionCount > 0 && quiz.questionChapterIds.length === 1 && quiz.questionChapterIds[0] === chapter.id,
+    ).length,
+  }));
+
   return (
     <div className="space-y-6 lg:space-y-8">
       <Card className={surfaceCardClass}>
@@ -193,13 +233,45 @@ export async function SubjectDetails({
         </CardHeader>
 
         <CardContent className="space-y-6 pb-6">
-          <SubjectLearningSwitcher
-            quizzes={quizCards}
-            summaries={summaries}
-            subjectId={subject.id}
-            majorId={subject.major.id}
-            basePath={basePath}
-          />
+          {typeNorm === "school" ? (
+            <SubjectLearningSwitcher
+              quizzes={quizCards}
+              summaries={summaries}
+              subjectId={subject.id}
+              majorId={subject.major.id}
+              basePath={basePath}
+            />
+          ) : hasChapters ? (
+            <div className="space-y-8">
+              <ChapterOverviewIntro />
+              <SubjectChapterDirectory chapters={chapterCards} />
+              <SubjectStudySummaries
+                summaries={generalSummaries}
+                basePath={basePath}
+                subjectId={subject.id}
+                majorId={subject.major.id}
+                heading="محتوى عام للمادة"
+                description="ملخصات مرتبطة بالمادة مباشرة وليست محصورة في فصل محدد."
+                headingId="general-subject-content-heading"
+              />
+              <SubjectQuizzesSection
+                quizzes={comprehensiveQuizzes}
+                subjectId={subject.id}
+                majorId={subject.major.id}
+                heading="اختبارات شاملة"
+                description="اختبارات تجمع أسئلة من أكثر من فصل في المادة."
+                headingId="comprehensive-subject-quizzes-heading"
+              />
+            </div>
+          ) : (
+            <DirectSubjectLearningContent
+              summaries={summaries}
+              quizzes={directCatalogQuizzes}
+              basePath={basePath}
+              subjectId={subject.id}
+              majorId={subject.major.id}
+            />
+          )}
 
           <div className="flex flex-col justify-center gap-3 pt-2 sm:flex-row">
             <Button asChild variant="outline" className={outlineButtonClass}>

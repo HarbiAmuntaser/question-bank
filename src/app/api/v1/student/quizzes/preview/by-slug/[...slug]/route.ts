@@ -4,6 +4,11 @@ import { prisma } from "@/lib/prisma";
 import { json, bad } from "@/lib/http";
 import { CACHE_CONTROL, CACHE_TAGS, CACHE_TTL } from "@/lib/cache-tags";
 import { unstable_cache } from "next/cache";
+import { getPublicVisibilityCacheKey } from "@/config/public-features";
+import {
+  isPublicQuizId,
+  publicQuizWhere,
+} from "@/lib/server/public-content-visibility";
 
 export const dynamic = "force-dynamic";
 
@@ -53,7 +58,7 @@ const getPreviewCached = (id: string, origin: string) =>
 
       if (!res || !res.ok) {
         const quiz = await prisma.quiz.findFirst({
-          where: { id, isActive: true },
+          where: { id, isActive: true, ...publicQuizWhere() },
           select: { id: true },
         });
         if (!quiz) return null;
@@ -62,7 +67,7 @@ const getPreviewCached = (id: string, origin: string) =>
       const body = res ? await res.json().catch(() => null) : null;
       return body?.data ?? null;
     },
-    ["student-quiz-preview-by-slug-id", id],
+    ["student-quiz-preview-by-slug-id", id, getPublicVisibilityCacheKey()],
     {
       revalidate: CACHE_TTL.publicLong,
       tags: ["student-quizzes", "student-quiz-preview", CACHE_TAGS.public.quizzes, CACHE_TAGS.public.quiz(id)],
@@ -77,6 +82,7 @@ export async function GET(_req: Request, { params }: RouteContext) {
   try {
     const quizId = await findQuizIdByAny(slugPath, variants, last);
     if (!quizId) return bad("not_found", undefined, 404);
+    if (!(await isPublicQuizId(quizId))) return bad("not_found", undefined, 404);
 
     const data = await getPreviewCached(quizId, new URL(_req.url).origin);
     if (!data) return bad("not_found", undefined, 404);

@@ -9,9 +9,11 @@ import { UniversityHero } from "@/components/public/university-hero";
 import { MajorsList } from "@/components/public/majors-list";
 import { UniversityDegreeSelector } from "@/components/public/university-degree-selector";
 import { MajorDetails } from "@/components/public/major-details";
+import { MajorAcademicPeriodDetails } from "@/components/public/major-academic-period-details";
 import { SubjectDetails } from "@/components/public/subject-details";
 import { QuizDetails } from "@/components/public/quiz-details";
 import { StudySummaryDetails } from "@/components/public/study-summaries/study-summary-details";
+import { ChapterDetails } from "@/components/public/chapter-details";
 import type { MajorPublicLite, UniversityPublicLite } from "@/types/public-university";
 
 import { normalizeCountry, isSupportedType } from "@/lib/route-helpers";
@@ -27,10 +29,24 @@ import {
 
 import { CACHE_TAGS, cacheTags } from "@/lib/cache-tags";
 import { fetchJSON } from "@/lib/server/student-fetch";
-import { getPublishedSubjectSummaryBySlug, getStudySummarySeoMeta } from "@/lib/server/study-summaries";
+import {
+  getPublishedSubjectSummaries,
+  getPublishedSubjectSummaryBySlug,
+  getStudySummarySeoMeta,
+} from "@/lib/server/study-summaries";
+import {
+  getChapterSeoMeta,
+  getPublicChapterByRouteKey,
+  getSubjectChapterCatalog,
+} from "@/lib/server/subject-chapters";
 import { SITE_NAME, SITE_URL, stripSiteNameFromTitle, withSiteName } from "@/lib/seo";
 import { educationPageRobots } from "@/lib/search-indexing";
 import { DEGREE_TYPE_OPTIONS, normalizeDegreeType, type DegreeTypeValue } from "@/lib/degree-types";
+import {
+  getAcademicPeriodLabel,
+  getAcademicPeriodRouteKey,
+  parseAcademicPeriodRouteKey,
+} from "@/lib/academic-periods";
 
 export const revalidate = 21600;
 
@@ -85,8 +101,14 @@ type University = {
 type Major = {
   id: string;
   name: string;
+  code?: string | null;
   seo?: { slug?: string | null } | null;
   university?: University | null;
+  subjects?: Array<{
+    id: string;
+    year: number | null;
+    semester: number | null;
+  }>;
 };
 
 type Subject = {
@@ -271,12 +293,25 @@ function parseUniversitiesCatchAll(segs: string[]) {
   const subjectsIdx = findIndexCI(segs, "subjects");
   const quizzesIdx = findIndexCI(segs, "quizzes");
   const summariesIdx = findIndexCI(segs, "summaries");
+  const chaptersIdx = findIndexCI(segs, "chapters");
+  const levelsIdx = findIndexCI(segs, "levels");
 
   if (majorsIdx < 0) {
     return {
       kind: "university" as const,
       universitySlugPath: joinSlug(segs),
       majorSlugPath: "",
+      subjectSlugPath: "",
+      quizSlugPath: "",
+    };
+  }
+
+  if (levelsIdx > majorsIdx && subjectsIdx < 0) {
+    return {
+      kind: "academicPeriod" as const,
+      universitySlugPath: joinSlug(segs.slice(0, majorsIdx)),
+      majorSlugPath: joinSlug(segs.slice(majorsIdx + 1, levelsIdx)),
+      periodRouteKey: joinSlug(segs.slice(levelsIdx + 1)),
       subjectSlugPath: "",
       quizSlugPath: "",
     };
@@ -313,6 +348,17 @@ function parseUniversitiesCatchAll(segs: string[]) {
     };
   }
 
+  if (chaptersIdx > subjectsIdx) {
+    return {
+      kind: "chapter" as const,
+      universitySlugPath: joinSlug(segs.slice(0, majorsIdx)),
+      majorSlugPath: joinSlug(segs.slice(majorsIdx + 1, subjectsIdx)),
+      subjectSlugPath: joinSlug(segs.slice(subjectsIdx + 1, chaptersIdx)),
+      chapterSlugPath: joinSlug(segs.slice(chaptersIdx + 1)),
+      quizSlugPath: "",
+    };
+  }
+
   return {
     kind: "subject" as const,
     universitySlugPath: joinSlug(segs.slice(0, majorsIdx)),
@@ -339,6 +385,118 @@ export async function generateMetadata({ params }: { params: Promise<PageParams>
 
   const segs = normalizeSegments(p.slug);
   const parsed = parseUniversitiesCatchAll(segs);
+
+  // ---- University academic period metadata ----
+  if (parsed.kind === "academicPeriod") {
+    const { universitySlugPath, majorSlugPath, periodRouteKey } = parsed;
+    const period = parseAcademicPeriodRouteKey(periodRouteKey);
+    if (type !== "university" || !universitySlugPath || !majorSlugPath || !period) {
+      return { title: "مستوى دراسي غير موجود", robots: { index: false, follow: false } };
+    }
+
+    const { major } = await fetchMajorBySlugOrCode(majorSlugPath);
+    if (!major || major.university?.institutionType !== "university") {
+      return { title: "مستوى دراسي غير موجود", robots: { index: false, follow: false } };
+    }
+
+    const hasSubjects = (major.subjects ?? []).some(
+      (subject) => subject.year === period.year && subject.semester === period.semester,
+    );
+    if (!hasSubjects) {
+      return { title: "مستوى دراسي غير موجود", robots: { index: false, follow: false } };
+    }
+
+    const canonicalUniversity = stripPrefix(
+      major.university.seo?.slug || major.university.code || universitySlugPath,
+      "جامعات",
+    );
+    const canonicalMajor = stripPrefix(major.seo?.slug || major.code || majorSlugPath, "تخصصات");
+    const canonicalPeriod = getAcademicPeriodRouteKey(period);
+    const canonicalCountry = (major.university.countryCode || cc).toUpperCase();
+    const canonicalPath = `/${canonicalCountry}/university/universities/${encodeSlugPath(
+      canonicalUniversity,
+    )}/majors/${encodeSlugPath(canonicalMajor)}/levels/${canonicalPeriod}`;
+    const canonical = `${SITE_URL}${canonicalPath}`;
+    const label = getAcademicPeriodLabel(major.university.countryCode || cc, period);
+    const title = `${label} - ${major.name}`;
+    const description = `استعرض مواد ${label} ضمن تخصص ${major.name}.`;
+
+    return {
+      title,
+      description,
+      alternates: { canonical },
+      openGraph: {
+        title: withSiteName(title),
+        description,
+        images: major.university.logoUrl ? [{ url: major.university.logoUrl }] : undefined,
+        type: "website",
+        url: canonical,
+      },
+      robots: educationPageRobots(),
+    };
+  }
+
+  // ---- Chapter metadata ----
+  if (parsed.kind === "chapter") {
+    const { universitySlugPath, majorSlugPath, subjectSlugPath, chapterSlugPath } = parsed;
+    if (
+      type === "school" ||
+      !universitySlugPath ||
+      !majorSlugPath ||
+      !subjectSlugPath ||
+      !chapterSlugPath
+    ) {
+      return { title: "فصل غير موجود", robots: { index: false, follow: false } };
+    }
+
+    const { subject } = await fetchSubjectBySlugOrCode(subjectSlugPath);
+    if (!subject) return { title: "فصل غير موجود", robots: { index: false, follow: false } };
+
+    const chapter = await getPublicChapterByRouteKey(subject.id, chapterSlugPath);
+    if (!chapter) return { title: "فصل غير موجود", robots: { index: false, follow: false } };
+
+    const [seo, summaries, catalog] = await Promise.all([
+      getChapterSeoMeta(chapter.id).catch(() => null),
+      getPublishedSubjectSummaries(subject.id),
+      getSubjectChapterCatalog(subject.id),
+    ]);
+    const summariesCount = summaries.filter((summary) => summary.chapter?.id === chapter.id).length;
+    const quizzesCount = catalog.quizzes.filter(
+      (quiz) =>
+        quiz.questionCount > 0 &&
+        quiz.questionChapterIds.length === 1 &&
+        quiz.questionChapterIds[0] === chapter.id,
+    ).length;
+    const hasPublishedContent = summariesCount + quizzesCount > 0;
+    const canonicalUni = stripPrefix(subject.major?.university?.seo?.slug || universitySlugPath, "جامعات");
+    const canonicalMajor = stripPrefix(subject.major?.seo?.slug || majorSlugPath, "تخصصات");
+    const canonicalSubject = stripPrefix(subject.seo?.slug || subjectSlugPath, "مواد");
+    const canonicalPath = `/${cc}/${type}/universities/${encodeSlugPath(canonicalUni)}/majors/${encodeSlugPath(
+      canonicalMajor,
+    )}/subjects/${encodeSlugPath(canonicalSubject)}/chapters/${encodeURIComponent(chapter.routeKey)}`;
+    const canonical = `${SITE_URL}${canonicalPath}`;
+    const title = stripSiteNameFromTitle(seo?.metaTitle) || chapter.name;
+    const socialTitle = seo?.ogTitle || withSiteName(title);
+    const description =
+      seo?.metaDescription ||
+      chapter.description ||
+      `استعرض ملخصات واختبارات ${chapter.name} ضمن مادة ${subject.name}.`;
+    const defaultRobots = educationPageRobots(seo);
+
+    return {
+      title,
+      description,
+      alternates: { canonical },
+      openGraph: {
+        title: socialTitle,
+        description: seo?.ogDescription || description,
+        images: seo?.ogImageUrl ? [{ url: seo.ogImageUrl }] : undefined,
+        type: "website",
+        url: canonical,
+      },
+      robots: hasPublishedContent ? defaultRobots : { index: false, follow: !seo?.nofollow },
+    };
+  }
 
   // ---- Quiz metadata ----
   if (parsed.kind === "quiz") {
@@ -578,6 +736,55 @@ export default async function UniversitiesCatchAllPage({
 
   const segs = normalizeSegments(p.slug);
   const parsed = parseUniversitiesCatchAll(segs);
+
+  if (parsed.kind === "academicPeriod") {
+    const { universitySlugPath, majorSlugPath, periodRouteKey } = parsed;
+    if (type !== "university" || !universitySlugPath || !majorSlugPath || !periodRouteKey) notFound();
+
+    return (
+      <div className="flex min-h-screen flex-col">
+        <PublicHeader />
+        <main className="container mx-auto flex-1 px-4 py-8 md:px-6">
+          <MajorAcademicPeriodDetails
+            cc={cc}
+            type={type}
+            universitySlugPath={universitySlugPath}
+            majorSlugPath={majorSlugPath}
+            periodRouteKey={periodRouteKey}
+          />
+        </main>
+        <PublicFooter cc={cc} />
+      </div>
+    );
+  }
+
+  if (parsed.kind === "chapter") {
+    const { universitySlugPath, majorSlugPath, subjectSlugPath, chapterSlugPath } = parsed;
+    if (
+      type === "school" ||
+      !universitySlugPath ||
+      !majorSlugPath ||
+      !subjectSlugPath ||
+      !chapterSlugPath
+    ) notFound();
+
+    return (
+      <div className="flex min-h-screen flex-col">
+        <PublicHeader />
+        <main className="container mx-auto flex-1 px-4 py-8 md:px-6">
+          <ChapterDetails
+            cc={cc}
+            type={type}
+            universitySlugPath={universitySlugPath}
+            majorSlugPath={majorSlugPath}
+            subjectSlugPath={subjectSlugPath}
+            chapterRouteKey={chapterSlugPath}
+          />
+        </main>
+        <PublicFooter cc={cc} />
+      </div>
+    );
+  }
 
   if (parsed.kind === "quiz") {
     const { universitySlugPath, majorSlugPath, subjectSlugPath, quizSlugPath } = parsed;

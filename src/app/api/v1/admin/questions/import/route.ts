@@ -71,7 +71,7 @@ export async function POST(req: Request) {
       return importQuestions(tx, chapterId, items, duplicateStrategy, existingKeys);
     });
 
-    if (result.imported > 0) revalidateQuestionCache({ subjectId: exists.subjectId });
+    if (result.imported > 0) revalidateQuestionCache({ chapterId: exists.id, subjectId: exists.subjectId });
     return json({ ok: true, imported: result.imported, skipped: result.skipped, total: items.length }, { status: 201 });
   } catch {
     return bad("فشل الاستيراد. تأكد من صحة البيانات.");

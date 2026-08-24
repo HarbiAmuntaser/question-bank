@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { json, bad } from "@/lib/http";
 import { CACHE_CONTROL, CACHE_TAGS, CACHE_TTL } from "@/lib/cache-tags";
 import { unstable_cache } from "next/cache";
+import { getPublicVisibilityCacheKey } from "@/config/public-features";
+import { publicMajorWhere } from "@/lib/server/public-content-visibility";
 
 export const dynamic = "force-dynamic";
 
@@ -10,8 +12,8 @@ export const dynamic = "force-dynamic";
 const getMajorDetailsCached = (id: string) =>
   unstable_cache(
     async () => {
-      const major = await prisma.major.findUnique({
-        where: { id, isActive: true },
+      const major = await prisma.major.findFirst({
+        where: { id, isActive: true, AND: [publicMajorWhere()] },
         include: {
           university: {
             select: {
@@ -65,10 +67,10 @@ const getMajorDetailsCached = (id: string) =>
           ...major.university,
           seo: { slug: uniSeo?.slug ?? null },
         },
-        _count: { ...major._count, quizzes: quizzesCount },
+        _count: { ...major._count, subjects: major.subjects.length, quizzes: quizzesCount },
       };
     },
-    ["student-major-detail-by-id", id],
+    ["student-major-detail-by-id", id, getPublicVisibilityCacheKey()],
     {
       revalidate: CACHE_TTL.publicLong,
       tags: ["student-majors", "student-major-detail", CACHE_TAGS.public.majors, CACHE_TAGS.public.major(id)],
@@ -87,7 +89,7 @@ export async function GET(
 
   try {
     const major = await prisma.major.findFirst({
-      where: { isActive: true, code },
+      where: { isActive: true, code, ...publicMajorWhere() },
       select: { id: true },
     });
     if (!major) return bad("not_found", undefined, 404);

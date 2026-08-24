@@ -14,6 +14,10 @@ import {
   type CountryCode,
   type InstitutionType,
 } from "@/config/regions";
+import {
+  getDefaultPublicType,
+  isPublicInstitutionTypeEnabled,
+} from "@/config/public-features";
 
 // توحيد كود الدولة وإرجاع الافتراضي إن لم يكن مدعوم
 export function normalizeCountry(input?: string | null): CountryCode {
@@ -31,13 +35,16 @@ export function isInstitutionTypeSegment(seg?: string | null): seg is Institutio
 export function isSupportedType(type?: string | null, cc?: string | null): type is InstitutionType {
   const country = normalizeCountry(cc);
   const t = (type ?? "").trim().toLowerCase();
-  return SUPPORTED_COUNTRIES[country].types.includes(t as InstitutionType);
+  return (
+    SUPPORTED_COUNTRIES[country].types.includes(t as InstitutionType) &&
+    isPublicInstitutionTypeEnabled(t)
+  );
 }
 
 // النوع الافتراضي لدولة معينة
 export function defaultTypeFor(cc?: string | null): InstitutionType {
   const country = normalizeCountry(cc);
-  return SUPPORTED_COUNTRIES[country].defaultType;
+  return getDefaultPublicType(country);
 }
 
 /**

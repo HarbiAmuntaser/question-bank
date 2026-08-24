@@ -19,8 +19,10 @@ type ChapterRow = {
   id: string;
   subjectId: string;
   name: string;
+  slug: string | null;
   chapterNumber: number | null;
   description: string | null;
+  learningObjectives: string[];
   isActive: boolean;
   createdAt: string; // ISO
   updatedAt: string; // ISO
@@ -168,6 +170,7 @@ export async function ChaptersTable({
                     </Avatar>
                     <div>
                       <div className="font-medium">{c.name}</div>
+                      {c.slug ? <div className="text-xs text-muted-foreground" dir="ltr">{c.slug}</div> : null}
                       {c.description && (
                         <div className="text-xs text-muted-foreground line-clamp-1">{c.description}</div>
                       )}

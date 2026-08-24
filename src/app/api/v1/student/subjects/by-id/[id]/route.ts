@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { json, bad } from "@/lib/http";
 import { CACHE_CONTROL, CACHE_TAGS, CACHE_TTL } from "@/lib/cache-tags";
 import { unstable_cache } from "next/cache";
+import { getPublicVisibilityCacheKey } from "@/config/public-features";
+import { publicSubjectWhere } from "@/lib/server/public-content-visibility";
 
 export const dynamic = "force-dynamic";
 
@@ -15,8 +17,8 @@ type RouteContext = {
 const getSubjectDetailsCached = (id: string) =>
   unstable_cache(
     async () => {
-      const subject = await prisma.subject.findUnique({
-        where: { id, isActive: true },
+      const subject = await prisma.subject.findFirst({
+        where: { id, isActive: true, AND: [publicSubjectWhere()] },
         select: {
           id: true,
           name: true,
@@ -92,7 +94,7 @@ const getSubjectDetailsCached = (id: string) =>
         _count: { ...subject._count, quizzes: quizzesCount },
       };
     },
-    ["student-subject-detail-by-id", id],
+    ["student-subject-detail-by-id", id, getPublicVisibilityCacheKey()],
     {
       revalidate: CACHE_TTL.publicLong,
       tags: ["student-subjects", "student-subject-detail", CACHE_TAGS.public.subjects, CACHE_TAGS.public.subject(id)],
@@ -107,7 +109,7 @@ export async function GET(_req: Request, { params }: RouteContext) {
 
   try {
     const subject = await prisma.subject.findFirst({
-      where: { isActive: true, code },
+      where: { isActive: true, code, ...publicSubjectWhere() },
       select: { id: true },
     });
     if (!subject) return bad("not_found", undefined, 404);

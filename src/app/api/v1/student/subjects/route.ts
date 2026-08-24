@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { json, bad } from "@/lib/http";
 import { cacheTags, CACHE_CONTROL, CACHE_TAGS, CACHE_TTL } from "@/lib/cache-tags";
 import { unstable_cache } from "next/cache";
+import { getPublicVisibilityCacheKey } from "@/config/public-features";
+import { publicSubjectWhere } from "@/lib/server/public-content-visibility";
 
 export const dynamic = "force-dynamic";
 
@@ -13,12 +15,20 @@ const listSubjectsCached = (input: { majorId?: string; universityId?: string }) 
         where: {
           isActive: true,
           ...(input.majorId ? { majorId: input.majorId } : {}),
-          ...(input.universityId ? { major: { universityId: input.universityId } } : {}),
+          AND: [
+            publicSubjectWhere(),
+            ...(input.universityId ? [{ major: { universityId: input.universityId } }] : []),
+          ],
         },
         orderBy: { name: "asc" },
         select: { id: true, name: true, code: true, majorId: true },
       }),
-    ["student-subjects-list", input.majorId ?? "", input.universityId ?? ""],
+    [
+      "student-subjects-list",
+      input.majorId ?? "",
+      input.universityId ?? "",
+      getPublicVisibilityCacheKey(),
+    ],
     {
       revalidate: CACHE_TTL.publicStable,
       tags: cacheTags(
