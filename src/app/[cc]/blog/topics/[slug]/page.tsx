@@ -77,7 +77,7 @@ export default async function PublicBlogTopicPage({
     <div className="min-h-screen bg-background" dir="rtl">
       <PublicHeader />
 
-      <main>
+      <main id="main-content" tabIndex={-1}>
         {schemaJson ? (
           <script
             type="application/ld+json"

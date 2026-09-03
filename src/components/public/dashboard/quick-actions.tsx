@@ -11,14 +11,14 @@ export function QuickActions({
   onExport,
   onClear,
 }: {
-  onExport: () => any;
+  onExport: () => unknown;
   onClear: () => void;
 }) {
   return (
     <Card>
-      <CardContent className="pt-6">
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Button asChild className="flex items-center gap-2">
+      <CardContent className="p-4 sm:p-6">
+        <div className="flex flex-col justify-center gap-3 sm:flex-row">
+          <Button asChild className="flex h-11 items-center gap-2">
             <Link href="/">
               <BookOpen className="h-4 w-4" aria-hidden />
               العودة للصفحة الرئيسية
@@ -27,7 +27,7 @@ export function QuickActions({
 
           <Button
             variant="outline"
-            className="flex items-center gap-2 bg-transparent"
+            className="flex h-11 items-center gap-2 bg-transparent"
             onClick={() => {
               const payload = onExport();
               downloadJson(`quiz-results-${Date.now()}.json`, payload);
@@ -38,8 +38,8 @@ export function QuickActions({
           </Button>
 
           <Button
-            variant="outline"
-            className="flex items-center gap-2 bg-transparent"
+            variant="destructive"
+            className="flex h-11 items-center gap-2"
             onClick={() => {
               const ok = confirm("هل أنت متأكد؟ سيتم حذف جميع نتائجك المخزّنة على هذا الجهاز.");
               if (ok) onClear();

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   BookOpen,
   Clock,
@@ -15,7 +15,7 @@ import {
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import type { SubscriptionGateDialogProps } from "./subscription-gate-dialog";
 
@@ -207,16 +207,26 @@ export function MajorSubscriptionCallout({
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
 
-  const refreshAccess = () => {
+  const refreshAccess = useCallback((signal?: AbortSignal) => {
     setLoading(true);
-    void fetch(`/api/v1/student/access/status?majorId=${encodeURIComponent(majorId)}`, { cache: "no-store" })
+    void fetch(`/api/v1/student/access/status?majorId=${encodeURIComponent(majorId)}`, { cache: "no-store", signal })
       .then((res) => res.json())
-      .then((body) => setAccess(body?.data ?? null))
-      .catch(() => setAccess(null))
-      .finally(() => setLoading(false));
-  };
+      .then((body) => {
+        if (!signal?.aborted) setAccess(body?.data ?? null);
+      })
+      .catch(() => {
+        if (!signal?.aborted) setAccess(null);
+      })
+      .finally(() => {
+        if (!signal?.aborted) setLoading(false);
+      });
+  }, [majorId]);
 
-  useEffect(refreshAccess, [majorId]);
+  useEffect(() => {
+    const controller = new AbortController();
+    refreshAccess(controller.signal);
+    return () => controller.abort();
+  }, [refreshAccess]);
 
   if (loading || !access?.requiresSubscription || !access.plan) return null;
 
@@ -266,19 +276,36 @@ export function SubjectQuizzesAccessGrid({
 }) {
   const [statuses, setStatuses] = useState<Record<string, AccessStatus>>({});
   const [loading, setLoading] = useState(true);
-  const quizIds = useMemo(() => quizzes.map((quiz) => quiz.id).join(","), [quizzes]);
+  const quizIds = useMemo(
+    () => quizzes.filter((quiz) => !isOpenWithoutStatus(quiz)).map((quiz) => quiz.id).join(","),
+    [quizzes],
+  );
 
-  const refreshAccess = () => {
-    if (!quizIds) return;
+  const refreshAccess = useCallback((signal?: AbortSignal) => {
+    if (!quizIds) {
+      setStatuses({});
+      setLoading(false);
+      return;
+    }
     setLoading(true);
-    void fetch(`/api/v1/student/access/status?quizIds=${encodeURIComponent(quizIds)}`, { cache: "no-store" })
+    void fetch(`/api/v1/student/access/status?quizIds=${encodeURIComponent(quizIds)}`, { cache: "no-store", signal })
       .then((res) => res.json())
-      .then((body) => setStatuses(body?.data?.items ?? {}))
-      .catch(() => setStatuses({}))
-      .finally(() => setLoading(false));
-  };
+      .then((body) => {
+        if (!signal?.aborted) setStatuses(body?.data?.items ?? {});
+      })
+      .catch(() => {
+        if (!signal?.aborted) setStatuses({});
+      })
+      .finally(() => {
+        if (!signal?.aborted) setLoading(false);
+      });
+  }, [quizIds]);
 
-  useEffect(refreshAccess, [quizIds]);
+  useEffect(() => {
+    const controller = new AbortController();
+    refreshAccess(controller.signal);
+    return () => controller.abort();
+  }, [refreshAccess]);
 
   if (!quizzes.length) return null;
 
@@ -311,16 +338,16 @@ export function SubjectQuizzesAccessGrid({
                   </span>
                 ) : null}
               </div>
-              <CardTitle className="line-clamp-2 text-base font-semibold leading-snug transition-colors group-hover:text-primary sm:text-lg">
+              <h3 className="line-clamp-2 text-base font-semibold leading-snug transition-colors group-hover:text-primary sm:text-lg">
                 {q.title}
-              </CardTitle>
+              </h3>
               {q.chapter?.name ? <p className="mt-1 text-xs text-muted-foreground">الفصل: {q.chapter.name}</p> : null}
             </CardHeader>
 
             <CardContent className="flex flex-1 flex-col justify-between gap-4 pt-0 pb-6">
-              <p className="hidden">
-                {q.description || "لا يوجد وصف مختصر لهذا الاختبار."}
-              </p>
+              {q.description ? (
+                <p className="line-clamp-2 text-sm leading-6 text-foreground/75">{q.description}</p>
+              ) : null}
 
               {locked ? (
                 <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
@@ -376,7 +403,8 @@ export function QuizDetailsAccessGate({
   majorId: string;
 }) {
   const [access, setAccess] = useState<AccessStatus | null>(null);
-  const [loading, setLoading] = useState(true);
+  const requiresAccessCheck = accessType !== "free" && !isFreePreview;
+  const [loading, setLoading] = useState(requiresAccessCheck);
   const quiz: PublicQuizAccessItem = {
     id: quizId,
     title,
@@ -388,16 +416,32 @@ export function QuizDetailsAccessGate({
     _count: { questions: 0 },
   };
 
-  const refreshAccess = () => {
-    setLoading(true);
-    void fetch(`/api/v1/student/access/status?quizId=${encodeURIComponent(quizId)}`, { cache: "no-store" })
-      .then((res) => res.json())
-      .then((body) => setAccess(body?.data ?? null))
-      .catch(() => setAccess(null))
-      .finally(() => setLoading(false));
-  };
+  const refreshAccess = useCallback((signal?: AbortSignal) => {
+    if (!requiresAccessCheck) {
+      setAccess(null);
+      setLoading(false);
+      return;
+    }
 
-  useEffect(refreshAccess, [quizId]);
+    setLoading(true);
+    void fetch(`/api/v1/student/access/status?quizId=${encodeURIComponent(quizId)}`, { cache: "no-store", signal })
+      .then((res) => res.json())
+      .then((body) => {
+        if (!signal?.aborted) setAccess(body?.data ?? null);
+      })
+      .catch(() => {
+        if (!signal?.aborted) setAccess(null);
+      })
+      .finally(() => {
+        if (!signal?.aborted) setLoading(false);
+      });
+  }, [quizId, requiresAccessCheck]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    refreshAccess(controller.signal);
+    return () => controller.abort();
+  }, [refreshAccess]);
 
   return (
     <div className="flex justify-center">

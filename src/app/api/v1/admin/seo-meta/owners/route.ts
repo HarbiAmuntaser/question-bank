@@ -122,6 +122,7 @@ export async function GET(req: Request) {
         select: {
           id: true,
           name: true,
+          slug: true,
           chapterNumber: true,
           subject: {
             select: {
@@ -152,7 +153,12 @@ export async function GET(req: Request) {
             university: u ? { id: u.id, label: u.name, subLabel: `${u.countryCode}${u.code ? ` • ${u.code}` : ""}` } : null,
             major: m ? { id: m.id, label: m.name, subLabel: m.code ? `• ${m.code}` : "" } : null,
             subject: c.subject ? { id: c.subject.id, label: c.subject.name, subLabel: c.subject.code ? `• ${c.subject.code}` : "" } : null,
-            chapter: { id: c.id, label: c.chapterNumber ? `الوحدة ${c.chapterNumber}: ${c.name}` : c.name },
+            chapter: {
+              id: c.id,
+              label: c.chapterNumber ? `الوحدة ${c.chapterNumber}: ${c.name}` : c.name,
+              slug: c.slug,
+              subLabel: c.slug ?? undefined,
+            },
           },
         },
       });
@@ -390,19 +396,26 @@ export async function GET(req: Request) {
   if (type === "chapter") {
     const where: any = { isActive: true };
     if (subjectId) where.subjectId = subjectId;
-    if (query) where.name = { contains: query, mode: "insensitive" };
+    if (query) {
+      where.OR = [
+        { name: { contains: query, mode: "insensitive" } },
+        { slug: { contains: query, mode: "insensitive" } },
+      ];
+    }
 
     const rows = await prisma.chapter.findMany({
       where,
       orderBy: [{ chapterNumber: "asc" }, { name: "asc" }],
       take,
-      select: { id: true, name: true, chapterNumber: true },
+      select: { id: true, name: true, slug: true, chapterNumber: true },
     });
 
     return json({
       data: rows.map((c) => ({
         id: c.id,
         label: c.chapterNumber ? `الوحدة ${c.chapterNumber}: ${c.name}` : c.name,
+        slug: c.slug,
+        subLabel: c.slug ?? undefined,
       })),
     });
   }

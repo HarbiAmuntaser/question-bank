@@ -1,6 +1,7 @@
 // file: src/app/[cc]/[type]/subjects/[...slug]/page.tsx
 
 import { notFound, redirect } from "next/navigation";
+import type { Metadata } from "next";
 import { normalizeCountry, isSupportedType } from "@/lib/route-helpers";
 import type { InstitutionType } from "@/config/regions";
 import {
@@ -9,9 +10,14 @@ import {
   stripPrefix,
   encodeSlugPath,
 } from "@/lib/public/slug-utils";
-import { fetchJSON } from "@/lib/server/student-fetch";
+import { getPublicSubjectByRouteKey } from "@/lib/server/public-education-loaders";
 
 export const revalidate = 21600;
+
+export const metadata: Metadata = {
+  title: "تحويل...",
+  robots: { index: false, follow: false },
+};
 
 /**
  * ✅ Next 15:
@@ -42,35 +48,11 @@ type SubjectLite = {
   };
 };
 
-async function fetchSubjectBySlugOrCodeOrId(subjectSlugPathRaw: string) {
+async function fetchSubjectBySlugOrCodeOrId(
+  subjectSlugPathRaw: string,
+): Promise<SubjectLite | null> {
   const subjectSlugPath = stripPrefix(subjectSlugPathRaw, "مواد");
-
-  // 1) by-slug
-  const bySlug = await fetchJSON<SubjectLite>(
-    `/api/v1/student/subjects/by-slug/${encodeSlugPath(subjectSlugPath)}`,
-    undefined,
-    21600
-  );
-  if (bySlug.ok && bySlug.data) return bySlug.data;
-
-  // 2) fallback: by-code ثم by-id (إذا segment واحد)
-  if (!subjectSlugPath.includes("/")) {
-    const byCode = await fetchJSON<SubjectLite>(
-      `/api/v1/student/subjects/by-code/${encodeURIComponent(subjectSlugPath)}`,
-      undefined,
-      21600
-    );
-    if (byCode.ok && byCode.data) return byCode.data;
-
-    const byId = await fetchJSON<SubjectLite>(
-      `/api/v1/student/subjects/by-id/${encodeURIComponent(subjectSlugPath)}`,
-      undefined,
-      21600
-    );
-    if (byId.ok && byId.data) return byId.data;
-  }
-
-  return null;
+  return getPublicSubjectByRouteKey(subjectSlugPath);
 }
 
 /**

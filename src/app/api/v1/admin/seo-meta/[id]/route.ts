@@ -14,6 +14,10 @@ function cleanNullable(value: string | null | undefined) {
   return value ?? null;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 const asciiSlugRegex = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const unicodeSlugRegex = /^[\p{L}\p{N}]+(?:-[\p{L}\p{N}]+)*$/u;
 
@@ -64,7 +68,22 @@ export async function PUT(req: Request, ctx: RouteParams) {
   const existing = await prisma.seoMeta.findUnique({ where: { id } });
   if (!existing) return notFound("seo_meta_not_found");
 
-  const body = await req.json().catch(() => null);
+  const rawBody = await req.json().catch(() => null);
+  let body = rawBody;
+  let chapterSlug: string | null = null;
+
+  if (existing.ownerType === "chapter") {
+    const chapter = await prisma.chapter.findUnique({
+      where: { id: existing.ownerId },
+      select: { slug: true },
+    });
+    if (!chapter) return bad("seo_owner_not_found", undefined, 404);
+
+    chapterSlug = chapter.slug?.trim() || null;
+    if (!chapterSlug) return bad("chapter_slug_required");
+    if (isRecord(rawBody)) body = { ...rawBody, slug: undefined };
+  }
+
   const parsed = updateSeoMetaSchema.safeParse(body);
   if (!parsed.success) return bad("validation_error", parsed.error.flatten());
 
@@ -79,7 +98,9 @@ export async function PUT(req: Request, ctx: RouteParams) {
   if (typeof parsed.data.locale !== "undefined") data.locale = parsed.data.locale;
 
   // ✅ slug normalize + enforce rules by locale
-  if (typeof parsed.data.slug !== "undefined") {
+  if (chapterSlug) {
+    data.slug = chapterSlug;
+  } else if (typeof parsed.data.slug !== "undefined") {
     const raw = parsed.data.slug.trim();
 
     if (!unicodeSlugRegex.test(raw)) {

@@ -1,7 +1,7 @@
 // src/components/public/quiz/result/result-best-card.tsx
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Award } from "lucide-react";
 import type { UiResult } from "./use-quiz-results";
@@ -18,10 +18,10 @@ export function ResultBestCard({
   return (
     <Card className="border bg-card/95 shadow-sm">
       <CardHeader className="p-5 sm:p-6">
-        <CardTitle className="flex items-center gap-2 text-lg">
+        <h2 className="flex items-center gap-2 text-lg font-semibold">
           <Award className="h-5 w-5" aria-hidden />
           أفضل نتيجة لك
-        </CardTitle>
+        </h2>
       </CardHeader>
 
       <CardContent className="flex flex-col gap-3 p-5 pt-0 sm:p-6 sm:pt-0 md:flex-row md:items-center md:justify-between">

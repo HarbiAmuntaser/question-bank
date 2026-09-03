@@ -3,6 +3,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BookOpen, Target, Trophy, Clock, TrendingUp } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 export function StatsGrid({
   stats,
@@ -17,7 +18,7 @@ export function StatsGrid({
   const timeHint = hours > 0 ? "ساعة دراسة" : "دقيقة دراسة";
 
   return (
-    <div dir="rtl" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 text-right">
+    <div dir="rtl" className="grid grid-cols-2 gap-3 text-right sm:gap-4 md:grid-cols-3 xl:grid-cols-5">
       <StatCard title="إجمالي الاختبارات" value={stats.totalQuizzes} hint="اختبار مكتمل" Icon={BookOpen} />
       <StatCard title="المعدل العام" value={`${stats.averageScore}%`} hint="متوسط الدرجات" Icon={Target} />
       <StatCard title="أفضل نتيجة" value={`${stats.bestScore}%`} hint="أعلى درجة" Icon={Trophy} />
@@ -36,20 +37,20 @@ function StatCard({
   title: string;
   value: React.ReactNode;
   hint: string;
-  Icon: any;
+  Icon: LucideIcon;
 }) {
   return (
-    <Card dir="rtl" className="text-right">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+    <Card dir="rtl" className="text-right last:col-span-2 md:last:col-span-1">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-2">
         <CardTitle className="text-sm font-medium">{title}</CardTitle>
         <Icon className="h-4 w-4 text-muted-foreground" aria-hidden />
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-4 pt-0">
         {/* الأرقام أفضل تكون LTR لتظهر صح */}
-        <div className="text-2xl font-bold" dir="ltr">
+        <div className="text-xl font-bold sm:text-2xl" dir="ltr">
           {value}
         </div>
-        <p className="text-xs text-muted-foreground">{hint}</p>
+        <p className="mt-1 text-xs font-medium text-foreground/65">{hint}</p>
       </CardContent>
     </Card>
   );

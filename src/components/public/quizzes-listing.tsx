@@ -1,12 +1,12 @@
 // src/components/public/quizzes-listing.tsx
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BookOpen, Clock, Search } from "lucide-react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { PublicLoadingState } from "@/components/public/public-loading-state";
 import {
   isOpenWithoutStatus,
@@ -34,7 +34,7 @@ type Major = { id: string; name: string; degreeType: string | null; universityId
 type Subject = { id: string; name: string; majorId: string };
 
 const quizCardClass =
-  "flex h-full flex-col border bg-card/95 shadow-sm transition-colors hover:border-primary/40 hover:shadow-md dark:bg-gray-900/80";
+  "flex h-full flex-col border bg-card/95 shadow-sm transition-colors hover:border-primary/40 hover:shadow-md";
 const filterControlClass = "h-11 rounded-lg text-right";
 
 interface QuizzesListingProps {
@@ -45,7 +45,6 @@ interface QuizzesListingProps {
 }
 
 export function QuizzesListing({ initialQuizzes, universities, majors, subjects }: QuizzesListingProps) {
-  const router = useRouter();
   const searchParams = useSearchParams();
 
   const [quizzes, setQuizzes] = useState<QuizItem[]>(initialQuizzes);
@@ -57,6 +56,7 @@ export function QuizzesListing({ initialQuizzes, universities, majors, subjects 
   const [selectedDegreeType, setSelectedDegreeType] = useState(searchParams.get("degreeType") || "all");
   const [selectedSubject, setSelectedSubject] = useState(searchParams.get("subjectId") || "all");
   const [loading, setLoading] = useState(false);
+  const [filtersTouched, setFiltersTouched] = useState(false);
 
   // التصفية المحلية للقوائم التابعة
   const dynamicMajors = useMemo(() => {
@@ -83,25 +83,36 @@ export function QuizzesListing({ initialQuizzes, universities, majors, subjects 
 
   // جلب الاختبارات المفلترة من الـ API
   useEffect(() => {
+    if (!filtersTouched) return;
+
     const controller = new AbortController();
     async function run() {
-      setLoading(true);
-      const params = new URLSearchParams();
-      if (searchTerm) params.set("searchTerm", searchTerm);
-      if (selectedUniversity !== "all") params.set("universityId", selectedUniversity);
-      if (selectedMajor !== "all") params.set("majorId", selectedMajor);
-      if (selectedDegreeType !== "all") params.set("degreeType", selectedDegreeType);
-      if (selectedSubject !== "all") params.set("subjectId", selectedSubject);
+      try {
+        setLoading(true);
+        const params = new URLSearchParams();
+        if (searchTerm.trim()) params.set("searchTerm", searchTerm.trim());
+        if (selectedUniversity !== "all") params.set("universityId", selectedUniversity);
+        if (selectedMajor !== "all") params.set("majorId", selectedMajor);
+        if (selectedDegreeType !== "all") params.set("degreeType", selectedDegreeType);
+        if (selectedSubject !== "all") params.set("subjectId", selectedSubject);
 
-      router.push(`/quizzes?${params.toString()}`, { scroll: false });
+        const query = params.toString();
+        window.history.replaceState(window.history.state, "", query ? `/quizzes?${query}` : "/quizzes");
 
-      const res = await fetch(`/api/v1/student/quizzes?${params.toString()}`, {
-        signal: controller.signal,
-        next: { revalidate: 0 },
-      });
-      const body = await res.json();
-      setQuizzes(body?.data ?? body ?? []);
-      setLoading(false);
+        const res = await fetch(query ? `/api/v1/student/quizzes?${query}` : "/api/v1/student/quizzes", {
+          cache: "no-store",
+          signal: controller.signal,
+        });
+        if (!res.ok) throw new Error(`Failed to load quizzes (${res.status})`);
+
+        const body = await res.json();
+        if (!controller.signal.aborted) setQuizzes(body?.data ?? body ?? []);
+      } catch {
+        if (controller.signal.aborted) return;
+        // Keep the current list visible when a filter refresh fails.
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
+      }
     }
 
     const t = setTimeout(run, 250);
@@ -109,36 +120,42 @@ export function QuizzesListing({ initialQuizzes, universities, majors, subjects 
       clearTimeout(t);
       controller.abort();
     };
-  }, [searchTerm, selectedUniversity, selectedMajor, selectedDegreeType, selectedSubject, router]);
-// عند تغيير الجامعة: صفّر التخصص والمادة
-useEffect(() => {
-  setSelectedMajor("all");
-  setSelectedSubject("all");
-}, [selectedUniversity]);
+  }, [filtersTouched, searchTerm, selectedUniversity, selectedMajor, selectedDegreeType, selectedSubject]);
 
-// عند تغيير التخصص: صفّر المادة
-useEffect(() => {
-  setSelectedSubject("all");
-}, [selectedMajor]);
+  const restrictedQuizIds = useMemo(
+    () => quizzes.filter((quiz) => !isOpenWithoutStatus(quiz)).map((quiz) => quiz.id).join(","),
+    [quizzes],
+  );
 
-  const refreshAccess = () => {
-    const ids = quizzes.map((quiz) => quiz.id).join(",");
+  const refreshAccess = useCallback((signal?: AbortSignal) => {
+    const ids = restrictedQuizIds;
     if (!ids) {
       setAccessItems({});
+      setAccessLoading(false);
       return;
     }
     setAccessLoading(true);
-    void fetch(`/api/v1/student/access/status?quizIds=${encodeURIComponent(ids)}`, { cache: "no-store" })
+    void fetch(`/api/v1/student/access/status?quizIds=${encodeURIComponent(ids)}`, { cache: "no-store", signal })
       .then((res) => res.json())
-      .then((body) => setAccessItems(body?.data?.items ?? {}))
-      .catch(() => setAccessItems({}))
-      .finally(() => setAccessLoading(false));
-  };
+      .then((body) => {
+        if (!signal?.aborted) setAccessItems(body?.data?.items ?? {});
+      })
+      .catch(() => {
+        if (!signal?.aborted) setAccessItems({});
+      })
+      .finally(() => {
+        if (!signal?.aborted) setAccessLoading(false);
+      });
+  }, [restrictedQuizIds]);
 
-  useEffect(refreshAccess, [quizzes]);
+  useEffect(() => {
+    const controller = new AbortController();
+    refreshAccess(controller.signal);
+    return () => controller.abort();
+  }, [refreshAccess]);
   return (
-    <section className="py-8 md:py-12" dir="rtl">
-      <div className="container px-4 md:px-6">
+    <section className="py-6 sm:py-8 md:py-12" dir="rtl" aria-busy={loading}>
+      <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="mb-8 text-center">
           <h1 className="text-2xl font-bold leading-tight sm:text-3xl md:text-4xl">تصفح الاختبارات</h1>
           <p className="mx-auto mt-3 max-w-[700px] text-sm leading-relaxed text-muted-foreground sm:text-base">
@@ -150,35 +167,73 @@ useEffect(() => {
         <div className="mb-8 grid grid-cols-1 gap-3 rounded-lg border bg-card/95 p-4 shadow-sm sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
           <div className="relative">
             <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
-            <Input placeholder="بحث عن اختبار..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className={`${filterControlClass} pr-10`} />
+            <Input
+              aria-label="البحث عن اختبار"
+              placeholder="بحث عن اختبار..."
+              value={searchTerm}
+              onChange={(event) => {
+                setFiltersTouched(true);
+                setSearchTerm(event.target.value);
+              }}
+              className={`${filterControlClass} pr-10`}
+            />
           </div>
 
-          <Select value={selectedUniversity} onValueChange={setSelectedUniversity}>
-            <SelectTrigger className={filterControlClass}><SelectValue placeholder="الجامعة" /></SelectTrigger>
+          <Select
+            value={selectedUniversity}
+            onValueChange={(value) => {
+              setFiltersTouched(true);
+              setSelectedUniversity(value);
+              setSelectedMajor("all");
+              setSelectedSubject("all");
+            }}
+          >
+            <SelectTrigger className={filterControlClass} aria-label="تصفية الاختبارات حسب الجامعة"><SelectValue placeholder="الجامعة" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">جميع الجامعات</SelectItem>
               {universities.map((u) => (<SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>))}
             </SelectContent>
           </Select>
 
-          <Select value={selectedMajor} onValueChange={setSelectedMajor} disabled={dynamicMajors.length === 0 && selectedUniversity !== "all"}>
-            <SelectTrigger className={filterControlClass}><SelectValue placeholder="التخصص" /></SelectTrigger>
+          <Select
+            value={selectedMajor}
+            onValueChange={(value) => {
+              setFiltersTouched(true);
+              setSelectedMajor(value);
+              setSelectedSubject("all");
+            }}
+            disabled={dynamicMajors.length === 0 && selectedUniversity !== "all"}
+          >
+            <SelectTrigger className={filterControlClass} aria-label="تصفية الاختبارات حسب التخصص"><SelectValue placeholder="التخصص" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">جميع التخصصات</SelectItem>
               {dynamicMajors.map((m) => (<SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>))}
             </SelectContent>
           </Select>
 
-          <Select value={selectedDegreeType} onValueChange={setSelectedDegreeType}>
-            <SelectTrigger className={filterControlClass}><SelectValue placeholder="نوع الدرجة" /></SelectTrigger>
+          <Select
+            value={selectedDegreeType}
+            onValueChange={(value) => {
+              setFiltersTouched(true);
+              setSelectedDegreeType(value);
+            }}
+          >
+            <SelectTrigger className={filterControlClass} aria-label="تصفية الاختبارات حسب نوع الدرجة"><SelectValue placeholder="نوع الدرجة" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">جميع أنواع الدرجات</SelectItem>
               {degreeTypes.map((t) => (<SelectItem key={t} value={t}>{getDegreeTypeLabel(t)}</SelectItem>))}
             </SelectContent>
           </Select>
 
-          <Select value={selectedSubject} onValueChange={setSelectedSubject} disabled={dynamicSubjects.length === 0 && (selectedUniversity !== "all" || selectedMajor !== "all")}>
-            <SelectTrigger className={filterControlClass}><SelectValue placeholder="المادة" /></SelectTrigger>
+          <Select
+            value={selectedSubject}
+            onValueChange={(value) => {
+              setFiltersTouched(true);
+              setSelectedSubject(value);
+            }}
+            disabled={dynamicSubjects.length === 0 && (selectedUniversity !== "all" || selectedMajor !== "all")}
+          >
+            <SelectTrigger className={filterControlClass} aria-label="تصفية الاختبارات حسب المادة"><SelectValue placeholder="المادة" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">جميع المواد</SelectItem>
               {dynamicSubjects.map((s) => (<SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>))}
@@ -194,8 +249,8 @@ useEffect(() => {
             className="py-4"
           />
         ) : quizzes.length === 0 ? (
-          <div className="text-center py-10">
-            <p className="text-xl text-muted-foreground">لا توجد اختبارات مطابقة لمعايير البحث.</p>
+          <div className="rounded-lg border border-dashed bg-muted/20 py-12 text-center" role="status" aria-live="polite">
+            <p className="px-4 text-base font-medium text-foreground/70 sm:text-lg">لا توجد اختبارات مطابقة لمعايير البحث.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6 xl:grid-cols-3 xl:gap-8">
@@ -220,7 +275,7 @@ useEffect(() => {
               >
                 <CardHeader className="space-y-3 pb-3">
                   <QuizAccessBadges quiz={quiz} access={access} loading={quizAccessLoading} />
-                  <CardTitle className="line-clamp-2 text-base font-semibold leading-snug sm:text-lg">{quiz.title}</CardTitle>
+                  <h2 className="line-clamp-2 text-base font-semibold leading-snug sm:text-lg">{quiz.title}</h2>
                 </CardHeader>
                 <CardContent className="flex-grow space-y-3 pt-0">
                   <p className="line-clamp-2 text-sm leading-relaxed text-muted-foreground">{quiz.description}</p>
@@ -235,8 +290,8 @@ useEffect(() => {
                     </p>
                   ) : null}
 
-                  <div className="flex items-center gap-1 text-sm text-muted-foreground"><BookOpen className="h-4 w-4" /><span>{quiz._count?.questions ?? 0} أسئلة</span></div>
-                  <div className="flex items-center gap-1 text-sm text-muted-foreground"><Clock className="h-4 w-4" /><span>{quiz.timeLimit} دقيقة</span></div>
+                  <div className="flex items-center gap-1 text-sm text-muted-foreground"><BookOpen className="h-4 w-4" aria-hidden /><span>{quiz._count?.questions ?? 0} أسئلة</span></div>
+                  <div className="flex items-center gap-1 text-sm text-muted-foreground"><Clock className="h-4 w-4" aria-hidden /><span>{quiz.timeLimit} دقيقة</span></div>
                   <p className="text-sm text-muted-foreground">الجامعة: {quiz.university?.name || "غير محدد"}</p>
                   <p className="text-sm text-muted-foreground">التخصص: {quiz.major?.name || "غير محدد"}</p>
                   <p className="text-sm text-muted-foreground">المادة: {quiz.subject?.name || quiz.chapter?.subject?.name || "غير محدد"}</p>

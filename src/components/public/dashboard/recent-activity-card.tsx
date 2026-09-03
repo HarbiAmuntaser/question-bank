@@ -3,7 +3,7 @@
 
 import type { QuizResult } from "@/types";
 import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { BookOpen, Calendar, Trophy } from "lucide-react";
@@ -11,12 +11,12 @@ import { gradeColorClass, toDate } from "./dashboard-utils";
 
 export function RecentActivityCard({ recentResults }: { recentResults: QuizResult[] }) {
   return (
-<Card dir="rtl" className="text-right">
+    <Card dir="rtl" className="h-full text-right">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Calendar className="h-5 w-5" aria-hidden />
+        <h2 className="flex items-center gap-2 text-lg font-semibold">
+          <Calendar className="h-5 w-5 text-primary" aria-hidden />
           النشاط الأخير
-        </CardTitle>
+        </h2>
       </CardHeader>
 
       <CardContent>
@@ -27,23 +27,23 @@ export function RecentActivityCard({ recentResults }: { recentResults: QuizResul
               return (
                 <div
                   key={result.sessionId}
-                  className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg"
+                  className="flex items-center justify-between gap-3 rounded-lg border bg-muted/25 p-3"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-primary/10 rounded-full" aria-hidden>
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className="shrink-0 rounded-full bg-primary/10 p-2" aria-hidden>
                       <Trophy className="h-4 w-4 text-primary" />
                     </div>
-                    <div>
-                      <p className="font-medium text-sm">محاولة #{result.sessionId.slice(-6)}</p>
-                      <p className="text-xs text-gray-600 dark:text-gray-400">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium">محاولة #{result.sessionId.slice(-6)}</p>
+                      <p className="text-xs font-medium text-foreground/65">
                         {d ? d.toLocaleDateString("ar-SA") : "-"}
                       </p>
                     </div>
                   </div>
 
-                  <div className="text-right">
+                  <div className="shrink-0 text-left">
                     <Badge className={gradeColorClass(result.grade)}>{result.grade}</Badge>
-                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{Math.round(result.percentage)}%</p>
+                    <p className="mt-1 text-xs font-medium text-foreground/65" dir="ltr">{Math.round(result.percentage)}%</p>
                   </div>
                 </div>
               );
@@ -59,9 +59,9 @@ export function RecentActivityCard({ recentResults }: { recentResults: QuizResul
 
 function EmptyState() {
   return (
-    <div className="text-center py-8">
-      <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" aria-hidden />
-      <p className="text-gray-600 dark:text-gray-400">لم تقم بأي اختبار بعد</p>
+    <div className="py-8 text-center">
+      <BookOpen className="mx-auto mb-4 h-12 w-12 text-muted-foreground" aria-hidden />
+      <p className="font-medium text-foreground/70">لم تقم بأي اختبار بعد</p>
       <Button asChild className="mt-4">
         <Link href="/">ابدأ من الصفحة الرئيسية</Link>
       </Button>

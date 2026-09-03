@@ -10,7 +10,7 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900">
       <PublicHeader />
-      <main>
+      <main id="main-content" tabIndex={-1}>
         
         {/* <FeaturedQuizzes /> */}
         <StatsSection />

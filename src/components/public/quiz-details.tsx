@@ -2,12 +2,12 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
 import type { InstitutionType } from "@/config/regions";
-import { fetchJSON } from "@/lib/server/student-fetch";
+import { getPublicQuizPreviewByRouteKey } from "@/lib/server/public-education-loaders";
 import { stripPrefix, encodeSlugPath } from "@/lib/public/slug-utils";
 
 import { ArrowRight, Share2 } from "lucide-react";
@@ -20,71 +20,9 @@ const surfaceCardClass = "overflow-hidden border bg-card/95 shadow-sm transition
 const outlineButtonClass = "h-11 w-full rounded-lg sm:w-auto";
 const actionPanelClass = "rounded-lg border bg-muted/20 p-4 sm:p-5";
 
-type SeoLite = { slug: string | null };
-
-type QuizPreview = {
-  id: string;
-  title: string;
-  description: string | null;
-  timeLimit: number;
-  totalQuestions: number;
-  totalPoints: number;
-  createdAt: string | Date;
-  accessType: "inherit" | "free" | "paid";
-  isFreePreview: boolean;
-  seo?: SeoLite;
-  context: {
-    university: {
-      id: string;
-      name: string;
-      code: string | null;
-      logoUrl: string | null;
-      countryCode: string | null;
-      institutionType: string | null;
-      visibility?: "country" | "global" | null;
-      seo?: SeoLite;
-    };
-    major: {
-      id: string;
-      name: string;
-      code: string | null;
-      degreeType: string | null;
-      seo?: SeoLite;
-    };
-    subject: {
-      id: string;
-      name: string;
-      code: string | null;
-      seo?: SeoLite;
-    };
-  };
-};
-
 function normalizeInstitutionType(v: string | null): InstitutionType | null {
   const x = (v || "").trim().toLowerCase();
   return x === "university" || x === "school" || x === "academy" ? (x as InstitutionType) : null;
-}
-
-async function fetchQuizPreviewBySlugOrId(quizSlugPathRaw: string) {
-  const quizSlugPath = stripPrefix(quizSlugPathRaw, "اختبارات");
-
-  const bySlug = await fetchJSON<QuizPreview>(
-    `/api/v1/student/quizzes/preview/by-slug/${encodeSlugPath(quizSlugPath)}`,
-    { cache: "no-store" },
-    0,
-  );
-  if (bySlug.ok && bySlug.data) return { quiz: bySlug.data };
-
-  if (!quizSlugPath.includes("/")) {
-    const byId = await fetchJSON<QuizPreview>(
-      `/api/v1/student/quizzes/preview/by-id/${encodeURIComponent(quizSlugPath)}`,
-      { cache: "no-store" },
-      0,
-    );
-    if (byId.ok && byId.data) return { quiz: byId.data };
-  }
-
-  return { quiz: null as QuizPreview | null };
 }
 
 export async function QuizDetails({
@@ -105,7 +43,7 @@ export async function QuizDetails({
   const ccNorm = (cc || "SA").toUpperCase();
   const typeNorm = type;
 
-  const { quiz } = await fetchQuizPreviewBySlugOrId(quizSlugPath);
+  const quiz = await getPublicQuizPreviewByRouteKey(quizSlugPath);
   if (!quiz) notFound();
 
   const uni = quiz.context.university;
@@ -173,7 +111,7 @@ export async function QuizDetails({
         <CardHeader className="space-y-3 px-5 text-center sm:px-6">
           <div className="text-xs font-medium text-foreground/70">تفاصيل الاختبار</div>
 
-          <CardTitle className="text-2xl font-bold leading-tight sm:text-3xl">{quiz.title}</CardTitle>
+          <h1 className="text-2xl font-bold leading-tight sm:text-3xl">{quiz.title}</h1>
 
           {quiz.description ? (
             <p className="mx-auto max-w-3xl text-sm leading-relaxed text-foreground/75 sm:text-base">

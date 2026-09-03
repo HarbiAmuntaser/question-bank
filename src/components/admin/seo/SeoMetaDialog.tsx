@@ -12,6 +12,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 import { useToast } from "@/hooks/use-toast";
 import { createSeoMetaAction, updateSeoMetaAction } from "@/app/admin/seo-meta/actions";
 import { SeoOwnerSelector } from "./SeoOwnerSelector";
+import type { ComboOption } from "./AsyncCombobox";
 
 const localeOptions = [
   { value: "ar", label: "العربية" },
@@ -148,6 +149,20 @@ export function SeoMetaDialog({
   const ownerErrorText = useMemo(() => errors.ownerId, [errors.ownerId]);
   const metaTitleLength = (state.metaTitle ?? "").trim().length;
   const metaDescriptionLength = (state.metaDescription ?? "").trim().length;
+  const isChapterOwner = state.ownerType === "chapter";
+
+  function handleOwnerOptionChange(option: ComboOption | null) {
+    if (!isChapterOwner) return;
+
+    const chapterSlug = option?.slug?.trim() ?? "";
+    setState((prev) => (prev.slug === chapterSlug ? prev : { ...prev, slug: chapterSlug }));
+    setErrors((prev) => {
+      if (!prev.slug) return prev;
+      const next = { ...prev };
+      delete next.slug;
+      return next;
+    });
+  }
 
   function validateClient(): FieldErrors {
     const e: FieldErrors = {};
@@ -160,7 +175,7 @@ export function SeoMetaDialog({
     if (!rawSlug) e.slug = "حقل Slug مطلوب";
     else if (rawSlug.length > 190) e.slug = "Slug طويل جدًا";
     else {
-      if (state.locale === "en") {
+      if (state.locale === "en" && !isChapterOwner) {
         const s = rawSlug.toLowerCase();
         if (!asciiSlugRegex.test(s)) {
           e.slug = "Slug للإنجليزية يجب أن يكون a-z/0-9 واستخدام (-) فقط";
@@ -280,6 +295,7 @@ export function SeoMetaDialog({
                 ownerId={state.ownerId}
                 onOwnerTypeChange={(v) => updateField("ownerType", v)}
                 onOwnerIdChange={(v) => updateField("ownerId", v)}
+                onOwnerOptionChange={handleOwnerOptionChange}
                 lockOwnerType={lockOwner}
                 lockOwnerId={lockOwner}
               />
@@ -310,7 +326,15 @@ export function SeoMetaDialog({
               value={state.slug}
               onChange={(e) => updateField("slug", e.target.value)}
               placeholder={slugPlaceholder}
+              readOnly={isChapterOwner}
+              aria-readonly={isChapterOwner}
+              className={isChapterOwner ? "bg-muted/50" : undefined}
             />
+            {isChapterOwner ? (
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                رابط الفصل يُدار من صفحة الفصول ويُستخدم هنا تلقائيًا لمنع اختلاف رابط الصفحة عن بيانات SEO.
+              </p>
+            ) : null}
             <ErrorText text={errors.slug} />
           </div>
 

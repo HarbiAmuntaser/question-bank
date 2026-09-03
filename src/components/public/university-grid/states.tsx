@@ -10,7 +10,7 @@ export function GridLoading() {
           <div
             key={index}
             // Keep loading cards the same size as real cards to avoid layout shift.
-            className="overflow-hidden rounded-lg border bg-card/95 shadow-sm dark:bg-gray-900/80"
+            className="overflow-hidden rounded-lg border bg-card/95 shadow-sm"
           >
             <div className="h-44 animate-pulse bg-muted sm:h-48" />
             <div className="space-y-5 p-6">
@@ -39,7 +39,7 @@ export function GridEmpty({ title, text }: { title: string; text: string }) {
     <div className="py-14 text-center">
       <div className="mx-auto max-w-md rounded-lg border bg-card/95 p-6 shadow-sm">
         <Search className="mx-auto mb-4 h-14 w-14 text-muted-foreground" aria-hidden />
-        <h3 className="mb-2 text-lg font-semibold text-gray-900 dark:text-white sm:text-xl">{title}</h3>
+        <h3 className="mb-2 text-lg font-semibold text-foreground sm:text-xl">{title}</h3>
         <p className="text-muted-foreground">{text}</p>
       </div>
     </div>

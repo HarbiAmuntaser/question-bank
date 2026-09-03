@@ -27,3 +27,6 @@ export const SUPPORTED_COUNTRIES: Record<
 
 // الدولة الافتراضية عند عدم القدرة على تحديدها
 export const DEFAULT_COUNTRY: CountryCode = "SA";
+
+// Stable SEO owner for academy content that is intentionally shared across countries.
+export const GLOBAL_ACADEMY_CANONICAL_COUNTRY: CountryCode = "SA";

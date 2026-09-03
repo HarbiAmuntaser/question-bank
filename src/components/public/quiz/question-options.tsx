@@ -66,9 +66,9 @@ export function QuestionOptions({ question, answer, onAnswerChange, dir }: Props
 
   const rowClass = (selected: boolean) =>
     cn(
-      "flex min-h-12 cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors focus-within:ring-2 focus-within:ring-primary/35 hover:bg-muted/50 sm:min-h-14 sm:p-4",
-      selected ? "border-primary/50 bg-primary/5 shadow-sm" : "bg-background",
-      dir === "rtl" ? "flex-row-reverse text-right" : "flex-row text-left"
+      "flex min-h-12 cursor-pointer flex-row items-center gap-3 rounded-lg border p-3 transition-colors focus-within:ring-2 focus-within:ring-primary/35 hover:border-primary/30 hover:bg-muted/50 sm:min-h-14 sm:p-4",
+      selected ? "border-primary/60 bg-primary/10 shadow-sm ring-1 ring-primary/15" : "bg-background",
+      dir === "rtl" ? "text-right" : "text-left"
     );
 
   const inputClass = "h-5 w-5 shrink-0 accent-primary";
@@ -166,7 +166,7 @@ export function QuestionOptions({ question, answer, onAnswerChange, dir }: Props
 
       <p
         className={cn(
-          "text-[11px] text-gray-500 dark:text-gray-400",
+          "text-[11px] font-medium text-muted-foreground",
           dir === "rtl" ? "text-right" : "text-left"
         )}
       >

@@ -1,6 +1,12 @@
 import { prisma } from "@/lib/prisma";
 import { permanentRedirect, notFound } from "next/navigation";
+import type { Metadata } from "next";
 import { isPublicUniversityId } from "@/lib/server/public-content-visibility";
+
+export const metadata: Metadata = {
+  title: "تحويل...",
+  robots: { index: false, follow: false },
+};
 
 export default async function LegacyUniversityById({
   params,

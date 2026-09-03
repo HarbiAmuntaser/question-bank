@@ -1,13 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { BookOpenText, Clock, FileText, Layers3, Lock, ShieldCheck, Star, Unlock } from "lucide-react";
 
 import type { AccessStatus } from "@/components/public/subscription-access";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { encodeSlugPath } from "@/lib/public/slug-utils";
 import { cn } from "@/lib/utils";
 
@@ -27,7 +27,7 @@ export type PublicStudySummaryCard = {
   hasPdf: boolean;
 };
 
-const sectionCardClass = "overflow-hidden border bg-card/95 shadow-sm dark:bg-gray-900/80";
+const sectionCardClass = "flex h-full flex-col overflow-hidden border bg-card/95 shadow-sm";
 const accessBadgeClass = "h-7 rounded-md px-2.5 text-xs font-medium";
 
 function accessLabel(summary: PublicStudySummaryCard, access?: AccessStatus | null, loading?: boolean) {
@@ -117,7 +117,7 @@ function SummaryCard({
               ) : null}
             </div>
 
-            <CardTitle className="line-clamp-2 text-lg font-bold leading-7 sm:text-xl">{summary.title}</CardTitle>
+            <h3 className="line-clamp-2 text-lg font-bold leading-7 sm:text-xl">{summary.title}</h3>
             {summary.excerpt ? <p className="line-clamp-2 text-sm leading-6 text-muted-foreground">{summary.excerpt}</p> : null}
           </div>
 
@@ -133,7 +133,7 @@ function SummaryCard({
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-4 px-5 pb-5">
+      <CardContent className="mt-auto space-y-4 px-5 pb-5">
         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
           {allowed ? (
             <Button asChild className="h-11 rounded-lg sm:w-auto">
@@ -179,23 +179,37 @@ export function SubjectStudySummaries({
 }) {
   const [statuses, setStatuses] = useState<Record<string, AccessStatus>>({});
   const [loading, setLoading] = useState(true);
-  const summaryIds = useMemo(() => summaries.map((summary) => summary.id).filter(Boolean).join(","), [summaries]);
+  const summaryIds = useMemo(
+    () => summaries.filter((summary) => summary.accessType !== "free").map((summary) => summary.id).filter(Boolean).join(","),
+    [summaries],
+  );
 
-  const refreshAccess = () => {
+  const refreshAccess = useCallback((signal?: AbortSignal) => {
     if (!summaryIds) {
+      setStatuses({});
       setLoading(false);
       return;
     }
 
     setLoading(true);
-    void fetch(`/api/v1/student/access/status?summaryIds=${encodeURIComponent(summaryIds)}`, { cache: "no-store" })
+    void fetch(`/api/v1/student/access/status?summaryIds=${encodeURIComponent(summaryIds)}`, { cache: "no-store", signal })
       .then((res) => res.json())
-      .then((body) => setStatuses(body?.data?.items ?? {}))
-      .catch(() => setStatuses({}))
-      .finally(() => setLoading(false));
-  };
+      .then((body) => {
+        if (!signal?.aborted) setStatuses(body?.data?.items ?? {});
+      })
+      .catch(() => {
+        if (!signal?.aborted) setStatuses({});
+      })
+      .finally(() => {
+        if (!signal?.aborted) setLoading(false);
+      });
+  }, [summaryIds]);
 
-  useEffect(refreshAccess, [summaryIds]);
+  useEffect(() => {
+    const controller = new AbortController();
+    refreshAccess(controller.signal);
+    return () => controller.abort();
+  }, [refreshAccess]);
 
   if (summaries.length === 0) return null;
 

@@ -21,7 +21,7 @@ type Props = {
 
 export function DesktopNav({ pathname, nav, currentCC, onChangeCountry }: Props) {
   return (
-    <NavigationMenu className="hidden md:flex" aria-label="القائمة الرئيسية">
+    <NavigationMenu className="hidden lg:flex" aria-label="القائمة الرئيسية">
       <NavigationMenuList className="flex-row-reverse items-center gap-1">
         {nav.map(({ key, href, label }) => {
           const active = isActiveLink(pathname, href, key);

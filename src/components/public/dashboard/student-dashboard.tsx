@@ -20,10 +20,10 @@ export function StudentDashboard() {
 
   if (!loaded) {
     return (
-      <div className="flex items-center justify-center min-h-[300px]" aria-live="polite">
+      <div className="flex min-h-[300px] items-center justify-center" aria-live="polite">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mx-auto mb-3" />
-          <p className="text-gray-600 dark:text-gray-400">جاري تحميل لوحة التحكم...</p>
+          <div className="mx-auto mb-3 h-10 w-10 animate-spin rounded-full border-2 border-muted border-t-primary" role="status" aria-label="جاري تحميل لوحة التحكم" />
+          <p className="text-sm font-medium text-foreground/75">جاري تحميل لوحة التحكم...</p>
         </div>
       </div>
     );
@@ -31,12 +31,18 @@ export function StudentDashboard() {
 
   return (
     // ✅ RTL على مستوى الصفحة كلها
-    <div dir="rtl" className="max-w-7xl mx-auto space-y-6 text-right">
+    <div dir="rtl" className="space-y-5 text-right sm:space-y-6">
       <DashboardHeader />
 
       <StatsGrid stats={stats} />
 
-      <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="space-y-6">
+      <Tabs
+        value={tab}
+        onValueChange={(value) => {
+          if (value === "overview" || value === "analytics") setTab(value);
+        }}
+        className="space-y-5 sm:space-y-6"
+      >
         {/* ✅ grid-cols-2 بدل 3 */}
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="overview">نظرة عامة</TabsTrigger>
@@ -45,7 +51,7 @@ export function StudentDashboard() {
 
         <TabsContent value="overview" className="space-y-6">
           {tab === "overview" ? (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-6">
               <RecentActivityCard recentResults={recentResults} />
               <PerformanceOverviewCard stats={stats} />
             </div>

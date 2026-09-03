@@ -4,7 +4,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { PublicSubjectCard } from "@/components/public/public-subject-card";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardHeader } from "@/components/ui/card";
 import type { InstitutionType } from "@/config/regions";
 import {
   getAcademicPeriodLabel,
@@ -12,7 +12,7 @@ import {
   parseAcademicPeriodRouteKey,
 } from "@/lib/academic-periods";
 import { encodeSlugPath, stripPrefix } from "@/lib/public/slug-utils";
-import { fetchJSON } from "@/lib/server/student-fetch";
+import { getPublicMajorByRouteKey } from "@/lib/server/public-education-loaders";
 
 type SubjectDto = {
   id: string;
@@ -39,32 +39,8 @@ type MajorDto = {
   };
 };
 
-async function fetchMajorBySlugOrCode(majorSlugPathRaw: string) {
-  const majorSlugPath = stripPrefix(majorSlugPathRaw, "تخصصات");
-  const bySlug = await fetchJSON<MajorDto>(
-    `/api/v1/student/majors/by-slug/${encodeSlugPath(majorSlugPath)}`,
-    { cache: "no-store" },
-    0,
-  );
-  if (bySlug.ok && bySlug.data) return bySlug.data;
-
-  if (!majorSlugPath.includes("/")) {
-    const byCode = await fetchJSON<MajorDto>(
-      `/api/v1/student/majors/by-code/${encodeURIComponent(majorSlugPath)}`,
-      { cache: "no-store" },
-      0,
-    );
-    if (byCode.ok && byCode.data) return byCode.data;
-
-    const byId = await fetchJSON<MajorDto>(
-      `/api/v1/student/majors/by-id/${encodeURIComponent(majorSlugPath)}`,
-      { cache: "no-store" },
-      0,
-    );
-    if (byId.ok && byId.data) return byId.data;
-  }
-
-  return null;
+async function fetchMajorBySlugOrCode(majorSlugPathRaw: string): Promise<MajorDto | null> {
+  return getPublicMajorByRouteKey(majorSlugPathRaw);
 }
 
 function subjectHref(
@@ -143,7 +119,7 @@ export async function MajorAcademicPeriodDetails({
           </div>
           <div className="space-y-2">
             <p className="text-sm font-medium text-foreground/70">{major.name}</p>
-            <CardTitle className="text-2xl font-bold leading-tight sm:text-3xl">{label}</CardTitle>
+            <h1 className="text-2xl font-bold leading-tight sm:text-3xl">{label}</h1>
             <p className="text-sm font-medium text-foreground/75">
               {subjects.length} {subjects.length === 1 ? "مادة متاحة" : "مواد متاحة"}
             </p>

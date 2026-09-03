@@ -20,6 +20,9 @@ function applySecurityHeaders(res: NextResponse) {
   res.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
   res.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
   res.headers.set("X-Frame-Options", "SAMEORIGIN");
+  if (process.env.VERCEL_ENV === "preview") {
+    res.headers.set("X-Robots-Tag", "noindex, nofollow, noarchive");
+  }
   if (process.env.NODE_ENV === "production") {
     res.headers.set("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload");
   }

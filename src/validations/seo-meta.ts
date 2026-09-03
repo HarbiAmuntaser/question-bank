@@ -84,7 +84,7 @@ export const createSeoMetaSchema = z
   })
   .superRefine((data, ctx) => {
     // ✅ en => ASCII only
-    if (data.locale === "en") {
+    if (data.locale === "en" && data.ownerType !== "chapter") {
       const s = data.slug.trim().toLowerCase();
       if (!asciiSlugRegex.test(s)) {
         ctx.addIssue({

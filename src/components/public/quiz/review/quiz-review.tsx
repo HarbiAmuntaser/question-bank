@@ -22,7 +22,7 @@ import type {
 import { RichQuestionContent } from "@/components/shared/rich-question-content";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { makeQuizKeys, safeJsonParse } from "@/components/public/quiz/storage";
 import { detectDir, dirTextAlign } from "./text-direction";
 import {
@@ -238,7 +238,7 @@ export default function QuizReview({ quiz, sessionId, onlyWrong }: Props) {
         <CardHeader className="space-y-4 p-5 sm:p-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <CardTitle className="text-2xl font-bold leading-tight">مراجعة الأسئلة</CardTitle>
+              <h1 className="text-2xl font-bold leading-tight">مراجعة الأسئلة</h1>
               <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
                 راجع السؤال، الخيارات، اختيارك، والإجابة الصحيحة بوضوح.
               </p>
@@ -266,9 +266,9 @@ export default function QuizReview({ quiz, sessionId, onlyWrong }: Props) {
       <Card className="border bg-card/95 shadow-sm" dir={dir} lang={lang}>
         <CardHeader className="p-5 sm:p-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <CardTitle className={`text-lg font-semibold leading-tight sm:text-xl ${align}`}>
+            <h2 className={`text-lg font-semibold leading-tight sm:text-xl ${align}`}>
               {questionNumberLabel(current!.questionNumber, lang)}
-            </CardTitle>
+            </h2>
 
             <Badge className={badgeColor} aria-label={current!.isCorrect ? "إجابة صحيحة" : "إجابة خاطئة"}>
               {current!.isCorrect ? (
@@ -514,7 +514,7 @@ function NoteBadge({ onlyWrong, index, total }: { onlyWrong: boolean; index: num
       {onlyWrong ? (
         <Badge className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">الخاطئة فقط</Badge>
       ) : (
-        <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">جميع الأسئلة</Badge>
+        <Badge className="bg-primary/10 text-primary hover:bg-primary/10">جميع الأسئلة</Badge>
       )}
     </div>
   );

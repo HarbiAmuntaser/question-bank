@@ -23,20 +23,20 @@ export function QuizFooterControls({
 }) {
   return (
     <Card className={cn("border bg-card/95 shadow-sm", className)}>
-      <CardContent className="p-4 sm:p-5">
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:flex lg:justify-between">
-          <Button variant="outline" onClick={onPrev} disabled={isFirst} aria-disabled={isFirst} className="h-12 w-full gap-2 rounded-lg lg:w-auto">
+      <CardContent className="p-2.5 sm:p-4 lg:p-5">
+        <div className="grid grid-cols-2 gap-2.5 sm:gap-3 lg:flex lg:justify-between">
+          <Button variant="outline" onClick={onPrev} disabled={isFirst} aria-disabled={isFirst} className="h-11 w-full gap-2 rounded-lg sm:h-12 lg:w-auto">
             <ArrowRight className="h-4 w-4" aria-hidden />
             السابق
           </Button>
 
           {isLast ? (
-            <Button onClick={onSubmit} className="flex h-12 w-full items-center justify-center gap-2 rounded-lg lg:w-auto" aria-label="تسليم الاختبار">
+            <Button onClick={onSubmit} className="flex h-11 w-full items-center justify-center gap-2 rounded-lg sm:h-12 lg:w-auto" aria-label="تسليم الاختبار">
               <CheckCircle className="h-4 w-4" />
               تسليم الاختبار
             </Button>
           ) : (
-            <Button onClick={onNext} aria-label="السؤال التالي" className="h-12 w-full gap-2 rounded-lg lg:w-auto">
+            <Button onClick={onNext} aria-label="السؤال التالي" className="h-11 w-full gap-2 rounded-lg sm:h-12 lg:w-auto">
               التالي
               <ArrowLeft className="h-4 w-4" aria-hidden />
             </Button>

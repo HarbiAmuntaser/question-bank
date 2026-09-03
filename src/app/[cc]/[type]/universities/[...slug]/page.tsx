@@ -26,9 +26,24 @@ import {
   encodeSlugPath,
   findIndexCI,
 } from "@/lib/public/slug-utils";
+import {
+  getCanonicalInstitutionCountry,
+  getCanonicalInstitutionType,
+} from "@/lib/public/institution-routing";
 
-import { CACHE_TAGS, cacheTags } from "@/lib/cache-tags";
-import { fetchJSON } from "@/lib/server/student-fetch";
+import {
+  getPublicMajorByRouteKey,
+  getPublicQuizPreviewByRouteKey,
+  getPublicSubjectByRouteKey,
+  getPublicUniversityByRouteKey,
+} from "@/lib/server/public-education-loaders";
+import {
+  getPublicMajorSeoBySlug,
+  getPublicQuizSeoBySlug,
+  getPublicSubjectSeoBySlug,
+  getPublicUniversitySeoBySlug,
+  type PublicSeoMeta,
+} from "@/lib/server/public-seo";
 import {
   getPublishedSubjectSummaries,
   getPublishedSubjectSummaryBySlug,
@@ -72,20 +87,31 @@ function buildDegreeGroups(majors: MajorPublicLite[]) {
   })).filter((group) => group.count > 0);
 }
 
+function normalizeComparableRouteKey(value: string) {
+  try {
+    return decodeURIComponent(value).trim().replace(/^\/+|\/+$/g, "");
+  } catch {
+    return value.trim().replace(/^\/+|\/+$/g, "");
+  }
+}
+
+function isUuidRouteKey(value: string) {
+  return normalizeComparableRouteKey(value)
+    .split("/")
+    .some((segment) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(segment));
+}
+
+function hasCanonicalRouteKeys(pairs: Array<[current: string, canonical: string]>) {
+  return pairs.every(([current, canonical]) => {
+    const currentKey = normalizeComparableRouteKey(current);
+    const canonicalKey = normalizeComparableRouteKey(canonical);
+    return Boolean(currentKey && canonicalKey) && !isUuidRouteKey(currentKey) && currentKey === canonicalKey;
+  });
+}
+
 /* -------------------------
    Minimal Types (بدون any)
 ------------------------- */
-type SeoMeta = {
-  slug?: string | null;
-  metaTitle?: string | null;
-  metaDescription?: string | null;
-  ogTitle?: string | null;
-  ogDescription?: string | null;
-  ogImageUrl?: string | null;
-  noindex?: boolean | null;
-  nofollow?: boolean | null;
-};
-
 type University = {
   id: string;
   name: string;
@@ -118,170 +144,39 @@ type Subject = {
   major?: Major | null;
 };
 
-type QuizPreview = {
-  id: string;
-  title: string;
-  description?: string | null;
-  seo?: { slug?: string | null } | null;
-  context?: {
-    university?: University | null;
-    major?: Major | null;
-    subject?: Subject | null;
-  } | null;
-};
-
 // -------------------------
 // Helpers (Universities / Majors / Subjects / Quizzes)
 // -------------------------
 
 async function fetchUniversityBySlugOrCode(slugPathRaw: string): Promise<{ uni: University | null }> {
-  const slugPath = stripPrefix(slugPathRaw, "جامعات");
-  const bySlug = await fetchJSON<University>(
-    `/api/v1/student/universities/by-slug/${encodeSlugPath(slugPath)}`,
-    { cache: "no-store" },
-    0
-  );
-  if (bySlug.ok && bySlug.data) return { uni: bySlug.data };
-
-  if (!slugPath.includes("/")) {
-    const byCode = await fetchJSON<University>(
-      `/api/v1/student/universities/by-code/${encodeURIComponent(slugPath)}`,
-      { cache: "no-store" },
-      0
-    );
-    if (byCode.ok && byCode.data) return { uni: byCode.data };
-  }
-
-  return { uni: null };
+  return { uni: await getPublicUniversityByRouteKey(slugPathRaw) };
 }
 
-async function getSeoForUniversitySlug(slugPathRaw: string): Promise<SeoMeta | null> {
+async function getSeoForUniversitySlug(slugPathRaw: string): Promise<PublicSeoMeta | null> {
   const slugPath = stripPrefix(slugPathRaw, "جامعات");
-  const r = await fetchJSON<SeoMeta>(
-    `/api/v1/student/seo/university/${encodeSlugPath(slugPath)}`,
-    {
-      next: {
-        tags: cacheTags("student-university-detail", CACHE_TAGS.public.seo, CACHE_TAGS.public.institutions),
-      },
-    },
-    21600
-  );
-  return r.ok ? r.data : null;
+  return getPublicUniversitySeoBySlug(slugPath);
 }
 
 async function fetchMajorBySlugOrCode(majorSlugPathRaw: string): Promise<{ major: Major | null }> {
-  const majorSlugPath = stripPrefix(majorSlugPathRaw, "تخصصات");
-  const tags = cacheTags(
-    "student-majors",
-    "student-major-detail",
-    "student-subjects",
-    CACHE_TAGS.public.majors,
-    CACHE_TAGS.public.subjects,
-    CACHE_TAGS.public.quizzes,
-    CACHE_TAGS.public.seo,
-  );
-
-  const bySlug = await fetchJSON<Major>(
-    `/api/v1/student/majors/by-slug/${encodeSlugPath(majorSlugPath)}`,
-    { next: { tags } },
-    21600
-  );
-  if (bySlug.ok && bySlug.data) return { major: bySlug.data };
-
-  if (!majorSlugPath.includes("/")) {
-    const byCode = await fetchJSON<Major>(
-      `/api/v1/student/majors/by-code/${encodeURIComponent(majorSlugPath)}`,
-      { next: { tags } },
-      21600
-    );
-    if (byCode.ok && byCode.data) return { major: byCode.data };
-
-    const byId = await fetchJSON<Major>(
-      `/api/v1/student/majors/by-id/${encodeURIComponent(majorSlugPath)}`,
-      { next: { tags } },
-      21600
-    );
-    if (byId.ok && byId.data) return { major: byId.data };
-  }
-
-  return { major: null };
+  return { major: await getPublicMajorByRouteKey(majorSlugPathRaw) };
 }
 
 async function fetchSubjectBySlugOrCode(subjectSlugPathRaw: string): Promise<{ subject: Subject | null }> {
+  return { subject: await getPublicSubjectByRouteKey(subjectSlugPathRaw) };
+}
+
+async function getSeoForSubjectSlug(subjectSlugPathRaw: string): Promise<PublicSeoMeta | null> {
   const subjectSlugPath = stripPrefix(subjectSlugPathRaw, "مواد");
-  const tags = cacheTags(
-    "student-subjects",
-    "student-subject-detail",
-    "student-quizzes",
-    "student-quizzes-by-subject",
-    CACHE_TAGS.public.subjects,
-    CACHE_TAGS.public.quizzes,
-    CACHE_TAGS.public.seo,
-  );
-
-  const bySlug = await fetchJSON<Subject>(
-    `/api/v1/student/subjects/by-slug/${encodeSlugPath(subjectSlugPath)}`,
-    { next: { tags } },
-    21600
-  );
-  if (bySlug.ok && bySlug.data) return { subject: bySlug.data };
-
-  if (!subjectSlugPath.includes("/")) {
-    const byCode = await fetchJSON<Subject>(
-      `/api/v1/student/subjects/by-code/${encodeURIComponent(subjectSlugPath)}`,
-      { next: { tags } },
-      21600
-    );
-    if (byCode.ok && byCode.data) return { subject: byCode.data };
-  }
-
-  return { subject: null };
+  return getPublicSubjectSeoBySlug(subjectSlugPath);
 }
 
-async function getSeoForSubjectSlug(subjectSlugPathRaw: string): Promise<SeoMeta | null> {
-  const subjectSlugPath = stripPrefix(subjectSlugPathRaw, "مواد");
-  const r = await fetchJSON<SeoMeta>(
-    `/api/v1/student/seo/subject/${encodeSlugPath(subjectSlugPath)}`,
-    {
-      next: {
-        tags: cacheTags("student-subject-detail", CACHE_TAGS.public.seo, CACHE_TAGS.public.subjects),
-      },
-    },
-    21600
-  );
-  return r.ok ? r.data : null;
+async function fetchQuizPreviewBySlugOrId(quizSlugPathRaw: string) {
+  return { quiz: await getPublicQuizPreviewByRouteKey(quizSlugPathRaw) };
 }
 
-async function fetchQuizPreviewBySlugOrId(quizSlugPathRaw: string): Promise<{ quiz: QuizPreview | null }> {
+async function getSeoForQuizSlug(quizSlugPathRaw: string): Promise<PublicSeoMeta | null> {
   const quizSlugPath = stripPrefix(quizSlugPathRaw, "اختبارات");
-
-  const bySlug = await fetchJSON<QuizPreview>(
-    `/api/v1/student/quizzes/preview/by-slug/${encodeSlugPath(quizSlugPath)}`,
-    { cache: "no-store" },
-    0
-  );
-  if (bySlug.ok && bySlug.data) return { quiz: bySlug.data };
-
-  if (!quizSlugPath.includes("/")) {
-    const byId = await fetchJSON<QuizPreview>(
-      `/api/v1/student/quizzes/preview/by-id/${encodeURIComponent(quizSlugPath)}`,
-      { cache: "no-store" },
-      0
-    );
-    if (byId.ok && byId.data) return { quiz: byId.data };
-  }
-
-  return { quiz: null };
-}
-
-async function getSeoForQuizSlug(quizSlugPathRaw: string): Promise<SeoMeta | null> {
-  const quizSlugPath = stripPrefix(quizSlugPathRaw, "اختبارات");
-  const r = await fetchJSON<SeoMeta>(
-    `/api/v1/student/seo/quiz/${encodeSlugPath(quizSlugPath)}`,
-    { cache: "no-store" },
-    0
-  );
-  return r.ok ? r.data : null;
+  return getPublicQuizSeoBySlug(quizSlugPath);
 }
 
 // -------------------------
@@ -432,7 +327,7 @@ export async function generateMetadata({ params }: { params: Promise<PageParams>
         type: "website",
         url: canonical,
       },
-      robots: educationPageRobots(),
+      robots: { index: false, follow: true },
     };
   }
 
@@ -468,10 +363,15 @@ export async function generateMetadata({ params }: { params: Promise<PageParams>
         quiz.questionChapterIds[0] === chapter.id,
     ).length;
     const hasPublishedContent = summariesCount + quizzesCount > 0;
+    const hasCanonicalChapterSlug = Boolean(chapter.slug?.trim());
+    const canonicalInstitution = subject.major?.university;
+    const canonicalCountry = getCanonicalInstitutionCountry(canonicalInstitution, cc);
+    const canonicalType = getCanonicalInstitutionType(canonicalInstitution, type);
+    const hasCanonicalContext = canonicalCountry === cc && canonicalType === type;
     const canonicalUni = stripPrefix(subject.major?.university?.seo?.slug || universitySlugPath, "جامعات");
     const canonicalMajor = stripPrefix(subject.major?.seo?.slug || majorSlugPath, "تخصصات");
     const canonicalSubject = stripPrefix(subject.seo?.slug || subjectSlugPath, "مواد");
-    const canonicalPath = `/${cc}/${type}/universities/${encodeSlugPath(canonicalUni)}/majors/${encodeSlugPath(
+    const canonicalPath = `/${canonicalCountry}/${canonicalType}/universities/${encodeSlugPath(canonicalUni)}/majors/${encodeSlugPath(
       canonicalMajor,
     )}/subjects/${encodeSlugPath(canonicalSubject)}/chapters/${encodeURIComponent(chapter.routeKey)}`;
     const canonical = `${SITE_URL}${canonicalPath}`;
@@ -481,7 +381,12 @@ export async function generateMetadata({ params }: { params: Promise<PageParams>
       seo?.metaDescription ||
       chapter.description ||
       `استعرض ملخصات واختبارات ${chapter.name} ضمن مادة ${subject.name}.`;
-    const defaultRobots = educationPageRobots(seo);
+    const hasCanonicalRoute = hasCanonicalRouteKeys([
+      [universitySlugPath, canonicalUni],
+      [majorSlugPath, canonicalMajor],
+      [subjectSlugPath, canonicalSubject],
+      [chapterSlugPath, chapter.routeKey],
+    ]);
 
     return {
       title,
@@ -494,7 +399,11 @@ export async function generateMetadata({ params }: { params: Promise<PageParams>
         type: "website",
         url: canonical,
       },
-      robots: hasPublishedContent ? defaultRobots : { index: false, follow: !seo?.nofollow },
+      robots: educationPageRobots(seo, {
+        requireSeo: true,
+        indexable:
+          hasPublishedContent && hasCanonicalChapterSlug && hasCanonicalRoute && hasCanonicalContext,
+      }),
     };
   }
 
@@ -505,7 +414,7 @@ export async function generateMetadata({ params }: { params: Promise<PageParams>
       return { title: "غير موجود", robots: { index: false, follow: false } };
     }
 
-    const [{ quiz }, seo] = await Promise.all([
+    const [{ quiz }, seoCandidate] = await Promise.all([
       fetchQuizPreviewBySlugOrId(quizSlugPath),
       getSeoForQuizSlug(quizSlugPath).catch(() => null),
     ]);
@@ -514,12 +423,24 @@ export async function generateMetadata({ params }: { params: Promise<PageParams>
       return { title: "اختبار غير موجود", robots: { index: false, follow: false } };
     }
 
+    const seo = seoCandidate?.ownerId === quiz.id ? seoCandidate : null;
+    const canonicalInstitution = quiz.context.university;
+    const canonicalCountry = getCanonicalInstitutionCountry(canonicalInstitution, cc);
+    const canonicalType = getCanonicalInstitutionType(canonicalInstitution, type);
+    const hasCanonicalContext = canonicalCountry === cc && canonicalType === type;
     const canonicalUni = stripPrefix(quiz.context.university.seo?.slug || universitySlugPath, "جامعات");
     const canonicalMajor = stripPrefix(quiz.context.major.seo?.slug || majorSlugPath, "تخصصات");
     const canonicalSubject = stripPrefix(quiz.context.subject.seo?.slug || subjectSlugPath, "مواد");
     const canonicalQuiz = stripPrefix(seo?.slug || quiz.seo?.slug || quizSlugPath, "اختبارات");
 
-    const canonicalPath = `/${cc}/${type}/universities/${encodeSlugPath(canonicalUni)}/majors/${encodeSlugPath(
+    const hasCanonicalRoute = hasCanonicalRouteKeys([
+      [universitySlugPath, canonicalUni],
+      [majorSlugPath, canonicalMajor],
+      [subjectSlugPath, canonicalSubject],
+      [quizSlugPath, canonicalQuiz],
+    ]);
+
+    const canonicalPath = `/${canonicalCountry}/${canonicalType}/universities/${encodeSlugPath(canonicalUni)}/majors/${encodeSlugPath(
       canonicalMajor
     )}/subjects/${encodeSlugPath(canonicalSubject)}/quizzes/${encodeSlugPath(canonicalQuiz)}`;
 
@@ -541,7 +462,10 @@ export async function generateMetadata({ params }: { params: Promise<PageParams>
         type: "website",
         url: canonical,
       },
-      robots: educationPageRobots(seo),
+      robots: educationPageRobots(seo, {
+        requireSeo: true,
+        indexable: hasCanonicalRoute && hasCanonicalContext,
+      }),
     };
   }
 
@@ -563,11 +487,22 @@ export async function generateMetadata({ params }: { params: Promise<PageParams>
     }
 
     const seo = await getStudySummarySeoMeta(summary.id).catch(() => null);
+    const canonicalInstitution = subject.major?.university;
+    const canonicalCountry = getCanonicalInstitutionCountry(canonicalInstitution, cc);
+    const canonicalType = getCanonicalInstitutionType(canonicalInstitution, type);
+    const hasCanonicalContext = canonicalCountry === cc && canonicalType === type;
     const canonicalUni = stripPrefix(subject.major?.university?.seo?.slug || universitySlugPath, "جامعات");
     const canonicalMajor = stripPrefix(subject.major?.seo?.slug || majorSlugPath, "تخصصات");
     const canonicalSubject = stripPrefix(subject.seo?.slug || subjectSlugPath, "مواد");
     const canonicalSummary = stripPrefix(summary.slug, "ملخصات");
-    const canonicalPath = `/${cc}/${type}/universities/${encodeSlugPath(canonicalUni)}/majors/${encodeSlugPath(
+    const hasCanonicalRoute = hasCanonicalRouteKeys([
+      [universitySlugPath, canonicalUni],
+      [majorSlugPath, canonicalMajor],
+      [subjectSlugPath, canonicalSubject],
+      [summarySlugPath, canonicalSummary],
+    ]);
+
+    const canonicalPath = `/${canonicalCountry}/${canonicalType}/universities/${encodeSlugPath(canonicalUni)}/majors/${encodeSlugPath(
       canonicalMajor,
     )}/subjects/${encodeSlugPath(canonicalSubject)}/summaries/${encodeSlugPath(canonicalSummary)}`;
     const canonical = `${SITE_URL}${canonicalPath}`;
@@ -587,7 +522,10 @@ export async function generateMetadata({ params }: { params: Promise<PageParams>
         type: "article",
         url: canonical,
       },
-      robots: educationPageRobots(seo),
+      robots: educationPageRobots(seo, {
+        requireSeo: true,
+        indexable: hasCanonicalRoute && hasCanonicalContext,
+      }),
     };
   }
 
@@ -598,20 +536,31 @@ export async function generateMetadata({ params }: { params: Promise<PageParams>
       return { title: "غير موجود", robots: { index: false, follow: false } };
     }
 
-    const [{ subject }, seo] = await Promise.all([
+    const [{ subject }, seoCandidate] = await Promise.all([
       fetchSubjectBySlugOrCode(subjectSlugPath),
       getSeoForSubjectSlug(subjectSlugPath).catch(() => null),
     ]);
+    const seo = subject && seoCandidate?.ownerId === subject.id ? seoCandidate : null;
 
     if (!subject) {
       return { title: "مادة غير موجودة", robots: { index: false, follow: false } };
     }
 
+    const canonicalInstitution = subject.major?.university;
+    const canonicalCountry = getCanonicalInstitutionCountry(canonicalInstitution, cc);
+    const canonicalType = getCanonicalInstitutionType(canonicalInstitution, type);
+    const hasCanonicalContext = canonicalCountry === cc && canonicalType === type;
     const canonicalUni = stripPrefix(subject.major?.university?.seo?.slug || universitySlugPath, "جامعات");
     const canonicalMajor = stripPrefix(subject.major?.seo?.slug || majorSlugPath, "تخصصات");
     const canonicalSubject = stripPrefix(subject.seo?.slug || subjectSlugPath, "مواد");
 
-    const canonicalPath = `/${cc}/${type}/universities/${encodeSlugPath(canonicalUni)}/majors/${encodeSlugPath(
+    const hasCanonicalRoute = hasCanonicalRouteKeys([
+      [universitySlugPath, canonicalUni],
+      [majorSlugPath, canonicalMajor],
+      [subjectSlugPath, canonicalSubject],
+    ]);
+
+    const canonicalPath = `/${canonicalCountry}/${canonicalType}/universities/${encodeSlugPath(canonicalUni)}/majors/${encodeSlugPath(
       canonicalMajor
     )}/subjects/${encodeSlugPath(canonicalSubject)}`;
 
@@ -633,7 +582,10 @@ export async function generateMetadata({ params }: { params: Promise<PageParams>
         type: "website",
         url: canonical,
       },
-      robots: educationPageRobots(seo),
+      robots: educationPageRobots(seo, {
+        requireSeo: true,
+        indexable: hasCanonicalRoute && hasCanonicalContext,
+      }),
     };
   }
 
@@ -644,24 +596,36 @@ export async function generateMetadata({ params }: { params: Promise<PageParams>
       return { title: "غير موجود", robots: { index: false, follow: false } };
     }
 
-    const { major } = await fetchMajorBySlugOrCode(majorSlugPath);
+    const [{ major }, seoCandidate] = await Promise.all([
+      fetchMajorBySlugOrCode(majorSlugPath),
+      getPublicMajorSeoBySlug(majorSlugPath).catch(() => null),
+    ]);
     if (!major) {
       return { title: "تخصص غير موجود", robots: { index: false, follow: false } };
     }
 
+    const seo = seoCandidate?.ownerId === major.id ? seoCandidate : null;
+    const canonicalInstitution = major.university;
+    const canonicalCountry = getCanonicalInstitutionCountry(canonicalInstitution, cc);
+    const canonicalType = getCanonicalInstitutionType(canonicalInstitution, type);
+    const hasCanonicalContext = canonicalCountry === cc && canonicalType === type;
     const canonicalMajor = stripPrefix(major.seo?.slug || majorSlugPath, "تخصصات");
     const canonicalUni = stripPrefix(major.university?.seo?.slug || universitySlugPath, "جامعات");
+    const hasCanonicalRoute = hasCanonicalRouteKeys([
+      [universitySlugPath, canonicalUni],
+      [majorSlugPath, canonicalMajor],
+    ]);
 
-    const canonicalPath = `/${cc}/${type}/universities/${encodeSlugPath(canonicalUni)}/majors/${encodeSlugPath(
+    const canonicalPath = `/${canonicalCountry}/${canonicalType}/universities/${encodeSlugPath(canonicalUni)}/majors/${encodeSlugPath(
       canonicalMajor
     )}`;
 
     const canonical = `${SITE_URL}${canonicalPath}`;
 
-    const title = major.name;
-    const socialTitle = withSiteName(title);
-    const description = `استكشف مواد تخصص ${major.name} واستعد للاختبارات.`;
-    const ogImage = major.university?.logoUrl || undefined;
+    const title = stripSiteNameFromTitle(seo?.metaTitle) || major.name;
+    const socialTitle = seo?.ogTitle || withSiteName(title);
+    const description = seo?.metaDescription || `استكشف مواد تخصص ${major.name} واستعد للاختبارات.`;
+    const ogImage = seo?.ogImageUrl || major.university?.logoUrl || undefined;
 
     return {
       title,
@@ -669,31 +633,39 @@ export async function generateMetadata({ params }: { params: Promise<PageParams>
       alternates: { canonical },
       openGraph: {
         title: socialTitle,
-        description,
+        description: seo?.ogDescription || description,
         images: ogImage ? [{ url: ogImage }] : undefined,
         type: "website",
         url: canonical,
       },
-      robots: educationPageRobots(),
+      robots: educationPageRobots(seo, {
+        requireSeo: true,
+        indexable: hasCanonicalRoute && hasCanonicalContext,
+      }),
     };
   }
 
   // ---- University metadata ----
   const slugPath = parsed.universitySlugPath;
 
-  const [seo, uniRes] = await Promise.all([
+  const [seoCandidate, uniRes] = await Promise.all([
     getSeoForUniversitySlug(slugPath).catch(() => null),
     fetchUniversityBySlugOrCode(slugPath),
   ]);
 
   const uni = uniRes.uni;
 
-  if (!seo && !uni) {
+  if (!uni) {
     return { title: "غير موجود", robots: { index: false, follow: false } };
   }
 
+  const seo = seoCandidate?.ownerId === uni.id ? seoCandidate : null;
+  const canonicalCountry = getCanonicalInstitutionCountry(uni, cc);
+  const canonicalType = getCanonicalInstitutionType(uni, type);
+  const hasCanonicalContext = canonicalCountry === cc && canonicalType === type;
   const canonicalSlug = stripPrefix(uni?.seo?.slug || slugPath, "جامعات");
-  const canonicalPath = `/${cc}/${type}/universities/${encodeSlugPath(canonicalSlug)}`;
+  const hasCanonicalRoute = hasCanonicalRouteKeys([[slugPath, canonicalSlug]]);
+  const canonicalPath = `/${canonicalCountry}/${canonicalType}/universities/${encodeSlugPath(canonicalSlug)}`;
   const canonical = `${SITE_URL}${canonicalPath}`;
 
   const title = stripSiteNameFromTitle(seo?.metaTitle) || uni?.name || "جامعة";
@@ -712,7 +684,10 @@ export async function generateMetadata({ params }: { params: Promise<PageParams>
       type: "website",
       url: canonical,
     },
-    robots: educationPageRobots(seo),
+    robots: educationPageRobots(seo, {
+      requireSeo: true,
+      indexable: hasCanonicalRoute && hasCanonicalContext,
+    }),
   };
 }
 
@@ -744,7 +719,7 @@ export default async function UniversitiesCatchAllPage({
     return (
       <div className="flex min-h-screen flex-col">
         <PublicHeader />
-        <main className="container mx-auto flex-1 px-4 py-8 md:px-6">
+        <main id="main-content" tabIndex={-1} className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 lg:px-8">
           <MajorAcademicPeriodDetails
             cc={cc}
             type={type}
@@ -771,7 +746,7 @@ export default async function UniversitiesCatchAllPage({
     return (
       <div className="flex min-h-screen flex-col">
         <PublicHeader />
-        <main className="container mx-auto flex-1 px-4 py-8 md:px-6">
+        <main id="main-content" tabIndex={-1} className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 lg:px-8">
           <ChapterDetails
             cc={cc}
             type={type}
@@ -793,7 +768,7 @@ export default async function UniversitiesCatchAllPage({
     return (
       <div className="flex flex-col min-h-screen">
         <PublicHeader />
-        <main className="flex-1 container mx-auto py-8 px-4 md:px-6">
+        <main id="main-content" tabIndex={-1} className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 lg:px-8">
           <QuizDetails
             cc={cc}
             type={type}
@@ -815,7 +790,7 @@ export default async function UniversitiesCatchAllPage({
     return (
       <div className="flex flex-col min-h-screen">
         <PublicHeader />
-        <main className="flex-1 container mx-auto py-8 px-4 md:px-6">
+        <main id="main-content" tabIndex={-1} className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 lg:px-8">
           <StudySummaryDetails
             cc={cc}
             type={type}
@@ -837,7 +812,7 @@ export default async function UniversitiesCatchAllPage({
     return (
       <div className="flex flex-col min-h-screen">
         <PublicHeader />
-        <main className="flex-1 container mx-auto py-8 px-4 md:px-6">
+        <main id="main-content" tabIndex={-1} className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 lg:px-8">
           <SubjectDetails
             cc={cc}
             type={type}
@@ -858,7 +833,7 @@ export default async function UniversitiesCatchAllPage({
     return (
       <div className="flex flex-col min-h-screen">
         <PublicHeader />
-        <main className="flex-1 container mx-auto py-8 px-4 md:px-6">
+        <main id="main-content" tabIndex={-1} className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 lg:px-8">
           <MajorDetails
             cc={cc}
             type={type}
@@ -920,12 +895,27 @@ export default async function UniversitiesCatchAllPage({
     isUniversityType && selectedDegree
       ? allMajors.filter((major) => normalizeDegreeType(major.degreeType) === selectedDegree)
       : allMajors;
+  const majorsSectionCopy =
+    type === "academy"
+      ? {
+          title: "البرامج التدريبية المتاحة",
+          description: "اختر البرنامج التدريبي الذي تريد استكشاف مهاراته ومواده.",
+        }
+      : type === "school"
+        ? {
+            title: "المسارات الدراسية المتاحة",
+            description: "اختر المسار الدراسي الذي تريد استكشاف مواده واختباراته.",
+          }
+        : {
+            title: "التخصصات المتاحة",
+            description: "اختر التخصص الذي تريد استكشافه.",
+          };
 
   if (isUniversityType && degreeGroups.length > 1 && !selectedDegree) {
     return (
       <div className="min-h-screen bg-background">
         <PublicHeader />
-        <main>
+        <main id="main-content" tabIndex={-1}>
           <UniversityDegreeSelector
             universityName={uniTyped.name}
             basePath={universityBasePath}
@@ -940,17 +930,17 @@ export default async function UniversitiesCatchAllPage({
   return (
     <div className="min-h-screen bg-background">
       <PublicHeader />
-      <main>
+      <main id="main-content" tabIndex={-1}>
         <UniversityHero university={uniTyped} />
 
         <section id="majors-section" className="px-4 pb-10 pt-4 sm:px-6 sm:pb-12 sm:pt-5 lg:px-8 lg:pb-14 lg:pt-6">
           <div className="mx-auto max-w-7xl">
             <div className="mb-6 space-y-2 sm:mb-8">
               <h2 className="text-2xl font-bold leading-tight text-gray-900 dark:text-white sm:text-3xl">
-                التخصصات المتاحة
+                {majorsSectionCopy.title}
               </h2>
               <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-                اختر التخصص الذي تريد استكشافه
+                {majorsSectionCopy.description}
               </p>
             </div>
 

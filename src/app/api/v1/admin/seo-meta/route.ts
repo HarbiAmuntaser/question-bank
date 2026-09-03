@@ -15,6 +15,10 @@ function cleanNullable(value: string | null | undefined) {
   return value ?? null;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 // ✅ Discriminated union -> يحل خط TS على schemaJsonResult.error
 type SchemaJsonParseResult =
   | { ok: true; provided: false; value?: undefined }
@@ -107,7 +111,21 @@ export async function POST(req: Request) {
   const auth = await verifyAdmin(req);
   if (!auth.ok) return unauth();
 
-  const body = await req.json().catch(() => null);
+  const rawBody = await req.json().catch(() => null);
+  let body = rawBody;
+
+  if (isRecord(rawBody) && rawBody.ownerType === "chapter" && typeof rawBody.ownerId === "string") {
+    const chapter = await prisma.chapter.findUnique({
+      where: { id: rawBody.ownerId },
+      select: { slug: true },
+    });
+    if (!chapter) return bad("seo_owner_not_found", undefined, 404);
+
+    const chapterSlug = chapter.slug?.trim();
+    if (!chapterSlug) return bad("chapter_slug_required");
+    body = { ...rawBody, slug: chapterSlug };
+  }
+
   const parsed = createSeoMetaSchema.safeParse(body);
   if (!parsed.success) return bad("validation_error", parsed.error.flatten());
 

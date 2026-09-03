@@ -1,7 +1,7 @@
 "use client";
 
 import React, { memo, useCallback, useMemo } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import type { QuestionWithOptions, QuizAnswer } from "@/types";
@@ -27,12 +27,12 @@ type NavBtnProps = {
 const NavButton = memo(
   function NavButton({ n, isAnswered, isCurrent, onSelect }: NavBtnProps) {
     const Icon = isAnswered ? CheckCircle : isCurrent ? AlertCircle : Circle;
-    const variant = isCurrent ? "default" : isAnswered ? "outline" : "ghost";
+    const variant: "default" | "outline" | "ghost" = isCurrent ? "default" : isAnswered ? "outline" : "ghost";
 
     return (
       <Button
         type="button"
-        variant={variant as any}
+        variant={variant}
         size="sm"
         onClick={() => onSelect(n - 1)}
         className="flex h-10 w-full items-center justify-center gap-1 rounded-lg text-xs"
@@ -42,7 +42,7 @@ const NavButton = memo(
         <Icon
           className={cn(
             "h-4 w-4",
-            isAnswered ? "text-green-600" : isCurrent ? "text-blue-600" : "text-gray-400"
+            isAnswered ? "text-emerald-600 dark:text-emerald-400" : isCurrent ? "text-primary-foreground" : "text-muted-foreground"
           )}
         />
         {n}
@@ -82,9 +82,9 @@ export const QuizNavigation = memo(function QuizNavigation({
   return (
     <Card className={cn("border bg-card/95 shadow-sm", sticky ? "sticky top-4" : "", className)}>
       <CardHeader className="space-y-3 p-4">
-        <CardTitle className="text-base font-semibold">خريطة الأسئلة</CardTitle>
+        <h2 className="text-base font-semibold">خريطة الأسئلة</h2>
         <div className="flex items-center justify-between text-sm">
-          <span className="text-gray-600 dark:text-gray-400">
+          <span className="text-foreground/70">
             {answeredCount} من {totalQuestions}
           </span>
           <Badge variant="outline">{percent}%</Badge>
@@ -94,15 +94,15 @@ export const QuizNavigation = memo(function QuizNavigation({
       <CardContent className="space-y-4 p-4 pt-0">
         <div className="space-y-2">
           <div className="flex items-center gap-2 text-sm">
-            <CheckCircle className="h-4 w-4 text-green-600" />
+            <CheckCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
             <span>تم الإجابة: {answeredCount}</span>
           </div>
           <div className="flex items-center gap-2 text-sm">
-            <Circle className="h-4 w-4 text-gray-400" />
+            <Circle className="h-4 w-4 text-muted-foreground" />
             <span>لم يتم الإجابة: {Math.max(0, totalQuestions - answeredCount)}</span>
           </div>
           <div className="flex items-center gap-2 text-sm">
-            <AlertCircle className="h-4 w-4 text-blue-600" />
+            <AlertCircle className="h-4 w-4 text-primary" />
             <span>السؤال الحالي</span>
           </div>
         </div>

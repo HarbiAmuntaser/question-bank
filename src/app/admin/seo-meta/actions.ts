@@ -127,7 +127,13 @@ export type SeoOwnerType =
   | "blog_post"
   | "blog_topic"
   | "study_summary"
-export type ComboOption = { id: string; label: string; subLabel?: string; meta?: string | null }
+export type ComboOption = {
+  id: string
+  label: string
+  subLabel?: string
+  meta?: string | null
+  slug?: string | null
+}
 
 // =========================
 // existing helpers (as-is)

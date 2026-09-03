@@ -108,7 +108,7 @@ export default async function PublicBlogPage({
     <div className="min-h-screen bg-background" dir="rtl">
       <PublicHeader />
 
-      <main>
+      <main id="main-content" tabIndex={-1}>
         <section className="border-b bg-gradient-to-b from-primary/5 to-background">
           <div className="mx-auto max-w-7xl px-4 py-12 text-center sm:px-6 sm:py-16 lg:px-8">
             <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary">

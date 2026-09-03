@@ -59,6 +59,7 @@ export function SeoOwnerSelector({
   ownerId,
   onOwnerTypeChange,
   onOwnerIdChange,
+  onOwnerOptionChange,
   lockOwnerType,
   lockOwnerId,
 }: {
@@ -66,10 +67,16 @@ export function SeoOwnerSelector({
   ownerId: string
   onOwnerTypeChange: (v: OwnerType) => void
   onOwnerIdChange: (v: string) => void
+  onOwnerOptionChange?: (option: ComboOption | null) => void
   lockOwnerType?: boolean
   lockOwnerId?: boolean
 }) {
   const type = (ownerType as OwnerType) || "major"
+  const onOwnerOptionChangeRef = React.useRef(onOwnerOptionChange)
+
+  React.useEffect(() => {
+    onOwnerOptionChangeRef.current = onOwnerOptionChange
+  }, [onOwnerOptionChange])
 
   const [uni, setUni] = React.useState<ComboOption | null>(null)
   const [major, setMajor] = React.useState<ComboOption | null>(null)
@@ -98,12 +105,12 @@ export function SeoOwnerSelector({
       setBlogPost(chain.blog_post ?? null)
       setBlogTopic(chain.blog_topic ?? null)
       setSummary(chain.study_summary ?? null)
+      onOwnerOptionChangeRef.current?.(chain[type] ?? null)
     })()
 
     return () => {
       cancelled = true
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [type, ownerId])
 
   const changeType = (next: OwnerType) => {
@@ -117,10 +124,12 @@ export function SeoOwnerSelector({
     setBlogPost(null)
     setBlogTopic(null)
     setSummary(null)
+    onOwnerOptionChangeRef.current?.(null)
   }
 
   const setFinal = (opt: ComboOption | null) => {
     onOwnerIdChange(opt?.id ?? "")
+    onOwnerOptionChangeRef.current?.(opt)
   }
 
   return (

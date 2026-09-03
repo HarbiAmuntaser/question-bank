@@ -68,6 +68,12 @@ export function PublicHeader() {
       className="sticky top-0 z-50 w-full border-b bg-background/95 text-foreground backdrop-blur supports-[backdrop-filter]:bg-background/75"
       role="banner"
     >
+      <a
+        href="#main-content"
+        className="sr-only z-[60] rounded-md bg-background px-4 py-2 text-sm font-semibold text-foreground shadow-lg focus:fixed focus:right-4 focus:top-3 focus:not-sr-only focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+      >
+        الانتقال إلى المحتوى الرئيسي
+      </a>
       <div className="mx-auto flex h-16 w-full max-w-screen-2xl items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* الشعار */}
         <Brand homeHref={homeHref} />

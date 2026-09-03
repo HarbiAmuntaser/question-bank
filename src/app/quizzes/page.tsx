@@ -6,6 +6,7 @@ import { QuizzesListing } from "@/components/public/quizzes-listing";
 import { getRequestOrigin } from "@/lib/server/request-origin";
 import { withSiteName } from "@/lib/seo";
 import { formatArabicList, getEnabledPublicTypeLabels } from "@/config/public-features";
+import { PublicHeader } from "@/components/public/public-header/public-header";
 
 export const revalidate = 3600; // ساعة واحدة كبداية قبل رفع TTL أكثر.
 
@@ -108,23 +109,26 @@ export default async function QuizzesPage({
   }));
 
   return (
-    <div className="container mx-auto py-8 px-4 md:px-6">
-      <Suspense
-        fallback={
-          <PublicLoadingState
-            title="جاري تجهيز الاختبارات..."
-            description="نرتب الاختبارات والفلاتر لتصل إلى المحتوى المناسب بسرعة."
-            cards={6}
+    <div className="min-h-screen bg-background">
+      <PublicHeader />
+      <main id="main-content" tabIndex={-1}>
+        <Suspense
+          fallback={
+            <PublicLoadingState
+              title="جاري تجهيز الاختبارات..."
+              description="نرتب الاختبارات والفلاتر لتصل إلى المحتوى المناسب بسرعة."
+              cards={6}
+            />
+          }
+        >
+          <QuizzesListing
+            initialQuizzes={initialQuizzes}
+            universities={universities}
+            majors={formattedMajors}
+            subjects={subjects}
           />
-        }
-      >
-        <QuizzesListing
-          initialQuizzes={initialQuizzes}
-          universities={universities}
-          majors={formattedMajors}
-          subjects={subjects}
-        />
-      </Suspense>
+        </Suspense>
+      </main>
     </div>
   );
 }

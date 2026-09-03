@@ -7,7 +7,7 @@ import type { PublicQuizAccessItem } from "@/components/public/subscription-acce
 import { SubjectStudySummaries } from "@/components/public/study-summaries/subject-study-summaries";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardHeader } from "@/components/ui/card";
 import type { InstitutionType } from "@/config/regions";
 import { encodeSlugPath, stripPrefix } from "@/lib/public/slug-utils";
 import { getPublishedSubjectSummaries } from "@/lib/server/study-summaries";
@@ -16,7 +16,7 @@ import {
   getSubjectChapterCatalog,
   type PublicSubjectQuiz,
 } from "@/lib/server/subject-chapters";
-import { fetchJSON } from "@/lib/server/student-fetch";
+import { getPublicSubjectByRouteKey } from "@/lib/server/public-education-loaders";
 
 type SeoLite = { slug: string | null };
 
@@ -38,25 +38,8 @@ type ChapterSubjectDto = {
   };
 };
 
-async function fetchSubjectBySlugOrCode(subjectSlugRaw: string) {
-  const subjectSlug = stripPrefix(subjectSlugRaw, "مواد");
-  const bySlug = await fetchJSON<ChapterSubjectDto>(
-    `/api/v1/student/subjects/by-slug/${encodeSlugPath(subjectSlug)}`,
-    { cache: "no-store" },
-    0,
-  );
-  if (bySlug.ok && bySlug.data) return bySlug.data;
-
-  if (!subjectSlug.includes("/")) {
-    const byCode = await fetchJSON<ChapterSubjectDto>(
-      `/api/v1/student/subjects/by-code/${encodeURIComponent(subjectSlug)}`,
-      { cache: "no-store" },
-      0,
-    );
-    if (byCode.ok && byCode.data) return byCode.data;
-  }
-
-  return null;
+async function fetchSubjectBySlugOrCode(subjectSlugRaw: string): Promise<ChapterSubjectDto | null> {
+  return getPublicSubjectByRouteKey(subjectSlugRaw);
 }
 
 function normalizeInstitutionType(value: string | null): InstitutionType | null {
@@ -146,7 +129,7 @@ export async function ChapterDetails({
 
   return (
     <div className="space-y-6 lg:space-y-8">
-      <Card className="overflow-hidden border bg-card/95 shadow-sm dark:bg-gray-900/80">
+      <Card className="overflow-hidden border bg-card/95 shadow-sm">
         <CardHeader className="space-y-4 px-5 text-center sm:px-6">
           <div className="flex justify-center">
             <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-primary/10 text-primary">
@@ -156,64 +139,62 @@ export async function ChapterDetails({
           {chapter.chapterNumber ? (
             <div><Badge variant="secondary" className="arabic-numbers">الفصل {chapter.chapterNumber}</Badge></div>
           ) : null}
-          <CardTitle className="text-2xl font-bold leading-tight sm:text-3xl">{chapter.name}</CardTitle>
+          <h1 className="text-2xl font-bold leading-tight sm:text-3xl">{chapter.name}</h1>
           {chapter.description ? (
             <p className="mx-auto max-w-3xl text-sm leading-relaxed text-foreground/75 sm:text-base">
               {chapter.description}
             </p>
           ) : null}
         </CardHeader>
-
-        <CardContent className="space-y-8 px-5 pb-6 sm:px-6">
-          {chapter.learningObjectives.length ? (
-            <section className="rounded-lg border bg-muted/25 p-4 sm:p-5" aria-labelledby="chapter-objectives-heading">
-              <h2 id="chapter-objectives-heading" className="font-semibold">أهداف الفصل</h2>
-              <ul className="mt-3 grid gap-2 text-sm leading-6 text-foreground/80 sm:grid-cols-2">
-                {chapter.learningObjectives.map((objective) => (
-                  <li key={objective} className="flex items-start gap-2">
-                    <CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-primary" aria-hidden />
-                    <span>{objective}</span>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ) : null}
-
-          <SubjectStudySummaries
-            summaries={chapterSummaries}
-            basePath={subjectPath}
-            subjectId={subject.id}
-            majorId={subject.major.id}
-            heading="ملخصات الفصل"
-            description="ملخصات مرتبطة بهذا الفصل مباشرة."
-            headingId="chapter-summaries-heading"
-          />
-
-          <SubjectQuizzesSection
-            quizzes={chapterQuizzes}
-            subjectId={subject.id}
-            majorId={subject.major.id}
-            heading="اختبارات الفصل"
-            description="اختبارات تعتمد أسئلتها على هذا الفصل فقط."
-            headingId="chapter-quizzes-heading"
-          />
-
-          {!chapterSummaries.length && !chapterQuizzes.length ? (
-            <div className="rounded-lg border border-dashed px-4 py-10 text-center text-sm text-muted-foreground">
-              لا يوجد محتوى منشور لهذا الفصل بعد.
-            </div>
-          ) : null}
-
-          <div className="flex justify-center pt-2">
-            <Button asChild variant="outline" className="h-11 w-full rounded-lg sm:w-auto">
-              <Link href={subjectPath} prefetch={false} className="flex items-center gap-2">
-                <ArrowRight className="h-4 w-4" aria-hidden />
-                الرجوع إلى المادة
-              </Link>
-            </Button>
-          </div>
-        </CardContent>
       </Card>
+
+      {chapter.learningObjectives.length ? (
+        <section className="rounded-lg border bg-muted/25 p-4 sm:p-5" aria-labelledby="chapter-objectives-heading">
+          <h2 id="chapter-objectives-heading" className="font-semibold">أهداف الفصل</h2>
+          <ul className="mt-3 grid gap-2 text-sm leading-6 text-foreground/80 sm:grid-cols-2">
+            {chapter.learningObjectives.map((objective) => (
+              <li key={objective} className="flex items-start gap-2">
+                <CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-primary" aria-hidden />
+                <span>{objective}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      <SubjectStudySummaries
+        summaries={chapterSummaries}
+        basePath={subjectPath}
+        subjectId={subject.id}
+        majorId={subject.major.id}
+        heading="ملخصات الفصل"
+        description="ملخصات مرتبطة بهذا الفصل مباشرة."
+        headingId="chapter-summaries-heading"
+      />
+
+      <SubjectQuizzesSection
+        quizzes={chapterQuizzes}
+        subjectId={subject.id}
+        majorId={subject.major.id}
+        heading="اختبارات الفصل"
+        description="اختبارات تعتمد أسئلتها على هذا الفصل فقط."
+        headingId="chapter-quizzes-heading"
+      />
+
+      {!chapterSummaries.length && !chapterQuizzes.length ? (
+        <div className="rounded-lg border border-dashed px-4 py-10 text-center text-sm text-muted-foreground">
+          لا يوجد محتوى منشور لهذا الفصل بعد.
+        </div>
+      ) : null}
+
+      <nav className="flex justify-center pt-2" aria-label="الرجوع إلى المادة">
+        <Button asChild variant="outline" className="h-11 w-full rounded-lg sm:w-auto">
+          <Link href={subjectPath} prefetch={false} className="flex items-center gap-2">
+            <ArrowRight className="h-4 w-4" aria-hidden />
+            الرجوع إلى المادة
+          </Link>
+        </Button>
+      </nav>
     </div>
   );
 }

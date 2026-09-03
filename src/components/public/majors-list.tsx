@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { GraduationCap } from "lucide-react";
+import { BookOpen, GraduationCap, Route } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -37,19 +37,52 @@ function stripPrefix(raw: string, prefixAr: string) {
     .replace(/\/+$/, "");
 }
 
-function getProgramLabel(type: InstType) {
-  if (type === "school") return "مسار مدرسي";
-  if (type === "academy") return "برنامج تدريبي";
-  return "برنامج أكاديمي";
+function getProgramCopy(type: InstType) {
+  if (type === "school") {
+    return {
+      label: "مسار دراسي",
+      subjectsLabel: "مواد",
+      cta: "استعرض مواد المسار",
+      emptyText: "لا توجد مسارات دراسية منشورة في هذه المدرسة حاليًا.",
+      Icon: BookOpen,
+    };
+  }
+
+  if (type === "academy") {
+    return {
+      label: "برنامج تدريبي",
+      subjectsLabel: "مواد تدريبية",
+      cta: "استعرض محتوى البرنامج",
+      emptyText: "لا توجد برامج تدريبية منشورة في هذا المسار حاليًا.",
+      Icon: Route,
+    };
+  }
+
+  return {
+    label: "تخصص جامعي",
+    subjectsLabel: "مقررات",
+    cta: "استعرض مواد التخصص",
+    emptyText: "لا توجد تخصصات منشورة في هذه الجامعة حاليًا.",
+    Icon: GraduationCap,
+  };
 }
 
 export function MajorsList({ majors, cc, type, universitySlug }: MajorsListProps) {
   const ccNorm = (cc || "SA").trim().toUpperCase();
   const typeNorm = (type || "university").trim().toLowerCase() as InstType;
-  const programLabel = getProgramLabel(typeNorm);
+  const programCopy = getProgramCopy(typeNorm);
+  const ProgramIcon = programCopy.Icon;
 
   const uniSlugClean = stripPrefix(universitySlug, "جامعات");
   const uniEncoded = encodeSlugPath(uniSlugClean);
+
+  if (majors.length === 0) {
+    return (
+      <div className="rounded-lg border border-dashed bg-muted/20 px-5 py-10 text-center text-sm font-medium text-foreground/75">
+        {programCopy.emptyText}
+      </div>
+    );
+  }
 
   const hrefFor = (m: MajorPublicLite) => {
     const raw = (m.seo?.slug || m.code || m.id || "").toString();
@@ -74,13 +107,13 @@ export function MajorsList({ majors, cc, type, universitySlug }: MajorsListProps
                   className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"
                   aria-hidden
                 >
-                  <GraduationCap className="h-6 w-6" />
+                  <ProgramIcon className="h-6 w-6" />
                 </div>
 
                 <div className="min-w-0 flex-1">
                   <div className="mb-2 flex flex-wrap items-center gap-2">
                     <Badge variant="secondary" className="rounded-full px-2.5 py-1 text-[11px] font-semibold">
-                      {programLabel}
+                      {programCopy.label}
                     </Badge>
                     {major.code ? (
                       <Badge variant="outline" className="rounded-full px-2.5 py-1 text-[11px]" dir="ltr">
@@ -96,21 +129,21 @@ export function MajorsList({ majors, cc, type, universitySlug }: MajorsListProps
               </div>
 
               <div className="flex flex-wrap gap-2">
-                {major.degreeType ? (
+                {typeNorm === "university" && major.degreeType ? (
                   <Badge variant="outline" className="rounded-full px-3 py-1 text-xs">
                     {getDegreeTypeLabel(major.degreeType)}
                   </Badge>
                 ) : null}
                 {hasSubjectsCount ? (
                   <Badge variant="outline" className="rounded-full px-3 py-1 text-xs">
-                    {subjectsCount} مقرر
+                    {subjectsCount} {programCopy.subjectsLabel}
                   </Badge>
                 ) : null}
               </div>
 
               <Button asChild className="mt-auto h-11 w-full rounded-lg text-sm sm:text-base">
-                <Link href={hrefFor(major)} prefetch={false} className="focus-visible:outline-none">
-                  استعرض مواد التخصص
+                <Link href={hrefFor(major)} prefetch={false}>
+                  {programCopy.cta}
                 </Link>
               </Button>
             </CardContent>

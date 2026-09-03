@@ -7,7 +7,7 @@ export function PreviewLoading() {
         <div
           key={index}
           // Skeleton mirrors the final card footprint to reduce CLS while client data loads.
-          className="overflow-hidden rounded-lg border bg-card/95 shadow-sm dark:bg-gray-900/80"
+          className="overflow-hidden rounded-lg border bg-card/95 shadow-sm"
         >
           <div className="h-36 animate-pulse bg-muted sm:h-44" />
           <div className="space-y-4 p-6">

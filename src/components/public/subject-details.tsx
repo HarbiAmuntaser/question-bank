@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
 import { ArrowRight } from "lucide-react";
@@ -19,12 +19,13 @@ import {
 import { SubjectStudySummaries } from "@/components/public/study-summaries/subject-study-summaries";
 import { getPublishedSubjectSummaries } from "@/lib/server/study-summaries";
 import { getSubjectChapterCatalog, type PublicSubjectQuiz } from "@/lib/server/subject-chapters";
-import { fetchJSON } from "@/lib/server/student-fetch";
+import { getPublicSubjectByRouteKey } from "@/lib/server/public-education-loaders";
+import { getPublicQuizzesBySubject } from "@/lib/server/public-quizzes";
 import { stripPrefix, encodeSlugPath } from "@/lib/public/slug-utils";
 
 export const revalidate = 21600;
 
-const surfaceCardClass = "overflow-hidden border bg-card/95 shadow-sm transition-shadow hover:shadow-md dark:bg-gray-900/80";
+const surfaceCardClass = "overflow-hidden border bg-card/95 shadow-sm";
 const outlineButtonClass = "h-11 w-full rounded-lg sm:w-auto";
 
 type SeoLite = { slug: string | null };
@@ -75,25 +76,8 @@ function normalizeInstitutionType(v: string | null): InstitutionType | null {
   return x === "university" || x === "school" || x === "academy" ? (x as InstitutionType) : null;
 }
 
-async function fetchSubjectBySlugOrCode(subjectSlugRaw: string) {
-  const subjectSlug = stripPrefix(subjectSlugRaw, "مواد");
-  const bySlug = await fetchJSON<SubjectDto>(
-    `/api/v1/student/subjects/by-slug/${encodeSlugPath(subjectSlug)}`,
-    { cache: "no-store" },
-    0,
-  );
-  if (bySlug.ok && bySlug.data) return { subject: bySlug.data };
-
-  if (!subjectSlug.includes("/")) {
-    const byCode = await fetchJSON<SubjectDto>(
-      `/api/v1/student/subjects/by-code/${encodeURIComponent(subjectSlug)}`,
-      { cache: "no-store" },
-      0,
-    );
-    if (byCode.ok && byCode.data) return { subject: byCode.data };
-  }
-
-  return { subject: null as SubjectDto | null };
+async function fetchSubjectBySlugOrCode(subjectSlugRaw: string): Promise<{ subject: SubjectDto | null }> {
+  return { subject: await getPublicSubjectByRouteKey(subjectSlugRaw) };
 }
 
 export async function SubjectDetails({
@@ -165,12 +149,8 @@ export async function SubjectDetails({
     typeNorm === "school" ? Promise.resolve(null) : getSubjectChapterCatalog(subject.id),
   ]);
 
-  const quizzes = typeNorm === "school"
-    ? await fetchJSON<QuizLite[]>(
-        `/api/v1/student/quizzes/by-subject/${subject.id}?limit=200`,
-        { cache: "no-store" },
-        0,
-      ).then((result) => (result.ok && result.data ? result.data : []))
+  const quizzes: QuizLite[] = typeNorm === "school"
+    ? (await getPublicQuizzesBySubject(subject.id, { limit: "200" }).catch(() => [])) ?? []
     : [];
 
   const quizDetailsHref = (q: QuizLite) => {
@@ -224,72 +204,70 @@ export async function SubjectDetails({
       <Card className={surfaceCardClass}>
         <CardHeader className="space-y-3 px-5 text-center sm:px-6">
           <div className="text-xs font-medium text-foreground/70">تفاصيل المادة</div>
-          <CardTitle className="text-2xl font-bold leading-tight sm:text-3xl">{subject.name}</CardTitle>
+          <h1 className="text-2xl font-bold leading-tight sm:text-3xl">{subject.name}</h1>
           {subject.description ? (
             <p className="mx-auto max-w-3xl text-sm leading-relaxed text-foreground/75 sm:text-base">
               {subject.description}
             </p>
           ) : null}
         </CardHeader>
-
-        <CardContent className="space-y-6 pb-6">
-          {typeNorm === "school" ? (
-            <SubjectLearningSwitcher
-              quizzes={quizCards}
-              summaries={summaries}
-              subjectId={subject.id}
-              majorId={subject.major.id}
-              basePath={basePath}
-            />
-          ) : hasChapters ? (
-            <div className="space-y-8">
-              <ChapterOverviewIntro />
-              <SubjectChapterDirectory chapters={chapterCards} />
-              <SubjectStudySummaries
-                summaries={generalSummaries}
-                basePath={basePath}
-                subjectId={subject.id}
-                majorId={subject.major.id}
-                heading="محتوى عام للمادة"
-                description="ملخصات مرتبطة بالمادة مباشرة وليست محصورة في فصل محدد."
-                headingId="general-subject-content-heading"
-              />
-              <SubjectQuizzesSection
-                quizzes={comprehensiveQuizzes}
-                subjectId={subject.id}
-                majorId={subject.major.id}
-                heading="اختبارات شاملة"
-                description="اختبارات تجمع أسئلة من أكثر من فصل في المادة."
-                headingId="comprehensive-subject-quizzes-heading"
-              />
-            </div>
-          ) : (
-            <DirectSubjectLearningContent
-              summaries={summaries}
-              quizzes={directCatalogQuizzes}
-              basePath={basePath}
-              subjectId={subject.id}
-              majorId={subject.major.id}
-            />
-          )}
-
-          <div className="flex flex-col justify-center gap-3 pt-2 sm:flex-row">
-            <Button asChild variant="outline" className={outlineButtonClass}>
-              <Link href={majorLink} prefetch={false} className="flex items-center gap-2">
-                <ArrowRight className="h-4 w-4" aria-hidden />
-                الرجوع إلى التخصص
-              </Link>
-            </Button>
-
-            <Button asChild variant="outline" className={outlineButtonClass}>
-              <Link href={uniLink} prefetch={false} className="flex items-center gap-2">
-                <ArrowRight className="h-4 w-4" aria-hidden />
-                الرجوع إلى المؤسسة
-              </Link>
-            </Button>
-          </div>
-        </CardContent>
       </Card>
+
+      {typeNorm === "school" ? (
+        <SubjectLearningSwitcher
+          quizzes={quizCards}
+          summaries={summaries}
+          subjectId={subject.id}
+          majorId={subject.major.id}
+          basePath={basePath}
+        />
+      ) : hasChapters ? (
+        <div className="space-y-8">
+          <ChapterOverviewIntro />
+          <SubjectChapterDirectory chapters={chapterCards} />
+          <SubjectStudySummaries
+            summaries={generalSummaries}
+            basePath={basePath}
+            subjectId={subject.id}
+            majorId={subject.major.id}
+            heading="محتوى عام للمادة"
+            description="ملخصات مرتبطة بالمادة مباشرة وليست محصورة في فصل محدد."
+            headingId="general-subject-content-heading"
+          />
+          <SubjectQuizzesSection
+            quizzes={comprehensiveQuizzes}
+            subjectId={subject.id}
+            majorId={subject.major.id}
+            heading="اختبارات شاملة"
+            description="اختبارات تجمع أسئلة من أكثر من فصل في المادة."
+            headingId="comprehensive-subject-quizzes-heading"
+          />
+        </div>
+      ) : (
+        <DirectSubjectLearningContent
+          summaries={summaries}
+          quizzes={directCatalogQuizzes}
+          basePath={basePath}
+          subjectId={subject.id}
+          majorId={subject.major.id}
+        />
+      )}
+
+      <nav className="flex flex-col justify-center gap-3 pt-2 sm:flex-row" aria-label="روابط الرجوع">
+        <Button asChild variant="outline" className={outlineButtonClass}>
+          <Link href={majorLink} prefetch={false} className="flex items-center gap-2">
+            <ArrowRight className="h-4 w-4" aria-hidden />
+            الرجوع إلى التخصص
+          </Link>
+        </Button>
+
+        <Button asChild variant="outline" className={outlineButtonClass}>
+          <Link href={uniLink} prefetch={false} className="flex items-center gap-2">
+            <ArrowRight className="h-4 w-4" aria-hidden />
+            الرجوع إلى المؤسسة
+          </Link>
+        </Button>
+      </nav>
     </div>
   );
 }

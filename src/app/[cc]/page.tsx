@@ -134,7 +134,7 @@ export default async function CountryHome({ params }: { params: Promise<PagePara
     <div className="min-h-screen bg-background">
       <PublicHeader />
 
-      <main>
+      <main id="main-content" tabIndex={-1}>
         {/* Hero حسب الدولة فقط */}
         <HeroSection cc={cc} lang="ar" />
 

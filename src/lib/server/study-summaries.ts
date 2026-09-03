@@ -1,5 +1,6 @@
 import "server-only";
 
+import { Prisma } from "@prisma/client";
 import { cache } from "react";
 import { unstable_cache } from "next/cache";
 
@@ -35,7 +36,45 @@ export type StudySummarySeoMeta = {
   nofollow: boolean;
 };
 
-function serializeSummary(summary: {
+type PublicStudySummaryQueryRow = {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt: string | null;
+  accessType: "inherit" | "free" | "paid";
+  pdfAttachmentId: string | null;
+  publishedAt: Date;
+  readingMinutes: number | null;
+  isFeatured: boolean;
+  hasReadableContent: boolean;
+  chapterId: string | null;
+  chapterName: string | null;
+  chapterNumber: number | null;
+};
+
+function serializeSummary(summary: PublicStudySummaryQueryRow): PublicStudySummary {
+  return {
+    id: summary.id,
+    title: summary.title,
+    slug: summary.slug,
+    excerpt: summary.excerpt,
+    accessType: summary.accessType,
+    publishedAt: summary.publishedAt.toISOString(),
+    readingMinutes: summary.readingMinutes,
+    isFeatured: summary.isFeatured,
+    chapter: summary.chapterId
+      ? {
+          id: summary.chapterId,
+          name: summary.chapterName ?? "",
+          chapterNumber: summary.chapterNumber,
+        }
+      : null,
+    hasReadableContent: summary.hasReadableContent,
+    hasPdf: Boolean(summary.pdfAttachmentId),
+  };
+}
+
+function serializeSummaryDetail(summary: {
   id: string;
   title: string;
   slug: string;
@@ -66,31 +105,42 @@ function serializeSummary(summary: {
   };
 }
 
-async function loadPublishedSubjectSummaries(subjectId: string): Promise<PublicStudySummary[]> {
+async function queryPublishedSubjectSummaries(subjectId: string): Promise<PublicStudySummaryQueryRow[]> {
   const now = new Date();
-  const rows = await prisma.studySummary.findMany({
-    where: {
-      subjectId,
-      status: "published",
-      publishedAt: { not: null, lte: now },
-      language: "ar",
-    },
-    orderBy: [{ isFeatured: "desc" }, { sortOrder: "asc" }, { publishedAt: "desc" }],
-    select: {
-      id: true,
-      title: true,
-      slug: true,
-      excerpt: true,
-      accessType: true,
-      contentHtml: true,
-      contentText: true,
-      pdfAttachmentId: true,
-      publishedAt: true,
-      readingMinutes: true,
-      isFeatured: true,
-      chapter: { select: { id: true, name: true, chapterNumber: true } },
-    },
-  });
+
+  // Compute content availability in PostgreSQL so protected bodies never enter
+  // the public summary list loader.
+  return prisma.$queryRaw<PublicStudySummaryQueryRow[]>(Prisma.sql`
+    SELECT
+      summary."id",
+      summary."title",
+      summary."slug",
+      summary."excerpt",
+      summary."accessType",
+      summary."pdfAttachmentId",
+      summary."publishedAt",
+      summary."readingMinutes",
+      summary."isFeatured",
+      (
+        COALESCE(summary."contentHtml", '') ~ '[^[:space:]]'
+        OR COALESCE(summary."contentText", '') ~ '[^[:space:]]'
+      ) AS "hasReadableContent",
+      chapter."id" AS "chapterId",
+      chapter."name" AS "chapterName",
+      chapter."chapterNumber" AS "chapterNumber"
+    FROM "study_summaries" AS summary
+    LEFT JOIN "chapters" AS chapter ON chapter."id" = summary."chapterId"
+    WHERE summary."subjectId" = ${subjectId}
+      AND summary."status" = 'published'::"StudySummaryStatus"
+      AND summary."publishedAt" IS NOT NULL
+      AND summary."publishedAt" <= ${now}
+      AND summary."language" = 'ar'::"ContentLanguage"
+    ORDER BY summary."isFeatured" DESC, summary."sortOrder" ASC, summary."publishedAt" DESC
+  `);
+}
+
+async function loadPublishedSubjectSummaries(subjectId: string): Promise<PublicStudySummary[]> {
+  const rows = await queryPublishedSubjectSummaries(subjectId);
 
   return rows.map(serializeSummary);
 }
@@ -121,7 +171,7 @@ async function loadPublishedSubjectSummaryBySlug(subjectId: string, slug: string
     },
   });
 
-  return row ? serializeSummary(row) : null;
+  return row ? serializeSummaryDetail(row) : null;
 }
 
 export async function getPublishedStudySummaryContent(summaryId: string): Promise<ProtectedStudySummaryContent | null> {
@@ -158,7 +208,7 @@ async function loadStudySummarySeoMeta(summaryId: string): Promise<StudySummaryS
 export const getPublishedSubjectSummaries = cache(async (subjectId: string): Promise<PublicStudySummary[]> => {
   return unstable_cache(
     () => loadPublishedSubjectSummaries(subjectId),
-    ["public-study-summaries-safe-v2", subjectId],
+    ["public-study-summaries-safe-v3", subjectId],
     {
       revalidate: CACHE_TTL.publicLong,
       tags: cacheTags(

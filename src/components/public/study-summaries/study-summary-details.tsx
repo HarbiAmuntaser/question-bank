@@ -4,13 +4,13 @@ import { ArrowRight, BookOpenText, Clock, Download, FileText, GraduationCap, Lay
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import type { InstitutionType } from "@/config/regions";
 import { encodeSlugPath, stripPrefix } from "@/lib/public/slug-utils";
-import { fetchJSON } from "@/lib/server/student-fetch";
 import { checkStudySummaryAccess } from "@/lib/server/access-control";
-import { getOrCreateAnonymousSession } from "@/lib/server/anonymous-session";
+import { getExistingAnonymousSession } from "@/lib/server/anonymous-session";
+import { getPublicSubjectByRouteKey } from "@/lib/server/public-education-loaders";
 import {
   getPublishedStudySummaryContent,
   getPublishedSubjectSummaryBySlug,
@@ -20,7 +20,7 @@ import {
 import { CopyableSummaryContent } from "./copyable-summary-content";
 import { StudySummarySubscribeButton } from "./study-summary-subscribe-button";
 
-const surfaceCardClass = "overflow-hidden border bg-card/95 shadow-sm dark:bg-gray-900/80";
+const surfaceCardClass = "overflow-hidden border bg-card/95 shadow-sm";
 const outlineButtonClass = "h-11 w-full rounded-lg sm:w-auto";
 
 type SeoLite = { slug: string | null };
@@ -64,25 +64,8 @@ function formatDate(value: string) {
   });
 }
 
-async function fetchSubjectBySlugOrCode(subjectSlugRaw: string) {
-  const subjectSlug = stripPrefix(subjectSlugRaw, "مواد");
-  const bySlug = await fetchJSON<SubjectDto>(
-    `/api/v1/student/subjects/by-slug/${encodeSlugPath(subjectSlug)}`,
-    { cache: "no-store" },
-    0,
-  );
-  if (bySlug.ok && bySlug.data) return { subject: bySlug.data };
-
-  if (!subjectSlug.includes("/")) {
-    const byCode = await fetchJSON<SubjectDto>(
-      `/api/v1/student/subjects/by-code/${encodeURIComponent(subjectSlug)}`,
-      { cache: "no-store" },
-      0,
-    );
-    if (byCode.ok && byCode.data) return { subject: byCode.data };
-  }
-
-  return { subject: null as SubjectDto | null };
+async function fetchSubjectBySlugOrCode(subjectSlugRaw: string): Promise<{ subject: SubjectDto | null }> {
+  return { subject: await getPublicSubjectByRouteKey(subjectSlugRaw) };
 }
 
 export async function StudySummaryDetails({
@@ -109,8 +92,11 @@ export async function StudySummaryDetails({
   const summary = await getPublishedSubjectSummaryBySlug(subject.id, summarySlug);
   if (!summary) notFound();
 
-  const { session } = await getOrCreateAnonymousSession();
-  const access = await checkStudySummaryAccess({ summaryId: summary.id, anonymousSessionId: session.id });
+  const session = await getExistingAnonymousSession();
+  const access = await checkStudySummaryAccess({
+    summaryId: summary.id,
+    anonymousSessionId: session?.id ?? null,
+  });
   if (access.reason === "not_found") notFound();
   const protectedContent = access.allowed ? await getPublishedStudySummaryContent(summary.id) : null;
 
@@ -185,7 +171,7 @@ export async function StudySummaryDetails({
             <BookOpenText className="h-6 w-6" aria-hidden />
           </div>
 
-          <CardTitle className="text-2xl font-bold leading-tight sm:text-3xl">{summary.title}</CardTitle>
+          <h1 className="text-2xl font-bold leading-tight sm:text-3xl">{summary.title}</h1>
 
           {summary.excerpt ? (
             <CardDescription className="mx-auto max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">

@@ -8,7 +8,7 @@ import {
 } from "@/components/public/study-summaries/subject-study-summaries";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import type { PublicSubjectChapter } from "@/lib/server/subject-chapters";
 
 export type SubjectChapterCard = PublicSubjectChapter & {
@@ -31,7 +31,7 @@ export function SubjectChapterDirectory({ chapters }: { chapters: SubjectChapter
 
       <div className="grid gap-4 lg:grid-cols-2">
         {chapters.map((chapter) => (
-          <Card key={chapter.id} className="border bg-card/95 shadow-sm transition-colors hover:border-primary/40">
+          <Card key={chapter.id} className="flex h-full flex-col border bg-card/95 shadow-sm transition-colors hover:border-primary/40">
             <CardHeader className="space-y-3 p-5">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 space-y-2">
@@ -40,7 +40,7 @@ export function SubjectChapterDirectory({ chapters }: { chapters: SubjectChapter
                       الفصل {chapter.chapterNumber}
                     </Badge>
                   ) : null}
-                  <CardTitle className="text-lg font-bold leading-7 sm:text-xl">{chapter.name}</CardTitle>
+                  <h3 className="text-lg font-bold leading-7 sm:text-xl">{chapter.name}</h3>
                 </div>
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
                   <Layers3 className="h-5 w-5" aria-hidden />
@@ -50,7 +50,7 @@ export function SubjectChapterDirectory({ chapters }: { chapters: SubjectChapter
                 <p className="line-clamp-2 text-sm leading-6 text-muted-foreground">{chapter.description}</p>
               ) : null}
             </CardHeader>
-            <CardContent className="flex flex-col gap-4 px-5 pb-5 pt-0">
+            <CardContent className="mt-auto flex flex-col gap-4 px-5 pb-5 pt-0">
               <div className="flex flex-wrap items-center gap-3 text-xs font-medium text-foreground/75">
                 <span className="flex items-center gap-1.5">
                   <FileText className="h-4 w-4 text-primary" aria-hidden />

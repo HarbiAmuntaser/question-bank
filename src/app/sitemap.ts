@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 
 import { SUPPORTED_COUNTRIES, type CountryCode, type InstitutionType } from "@/config/regions";
 import { prisma } from "@/lib/prisma";
+import { getCanonicalInstitutionCountry } from "@/lib/public/institution-routing";
 import { encodeSlugPath, stripPrefix } from "@/lib/public/slug-utils";
 import { BLOG_TOPIC_INDEX_MIN_POSTS, getSearchIndexingMode } from "@/lib/search-indexing";
 import {
@@ -54,11 +55,21 @@ function latestDate(...dates: Array<Date | null | undefined>) {
   return valid.reduce((latest, date) => (date > latest ? date : latest), valid[0]);
 }
 
-function routeSlug(seo: SeoLookup | null | undefined, fallback: string | null | undefined, prefix: string) {
-  if (seo?.noindex) return null;
-  const raw = seo?.slug || fallback;
-  if (!raw) return null;
-  return encodeSlugPath(stripPrefix(raw, prefix));
+function hasUuidSegment(value: string) {
+  return value
+    .split("/")
+    .some((segment) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(segment));
+}
+
+function routeSlug(
+  seo: SeoLookup | null | undefined,
+  prefix: string,
+  options: { respectNoindex?: boolean } = {},
+) {
+  if (!seo || (options.respectNoindex !== false && seo.noindex)) return null;
+  const raw = stripPrefix(seo.slug.trim(), prefix);
+  if (!raw || hasUuidSegment(raw)) return null;
+  return encodeSlugPath(raw);
 }
 
 function seoMap(rows: Array<{ ownerId: string; slug: string; noindex: boolean }>) {
@@ -67,7 +78,10 @@ function seoMap(rows: Array<{ ownerId: string; slug: string; noindex: boolean }>
   );
 }
 
-async function seoRows(ownerType: "university" | "major" | "subject" | "exam" | "study_summary", ownerIds: string[]) {
+async function seoRows(
+  ownerType: "university" | "major" | "subject" | "chapter" | "exam" | "study_summary",
+  ownerIds: string[],
+) {
   if (!ownerIds.length) return new Map<string, SeoLookup>();
 
   const rows = await prisma.seoMeta.findMany({
@@ -100,6 +114,7 @@ async function institutionEntries(): Promise<SitemapEntry[]> {
       code: true,
       countryCode: true,
       institutionType: true,
+      visibility: true,
       createdAt: true,
       updatedAt: true,
     },
@@ -108,13 +123,12 @@ async function institutionEntries(): Promise<SitemapEntry[]> {
   const universitySeo = await seoRows("university", universities.map((university) => university.id));
 
   return universities.flatMap((university) => {
-    const cc = supportedCountry(university.countryCode);
-    if (!cc) return [];
+    const cc = getCanonicalInstitutionCountry(university);
 
     const type = supportedType(cc, university.institutionType);
     if (!type) return [];
 
-    const slug = routeSlug(universitySeo.get(university.id), university.code ?? university.id, "جامعات");
+    const slug = routeSlug(universitySeo.get(university.id), "جامعات");
     if (!slug) return [];
 
     return [
@@ -150,6 +164,7 @@ async function majorEntries(): Promise<SitemapEntry[]> {
           code: true,
           countryCode: true,
           institutionType: true,
+          visibility: true,
           createdAt: true,
           updatedAt: true,
         },
@@ -163,14 +178,13 @@ async function majorEntries(): Promise<SitemapEntry[]> {
   ]);
 
   return majors.flatMap((major) => {
-    const cc = supportedCountry(major.university.countryCode);
-    if (!cc) return [];
+    const cc = getCanonicalInstitutionCountry(major.university);
 
     const type = supportedType(cc, major.university.institutionType);
     if (!type) return [];
 
-    const universitySlug = routeSlug(universitySeo.get(major.university.id), major.university.code ?? major.university.id, "جامعات");
-    const majorSlug = routeSlug(majorSeo.get(major.id), major.code ?? major.id, "تخصصات");
+    const universitySlug = routeSlug(universitySeo.get(major.university.id), "جامعات", { respectNoindex: false });
+    const majorSlug = routeSlug(majorSeo.get(major.id), "تخصصات");
     if (!universitySlug || !majorSlug) return [];
 
     return [
@@ -215,6 +229,7 @@ async function subjectEntries(): Promise<SitemapEntry[]> {
               code: true,
               countryCode: true,
               institutionType: true,
+              visibility: true,
               updatedAt: true,
             },
           },
@@ -230,19 +245,14 @@ async function subjectEntries(): Promise<SitemapEntry[]> {
   ]);
 
   return subjects.flatMap((subject) => {
-    const cc = supportedCountry(subject.major.university.countryCode);
-    if (!cc) return [];
+    const cc = getCanonicalInstitutionCountry(subject.major.university);
 
     const type = supportedType(cc, subject.major.university.institutionType);
     if (!type) return [];
 
-    const universitySlug = routeSlug(
-      universitySeo.get(subject.major.university.id),
-      subject.major.university.code ?? subject.major.university.id,
-      "جامعات",
-    );
-    const majorSlug = routeSlug(majorSeo.get(subject.major.id), subject.major.code ?? subject.major.id, "تخصصات");
-    const subjectSlug = routeSlug(subjectSeo.get(subject.id), subject.code ?? subject.id, "مواد");
+    const universitySlug = routeSlug(universitySeo.get(subject.major.university.id), "جامعات", { respectNoindex: false });
+    const majorSlug = routeSlug(majorSeo.get(subject.major.id), "تخصصات", { respectNoindex: false });
+    const subjectSlug = routeSlug(subjectSeo.get(subject.id), "مواد");
     if (!universitySlug || !majorSlug || !subjectSlug) return [];
 
     return [
@@ -255,10 +265,165 @@ async function subjectEntries(): Promise<SitemapEntry[]> {
   });
 }
 
+async function chapterEntries(): Promise<SitemapEntry[]> {
+  const publicChapterTypes = getEnabledPublicTypes().filter((type) => type !== "school");
+  if (!publicChapterTypes.length) return [];
+
+  const now = new Date();
+  const chapters = await prisma.chapter.findMany({
+    where: {
+      isActive: true,
+      slug: { not: null },
+      subject: {
+        isActive: true,
+        major: {
+          isActive: true,
+          university: {
+            isActive: true,
+            countryCode: { in: Object.keys(SUPPORTED_COUNTRIES) },
+            institutionType: { in: publicChapterTypes },
+          },
+        },
+      },
+    },
+    orderBy: { updatedAt: "desc" },
+    take: DYNAMIC_LIMIT,
+    select: {
+      id: true,
+      slug: true,
+      createdAt: true,
+      updatedAt: true,
+      subject: {
+        select: {
+          id: true,
+          updatedAt: true,
+          major: {
+            select: {
+              id: true,
+              university: {
+                select: {
+                  id: true,
+                  countryCode: true,
+                  institutionType: true,
+                  visibility: true,
+                  updatedAt: true,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!chapters.length) return [];
+
+  const chapterIds = chapters.map((chapter) => chapter.id);
+  const [chapterSeo, subjectSeo, majorSeo, universitySeo, summaries, quizzes] = await Promise.all([
+    seoRows("chapter", chapterIds),
+    seoRows("subject", chapters.map((chapter) => chapter.subject.id)),
+    seoRows("major", chapters.map((chapter) => chapter.subject.major.id)),
+    seoRows("university", chapters.map((chapter) => chapter.subject.major.university.id)),
+    prisma.studySummary.findMany({
+      where: {
+        chapterId: { in: chapterIds },
+        status: "published",
+        publishedAt: { not: null, lte: now },
+        language: "ar",
+      },
+      select: {
+        chapterId: true,
+        publishedAt: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    }),
+    prisma.quiz.findMany({
+      where: {
+        isActive: true,
+        questions: { some: { question: { chapterId: { in: chapterIds } } } },
+        ...publicQuizWhere(),
+      },
+      select: {
+        createdAt: true,
+        updatedAt: true,
+        questions: {
+          select: {
+            question: { select: { chapterId: true } },
+          },
+        },
+      },
+    }),
+  ]);
+
+  const contentDateByChapter = new Map<string, Date>();
+  const rememberContentDate = (chapterId: string, date: Date) => {
+    const current = contentDateByChapter.get(chapterId);
+    if (!current || date > current) contentDateByChapter.set(chapterId, date);
+  };
+
+  for (const summary of summaries) {
+    if (!summary.chapterId) continue;
+    rememberContentDate(
+      summary.chapterId,
+      latestDate(summary.updatedAt, summary.publishedAt, summary.createdAt),
+    );
+  }
+
+  for (const quiz of quizzes) {
+    const quizChapterIds = Array.from(new Set(quiz.questions.map((item) => item.question.chapterId)));
+    if (quizChapterIds.length !== 1) continue;
+    rememberContentDate(quizChapterIds[0], latestDate(quiz.updatedAt, quiz.createdAt));
+  }
+
+  return chapters.flatMap((chapter) => {
+    const ownSeo = chapterSeo.get(chapter.id);
+    const chapterSlug = chapter.slug?.trim();
+    const contentDate = contentDateByChapter.get(chapter.id);
+    if (
+      !ownSeo ||
+      ownSeo.noindex ||
+      !chapterSlug ||
+      hasUuidSegment(chapterSlug) ||
+      ownSeo.slug.trim() !== chapterSlug ||
+      !contentDate
+    ) return [];
+
+    const subject = chapter.subject;
+    const cc = getCanonicalInstitutionCountry(subject.major.university);
+
+    const type = supportedType(cc, subject.major.university.institutionType);
+    if (!type || type === "school") return [];
+
+    const universitySlug = routeSlug(universitySeo.get(subject.major.university.id), "جامعات", { respectNoindex: false });
+    const majorSlug = routeSlug(majorSeo.get(subject.major.id), "تخصصات", { respectNoindex: false });
+    const subjectSlug = routeSlug(subjectSeo.get(subject.id), "مواد", { respectNoindex: false });
+    if (!universitySlug || !majorSlug || !subjectSlug) return [];
+
+    return [
+      entry(
+        `/${cc}/${type}/universities/${universitySlug}/majors/${majorSlug}/subjects/${subjectSlug}/chapters/${encodeURIComponent(chapterSlug)}`,
+        {
+          lastModified: latestDate(
+            chapter.updatedAt,
+            chapter.createdAt,
+            contentDate,
+            subject.updatedAt,
+            subject.major.university.updatedAt,
+          ),
+          changeFrequency: "weekly",
+          priority: 0.6,
+        },
+      ),
+    ];
+  });
+}
+
 async function quizEntries(): Promise<SitemapEntry[]> {
   const quizzes = await prisma.quiz.findMany({
     where: {
       isActive: true,
+      questions: { some: {} },
       ...publicQuizWhere(),
     },
     orderBy: { updatedAt: "desc" },
@@ -286,6 +451,7 @@ async function quizEntries(): Promise<SitemapEntry[]> {
                   code: true,
                   countryCode: true,
                   institutionType: true,
+                  visibility: true,
                   isActive: true,
                   updatedAt: true,
                 },
@@ -321,6 +487,7 @@ async function quizEntries(): Promise<SitemapEntry[]> {
                               code: true,
                               countryCode: true,
                               institutionType: true,
+                              visibility: true,
                               isActive: true,
                               updatedAt: true,
                             },
@@ -352,21 +519,15 @@ async function quizEntries(): Promise<SitemapEntry[]> {
   return quizzes.flatMap((quiz) => {
     const subject = quiz.subject ?? quiz.questions[0]?.question.chapter.subject ?? null;
     if (!subject?.isActive || !subject.major.isActive || !subject.major.university.isActive) return [];
-
-    const cc = supportedCountry(subject.major.university.countryCode);
-    if (!cc) return [];
+    const cc = getCanonicalInstitutionCountry(subject.major.university);
 
     const type = supportedType(cc, subject.major.university.institutionType);
     if (!type) return [];
 
-    const universitySlug = routeSlug(
-      universitySeo.get(subject.major.university.id),
-      subject.major.university.code ?? subject.major.university.id,
-      "جامعات",
-    );
-    const majorSlug = routeSlug(majorSeo.get(subject.major.id), subject.major.code ?? subject.major.id, "تخصصات");
-    const subjectSlug = routeSlug(subjectSeo.get(subject.id), subject.code ?? subject.id, "مواد");
-    const quizSlug = routeSlug(quizSeo.get(quiz.id), quiz.id, "اختبارات");
+    const universitySlug = routeSlug(universitySeo.get(subject.major.university.id), "جامعات", { respectNoindex: false });
+    const majorSlug = routeSlug(majorSeo.get(subject.major.id), "تخصصات", { respectNoindex: false });
+    const subjectSlug = routeSlug(subjectSeo.get(subject.id), "مواد", { respectNoindex: false });
+    const quizSlug = routeSlug(quizSeo.get(quiz.id), "اختبارات");
     if (!universitySlug || !majorSlug || !subjectSlug || !quizSlug) return [];
 
     return [
@@ -422,6 +583,7 @@ async function studySummaryEntries(): Promise<SitemapEntry[]> {
                   code: true,
                   countryCode: true,
                   institutionType: true,
+                  visibility: true,
                   updatedAt: true,
                 },
               },
@@ -440,24 +602,20 @@ async function studySummaryEntries(): Promise<SitemapEntry[]> {
   ]);
 
   return summaries.flatMap((summary) => {
-    if (summarySeo.get(summary.id)?.noindex) return [];
+    const ownSeo = summarySeo.get(summary.id);
+    if (!ownSeo || ownSeo.noindex) return [];
 
     const subject = summary.subject;
-    const cc = supportedCountry(subject.major.university.countryCode);
-    if (!cc) return [];
+    const cc = getCanonicalInstitutionCountry(subject.major.university);
 
     const type = supportedType(cc, subject.major.university.institutionType);
     if (!type) return [];
 
-    const universitySlug = routeSlug(
-      universitySeo.get(subject.major.university.id),
-      subject.major.university.code ?? subject.major.university.id,
-      "جامعات",
-    );
-    const majorSlug = routeSlug(majorSeo.get(subject.major.id), subject.major.code ?? subject.major.id, "تخصصات");
-    const subjectSlug = routeSlug(subjectSeo.get(subject.id), subject.code ?? subject.id, "مواد");
+    const universitySlug = routeSlug(universitySeo.get(subject.major.university.id), "جامعات", { respectNoindex: false });
+    const majorSlug = routeSlug(majorSeo.get(subject.major.id), "تخصصات", { respectNoindex: false });
+    const subjectSlug = routeSlug(subjectSeo.get(subject.id), "مواد", { respectNoindex: false });
     const summarySlug = encodeSlugPath(stripPrefix(summary.slug, "ملخصات"));
-    if (!universitySlug || !majorSlug || !subjectSlug || !summarySlug) return [];
+    if (!universitySlug || !majorSlug || !subjectSlug || !summarySlug || hasUuidSegment(summary.slug)) return [];
 
     return [
       entry(`/${cc}/${type}/universities/${universitySlug}/majors/${majorSlug}/subjects/${subjectSlug}/summaries/${summarySlug}`, {
@@ -688,6 +846,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
           safeDynamicEntries("institutions", institutionEntries),
           safeDynamicEntries("majors", majorEntries),
           safeDynamicEntries("subjects", subjectEntries),
+          safeDynamicEntries("chapters", chapterEntries),
           safeDynamicEntries("quizzes", quizEntries),
           safeDynamicEntries("study summaries", studySummaryEntries),
           safeDynamicEntries("blog posts", blogEntries),

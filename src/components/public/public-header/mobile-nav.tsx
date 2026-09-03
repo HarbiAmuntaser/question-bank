@@ -29,7 +29,7 @@ type Props = {
 export function MobileNav({ pathname, nav, currentCC, onChangeCountry }: Props) {
   return (
     <Sheet>
-      <SheetTrigger asChild className="md:hidden">
+      <SheetTrigger asChild className="lg:hidden">
         <Button variant="ghost" size="icon" className="h-10 w-10 rounded-lg" aria-label="فتح القائمة">
           <Menu className="h-5 w-5" />
         </Button>

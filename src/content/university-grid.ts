@@ -27,8 +27,8 @@ const base: GridTexts = {
   subheading: "استكشف أفضل المؤسسات واختر ما يناسبك",
   searchLabel: "ابحث عن مؤسسة...",
   searchPlaceholder: "ابحث بالاسم أو الرمز...",
-  badgeText: "موثوق",
-  badgeAria: "مؤسسة موثوقة",
+  badgeText: "مؤسسة تعليمية",
+  badgeAria: "نوع المؤسسة",
   statMajors: "تخصص",
   statQuizzes: "اختبار",
   statSubjects: "مقرر",
@@ -66,20 +66,24 @@ const byType: Record<InstType, Partial<GridTexts>> = {
 
 const byCountry: Record<string, Partial<GridTexts>> = {
   SA: {
-    badgeText: "معتمدة",
+    badgeText: "السعودية",
     subheading: "استكشف المؤسسات في المملكة العربية السعودية",
   },
   YE: {
-    badgeText: "موثوقة",
+    badgeText: "اليمن",
     subheading: "استكشف المؤسسات في اليمن",
   },
 };
 
 export function getUniversityGridTexts(cc: string, type: InstType): GridTexts {
   const ccU = cc.toUpperCase();
+  const typeTexts = byType[type] ?? {};
+  const countryTexts = byCountry[ccU] ?? {};
+
   return {
     ...base,
-    ...(byType[type] ?? {}),
-    ...(byCountry[ccU] ?? {}),
+    ...typeTexts,
+    ...countryTexts,
+    ...(type === "academy" && typeTexts.subheading ? { subheading: typeTexts.subheading } : {}),
   } as GridTexts;
 }

@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
 import { ArrowRight, BookOpen } from "lucide-react";
@@ -17,12 +17,12 @@ import {
   isValidAcademicPeriod,
   type AcademicPeriod,
 } from "@/lib/academic-periods";
-import { fetchJSON } from "@/lib/server/student-fetch";
+import { getPublicMajorByRouteKey } from "@/lib/server/public-education-loaders";
 import { stripPrefix, encodeSlugPath } from "@/lib/public/slug-utils";
 
 export const revalidate = 21600;
 
-const surfaceCardClass = "overflow-hidden border bg-card/95 shadow-sm transition-shadow hover:shadow-md dark:bg-gray-900/80";
+const surfaceCardClass = "overflow-hidden border bg-card/95 shadow-sm";
 const metaTileClass = "rounded-lg border bg-muted/30 px-4 py-3";
 
 type SeoLite = { slug: string | null };
@@ -67,32 +67,8 @@ function normalizeInstitutionType(v: string | null): InstitutionType | null {
   return x === "university" || x === "school" || x === "academy" ? (x as InstitutionType) : null;
 }
 
-async function fetchMajorBySlugOrCode(majorSlugPathRaw: string) {
-  const majorSlugPath = stripPrefix(majorSlugPathRaw, "تخصصات");
-  const bySlug = await fetchJSON<MajorDto>(
-    `/api/v1/student/majors/by-slug/${encodeSlugPath(majorSlugPath)}`,
-    { cache: "no-store" },
-    0,
-  );
-  if (bySlug.ok && bySlug.data) return { major: bySlug.data };
-
-  if (!majorSlugPath.includes("/")) {
-    const byCode = await fetchJSON<MajorDto>(
-      `/api/v1/student/majors/by-code/${encodeURIComponent(majorSlugPath)}`,
-      { cache: "no-store" },
-      0,
-    );
-    if (byCode.ok && byCode.data) return { major: byCode.data };
-
-    const byId = await fetchJSON<MajorDto>(
-      `/api/v1/student/majors/by-id/${encodeURIComponent(majorSlugPath)}`,
-      { cache: "no-store" },
-      0,
-    );
-    if (byId.ok && byId.data) return { major: byId.data };
-  }
-
-  return { major: null as MajorDto | null };
+async function fetchMajorBySlugOrCode(majorSlugPathRaw: string): Promise<{ major: MajorDto | null }> {
+  return { major: await getPublicMajorByRouteKey(majorSlugPathRaw) };
 }
 
 function universityHref(cc: string, type: InstitutionType, uni: UniversityLiteForMajor) {
@@ -210,7 +186,7 @@ export async function MajorDetails({
         <CardHeader className="space-y-5 px-5 text-center sm:px-6">
           <div className="space-y-2">
             <div className="text-xs font-medium text-foreground/70">تفاصيل التخصص</div>
-            <CardTitle className="text-2xl font-bold leading-tight sm:text-3xl">{major.name}</CardTitle>
+            <h1 className="text-2xl font-bold leading-tight sm:text-3xl">{major.name}</h1>
           </div>
 
           <div className="mx-auto grid w-full max-w-xl grid-cols-1 gap-3 text-base font-semibold sm:grid-cols-2 sm:text-lg">
@@ -250,14 +226,14 @@ export async function MajorDetails({
                 )}/levels/${routeKey}`;
 
                 return (
-                  <Card key={routeKey} className="group flex h-full flex-col border bg-card/95 shadow-sm transition-colors hover:border-primary/40 hover:shadow-md dark:bg-gray-900/80">
+                  <Card key={routeKey} className="group flex h-full flex-col border bg-card/95 shadow-sm transition-colors hover:border-primary/40 hover:shadow-md">
                     <CardHeader className="space-y-3 pb-3">
                       <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/10 text-primary">
                         <BookOpen className="h-5 w-5" aria-hidden />
                       </div>
-                      <CardTitle className="text-lg font-semibold leading-snug">
+                      <h3 className="text-lg font-semibold leading-snug">
                         {getAcademicPeriodLabel(major.university.countryCode || ccNorm, period)}
-                      </CardTitle>
+                      </h3>
                     </CardHeader>
                     <CardContent className="flex flex-1 flex-col justify-between gap-4 pb-6 pt-0">
                       <p className="text-sm font-medium text-foreground/75">

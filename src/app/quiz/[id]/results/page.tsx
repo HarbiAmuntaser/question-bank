@@ -2,6 +2,7 @@
 
 // src/app/quiz/[id]/results/page.tsx
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 
 import type { QuizWithQuestions } from "@/types";
 import { fetchJSON } from "@/lib/server/student-fetch";
@@ -13,6 +14,9 @@ import { getPublishedSubjectSummaries } from "@/lib/server/study-summaries";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
 type PageParams = { id: string };
 type SearchParams = { session?: string };
@@ -123,7 +127,7 @@ export default async function QuizResultsPage({
   return (
     <div className="min-h-screen bg-background">
       <PublicHeader />
-      <main className="container mx-auto px-4 py-8">
+      <main id="main-content" tabIndex={-1} className="mx-auto w-full max-w-7xl px-0 py-2 sm:px-4 sm:py-4 lg:px-8">
         <QuizResults
           quiz={quiz}
           sessionId={sessionId}

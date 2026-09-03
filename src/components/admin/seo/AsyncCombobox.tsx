@@ -8,7 +8,12 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Check, ChevronsUpDown, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export type ComboOption = { id: string; label: string; subLabel?: string };
+export type ComboOption = {
+  id: string;
+  label: string;
+  subLabel?: string;
+  slug?: string | null;
+};
 
 export function AsyncCombobox({
   value,

@@ -11,7 +11,7 @@ type PublicLoadingStateProps = {
   className?: string;
 };
 
-export function PublicLoadingState({ className }: PublicLoadingStateProps) {
+export function PublicLoadingState({ title = "جاري تحميل المحتوى...", description, className }: PublicLoadingStateProps) {
   return (
     <div
       className={cn("flex min-h-[50vh] items-center justify-center py-10", className)}
@@ -19,8 +19,11 @@ export function PublicLoadingState({ className }: PublicLoadingStateProps) {
       aria-busy="true"
       aria-live="polite"
     >
-      <Loader2 className="h-9 w-9 animate-spin text-primary" aria-hidden />
-      <span className="sr-only">جاري التحميل</span>
+      <div className="max-w-md text-center">
+        <Loader2 className="mx-auto h-9 w-9 animate-spin text-primary" aria-hidden />
+        <p className="mt-3 text-sm font-semibold text-foreground">{title}</p>
+        {description ? <p className="mt-1 text-sm leading-relaxed text-foreground/70">{description}</p> : null}
+      </div>
     </div>
   );
 }

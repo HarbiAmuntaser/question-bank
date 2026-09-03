@@ -9,6 +9,11 @@ type RobotsOverride = {
   nofollow?: boolean | null;
 };
 
+type EducationPageRobotsOptions = {
+  indexable?: boolean;
+  requireSeo?: boolean;
+};
+
 export function getSearchIndexingMode(): SearchIndexingMode {
   return process.env.SEARCH_INDEXING_MODE === "full" ? "full" : "blog_only";
 }
@@ -17,9 +22,15 @@ export function isBlogOnlySearchIndexing() {
   return getSearchIndexingMode() === "blog_only";
 }
 
-export function educationPageRobots(seo?: RobotsOverride | null): NonNullable<Metadata["robots"]> {
+export function educationPageRobots(
+  seo?: RobotsOverride | null,
+  options: EducationPageRobotsOptions = {},
+): NonNullable<Metadata["robots"]> {
+  const hasRequiredSeo = !options.requireSeo || Boolean(seo);
+  const isEligible = options.indexable !== false && hasRequiredSeo;
+
   return {
-    index: isBlogOnlySearchIndexing() ? false : !seo?.noindex,
+    index: isBlogOnlySearchIndexing() ? false : isEligible && !seo?.noindex,
     follow: !seo?.nofollow,
   };
 }

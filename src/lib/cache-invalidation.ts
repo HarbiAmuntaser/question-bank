@@ -223,6 +223,8 @@ export function revalidateChapterCache(
     CACHE_TAGS.admin.chapters,
     CACHE_TAGS.public.chapters,
     input.id ? CACHE_TAGS.public.chapter(input.id) : null,
+    CACHE_TAGS.public.seo,
+    input.id ? CACHE_TAGS.public.seoOwner("chapter", input.id) : null,
     CACHE_TAGS.public.subjects,
     ...affectedSubjectIds.map((id) => CACHE_TAGS.public.subject(id)),
     ...affectedSubjectIds.map((id) => CACHE_TAGS.public.chaptersBySubject(id)),
@@ -232,6 +234,8 @@ export function revalidateChapterCache(
     CACHE_TAGS.public.stats,
     "student-stats",
   ]);
+
+  revalidatePath("/sitemap.xml");
 }
 
 export function revalidateQuestionCache(
@@ -331,5 +335,9 @@ export function revalidateSeoCache(input: { ownerType?: string | null; ownerId?:
 
   if (ownerType === "study_summary") {
     revalidateStudySummaryCache({ next: { id: ownerId } });
+  }
+
+  if (ownerType === "chapter") {
+    revalidatePath("/sitemap.xml");
   }
 }

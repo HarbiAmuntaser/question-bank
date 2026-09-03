@@ -1,7 +1,7 @@
 // src/components/public/quiz/quiz-header.tsx
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -40,7 +40,7 @@ export function QuizHeader({
               <ListChecks className="h-4 w-4" aria-hidden />
               <span>جلسة اختبار</span>
             </div>
-            <CardTitle className="text-xl font-bold leading-tight sm:text-2xl">{title}</CardTitle>
+            <h1 className="text-xl font-bold leading-tight sm:text-2xl">{title}</h1>
             {description ? (
               <p className="mt-2 max-w-3xl text-sm leading-relaxed text-muted-foreground sm:text-base">{description}</p>
             ) : null}

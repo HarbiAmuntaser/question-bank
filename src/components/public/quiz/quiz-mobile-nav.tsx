@@ -19,6 +19,7 @@ export function QuizMobileNav({
   onQuestionSelect: (i: number) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const answeredCount = Object.keys(answers).length;
 
   const handleSelect = useCallback(
     (i: number) => {
@@ -32,9 +33,14 @@ export function QuizMobileNav({
     <div className="lg:hidden">
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetTrigger asChild>
-          <Button variant="outline" className="flex h-11 w-full items-center justify-center gap-2 rounded-lg">
-            <ListChecks className="h-4 w-4" />
-            فهرس الأسئلة
+          <Button variant="outline" className="flex h-11 w-full items-center justify-between gap-3 rounded-lg px-4">
+            <span className="flex items-center gap-2">
+              <ListChecks className="h-4 w-4" aria-hidden />
+              فهرس الأسئلة
+            </span>
+            <span className="text-xs font-medium text-foreground/70">
+              {currentQuestionIndex + 1}/{questions.length} · أُجيب عن {answeredCount}
+            </span>
           </Button>
         </SheetTrigger>
 

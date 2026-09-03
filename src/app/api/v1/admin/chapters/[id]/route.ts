@@ -80,7 +80,19 @@ export async function PUT(req: Request, context: { params: Promise<{ id: string 
   if (Object.prototype.hasOwnProperty.call(p, "learningObjectives"))
     data.learningObjectives = Array.isArray(p.learningObjectives) ? p.learningObjectives : [];
 
-  const updated = await prisma.chapter.update({ where: { id }, data });
+  const updated = await prisma.$transaction(async (tx) => {
+    const chapter = await tx.chapter.update({ where: { id }, data });
+    const chapterSlug = chapter.slug?.trim();
+
+    if (chapterSlug) {
+      await tx.seoMeta.updateMany({
+        where: { ownerType: "chapter", ownerId: chapter.id },
+        data: { slug: chapterSlug },
+      });
+    }
+
+    return chapter;
+  });
   revalidateChapterCache({ id: updated.id, subjectId: updated.subjectId, previousSubjectId: exists.subjectId });
   return json({ data: updated });
 }

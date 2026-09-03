@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
 import { Clock, AlertTriangle } from "lucide-react";
 
 interface QuizTimerProps {
@@ -133,8 +132,11 @@ export function QuizTimer({ initialTime, onTimeUp, onTimeUpdate }: QuizTimerProp
   }, [shouldAnnounce, timeRemaining]);
 
   return (
-    <Card className={`${bgClass} w-full transition-colors duration-300 sm:w-auto`} role="timer" aria-live="polite">
-      <CardContent className="p-3 sm:p-4">
+    <div
+      className={`${bgClass} w-full rounded-lg border p-3 transition-colors duration-300 sm:w-auto sm:px-4`}
+      role="timer"
+      aria-live="polite"
+    >
         {shouldAnnounce && srMessage ? (
           <div aria-live="assertive" className="sr-only">
             {srMessage}
@@ -148,17 +150,17 @@ export function QuizTimer({ initialTime, onTimeUp, onTimeUpdate }: QuizTimerProp
             ) : (
               <Clock className={`h-5 w-5 ${colorClass}`} aria-hidden />
             )}
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">الوقت المتبقي</span>
+            <span className="text-sm font-medium text-foreground/75">الوقت المتبقي</span>
           </div>
 
-          <div className={`text-xl font-bold tabular-nums sm:text-2xl ${colorClass}`} aria-label={`الوقت المتبقي ${formatTime(timeRemaining)}`}>
+          <div className={`text-xl font-bold tabular-nums ${colorClass}`} aria-label={`الوقت المتبقي ${formatTime(timeRemaining)}`}>
             {formatTime(timeRemaining)}
           </div>
         </div>
 
         {timeRemaining <= 600 ? (
           <div className="mt-2" aria-hidden>
-            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1">
+            <div className="h-1 w-full rounded-full bg-muted">
               <div
                 className={`h-1 rounded-full transition-all duration-1000 ${
                   timeRemaining <= 300 ? "bg-red-500" : "bg-yellow-500"
@@ -168,7 +170,6 @@ export function QuizTimer({ initialTime, onTimeUp, onTimeUpdate }: QuizTimerProp
             </div>
           </div>
         ) : null}
-      </CardContent>
-    </Card>
+    </div>
   );
 }

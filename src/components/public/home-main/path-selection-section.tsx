@@ -67,7 +67,7 @@ export function PathSelectionSection({ cc }: { cc: string }) {
           {paths.map(({ title, description, buttonLabel, href, Icon }) => (
             <Card
               key={href}
-              className="group flex h-full flex-col overflow-hidden border bg-card/95 shadow-sm transition-colors hover:border-primary/40 hover:shadow-md dark:bg-gray-900/80"
+              className="group flex h-full flex-col overflow-hidden border bg-card/95 shadow-sm transition-colors hover:border-primary/40 hover:shadow-md"
             >
               <CardContent className="flex h-full flex-col p-5 sm:p-6">
                 <div className="mb-5 flex items-start justify-between gap-4">

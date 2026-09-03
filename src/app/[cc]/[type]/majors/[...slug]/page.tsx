@@ -2,10 +2,10 @@
 
 import { notFound, permanentRedirect } from "next/navigation";
 import type { Metadata } from "next";
-import { headers } from "next/headers";
 
 import { normalizeCountry, isSupportedType } from "@/lib/route-helpers";
 import type { InstitutionType } from "@/config/regions";
+import { getPublicMajorByRouteKey } from "@/lib/server/public-education-loaders";
 
 export const revalidate = 21600;
 
@@ -32,46 +32,6 @@ function normalizeSlugParts(parts: string[] | undefined) {
   const last = clean[clean.length - 1] ?? slugPath;
 
   return { slugPath, last };
-}
-
-/**
- * بناء base URL من headers (يعمل على Vercel + محليًا)
- * - على Vercel: x-forwarded-proto / x-forwarded-host موجودة
- * - محليًا: fallback إلى localhost:3000
- */
-async function apiBase() {
-  const h = await headers(); // ✅ لازم await في Next 15
-  const proto = h.get("x-forwarded-proto") ?? "http";
-  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
-  return `${proto}://${host}`;
-}
-
-/**
- * Fetch JSON helper (بدون any)
- * - يدعم شكل الاستجابة { data: T }
- */
-type NextFetchInit = RequestInit & { next?: { revalidate?: number } };
-
-function hasData<T>(x: unknown): x is { data: T } {
-  return typeof x === "object" && x !== null && "data" in x;
-}
-
-async function fetchJSON<T>(url: string, init?: NextFetchInit) {
-  const base = await apiBase(); // ✅
-  const abs = url.startsWith("http") ? url : `${base}${url}`;
-
-  // نحافظ على revalidate الافتراضي ونسمح بتخصيصه من init.next
-  const res = await fetch(abs, {
-    ...init,
-    next: { revalidate: 21600, ...(init?.next ?? {}) },
-  });
-
-  if (!res.ok) return { ok: false as const, status: res.status, data: null as T | null };
-
-  const json: unknown = await res.json().catch(() => null);
-  const data = hasData<T>(json) ? json.data : null;
-
-  return { ok: true as const, status: res.status, data };
 }
 
 /** إزالة بادئة عربية من slug مثل "تخصصات/" */
@@ -103,22 +63,9 @@ type MajorLite = {
  * - أولاً by-slug
  * - ثم fallback إلى by-code إذا كان segment واحد
  */
-async function fetchMajorBySlugOrCode(slugPathRaw: string) {
+async function fetchMajorBySlugOrCode(slugPathRaw: string): Promise<MajorLite | null> {
   const slugPath = stripPrefix(slugPathRaw, "تخصصات");
-
-  const bySlug = await fetchJSON<MajorLite>(
-    `/api/v1/student/majors/by-slug/${encodeURIComponent(slugPath)}`
-  );
-  if (bySlug.ok && bySlug.data) return bySlug.data;
-
-  if (!slugPath.includes("/")) {
-    const byCode = await fetchJSON<MajorLite>(
-      `/api/v1/student/majors/by-code/${encodeURIComponent(slugPath)}`
-    );
-    if (byCode.ok && byCode.data) return byCode.data;
-  }
-
-  return null;
+  return getPublicMajorByRouteKey(slugPath);
 }
 
 /**

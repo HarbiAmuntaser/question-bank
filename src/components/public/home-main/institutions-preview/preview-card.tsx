@@ -63,7 +63,7 @@ export function InstitutionPreviewCard({
   }
 
   return (
-    <Card className="group flex h-full flex-col overflow-hidden border bg-card/95 shadow-sm transition-colors hover:border-primary/40 hover:shadow-md dark:bg-gray-900/80">
+    <Card className="group flex h-full flex-col overflow-hidden border bg-card/95 shadow-sm transition-colors hover:border-primary/40 hover:shadow-md">
       <div className="relative h-36 overflow-hidden sm:h-44">
         <div className="absolute inset-0 bg-muted/30" aria-hidden />
 
@@ -135,7 +135,7 @@ function DirectoryInstitutionCard({
   return (
     <Card
       className={cn(
-        "group relative flex h-full flex-col overflow-hidden border bg-card/95 shadow-sm transition-colors hover:border-primary/40 hover:shadow-md dark:bg-gray-900/80",
+        "group relative flex h-full flex-col overflow-hidden border bg-card/95 shadow-sm transition-colors hover:border-primary/40 hover:shadow-md",
         isFeatured ? "p-5 sm:p-6 lg:p-7" : "p-5",
       )}
     >

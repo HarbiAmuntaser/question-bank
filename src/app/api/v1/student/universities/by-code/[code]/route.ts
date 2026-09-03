@@ -1,105 +1,21 @@
-import { prisma } from "@/lib/prisma";
 import { json, bad } from "@/lib/http";
-import { CACHE_CONTROL, CACHE_TAGS, CACHE_TTL } from "@/lib/cache-tags";
-import { unstable_cache } from "next/cache";
-import { getPublicVisibilityCacheKey } from "@/config/public-features";
-import { publicUniversityWhere } from "@/lib/server/public-content-visibility";
+import { CACHE_CONTROL } from "@/lib/cache-tags";
+import {
+  getPublicUniversityByCode,
+  normalizePublicUniversityCode,
+} from "@/lib/server/public-universities";
 
 export const dynamic = "force-dynamic";
-
-function normalizeCodeVariants(raw: string) {
-  const clean = decodeURIComponent(raw || "").trim();
-  const variants = Array.from(
-    new Set([clean, clean.toUpperCase(), clean.toLowerCase()].filter(Boolean))
-  );
-  return { clean, variants };
-}
-
-const getUniversityByCodeCached = (code: string, variants: string[]) =>
-  unstable_cache(
-    async () => {
-      const university = await prisma.university.findFirst({
-        where: {
-          isActive: true,
-          ...publicUniversityWhere(),
-          OR: variants.map((v) => ({ code: v })),
-        },
-        select: {
-          id: true,
-          name: true,
-          code: true,
-          city: true,
-          region: true,
-          logoUrl: true,
-
-          // ✅ جديد (مهم للمسارات الجديدة /{cc}/{type})
-          countryCode: true,
-          institutionType: true,
-          visibility: true,
-
-          isActive: true,
-          createdAt: true,
-          updatedAt: true,
-          majors: {
-            where: { isActive: true },
-            orderBy: { name: "asc" },
-            select: {
-              id: true,
-              name: true,
-              code: true,
-              degreeType: true,
-              durationYears: true,
-              _count: { select: { subjects: true } },
-              // seo: { select: { slug: true } }, // اختياري لو عندك علاقة seo على Major
-            },
-          },
-        },
-      });
-
-      if (!university) return null;
-
-      const quizzesCount = await prisma.quiz.count({
-        where: {
-          isActive: true,
-          subject: { major: { universityId: university.id } },
-        },
-      });
-
-      const seo = await prisma.seoMeta.findFirst({
-        where: { ownerType: "university", ownerId: university.id, locale: "ar" },
-        select: { slug: true },
-      });
-
-      return {
-        ...university,
-        seo: { slug: seo?.slug ?? null },
-        _count: {
-          majors: university.majors.length,
-          quizzes: quizzesCount,
-        },
-      };
-    },
-    // ✅ keyParts ثابتة (نضيف code النظيفة فقط كثابت)
-    ["student-university-detail-by-code", code, getPublicVisibilityCacheKey()],
-    {
-      revalidate: CACHE_TTL.publicLong,
-      tags: [
-        "student-universities",
-        "student-university-detail",
-        CACHE_TAGS.public.institutions,
-      ],
-    }
-  )();
 
 export async function GET(_req: Request, ctx: { params: Promise<{ code: string }> }) {
   const { code: rawCode } = await ctx.params;
   if (!rawCode) return bad("missing_code", undefined, 400);
 
-  const { clean, variants } = normalizeCodeVariants(rawCode);
-  if (!clean) return bad("missing_code", undefined, 400);
+  const normalizedCode = normalizePublicUniversityCode(rawCode);
+  if (!normalizedCode.clean) return bad("missing_code", undefined, 400);
 
   try {
-    const data = await getUniversityByCodeCached(clean, variants);
+    const data = await getPublicUniversityByCode(normalizedCode);
     if (!data) return bad("not_found", undefined, 404);
 
     const headers = new Headers({

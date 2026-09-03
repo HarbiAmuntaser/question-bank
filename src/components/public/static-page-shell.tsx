@@ -31,7 +31,11 @@ export function StaticPageShell({
   return (
     <div className="flex min-h-screen flex-col">
       <PublicHeader />
-      <main className="flex-1 bg-gradient-to-b from-background via-background to-muted/20 px-4 py-8 md:px-6 md:py-10">
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className="flex-1 bg-gradient-to-b from-background via-background to-muted/20 px-4 py-8 md:px-6 md:py-10"
+      >
         <div className={cn("mx-auto w-full", widthClassName[width])}>
           <header className="mb-7 rounded-2xl border bg-card/85 px-5 py-7 text-center shadow-sm sm:px-8 sm:py-8">
             <p className="mx-auto mb-3 inline-flex min-h-8 items-center rounded-full border bg-muted/40 px-4 text-sm font-medium text-muted-foreground">

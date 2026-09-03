@@ -129,7 +129,7 @@ export function UniversityGrid({
       aria-labelledby="institutions-heading"
     >
       <div className="max-w-7xl mx-auto">
-        <GridHeader heading={ui.heading} subheading={ui.subheading} />
+        <GridHeader heading={ui.heading} subheading={ui.subheading} type={typeNorm} />
 
         {showSearch && (
           <UniversitySearchBar
@@ -159,14 +159,13 @@ export function UniversityGrid({
                   <InstitutionGridCard
                     name={u.name}
                     href={href}
+                    type={typeNorm}
                     logoUrl={u.logoUrl}
                     code={u.code}
                     city={u.city}
                     region={u.region}
                     majorCount={u._count?.majors}
                     quizCount={u._count?.quizzes}
-                    badgeText={ui.badgeText}
-                    badgeAria={ui.badgeAria}
                     ctaText={ui.ctaExplore}
                   />
                 </div>

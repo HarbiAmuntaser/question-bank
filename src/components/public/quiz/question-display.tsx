@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import Image from "next/image";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { QuestionWithOptions, QuizAnswer } from "@/types";
 import { CheckCircle2, Star } from "lucide-react";
@@ -36,7 +36,7 @@ const difficultyText: Record<string, string> = {
 export function QuestionDisplay({ question, questionNumber, answer, onAnswerChange }: QuestionDisplayProps) {
   const level = (question.difficultyLevel?.toLowerCase?.() ?? "medium") as string;
   const levelClass =
-    difficultyColor[level] ?? "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300";
+    difficultyColor[level] ?? "bg-muted text-foreground";
   const levelText = difficultyText[level] ?? question.difficultyLevel;
 
   // ✅ اكتشاف ذكي لاتجاه البطاقة حسب نص السؤال
@@ -47,9 +47,9 @@ export function QuestionDisplay({ question, questionNumber, answer, onAnswerChan
     <Card className="w-full border bg-card/95 shadow-sm" dir={dir} lang={lang}>
       <CardHeader className="p-4 sm:p-6">
         <div className={cn("flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between", dir === "rtl" ? "text-right" : "text-left")}>
-          <CardTitle className="text-lg font-semibold leading-tight sm:text-xl">
+          <h2 className="text-lg font-semibold leading-tight sm:text-xl">
             {questionNumberLabel(questionNumber, lang)}
-          </CardTitle>
+          </h2>
 
           <div className={cn("flex flex-wrap items-center gap-2", dir === "rtl" ? "justify-start sm:justify-end" : "justify-start")}>
             <Badge className={cn("rounded-md", levelClass)}>{levelText}</Badge>
@@ -64,7 +64,7 @@ export function QuestionDisplay({ question, questionNumber, answer, onAnswerChan
       <CardContent className="space-y-5 p-4 pt-0 sm:space-y-6 sm:p-6 sm:pt-0">
         {/* نص السؤال */}
         <div className={cn("prose max-w-none text-base leading-relaxed dark:prose-invert sm:prose-lg", dir === "rtl" ? "text-right" : "text-left")}>
-          <RichQuestionContent content={question.questionText} textClassName="text-gray-900 dark:text-gray-100" />
+          <RichQuestionContent content={question.questionText} textClassName="text-foreground" />
         </div>
 
         {/* صورة السؤال */}

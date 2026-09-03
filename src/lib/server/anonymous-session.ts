@@ -27,6 +27,20 @@ async function setSessionCookie(token: string, expiresAt: Date) {
   });
 }
 
+export async function getExistingAnonymousSession() {
+  const jar = await cookies();
+  const token = jar.get(ANON_SESSION_COOKIE)?.value?.trim();
+  if (!token) return null;
+
+  const session = await prisma.anonymousSession.findUnique({
+    where: { sessionToken: token },
+  });
+
+  if (!session || session.expiresAt <= new Date()) return null;
+
+  return session;
+}
+
 export async function getOrCreateAnonymousSession() {
   const jar = await cookies();
   const token = jar.get(ANON_SESSION_COOKIE)?.value?.trim();

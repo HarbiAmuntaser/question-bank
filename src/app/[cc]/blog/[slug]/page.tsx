@@ -74,7 +74,7 @@ export default async function PublicBlogPostPage({ params }: { params: Promise<P
   return (
     <div className="min-h-screen bg-background" dir="rtl">
       <PublicHeader />
-      <main className="mx-auto max-w-7xl space-y-14 px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
+      <main id="main-content" tabIndex={-1} className="mx-auto max-w-7xl space-y-14 px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
         {schemaJson ? (
           <script
             type="application/ld+json"
