@@ -13,6 +13,7 @@ import type { UniversityGridItem } from "@/components/public/university-grid/typ
 import { fetchJSON } from "@/lib/server/student-fetch";
 import { SITE_NAME, SITE_URL, withSiteName } from "@/lib/seo";
 import { educationPageRobots } from "@/lib/search-indexing";
+import { hasPublicInstitutionCategory } from "@/lib/server/public-institution-categories";
 
 // ISR للصفحة نفسها (الواجهة) — محتوى الشبكة يجلب Client-side
 export const revalidate = 3600;
@@ -74,6 +75,7 @@ export async function generateMetadata({ params }: { params: Promise<PageParams>
   }
 
   const type = typeRaw as InstitutionType;
+  const hasVisibleInstitutions = await hasPublicInstitutionCategory(cc, type);
 
   const title = `${typeLabel(type)} في ${cc === "YE" ? "اليمن" : "السعودية"}`;
   const socialTitle = withSiteName(title);
@@ -103,7 +105,7 @@ export async function generateMetadata({ params }: { params: Promise<PageParams>
       title: socialTitle,
       description,
     },
-    robots: educationPageRobots(),
+    robots: educationPageRobots(undefined, { indexable: hasVisibleInstitutions }),
     metadataBase: new URL(SITE_URL),
   };
 }

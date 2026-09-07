@@ -57,6 +57,10 @@ function toArabicMsg(msg: string) {
     slug_required: "حقل Slug مطلوب",
     invalid_slug: "Slug غير صالح",
     "ownerId required": "يرجى اختيار المالك",
+    chapter_slug_required: "أدخل رابطًا صالحًا للفصل قبل حفظ بيانات SEO",
+    chapter_slug_too_long: "رابط الفصل طويل جدًا",
+    chapter_slug_already_exists: "رابط الفصل مستخدم داخل المقرر نفسه",
+    reserved_chapter_slug: "هذا الرابط محجوز، اختر رابطًا آخر للفصل",
     invalid_schema_json: "Schema JSON غير صالح. تأكد أنه JSON صحيح",
     bad_query_params: "قيم الفلترة غير صحيحة",
     no_fields_to_update: "لا توجد حقول للتحديث",
@@ -103,12 +107,14 @@ export function SeoMetaDialog({
   });
 
   const [errors, setErrors] = useState<FieldErrors>({});
+  const [chapterSlugMissing, setChapterSlugMissing] = useState(false);
   const isEdit = Boolean(state.id);
 
   useEffect(() => {
     if (!open) return;
 
     setErrors({});
+    setChapterSlugMissing(false);
 
     if (initialData) {
       setState({
@@ -155,6 +161,7 @@ export function SeoMetaDialog({
     if (!isChapterOwner) return;
 
     const chapterSlug = option?.slug?.trim() ?? "";
+    setChapterSlugMissing(Boolean(option?.slugMissing));
     setState((prev) => (prev.slug === chapterSlug ? prev : { ...prev, slug: chapterSlug }));
     setErrors((prev) => {
       if (!prev.slug) return prev;
@@ -272,6 +279,7 @@ export function SeoMetaDialog({
     text ? <p className="text-xs text-destructive mt-1">{text}</p> : null;
 
   const slugPlaceholder = state.locale === "en" ? "مثال: ksu-math-101" : "مثال: اختبار-رياضيات-101";
+  const isChapterSlugReadOnly = isChapterOwner && !chapterSlugMissing;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -326,13 +334,15 @@ export function SeoMetaDialog({
               value={state.slug}
               onChange={(e) => updateField("slug", e.target.value)}
               placeholder={slugPlaceholder}
-              readOnly={isChapterOwner}
-              aria-readonly={isChapterOwner}
-              className={isChapterOwner ? "bg-muted/50" : undefined}
+              readOnly={isChapterSlugReadOnly}
+              aria-readonly={isChapterSlugReadOnly}
+              className={isChapterSlugReadOnly ? "bg-muted/50" : undefined}
             />
             {isChapterOwner ? (
               <p className="text-xs leading-relaxed text-muted-foreground">
-                رابط الفصل يُدار من صفحة الفصول ويُستخدم هنا تلقائيًا لمنع اختلاف رابط الصفحة عن بيانات SEO.
+                {chapterSlugMissing
+                  ? "هذا فصل قديم بلا رابط محفوظ. راجع الرابط المقترح أو عدّله؛ وسيُحفظ للفصل وبيانات SEO معًا."
+                  : "رابط الفصل يُدار من صفحة الفصول ويُستخدم هنا تلقائيًا لمنع اختلاف رابط الصفحة عن بيانات SEO."}
               </p>
             ) : null}
             <ErrorText text={errors.slug} />

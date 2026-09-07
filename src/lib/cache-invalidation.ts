@@ -9,6 +9,10 @@ function revalidateTags(tags: Array<string | null | undefined>) {
   }
 }
 
+export function revalidateSitemapCache() {
+  revalidatePath("/sitemap.xml");
+}
+
 function normalizedCountryCodes(values: Array<string | null | undefined>) {
   return Array.from(
     new Set(
@@ -100,7 +104,7 @@ export function revalidateBlogCache(input: BlogCacheInput = {}) {
     }
   }
 
-  revalidatePath("/sitemap.xml");
+  revalidateSitemapCache();
 }
 
 export function revalidateUniversityCache(
@@ -127,6 +131,7 @@ export function revalidateUniversityCache(
   ]);
 
   revalidateInstitutionPaths(countryCodes);
+  revalidateSitemapCache();
 }
 
 export function revalidateMajorCache(input: { id?: string | null; universityId?: string | null } = {}) {
@@ -145,6 +150,8 @@ export function revalidateMajorCache(input: { id?: string | null; universityId?:
     CACHE_TAGS.public.stats,
     "student-stats",
   ]);
+
+  revalidateSitemapCache();
 }
 
 export function revalidateSubjectCache(
@@ -175,6 +182,8 @@ export function revalidateSubjectCache(
     CACHE_TAGS.public.stats,
     "student-stats",
   ]);
+
+  revalidateSitemapCache();
 }
 
 export function revalidateStudySummaryCache(input: StudySummaryCacheInput = {}) {
@@ -209,7 +218,7 @@ export function revalidateStudySummaryCache(input: StudySummaryCacheInput = {}) 
     revalidatePath(path);
   }
 
-  revalidatePath("/sitemap.xml");
+  revalidateSitemapCache();
 }
 
 export function revalidateChapterCache(
@@ -235,7 +244,7 @@ export function revalidateChapterCache(
     "student-stats",
   ]);
 
-  revalidatePath("/sitemap.xml");
+  revalidateSitemapCache();
 }
 
 export function revalidateQuestionCache(
@@ -267,6 +276,8 @@ export function revalidateQuestionCache(
     CACHE_TAGS.public.stats,
     "student-stats",
   ]);
+
+  revalidateSitemapCache();
 }
 
 export function revalidateQuizCache(
@@ -292,10 +303,13 @@ export function revalidateQuizCache(
     CACHE_TAGS.public.stats,
     "student-stats",
   ]);
+
+  revalidateSitemapCache();
 }
 
 export function revalidateSeoCache(input: { ownerType?: string | null; ownerId?: string | null } = {}) {
   const { ownerType, ownerId } = input;
+  let sitemapRevalidatedByNestedHelper = false;
   revalidateTags([
     "seo-meta",
     CACHE_TAGS.admin.seo,
@@ -327,17 +341,18 @@ export function revalidateSeoCache(input: { ownerType?: string | null; ownerId?:
 
   if (ownerType === "blog_post") {
     revalidateBlogCache({ postId: ownerId, allCountries: true });
+    sitemapRevalidatedByNestedHelper = true;
   }
 
   if (ownerType === "blog_topic") {
     revalidateBlogCache({ taxonomy: "topics", allCountries: true });
+    sitemapRevalidatedByNestedHelper = true;
   }
 
   if (ownerType === "study_summary") {
     revalidateStudySummaryCache({ next: { id: ownerId } });
+    sitemapRevalidatedByNestedHelper = true;
   }
 
-  if (ownerType === "chapter") {
-    revalidatePath("/sitemap.xml");
-  }
+  if (!sitemapRevalidatedByNestedHelper) revalidateSitemapCache();
 }

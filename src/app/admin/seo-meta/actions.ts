@@ -133,6 +133,7 @@ export type ComboOption = {
   subLabel?: string
   meta?: string | null
   slug?: string | null
+  slugMissing?: boolean
 }
 
 // =========================

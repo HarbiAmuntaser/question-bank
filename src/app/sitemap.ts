@@ -10,6 +10,7 @@ import {
   isPublicInstitutionTypeEnabled,
 } from "@/config/public-features";
 import { publicQuizWhere } from "@/lib/server/public-content-visibility";
+import { hasPublicInstitutionCategory } from "@/lib/server/public-institution-categories";
 
 const SITE_URL = "https://mustawak.com";
 const DYNAMIC_LIMIT = 1000;
@@ -139,6 +140,36 @@ async function institutionEntries(): Promise<SitemapEntry[]> {
       }),
     ];
   });
+}
+
+async function institutionCategoryEntries(): Promise<SitemapEntry[]> {
+  const categories = Object.entries(SUPPORTED_COUNTRIES).flatMap(([rawCountry, config]) => {
+    const countryCode = rawCountry as CountryCode;
+    return config.types
+      .filter(isPublicInstitutionTypeEnabled)
+      .map((institutionType) => ({ countryCode, institutionType }));
+  });
+
+  const availability = await Promise.all(
+    categories.map(async (category) => ({
+      ...category,
+      hasContent: await hasPublicInstitutionCategory(
+        category.countryCode,
+        category.institutionType,
+      ),
+    })),
+  );
+
+  return availability.flatMap(({ countryCode, institutionType, hasContent }) =>
+    hasContent
+      ? [
+          entry(`/${countryCode}/${institutionType}`, {
+            changeFrequency: "daily",
+            priority: 0.8,
+          }),
+        ]
+      : [],
+  );
 }
 
 async function majorEntries(): Promise<SitemapEntry[]> {
@@ -819,17 +850,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
   const indexingMode = getSearchIndexingMode();
   const staticEntries: MetadataRoute.Sitemap = [
-    ...Object.entries(SUPPORTED_COUNTRIES).flatMap(([cc, config]) => [
+    ...Object.keys(SUPPORTED_COUNTRIES).flatMap((cc) => [
       entry(`/${cc}`, { lastModified: now, changeFrequency: "daily", priority: 0.9 }),
-      ...(indexingMode === "full"
-        ? config.types.filter(isPublicInstitutionTypeEnabled).map((type) =>
-            entry(`/${cc}/${type}`, {
-              lastModified: now,
-              changeFrequency: "daily",
-              priority: 0.8,
-            }),
-          )
-        : []),
       entry(`/${cc}/blog`, { lastModified: now, changeFrequency: "daily", priority: 0.7 }),
     ]),
     entry("/public/privacy", { lastModified: now, changeFrequency: "monthly", priority: 0.5 }),
@@ -843,6 +865,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const dynamicEntries = await Promise.all(
     indexingMode === "full"
       ? [
+          safeDynamicEntries("institution categories", institutionCategoryEntries),
           safeDynamicEntries("institutions", institutionEntries),
           safeDynamicEntries("majors", majorEntries),
           safeDynamicEntries("subjects", subjectEntries),

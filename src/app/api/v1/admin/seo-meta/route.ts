@@ -3,9 +3,10 @@ import { prisma } from "@/lib/prisma";
 import { json, bad, unauth } from "@/lib/http";
 import { verifyAdmin } from "@/lib/admin-auth";
 import { CACHE_CONTROL } from "@/lib/cache-tags";
-import { revalidateSeoCache } from "@/lib/cache-invalidation";
+import { revalidateChapterCache, revalidateSeoCache } from "@/lib/cache-invalidation";
 import { Prisma } from "@prisma/client"; // ✅ ليس type
 import { createSeoMetaSchema, listSeoMetaQuerySchema } from "@/validations/seo-meta";
+import { prepareChapterSeoSlug, type PreparedChapterSeoSlug } from "@/lib/server/chapter-seo-slug";
 
 function cleanNullable(value: string | null | undefined) {
   if (typeof value === "string") {
@@ -113,17 +114,16 @@ export async function POST(req: Request) {
 
   const rawBody = await req.json().catch(() => null);
   let body = rawBody;
+  let chapterSlugSync: PreparedChapterSeoSlug | null = null;
 
   if (isRecord(rawBody) && rawBody.ownerType === "chapter" && typeof rawBody.ownerId === "string") {
-    const chapter = await prisma.chapter.findUnique({
-      where: { id: rawBody.ownerId },
-      select: { slug: true },
-    });
-    if (!chapter) return bad("seo_owner_not_found", undefined, 404);
+    const prepared = await prepareChapterSeoSlug(rawBody.ownerId, rawBody.slug);
+    if (!prepared.ok) {
+      return bad(prepared.error, undefined, prepared.error === "seo_owner_not_found" ? 404 : 400);
+    }
 
-    const chapterSlug = chapter.slug?.trim();
-    if (!chapterSlug) return bad("chapter_slug_required");
-    body = { ...rawBody, slug: chapterSlug };
+    chapterSlugSync = prepared.data;
+    body = { ...rawBody, slug: prepared.data.slug };
   }
 
   const parsed = createSeoMetaSchema.safeParse(body);
@@ -139,24 +139,35 @@ export async function POST(req: Request) {
     parsed.data.locale === "en" ? parsed.data.slug.trim().toLowerCase() : parsed.data.slug.trim();
 
   try {
-    const created = await prisma.seoMeta.create({
-      data: {
-        ownerType: parsed.data.ownerType,
-        ownerId: parsed.data.ownerId,
-        locale: parsed.data.locale,
-        slug: normalizedSlug,
-        metaTitle: cleanNullable(parsed.data.metaTitle),
-        metaDescription: cleanNullable(parsed.data.metaDescription),
-        ogTitle: cleanNullable(parsed.data.ogTitle),
-        ogDescription: cleanNullable(parsed.data.ogDescription),
-        ogImageUrl: cleanNullable(parsed.data.ogImageUrl),
-        canonicalUrl: cleanNullable(parsed.data.canonicalUrl),
-        noindex: parsed.data.noindex ?? false,
-        nofollow: parsed.data.nofollow ?? false,
-        schemaJson: schemaJsonResult.provided ? schemaJsonResult.value ?? null : null,
-      },
-    });
+    const data: Prisma.SeoMetaCreateInput = {
+      ownerType: parsed.data.ownerType,
+      ownerId: parsed.data.ownerId,
+      locale: parsed.data.locale,
+      slug: normalizedSlug,
+      metaTitle: cleanNullable(parsed.data.metaTitle),
+      metaDescription: cleanNullable(parsed.data.metaDescription),
+      ogTitle: cleanNullable(parsed.data.ogTitle),
+      ogDescription: cleanNullable(parsed.data.ogDescription),
+      ogImageUrl: cleanNullable(parsed.data.ogImageUrl),
+      canonicalUrl: cleanNullable(parsed.data.canonicalUrl),
+      noindex: parsed.data.noindex ?? false,
+      nofollow: parsed.data.nofollow ?? false,
+      schemaJson: schemaJsonResult.provided ? schemaJsonResult.value ?? null : null,
+    };
 
+    const created = chapterSlugSync?.shouldPersist
+      ? await prisma.$transaction(async (tx) => {
+          await tx.chapter.update({
+            where: { id: chapterSlugSync.chapterId },
+            data: { slug: chapterSlugSync.slug },
+          });
+          return tx.seoMeta.create({ data });
+        })
+      : await prisma.seoMeta.create({ data });
+
+    if (chapterSlugSync?.shouldPersist) {
+      revalidateChapterCache({ id: chapterSlugSync.chapterId, subjectId: chapterSlugSync.subjectId });
+    }
     revalidateSeoCache({ ownerType: created.ownerType, ownerId: created.ownerId });
     return json({ data: created, message: "seo_meta_created" }, { status: 201 });
   } catch (error) {

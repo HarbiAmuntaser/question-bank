@@ -2,9 +2,10 @@
 import { prisma } from "@/lib/prisma";
 import { json, bad, unauth, notFound } from "@/lib/http";
 import { verifyAdmin } from "@/lib/admin-auth";
-import { revalidateSeoCache } from "@/lib/cache-invalidation";
+import { revalidateChapterCache, revalidateSeoCache } from "@/lib/cache-invalidation";
 import { Prisma } from "@prisma/client";
 import { updateSeoMetaSchema } from "@/validations/seo-meta";
+import { prepareChapterSeoSlug, type PreparedChapterSeoSlug } from "@/lib/server/chapter-seo-slug";
 
 function cleanNullable(value: string | null | undefined) {
   if (typeof value === "string") {
@@ -71,16 +72,17 @@ export async function PUT(req: Request, ctx: RouteParams) {
   const rawBody = await req.json().catch(() => null);
   let body = rawBody;
   let chapterSlug: string | null = null;
+  let chapterSlugSync: PreparedChapterSeoSlug | null = null;
 
   if (existing.ownerType === "chapter") {
-    const chapter = await prisma.chapter.findUnique({
-      where: { id: existing.ownerId },
-      select: { slug: true },
-    });
-    if (!chapter) return bad("seo_owner_not_found", undefined, 404);
+    const requestedSlug = isRecord(rawBody) ? rawBody.slug : undefined;
+    const prepared = await prepareChapterSeoSlug(existing.ownerId, requestedSlug);
+    if (!prepared.ok) {
+      return bad(prepared.error, undefined, prepared.error === "seo_owner_not_found" ? 404 : 400);
+    }
 
-    chapterSlug = chapter.slug?.trim() || null;
-    if (!chapterSlug) return bad("chapter_slug_required");
+    chapterSlugSync = prepared.data;
+    chapterSlug = prepared.data.slug;
     if (isRecord(rawBody)) body = { ...rawBody, slug: undefined };
   }
 
@@ -143,7 +145,19 @@ export async function PUT(req: Request, ctx: RouteParams) {
   if (schemaJsonResult.provided) data.schemaJson = schemaJsonResult.value ?? null;
 
   try {
-    const updated = await prisma.seoMeta.update({ where: { id }, data });
+    const updated = chapterSlugSync?.shouldPersist
+      ? await prisma.$transaction(async (tx) => {
+          await tx.chapter.update({
+            where: { id: chapterSlugSync.chapterId },
+            data: { slug: chapterSlugSync.slug },
+          });
+          return tx.seoMeta.update({ where: { id }, data });
+        })
+      : await prisma.seoMeta.update({ where: { id }, data });
+
+    if (chapterSlugSync?.shouldPersist) {
+      revalidateChapterCache({ id: chapterSlugSync.chapterId, subjectId: chapterSlugSync.subjectId });
+    }
     revalidateSeoCache({ ownerType: updated.ownerType, ownerId: updated.ownerId });
     return json({ data: updated, message: "seo_meta_updated" }, { status: 200 });
   } catch (error) {

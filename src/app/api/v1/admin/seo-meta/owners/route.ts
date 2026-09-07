@@ -2,6 +2,7 @@
 import { prisma } from "@/lib/prisma";
 import { json, bad, unauth } from "@/lib/http";
 import { verifyAdmin } from "@/lib/admin-auth";
+import { buildChapterSlug } from "@/lib/chapter-slugs";
 
 export const dynamic = "force-dynamic";
 
@@ -145,6 +146,7 @@ export async function GET(req: Request) {
 
       const u = c.subject?.major?.university;
       const m = c.subject?.major;
+      const storedSlug = c.slug?.trim() || null;
 
       return json({
         data: {
@@ -156,8 +158,9 @@ export async function GET(req: Request) {
             chapter: {
               id: c.id,
               label: c.chapterNumber ? `الوحدة ${c.chapterNumber}: ${c.name}` : c.name,
-              slug: c.slug,
-              subLabel: c.slug ?? undefined,
+              slug: storedSlug ?? buildChapterSlug(c.name, c.chapterNumber),
+              slugMissing: !storedSlug,
+              subLabel: storedSlug ?? "لا يوجد رابط محفوظ بعد",
             },
           },
         },
@@ -411,12 +414,16 @@ export async function GET(req: Request) {
     });
 
     return json({
-      data: rows.map((c) => ({
-        id: c.id,
-        label: c.chapterNumber ? `الوحدة ${c.chapterNumber}: ${c.name}` : c.name,
-        slug: c.slug,
-        subLabel: c.slug ?? undefined,
-      })),
+      data: rows.map((c) => {
+        const storedSlug = c.slug?.trim() || null;
+        return {
+          id: c.id,
+          label: c.chapterNumber ? `الوحدة ${c.chapterNumber}: ${c.name}` : c.name,
+          slug: storedSlug ?? buildChapterSlug(c.name, c.chapterNumber),
+          slugMissing: !storedSlug,
+          subLabel: storedSlug ?? "لا يوجد رابط محفوظ بعد",
+        };
+      }),
     });
   }
 

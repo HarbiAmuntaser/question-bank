@@ -13,6 +13,7 @@ export type ComboOption = {
   label: string;
   subLabel?: string;
   slug?: string | null;
+  slugMissing?: boolean;
 };
 
 export function AsyncCombobox({
