@@ -1,9 +1,8 @@
 "use server";
 
+import { requireAdminPermission } from "@/lib/admin-auth";
+import { adminApiFetch as apiFetch } from "@/lib/server/admin-api-fetch";
 import { revalidatePath } from "next/cache";
-import { cookies } from "next/headers";
-
-import { getRequestOrigin } from "@/lib/server/request-origin";
 
 type SummaryStatus = "draft" | "published" | "archived";
 type SummaryLanguage = "ar" | "en";
@@ -53,13 +52,6 @@ const errorMessages: Record<string, string> = {
   invalid_study_summary_relation: "توجد علاقة غير صحيحة في بيانات الملخص.",
   study_summary_not_found: "الملخص غير موجود.",
 };
-
-function adminHeaders(): HeadersInit {
-  return {
-    "content-type": "application/json",
-    ...(process.env.ADMIN_API_KEY ? { "x-admin-key": process.env.ADMIN_API_KEY } : {}),
-  };
-}
 
 function normalize(value: FormDataEntryValue | null) {
   return typeof value === "string" ? value.trim() : "";
@@ -150,17 +142,9 @@ async function readError(res: Response, fallback: string): Promise<{ message: st
 }
 
 async function sendJson(path: string, method: "POST" | "PATCH", body: unknown) {
-  const base = await getRequestOrigin();
-  const jar = await cookies();
-  const requestHeaders = new Headers(adminHeaders());
-  const cookieHeader = jar.toString();
-  if (cookieHeader) requestHeaders.set("cookie", cookieHeader);
-
-  return fetch(`${base}${path}`, {
+  return apiFetch(path, {
     method,
-    headers: requestHeaders,
-    cache: "no-store",
-    body: JSON.stringify(body),
+    body: body === undefined ? undefined : JSON.stringify(body),
   });
 }
 
@@ -170,6 +154,8 @@ function success(message: string): ActionResult {
 }
 
 export async function createStudySummaryAction(formData: FormData): Promise<ActionResult> {
+  await requireAdminPermission("summaries:write");
+
   const res = await sendJson("/api/v1/admin/summaries", "POST", summaryPayload(formData));
   if (!res.ok) {
     return { success: false, ...(await readError(res, "فشل إنشاء الملخص")) };
@@ -178,6 +164,8 @@ export async function createStudySummaryAction(formData: FormData): Promise<Acti
 }
 
 export async function updateStudySummaryAction(id: string, formData: FormData): Promise<ActionResult> {
+  await requireAdminPermission("summaries:write");
+
   const res = await sendJson(`/api/v1/admin/summaries/${id}`, "PATCH", summaryPayload(formData));
   if (!res.ok) {
     return { success: false, ...(await readError(res, "فشل تحديث الملخص")) };
@@ -186,6 +174,8 @@ export async function updateStudySummaryAction(id: string, formData: FormData): 
 }
 
 export async function archiveStudySummaryAction(id: string): Promise<ActionResult> {
+  await requireAdminPermission("summaries:write");
+
   const res = await sendJson(`/api/v1/admin/summaries/${id}`, "PATCH", { status: "archived" });
   if (!res.ok) {
     return { success: false, ...(await readError(res, "فشل أرشفة الملخص")) };

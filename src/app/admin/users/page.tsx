@@ -1,3 +1,4 @@
+import { requireAdminPage } from "@/lib/server/admin-page-auth";
 import UsersTable from "@/components/admin/users/UsersTable";
 import { prisma } from "@/lib/prisma";
 
@@ -22,6 +23,8 @@ async function getInitialUsers() {
 }
 
 export default async function UsersPage() {
+  const admin = await requireAdminPage("users:manage");
+
   const users = await getInitialUsers();
 
   return (
@@ -30,7 +33,7 @@ export default async function UsersPage() {
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white">إدارة المستخدمين</h1>
         <p className="mt-2 text-gray-600 dark:text-gray-400">إنشاء وتعديل وحذف المستخدمين ذوي الصلاحيات</p>
       </div>
-      <UsersTable initialRows={users} />
+      <UsersTable initialRows={users} currentUserId={admin.userId} />
     </div>
   );
 }

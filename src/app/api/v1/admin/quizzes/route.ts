@@ -1,10 +1,10 @@
 // src/app/api/v1/admin/quizzes/route.ts
 import { prisma } from "@/lib/prisma";
-import { json, bad, unauth } from "@/lib/http";
-import { verifyAdmin } from "@/lib/admin-auth";
+import { json, bad } from "@/lib/server/admin-http";
+import { verifyAdmin, adminAuthResponse } from "@/lib/admin-auth";
 import { CACHE_CONTROL } from "@/lib/cache-tags";
 import { revalidateQuizCache } from "@/lib/cache-invalidation";
-import { unstable_cache } from "next/cache";
+
 import { listQuizzesQuerySchema, quizGenerationSettingsSchema } from "@/validations/quiz";
 
 export const dynamic = "force-dynamic";
@@ -18,8 +18,7 @@ function shuffleInPlace<T>(arr: T[]) {
   return arr;
 }
 
-const listQuizzesCached = unstable_cache(
-  async (q: {
+const listQuizzes = async (q: {
     page?: string;
     pageSize?: string;
     sortBy?: string;
@@ -93,15 +92,12 @@ const listQuizzesCached = unstable_cache(
         totalPages: Math.ceil(total / pageSize),
       },
     };
-  },
-  ["admin-quizzes-list"],
-  { revalidate: 3600, tags: ["quizzes"] }
-);
+  };
 
 export async function GET(req: Request) {
   // ✅ حماية GET لأنّه Admin API
-  const auth = await verifyAdmin(req);
-  if (!auth.ok) return unauth();
+  const auth = await verifyAdmin(req, "quizzes:read");
+  if (!auth.ok) return adminAuthResponse(auth);
 
   const url = new URL(req.url);
   const q = {
@@ -115,21 +111,21 @@ export async function GET(req: Request) {
   };
 
   try {
-    const payload = await listQuizzesCached(q);
+    const payload = await listQuizzes(q);
     const headers = new Headers({
       "cache-control": CACHE_CONTROL.PRIVATE_NO_STORE,
     });
     return json(payload, { status: 200, headers });
   } catch (e) {
-    console.error("listQuizzesCached error:", e instanceof Error ? e.message : e);
+    console.error("listQuizzes error:", e instanceof Error ? e.message : e);
     return bad("bad_query_params");
   }
 }
 
 // ✅ POST: توليد اختبار
 export async function POST(req: Request) {
-  const auth = await verifyAdmin(req);
-  if (!auth.ok) return unauth();
+  const auth = await verifyAdmin(req, "quizzes:write");
+  if (!auth.ok) return adminAuthResponse(auth);
 
   const body = await req.json().catch(() => null);
   const parsed = quizGenerationSettingsSchema.safeParse(body);

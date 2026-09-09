@@ -1,8 +1,6 @@
 "use server";
 
-import { getServerSession } from "next-auth";
-
-import { authOptions } from "@/lib/auth";
+import { requireAdminPermission } from "@/lib/admin-auth";
 import { getDegreeTypeLabel } from "@/lib/degree-types";
 import { prisma } from "@/lib/prisma";
 
@@ -25,16 +23,8 @@ function normalizeQuery(query?: string) {
   return q && q.length > 0 ? q : undefined;
 }
 
-async function assertAdminSession() {
-  const session = await getServerSession(authOptions);
-  const role = (session?.user as { role?: string } | undefined)?.role;
-  if (!role || !["admin", "editor", "moderator"].includes(role)) {
-    throw new Error("unauthorized");
-  }
-}
-
 export async function searchUniversitiesAction(args: { query?: string; limit?: number } = {}) {
-  await assertAdminSession();
+  await requireAdminPermission("lookups:read");
   const query = normalizeQuery(args.query);
   const take = clampLimit(args.limit);
 
@@ -62,7 +52,7 @@ export async function searchUniversitiesAction(args: { query?: string; limit?: n
 }
 
 export async function searchMajorsAction(args: { universityId?: string; query?: string; limit?: number }) {
-  await assertAdminSession();
+  await requireAdminPermission("lookups:read");
   if (!args.universityId) return [];
   const query = normalizeQuery(args.query);
   const take = clampLimit(args.limit);
@@ -102,7 +92,7 @@ export async function searchMajorsAction(args: { universityId?: string; query?: 
 }
 
 export async function searchSubjectsAction(args: { majorId?: string; query?: string; limit?: number }) {
-  await assertAdminSession();
+  await requireAdminPermission("lookups:read");
   if (!args.majorId) return [];
   const query = normalizeQuery(args.query);
   const take = clampLimit(args.limit);
@@ -138,7 +128,7 @@ export async function searchSubjectsAction(args: { majorId?: string; query?: str
 }
 
 export async function searchChaptersAction(args: { subjectId?: string; query?: string; limit?: number }) {
-  await assertAdminSession();
+  await requireAdminPermission("lookups:read");
   if (!args.subjectId) return [];
   const query = normalizeQuery(args.query);
   const take = clampLimit(args.limit);
@@ -161,7 +151,7 @@ export async function searchChaptersAction(args: { subjectId?: string; query?: s
 }
 
 export async function resolveAdminLookupAction(type: AdminLookupType, id: string) {
-  await assertAdminSession();
+  await requireAdminPermission("lookups:read");
   if (!id) return null;
 
   if (type === "university") {

@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
-import { json, bad, unauth, notFound } from "@/lib/http";
-import { verifyAdmin } from "@/lib/admin-auth";
+import { json, bad, notFound } from "@/lib/server/admin-http";
+import { verifyAdmin, adminAuthResponse } from "@/lib/admin-auth";
 import { CACHE_CONTROL } from "@/lib/cache-tags";
 import { revalidateChapterCache } from "@/lib/cache-invalidation";
 import { updateChapterSchema } from "@/validations/chapter";
@@ -18,8 +18,8 @@ type ChapterUpdateData = {
 
 // قراءة فصل واحد (مع العلاقات)
 export async function GET(req: Request, context: { params: Promise<{ id: string }> }) {
-  const auth = await verifyAdmin(req);
-  if (!auth.ok) return unauth();
+  const auth = await verifyAdmin(req, "chapters:read");
+  if (!auth.ok) return adminAuthResponse(auth);
 
   const { id } = await context.params;
 
@@ -49,8 +49,8 @@ export async function GET(req: Request, context: { params: Promise<{ id: string 
 export async function PUT(req: Request, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params;
 
-  const auth = await verifyAdmin(req);
-  if (!auth.ok) return unauth();
+  const auth = await verifyAdmin(req, "chapters:write");
+  if (!auth.ok) return adminAuthResponse(auth);
 
   const body = (await req.json().catch(() => null)) as unknown;
   const parsed = updateChapterSchema.safeParse(body);
@@ -100,8 +100,8 @@ export async function PUT(req: Request, context: { params: Promise<{ id: string 
 export async function DELETE(req: Request, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params;
 
-  const auth = await verifyAdmin(req);
-  if (!auth.ok) return unauth();
+  const auth = await verifyAdmin(req, "chapters:write");
+  if (!auth.ok) return adminAuthResponse(auth);
 
   const target = await prisma.chapter.findUnique({
     where: { id },

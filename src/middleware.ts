@@ -1,6 +1,7 @@
 // file: src/middleware.ts
-import { withAuth, type NextRequestWithAuth } from "next-auth/middleware";
-import type { NextFetchEvent, NextRequest } from "next/server";
+import { getToken } from "next-auth/jwt";
+import { isAdminRole } from "@/lib/admin-permissions";
+import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
 import {
@@ -155,25 +156,29 @@ function publicMiddleware(req: NextRequest) {
     return res;
 }
 
-const adminMiddleware = withAuth(
-  function adminOnlyMiddleware() {
-    const res = NextResponse.next();
-    applySecurityHeaders(res);
-    return res;
-  },
-  {
-    callbacks: {
-      authorized: ({ token }) => Boolean(token),
-    },
+async function adminMiddleware(req: NextRequest) {
+  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+  let res: NextResponse;
+  if (!token) {
+    const url = new URL("/auth/signin", req.url);
+    url.searchParams.set("callbackUrl", req.nextUrl.pathname);
+    res = NextResponse.redirect(url);
+  } else if (!isAdminRole(token.role)) {
+    res = NextResponse.redirect(new URL("/auth/forbidden", req.url));
+  } else {
+    res = NextResponse.next();
   }
-);
+  res.headers.set("Cache-Control", "private, no-store");
+  applySecurityHeaders(res);
+  return res;
+}
 
-export default function middleware(req: NextRequest, event: NextFetchEvent) {
+export default function middleware(req: NextRequest) {
   const legacyRedirect = redirectLegacyPublicHost(req);
   if (legacyRedirect) return legacyRedirect;
 
-  if (req.nextUrl.pathname.startsWith("/admin")) {
-    return adminMiddleware(req as NextRequestWithAuth, event);
+  if (req.nextUrl.pathname === "/admin" || req.nextUrl.pathname.startsWith("/admin/")) {
+    return adminMiddleware(req);
   }
 
   return publicMiddleware(req);

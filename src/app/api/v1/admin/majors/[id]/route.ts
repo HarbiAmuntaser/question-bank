@@ -1,7 +1,7 @@
 // src/app/api/v1/admin/majors/[id]/route.ts
 import { prisma } from "@/lib/prisma";
-import { json, bad, unauth, notFound } from "@/lib/http";
-import { verifyAdmin } from "@/lib/admin-auth";
+import { json, bad, notFound } from "@/lib/server/admin-http";
+import { verifyAdmin, adminAuthResponse } from "@/lib/admin-auth";
 import { CACHE_CONTROL } from "@/lib/cache-tags";
 import { revalidateMajorCache } from "@/lib/cache-invalidation";
 import { updateMajorSchema } from "@/validations/major";
@@ -10,8 +10,8 @@ import type { Prisma } from "@prisma/client";
 interface RouteParams { params: Promise<{ id: string }> }
 
 export async function GET(req: Request, ctx: RouteParams) {
-  const auth = await verifyAdmin(req);
-  if (!auth.ok) return unauth();
+  const auth = await verifyAdmin(req, "majors:read");
+  if (!auth.ok) return adminAuthResponse(auth);
 
   const { id } = await ctx.params;
   const m = await prisma.major.findUnique({
@@ -29,8 +29,8 @@ export async function GET(req: Request, ctx: RouteParams) {
 }
 
 export async function PUT(req: Request, ctx: RouteParams) {
-  const auth = await verifyAdmin(req);
-  if (!auth.ok) return unauth();
+  const auth = await verifyAdmin(req, "majors:write");
+  if (!auth.ok) return adminAuthResponse(auth);
 
   const { id } = await ctx.params;
 
@@ -58,8 +58,8 @@ export async function PUT(req: Request, ctx: RouteParams) {
 }
 
 export async function DELETE(req: Request, ctx: RouteParams) {
-  const auth = await verifyAdmin(req);
-  if (!auth.ok) return unauth();
+  const auth = await verifyAdmin(req, "majors:write");
+  if (!auth.ok) return adminAuthResponse(auth);
 
   const { id } = await ctx.params;
 

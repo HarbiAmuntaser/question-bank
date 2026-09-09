@@ -1,10 +1,11 @@
 "use server";
 
+import { requireAdminPermission } from "@/lib/admin-auth";
 import { revalidatePath, revalidateTag } from "next/cache";
-import { getServerSession } from "next-auth";
+
 import type { AccessScopeType } from "@prisma/client";
 
-import { authOptions } from "@/lib/auth";
+
 import { CACHE_TAGS } from "@/lib/cache-tags";
 import { prisma } from "@/lib/prisma";
 import {
@@ -14,15 +15,6 @@ import {
 } from "@/lib/server/subscription-code";
 
 const ADMIN_PATH = "/admin/subscriptions";
-
-async function assertAdminSession() {
-  const session = await getServerSession(authOptions);
-  const user = session?.user as { id?: string; role?: string } | undefined;
-  if (!user?.id || !user.role || !["admin", "editor", "moderator"].includes(user.role)) {
-    throw new Error("unauthorized");
-  }
-  return { userId: user.id, role: user.role };
-}
 
 function text(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -60,7 +52,7 @@ async function revalidateSubscriptionAdmin() {
 }
 
 export async function createPaidAccessPlanAction(formData: FormData) {
-  await assertAdminSession();
+  await requireAdminPermission("subscriptions:manage");
 
   const scopeType = scopeTypeFromForm(formData);
   const majorId = text(formData, "majorId");
@@ -94,7 +86,7 @@ export async function createPaidAccessPlanAction(formData: FormData) {
 }
 
 export async function updatePaidAccessPlanAction(id: string, formData: FormData) {
-  await assertAdminSession();
+  await requireAdminPermission("subscriptions:manage");
 
   const scopeType = scopeTypeFromForm(formData);
   const majorId = text(formData, "majorId");
@@ -129,7 +121,7 @@ export async function updatePaidAccessPlanAction(id: string, formData: FormData)
 }
 
 export async function createSubscriptionCodeAction(formData: FormData) {
-  const admin = await assertAdminSession();
+  const admin = await requireAdminPermission("subscriptions:manage");
 
   const planId = text(formData, "planId");
   if (!planId) return { success: false, message: "اختيار الخطة مطلوب" };
@@ -175,14 +167,14 @@ export async function createSubscriptionCodeAction(formData: FormData) {
 }
 
 export async function disableSubscriptionCodeAction(id: string) {
-  await assertAdminSession();
+  await requireAdminPermission("subscriptions:manage");
   await prisma.subscriptionCode.update({ where: { id }, data: { isActive: false } });
   await revalidateSubscriptionAdmin();
   return { success: true, message: "تم تعطيل الكود" };
 }
 
 export async function disableAccessEntitlementAction(id: string) {
-  await assertAdminSession();
+  await requireAdminPermission("subscriptions:manage");
   await prisma.accessEntitlement.update({ where: { id }, data: { isActive: false } });
   await revalidateSubscriptionAdmin();
   return { success: true, message: "تم تعطيل الاشتراك" };

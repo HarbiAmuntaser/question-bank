@@ -1,3 +1,4 @@
+import { requireAdminPage } from "@/lib/server/admin-page-auth";
 // src/app/admin/subjects/page.tsx
 import { Suspense } from "react";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,8 @@ export default async function SubjectsPage({
     majorId?: string;
   }>;
 }) {
+  await requireAdminPage("subjects:read");
+
   const sp = await searchParams;
   const { page, query, universityId, majorId } = sp;
 

@@ -1,7 +1,7 @@
 // src/app/api/v1/admin/seo-meta/[id]/route.ts
 import { prisma } from "@/lib/prisma";
-import { json, bad, unauth, notFound } from "@/lib/http";
-import { verifyAdmin } from "@/lib/admin-auth";
+import { json, bad, notFound } from "@/lib/server/admin-http";
+import { verifyAdmin, adminAuthResponse } from "@/lib/admin-auth";
 import { revalidateChapterCache, revalidateSeoCache } from "@/lib/cache-invalidation";
 import { Prisma } from "@prisma/client";
 import { updateSeoMetaSchema } from "@/validations/seo-meta";
@@ -51,8 +51,8 @@ interface RouteParams {
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request, ctx: RouteParams) {
-  const auth = await verifyAdmin(req);
-  if (!auth.ok) return unauth();
+  const auth = await verifyAdmin(req, "seo-meta:read");
+  if (!auth.ok) return adminAuthResponse(auth);
 
   const { id } = await ctx.params;
   const seo = await prisma.seoMeta.findUnique({ where: { id } });
@@ -61,8 +61,8 @@ export async function GET(req: Request, ctx: RouteParams) {
 }
 
 export async function PUT(req: Request, ctx: RouteParams) {
-  const auth = await verifyAdmin(req);
-  if (!auth.ok) return unauth();
+  const auth = await verifyAdmin(req, "seo-meta:write");
+  if (!auth.ok) return adminAuthResponse(auth);
 
   const { id } = await ctx.params;
 
@@ -169,8 +169,8 @@ export async function PUT(req: Request, ctx: RouteParams) {
 }
 
 export async function DELETE(req: Request, ctx: RouteParams) {
-  const auth = await verifyAdmin(req);
-  if (!auth.ok) return unauth();
+  const auth = await verifyAdmin(req, "seo-meta:write");
+  if (!auth.ok) return adminAuthResponse(auth);
 
   const { id } = await ctx.params;
 

@@ -1,10 +1,9 @@
 "use server";
 
+import { requireAdminPermission } from "@/lib/admin-auth";
+import { adminApiFetch as apiFetch } from "@/lib/server/admin-api-fetch";
 import { revalidatePath } from "next/cache";
-import { getServerSession } from "next-auth";
 
-import { authOptions } from "@/lib/auth";
-import { getRequestOrigin } from "@/lib/server/request-origin";
 import { prisma } from "@/lib/prisma";
 import type { InstitutionType } from "@/config/regions";
 
@@ -17,33 +16,12 @@ function buildQuery(params: Record<string, string | number | undefined>) {
   return usp.toString();
 }
 
-async function getApiBase(): Promise<string> {
-  return getRequestOrigin();
-
-}
-
 async function readJsonSafe(res: Response) {
   const text = await res.text().catch(() => "");
   try {
     return text ? JSON.parse(text) : null;
   } catch {
     return text || null;
-  }
-}
-
-function adminHeaders(): HeadersInit {
-  return {
-    "content-type": "application/json",
-    // مفتاح الإدارة البديل لـ NextAuth
-    ...(process.env.ADMIN_API_KEY ? { "x-admin-key": process.env.ADMIN_API_KEY } : {}),
-  };
-}
-
-async function assertAdminSession() {
-  const session = await getServerSession(authOptions);
-  const role = (session?.user as { role?: string } | undefined)?.role;
-  if (!role || !["admin", "editor", "moderator"].includes(role)) {
-    throw new Error("unauthorized");
   }
 }
 
@@ -63,7 +41,7 @@ export type SubjectInstitutionContext = {
 export async function getSubjectInstitutionContextAction(
   universityId: string,
 ): Promise<SubjectInstitutionContext | null> {
-  await assertAdminSession();
+  await requireAdminPermission("subjects:read");
   if (!universityId) return null;
 
   return prisma.university.findUnique({
@@ -74,7 +52,7 @@ export async function getSubjectInstitutionContextAction(
 
 // يستعمله الحوار لملء قائمة التخصصات (اسم + جامعة)
 export async function getMajorsForSubjectDialogAction(): Promise<MajorOption[]> {
-  await assertAdminSession();
+  await requireAdminPermission("subjects:read");
   // Legacy helper kept bounded; new dialogs use searchable lookup comboboxes.
   const rows = await prisma.major.findMany({
     take: 50,
@@ -109,7 +87,7 @@ export async function getMajorsForSubjectDialogAction(): Promise<MajorOption[]> 
 
 // -------- Create --------
 export async function createSubjectAction(formData: FormData) {
-  const base = await getApiBase();
+  await requireAdminPermission("subjects:write");
 
   const normalize = (v: FormDataEntryValue | null) =>
     typeof v === "string" ? v.trim() : "";
@@ -141,9 +119,8 @@ export async function createSubjectAction(formData: FormData) {
     isActive,
   };
 
-  const res = await fetch(`${base}/api/v1/admin/subjects`, {
+  const res = await apiFetch(`/api/v1/admin/subjects`, {
     method: "POST",
-    headers: adminHeaders(),
     body: JSON.stringify(body),
   });
 
@@ -162,7 +139,7 @@ export async function createSubjectAction(formData: FormData) {
 
 // -------- Update --------
 export async function updateSubjectAction(id: string, formData: FormData) {
-  const base = await getApiBase();
+  await requireAdminPermission("subjects:write");
 
   const normalize = (v: FormDataEntryValue | null) =>
     typeof v === "string" ? v.trim() : "";
@@ -194,9 +171,8 @@ export async function updateSubjectAction(id: string, formData: FormData) {
     isActive,
   };
 
-  const res = await fetch(`${base}/api/v1/admin/subjects/${id}`, {
+  const res = await apiFetch(`/api/v1/admin/subjects/${id}`, {
     method: "PUT",
-    headers: adminHeaders(),
     body: JSON.stringify(body),
   });
 
@@ -214,11 +190,10 @@ export async function updateSubjectAction(id: string, formData: FormData) {
 
 // -------- Delete --------
 export async function deleteSubjectAction(id: string) {
-  const base = await getApiBase();
+  await requireAdminPermission("subjects:write");
 
-  const res = await fetch(`${base}/api/v1/admin/subjects/${id}`, {
+  const res = await apiFetch(`/api/v1/admin/subjects/${id}`, {
     method: "DELETE",
-    headers: adminHeaders(),
   });
 
   if (!res.ok) {

@@ -1,8 +1,8 @@
 import { BlogPostStatus, BlogVisibility, Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
-import { bad, json, notFound, unauth } from "@/lib/http";
-import { verifyAdmin } from "@/lib/admin-auth";
+import { bad, json, notFound } from "@/lib/server/admin-http";
+import { verifyAdmin, adminAuthResponse } from "@/lib/admin-auth";
 import { CACHE_CONTROL } from "@/lib/cache-tags";
 import { revalidateBlogCache } from "@/lib/cache-invalidation";
 import { updateBlogPostSchema } from "@/validations/blog";
@@ -88,8 +88,8 @@ const includePost = {
 } satisfies Prisma.BlogPostInclude;
 
 export async function GET(req: Request, ctx: Ctx) {
-  const auth = await verifyAdmin(req);
-  if (!auth.ok) return unauth();
+  const auth = await verifyAdmin(req, "blog:read");
+  if (!auth.ok) return adminAuthResponse(auth);
 
   const { id } = await ctx.params;
   const post = await prisma.blogPost.findUnique({
@@ -103,8 +103,8 @@ export async function GET(req: Request, ctx: Ctx) {
 }
 
 export async function PATCH(req: Request, ctx: Ctx) {
-  const auth = await verifyAdmin(req);
-  if (!auth.ok) return unauth();
+  const auth = await verifyAdmin(req, "blog:write");
+  if (!auth.ok) return adminAuthResponse(auth);
 
   const { id } = await ctx.params;
   const body = await req.json().catch(() => null);
@@ -141,13 +141,10 @@ export async function PATCH(req: Request, ctx: Ctx) {
         typeof input.contentHtml !== "undefined" || typeof input.contentText !== "undefined"
           ? contentPayload(input.contentHtml, input.contentText)
           : null;
-      const updater =
-        auth.userId !== "api-key"
-          ? await tx.user.findUnique({
-              where: { id: auth.userId },
-              select: { id: true },
-            })
-          : null;
+      const updater = await tx.user.findUnique({
+        where: { id: auth.userId },
+        select: { id: true },
+      });
 
       const data: Prisma.BlogPostUpdateInput = {
         ...(typeof input.title !== "undefined" ? { title: input.title } : {}),

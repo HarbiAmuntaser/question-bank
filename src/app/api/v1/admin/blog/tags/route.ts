@@ -1,8 +1,8 @@
 import { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
-import { bad, json, unauth } from "@/lib/http";
-import { verifyAdmin } from "@/lib/admin-auth";
+import { bad, json } from "@/lib/server/admin-http";
+import { verifyAdmin, adminAuthResponse } from "@/lib/admin-auth";
 import { CACHE_CONTROL } from "@/lib/cache-tags";
 import { revalidateBlogCache } from "@/lib/cache-invalidation";
 import { createBlogTagSchema, listBlogTaxonomyQuerySchema } from "@/validations/blog";
@@ -18,8 +18,8 @@ function duplicateError() {
 }
 
 export async function GET(req: Request) {
-  const auth = await verifyAdmin(req);
-  if (!auth.ok) return unauth();
+  const auth = await verifyAdmin(req, "blog:read");
+  if (!auth.ok) return adminAuthResponse(auth);
 
   const url = new URL(req.url);
   const parsed = listBlogTaxonomyQuerySchema.safeParse({
@@ -85,8 +85,8 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const auth = await verifyAdmin(req);
-  if (!auth.ok) return unauth();
+  const auth = await verifyAdmin(req, "blog:write");
+  if (!auth.ok) return adminAuthResponse(auth);
 
   const body = await req.json().catch(() => null);
   const parsed = createBlogTagSchema.safeParse(body);

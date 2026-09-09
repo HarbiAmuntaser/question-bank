@@ -1,3 +1,4 @@
+import { requireAdminPage } from "@/lib/server/admin-page-auth";
 import { Suspense } from "react";
 import type { Prisma } from "@prisma/client";
 
@@ -75,6 +76,8 @@ async function getInitialQuizzes(searchParams: SearchParams) {
 }
 
 export default async function QuizzesPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
+  await requireAdminPage("quizzes:read");
+
   const sp = await searchParams;
   const initialData = await getInitialQuizzes(sp);
 

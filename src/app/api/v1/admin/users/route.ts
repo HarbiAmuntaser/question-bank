@@ -1,15 +1,14 @@
 import { prisma } from "@/lib/prisma";
-import { json, bad, unauth } from "@/lib/http";
-import { verifyAdmin } from "@/lib/admin-auth";
+import { json, bad } from "@/lib/server/admin-http";
+import { verifyAdmin, adminAuthResponse } from "@/lib/admin-auth";
 import { CACHE_CONTROL } from "@/lib/cache-tags";
-import { unstable_cache, revalidateTag } from "next/cache";
+import { revalidateTag } from "next/cache";
 import { createUserSchema } from "@/validations/user";
 import bcrypt from "bcryptjs";
 
 export const dynamic = "force-dynamic";
 
-const listUsersCached = unstable_cache(
-  async () => {
+const listUsers = async () => {
     const rows = await prisma.user.findMany({
       orderBy: { createdAt: "desc" },
       select: {
@@ -17,17 +16,14 @@ const listUsersCached = unstable_cache(
       },
     });
     return { data: rows };
-  },
-  ["admin-users-list"],
-  { revalidate: 3600, tags: ["users"] }
-);
+  };
 
 export async function GET(req: Request) {
-  const auth = await verifyAdmin(req);
-  if (!auth.ok) return unauth();
+  const auth = await verifyAdmin(req, "users:manage");
+  if (!auth.ok) return adminAuthResponse(auth);
 
   try {
-    const payload = await listUsersCached();
+    const payload = await listUsers();
     return json(payload, 200, { "cache-control": CACHE_CONTROL.PRIVATE_NO_STORE });
   } catch {
     return bad("bad_query_params");
@@ -35,8 +31,8 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const auth = await verifyAdmin(req);
-  if (!auth.ok) return unauth();
+  const auth = await verifyAdmin(req, "users:manage");
+  if (!auth.ok) return adminAuthResponse(auth);
 
   const body = await req.json().catch(() => null);
   const parsed = createUserSchema.safeParse(body);

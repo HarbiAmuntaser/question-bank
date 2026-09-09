@@ -1,13 +1,12 @@
 import { prisma } from "@/lib/prisma";
-import { json, bad, unauth } from "@/lib/http";
-import { verifyAdmin } from "@/lib/admin-auth";
+import { json, bad } from "@/lib/server/admin-http";
+import { verifyAdmin, adminAuthResponse } from "@/lib/admin-auth";
 import { CACHE_CONTROL } from "@/lib/cache-tags";
-import { unstable_cache } from "next/cache";
+
 
 export const dynamic = "force-dynamic";
 
-const listUniversitiesForSelect = unstable_cache(
-  async (q: { q?: string | null }) => {
+const listUniversitiesForSelect = async (q: { q?: string | null }) => {
     const query = (q.q ?? "").trim();
     const where = query
       ? {
@@ -33,14 +32,11 @@ const listUniversitiesForSelect = unstable_cache(
     });
 
     return rows;
-  },
-  ["admin-universities-select"],
-  { revalidate: 3600, tags: ["universities"] }
-);
+  };
 
 export async function GET(req: Request) {
-  const auth = await verifyAdmin(req);
-  if (!auth.ok) return unauth();
+  const auth = await verifyAdmin(req, "universities:read");
+  if (!auth.ok) return adminAuthResponse(auth);
 
   const url = new URL(req.url);
   const q = url.searchParams.get("q");

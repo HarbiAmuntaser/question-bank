@@ -1,5 +1,5 @@
-import { json, bad, unauth } from "@/lib/http"
-import { verifyAdmin } from "@/lib/admin-auth"
+import { json, bad } from "@/lib/server/admin-http";
+import { verifyAdmin, adminAuthResponse } from "@/lib/admin-auth"
 import { getAnalyticsData, parseAnalyticsDays } from "@/lib/admin/analytics"
 import { CACHE_CONTROL } from "@/lib/cache-tags"
 
@@ -11,8 +11,8 @@ function withPrivateNoStore(response: Response) {
 }
 
 export async function GET(req: Request) {
-  const auth = await verifyAdmin(req)
-  if (!auth.ok) return withPrivateNoStore(unauth())
+  const auth = await verifyAdmin(req, "analytics:read")
+  if (!auth.ok) return adminAuthResponse(auth);
 
   const url = new URL(req.url)
   const days = parseAnalyticsDays(url.searchParams.get("days"))

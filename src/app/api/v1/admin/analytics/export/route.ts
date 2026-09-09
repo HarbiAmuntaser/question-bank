@@ -1,5 +1,5 @@
-import { bad, unauth } from "@/lib/http"
-import { verifyAdmin } from "@/lib/admin-auth"
+import { bad } from "@/lib/server/admin-http";
+import { verifyAdmin, adminAuthResponse } from "@/lib/admin-auth"
 import {
   buildAnalyticsCsv,
   buildAnalyticsExcelTsv,
@@ -20,8 +20,8 @@ function buildFilename(extension: "csv" | "xls"): string {
 }
 
 export async function GET(req: Request) {
-  const auth = await verifyAdmin(req)
-  if (!auth.ok) return withPrivateNoStore(unauth())
+  const auth = await verifyAdmin(req, "analytics:read")
+  if (!auth.ok) return adminAuthResponse(auth);
 
   const url = new URL(req.url)
   const format = (url.searchParams.get("format") ?? "csv").toLowerCase()

@@ -1,3 +1,4 @@
+import { requireAdminPage } from "@/lib/server/admin-page-auth";
 import { Suspense } from "react";
 import type { Prisma } from "@prisma/client";
 
@@ -283,6 +284,8 @@ export default async function SubscriptionsPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
+  await requireAdminPage("subscriptions:manage");
+
   const data = await getSubscriptionAdminData(await searchParams);
 
   return (

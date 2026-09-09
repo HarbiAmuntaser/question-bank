@@ -1,3 +1,4 @@
+import { requireAdminPage } from "@/lib/server/admin-page-auth";
 // src/app/admin/questions/page.tsx
 import { Suspense } from "react";
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,8 @@ export default async function QuestionsPage({
     chapterId?: string;
   }>;
 }) {
+  await requireAdminPage("questions:read");
+
   // ✅ ننتظر searchParams هنا (الموضع الصحيح)
   const sp = await searchParams;
 

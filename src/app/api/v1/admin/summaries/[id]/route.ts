@@ -1,9 +1,9 @@
 import { Prisma, QuizAccessType, StudySummaryStatus } from "@prisma/client";
 
-import { verifyAdmin } from "@/lib/admin-auth";
+import { verifyAdmin, adminAuthResponse } from "@/lib/admin-auth";
 import { revalidateStudySummaryCache, type StudySummaryCacheSnapshot } from "@/lib/cache-invalidation";
 import { CACHE_CONTROL } from "@/lib/cache-tags";
-import { json } from "@/lib/http";
+import { json } from "@/lib/server/admin-http";
 import { prisma } from "@/lib/prisma";
 import { encodeSlugPath, stripPrefix } from "@/lib/public/slug-utils";
 import { updateStudySummarySchema } from "@/validations/study-summary";
@@ -20,9 +20,7 @@ function adminBad(message: string, details?: unknown, status = 400) {
   return json({ error: message, details }, { status, headers: privateHeaders() });
 }
 
-function adminUnauth(message = "غير مصرح") {
-  return json({ error: message }, { status: 401, headers: privateHeaders() });
-}
+
 
 function adminNotFound(message = "غير موجود") {
   return json({ error: message }, { status: 404, headers: privateHeaders() });
@@ -232,8 +230,8 @@ async function validatePdfAttachment(
 }
 
 export async function GET(req: Request, ctx: Ctx) {
-  const auth = await verifyAdmin(req);
-  if (!auth.ok) return adminUnauth();
+  const auth = await verifyAdmin(req, "summaries:read");
+  if (!auth.ok) return adminAuthResponse(auth);
 
   const { id } = await ctx.params;
   const summary = await prisma.studySummary.findUnique({
@@ -247,8 +245,8 @@ export async function GET(req: Request, ctx: Ctx) {
 }
 
 export async function PATCH(req: Request, ctx: Ctx) {
-  const auth = await verifyAdmin(req);
-  if (!auth.ok) return adminUnauth();
+  const auth = await verifyAdmin(req, "summaries:write");
+  if (!auth.ok) return adminAuthResponse(auth);
 
   const { id } = await ctx.params;
   const body = await req.json().catch(() => null);
@@ -331,7 +329,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
             contentText: content.contentText,
           }
         : {}),
-      ...(auth.userId !== "api-key" ? { updatedBy: auth.userId } : {}),
+      updatedBy: auth.userId,
     };
 
     const updated = await prisma.studySummary.update({

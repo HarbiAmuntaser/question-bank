@@ -1,9 +1,9 @@
 import { prisma } from "@/lib/prisma";
-import { json, bad, unauth } from "@/lib/http";
-import { verifyAdmin } from "@/lib/admin-auth";
+import { json, bad } from "@/lib/server/admin-http";
+import { verifyAdmin, adminAuthResponse } from "@/lib/admin-auth";
 import { CACHE_CONTROL } from "@/lib/cache-tags";
 import { revalidateSubjectCache } from "@/lib/cache-invalidation";
-import { unstable_cache } from "next/cache";
+
 import type { Prisma } from "@prisma/client";
 import {
   createSubjectSchema,
@@ -43,8 +43,7 @@ type SubjectListRow = Prisma.SubjectGetPayload<{
   };
 }>;
 
-const listSubjectsCached = unstable_cache(
-  async (q: Record<string, string | null>) => {
+const listSubjects = async (q: Record<string, string | null>) => {
     // التحقق من الكويري سترينغ
     const parsed = listSubjectsQuerySchema.safeParse({
       page: q.page,
@@ -145,14 +144,11 @@ const listSubjectsCached = unstable_cache(
         totalPages: Math.ceil(total / pageSize),
       },
     };
-  },
-  ["admin-subjects-list"],
-  { revalidate: 3600, tags: ["subjects"] }
-);
+  };
 
 export async function GET(req: Request) {
-  const auth = await verifyAdmin(req);
-  if (!auth.ok) return unauth();
+  const auth = await verifyAdmin(req, "subjects:read");
+  if (!auth.ok) return adminAuthResponse(auth);
 
   const url = new URL(req.url);
   const q: Record<string, string | null> = {
@@ -166,7 +162,7 @@ export async function GET(req: Request) {
   };
 
   try {
-    const payload = await listSubjectsCached(q);
+    const payload = await listSubjects(q);
     const headers = new Headers({
       "cache-control": CACHE_CONTROL.PRIVATE_NO_STORE,
     });
@@ -177,8 +173,8 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const auth = await verifyAdmin(req);
-  if (!auth.ok) return unauth();
+  const auth = await verifyAdmin(req, "subjects:write");
+  if (!auth.ok) return adminAuthResponse(auth);
 
   const body = await req.json().catch(() => null);
   const parsed = createSubjectSchema.safeParse(body);
@@ -212,7 +208,7 @@ export async function POST(req: Request) {
       year,
       description: parsed.data.description ?? null,
       isActive: parsed.data.isActive,
-      createdBy: auth.userId !== "api-key" ? auth.userId : null,
+      createdBy: auth.userId,
     },
   });
 

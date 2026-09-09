@@ -1,3 +1,4 @@
+import { requireAdminPage } from "@/lib/server/admin-page-auth";
 import { notFound } from "next/navigation";
 import { fetchQuizById } from "@/app/admin/quizzes/actions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,6 +9,8 @@ export default async function QuizDetailsPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  await requireAdminPage("quizzes:read");
+
   const { id } = await params;
   const r = await fetchQuizById(id);
   if (!r.success || !r.quiz) return notFound();

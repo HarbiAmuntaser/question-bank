@@ -1,8 +1,8 @@
 /* Fixed Next 15 params typing */
 
 import { prisma } from "@/lib/prisma";
-import { json, bad, unauth } from "@/lib/http";
-import { verifyAdmin } from "@/lib/admin-auth";
+import { json, bad } from "@/lib/server/admin-http";
+import { verifyAdmin, adminAuthResponse } from "@/lib/admin-auth";
 import { revalidateQuizCache } from "@/lib/cache-invalidation";
 import { z } from "zod";
 
@@ -14,8 +14,8 @@ type RouteContext = {
 };
 
 export async function GET(req: Request, { params }: RouteContext) {
-  const auth = await verifyAdmin(req);
-  if (!auth.ok) return unauth();
+  const auth = await verifyAdmin(req, "quizzes:read");
+  if (!auth.ok) return adminAuthResponse(auth);
 
   const { id } = await params;
 
@@ -56,8 +56,8 @@ const updateQuizSchema = z.object({
 export async function PUT(req: Request, { params }: RouteContext) {
   const { id } = await params;
 
-  const auth = await verifyAdmin(req);
-  if (!auth.ok) return unauth();
+  const auth = await verifyAdmin(req, "quizzes:write");
+  if (!auth.ok) return adminAuthResponse(auth);
 
   const body = await req.json().catch(() => null);
   const parsed = updateQuizSchema.safeParse(body);
@@ -75,8 +75,8 @@ export async function PUT(req: Request, { params }: RouteContext) {
 export async function DELETE(req: Request, { params }: RouteContext) {
   const { id } = await params;
 
-  const auth = await verifyAdmin(req);
-  if (!auth.ok) return unauth();
+  const auth = await verifyAdmin(req, "quizzes:write");
+  if (!auth.ok) return adminAuthResponse(auth);
 
   const target = await prisma.quiz.findUnique({ where: { id }, select: { subjectId: true } });
   await prisma.quiz.delete({ where: { id } });

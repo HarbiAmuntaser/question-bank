@@ -1,8 +1,6 @@
-import { unstable_cache } from "next/cache"
+
 import { prisma } from "@/lib/prisma"
 import type { DashboardActivityItem, DashboardData } from "@/types/dashboard"
-
-export const DASHBOARD_REVALIDATE_SECONDS = 300
 
 function toIsoString(date: Date): string {
   return date.toISOString()
@@ -182,11 +180,4 @@ async function buildDashboardData(): Promise<DashboardData> {
   }
 }
 
-export const getDashboardDataCached = unstable_cache(
-  async () => buildDashboardData(),
-  ["admin-dashboard-data"],
-  {
-    revalidate: DASHBOARD_REVALIDATE_SECONDS,
-    tags: ["dashboard"],
-  }
-)
+export const getDashboardData = async () => buildDashboardData()

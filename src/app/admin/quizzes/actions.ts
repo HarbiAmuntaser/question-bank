@@ -1,21 +1,6 @@
 "use server";
-
-import { cookies } from "next/headers";
-import { getRequestOrigin } from "@/lib/server/request-origin";
-
-async function apiFetch(path: string, init?: RequestInit) {
-  const base = await getRequestOrigin();
-  const jar = await cookies();
-  const cookieHeader = jar.toString();
-
-  const headers = new Headers(init?.headers);
-  headers.set("content-type", "application/json");
-  headers.set("cookie", cookieHeader);
-  if (process.env.ADMIN_API_KEY) headers.set("x-admin-key", process.env.ADMIN_API_KEY);
-
-  const res = await fetch(`${base}${path}`, { ...init, headers, cache: "no-store" });
-  return res;
-}
+import { requireAdminPermission } from "@/lib/admin-auth";
+import { adminApiFetch as apiFetch } from "@/lib/server/admin-api-fetch";
 
 export async function fetchQuizzesList(params: {
   page?: number;
@@ -26,6 +11,8 @@ export async function fetchQuizzesList(params: {
   majorId?: string;
   subjectId?: string;
 }) {
+  await requireAdminPermission("quizzes:read");
+
   const sp = new URLSearchParams();
   if (params.page) sp.set("page", String(params.page));
   if (params.pageSize) sp.set("pageSize", String(params.pageSize));
@@ -42,12 +29,16 @@ export async function fetchQuizzesList(params: {
 }
 
 export async function getQuizzesSimpleAction() {
+  await requireAdminPermission("quizzes:read");
+
   const result = await fetchQuizzesList({ page: 1, pageSize: 50 });
   if (!result.success) return result;
   return { success: true, quizzes: result.data ?? [] };
 }
 
 export async function fetchQuizById(id: string) {
+  await requireAdminPermission("quizzes:read");
+
   const res = await apiFetch(`/api/v1/admin/quizzes/${id}`);
   const data = await res.json().catch(() => ({}));
   if (!res.ok) return { success: false, message: data?.message ?? "فشل تحميل الاختبار" };
@@ -65,6 +56,8 @@ export async function updateQuizAction(
     isFreePreview?: boolean;
   },
 ) {
+  await requireAdminPermission("quizzes:write");
+
   const res = await apiFetch(`/api/v1/admin/quizzes/${id}`, {
     method: "PUT",
     body: JSON.stringify(payload),
@@ -75,6 +68,8 @@ export async function updateQuizAction(
 }
 
 export async function deleteQuizAction(id: string) {
+  await requireAdminPermission("quizzes:write");
+
   const res = await apiFetch(`/api/v1/admin/quizzes/${id}`, { method: "DELETE" });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) return { success: false, message: data?.message ?? "فشل حذف الاختبار" };

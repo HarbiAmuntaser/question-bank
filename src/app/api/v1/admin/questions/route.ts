@@ -1,9 +1,9 @@
 import { prisma } from "@/lib/prisma";
-import { json, bad, unauth } from "@/lib/http";
-import { verifyAdmin } from "@/lib/admin-auth";
+import { json, bad } from "@/lib/server/admin-http";
+import { verifyAdmin, adminAuthResponse } from "@/lib/admin-auth";
 import { CACHE_CONTROL } from "@/lib/cache-tags";
 import { revalidateQuestionCache } from "@/lib/cache-invalidation";
-import { unstable_cache } from "next/cache";
+
 import type { Prisma } from "@prisma/client";
 import { listQuestionsQuerySchema, createQuestionSchema } from "@/validations/question";
 
@@ -47,8 +47,7 @@ type QuestionListRow = Prisma.QuestionGetPayload<{
   };
 }>;
 
-const listQuestionsCached = unstable_cache(
-  async (q: Record<string, string | null | undefined>) => {
+const listQuestions = async (q: Record<string, string | null | undefined>) => {
     const parsed = listQuestionsQuerySchema.safeParse({
       page: q.page,
       pageSize: q.pageSize,
@@ -141,14 +140,11 @@ const listQuestionsCached = unstable_cache(
         totalPages: Math.ceil(total / pageSize),
       },
     };
-  },
-  ["admin-questions-list"],
-  { revalidate: 3600, tags: ["questions"] }
-);
+  };
 
 export async function GET(req: Request) {
-  const auth = await verifyAdmin(req);
-  if (!auth.ok) return unauth();
+  const auth = await verifyAdmin(req, "questions:read");
+  if (!auth.ok) return adminAuthResponse(auth);
 
   const url = new URL(req.url);
   const q: Record<string, string | null | undefined> = {
@@ -163,7 +159,7 @@ export async function GET(req: Request) {
   };
 
   try {
-    const payload = await listQuestionsCached(q);
+    const payload = await listQuestions(q);
     const headers = new Headers({
       "cache-control": CACHE_CONTROL.PRIVATE_NO_STORE,
     });
@@ -179,8 +175,8 @@ export async function GET(req: Request) {
 // ... (GET كما هو بدون تغيير)
 
 export async function POST(req: Request) {
-  const auth = await verifyAdmin(req);
-  if (!auth.ok) return unauth();
+  const auth = await verifyAdmin(req, "questions:write");
+  if (!auth.ok) return adminAuthResponse(auth);
 
   const body = await req.json().catch(() => null);
   const parsed = createQuestionSchema.safeParse(body);
@@ -212,7 +208,7 @@ export async function POST(req: Request) {
             }
           : undefined,
 
-      // createdBy: auth.userId !== "api-key" ? auth.userId : null,
+      // createdBy: auth.userId,
     },
   });
 

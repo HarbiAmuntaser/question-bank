@@ -1,8 +1,8 @@
 import { BlogPostStatus, BlogVisibility, Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
-import { bad, json, unauth } from "@/lib/http";
-import { verifyAdmin } from "@/lib/admin-auth";
+import { bad, json } from "@/lib/server/admin-http";
+import { verifyAdmin, adminAuthResponse } from "@/lib/admin-auth";
 import { CACHE_CONTROL } from "@/lib/cache-tags";
 import { revalidateBlogCache } from "@/lib/cache-invalidation";
 import { createBlogPostSchema, listBlogPostsQuerySchema } from "@/validations/blog";
@@ -84,8 +84,8 @@ function serializePost(
 }
 
 export async function GET(req: Request) {
-  const auth = await verifyAdmin(req);
-  if (!auth.ok) return unauth();
+  const auth = await verifyAdmin(req, "blog:read");
+  if (!auth.ok) return adminAuthResponse(auth);
 
   const url = new URL(req.url);
   const parsed = listBlogPostsQuerySchema.safeParse({
@@ -142,8 +142,8 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const auth = await verifyAdmin(req);
-  if (!auth.ok) return unauth();
+  const auth = await verifyAdmin(req, "blog:write");
+  if (!auth.ok) return adminAuthResponse(auth);
 
   const body = await req.json().catch(() => null);
   const parsed = createBlogPostSchema.safeParse(body);
@@ -169,8 +169,8 @@ export async function POST(req: Request) {
         content: content.content,
         contentHtml: content.contentHtml,
         contentText: content.contentText,
-        createdBy: auth.userId === "api-key" ? null : auth.userId,
-        updatedBy: auth.userId === "api-key" ? null : auth.userId,
+        createdBy: auth.userId,
+        updatedBy: auth.userId,
         tags: {
           create: input.tagIds.map((tagId) => ({ tagId })),
         },

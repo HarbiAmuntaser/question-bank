@@ -1,8 +1,7 @@
 // src/app/admin/quiz-generator/actions.ts
 "use server";
-
-import { cookies } from "next/headers";
-import { getRequestOrigin } from "@/lib/server/request-origin";
+import { requireAdminPermission } from "@/lib/admin-auth";
+import { adminApiFetch as apiFetch } from "@/lib/server/admin-api-fetch";
 
 export interface QuizGenerationSettings {
   title: string;
@@ -16,31 +15,9 @@ export interface QuizGenerationSettings {
   isFreePreview?: boolean;
 }
 
-async function apiFetch(path: string, init?: RequestInit) {
-  const base = await getRequestOrigin();
-  const jar = await cookies();           // ✅ Next 15: await cookies()
-  const cookieHeader = jar.toString();
-
-  // استخدم Headers لتفادي أخطاء الفهرسة
-  const headers = new Headers(init?.headers);
-  headers.set("content-type", "application/json");
-  headers.set("cookie", cookieHeader);
-
-  // نفس الاسم الذي يتحقق منه verifyAdmin
-  if (process.env.ADMIN_API_KEY) {
-    headers.set("x-admin-key", process.env.ADMIN_API_KEY);
-  }
-
-  const res = await fetch(`${base}${path}`, {
-    ...init,
-    headers,
-    cache: "no-store",
-  });
-
-  return res;
-}
-
 export async function generateQuizAction(settings: QuizGenerationSettings) {
+  await requireAdminPermission("quizzes:write");
+
   try {
     const res = await apiFetch("/api/v1/admin/quizzes", {
       method: "POST",
@@ -58,6 +35,8 @@ export async function generateQuizAction(settings: QuizGenerationSettings) {
 }
 
 export async function getQuizPreviewAction(settings: QuizGenerationSettings) {
+  await requireAdminPermission("quizzes:read");
+
   try {
     const res = await apiFetch("/api/v1/admin/quizzes/preview", {
       method: "POST",
@@ -93,6 +72,8 @@ export async function exportQuizAction(
   settings: QuizGenerationSettings,
   format: "json" | "pdf" | "word" = "json",
 ) {
+  await requireAdminPermission("quizzes:read");
+
   try {
     const res = await apiFetch(`/api/v1/admin/quizzes/export?format=${format}`, {
       method: "POST",

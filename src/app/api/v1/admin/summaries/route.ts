@@ -1,9 +1,9 @@
 import { Prisma, QuizAccessType, StudySummaryStatus } from "@prisma/client";
 
-import { verifyAdmin } from "@/lib/admin-auth";
+import { verifyAdmin, adminAuthResponse } from "@/lib/admin-auth";
 import { revalidateStudySummaryCache, type StudySummaryCacheSnapshot } from "@/lib/cache-invalidation";
 import { CACHE_CONTROL } from "@/lib/cache-tags";
-import { json } from "@/lib/http";
+import { json } from "@/lib/server/admin-http";
 import { prisma } from "@/lib/prisma";
 import { encodeSlugPath, stripPrefix } from "@/lib/public/slug-utils";
 import { createStudySummarySchema, listStudySummariesQuerySchema } from "@/validations/study-summary";
@@ -18,9 +18,7 @@ function adminBad(message: string, details?: unknown, status = 400) {
   return json({ error: message, details }, { status, headers: privateHeaders() });
 }
 
-function adminUnauth(message = "غير مصرح") {
-  return json({ error: message }, { status: 401, headers: privateHeaders() });
-}
+
 
 const summaryInclude = {
   subject: {
@@ -231,8 +229,8 @@ async function validatePdfAttachment(
 }
 
 export async function GET(req: Request) {
-  const auth = await verifyAdmin(req);
-  if (!auth.ok) return adminUnauth();
+  const auth = await verifyAdmin(req, "summaries:read");
+  if (!auth.ok) return adminAuthResponse(auth);
 
   const url = new URL(req.url);
   const parsed = listStudySummariesQuerySchema.safeParse({
@@ -297,8 +295,8 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const auth = await verifyAdmin(req);
-  if (!auth.ok) return adminUnauth();
+  const auth = await verifyAdmin(req, "summaries:write");
+  if (!auth.ok) return adminAuthResponse(auth);
 
   const body = await req.json().catch(() => null);
   const parsed = createStudySummarySchema.safeParse(body);
@@ -338,8 +336,8 @@ export async function POST(req: Request) {
         readingMinutes: input.readingMinutes ?? null,
         sortOrder: input.sortOrder,
         isFeatured: input.isFeatured,
-        createdBy: auth.userId === "api-key" ? null : auth.userId,
-        updatedBy: auth.userId === "api-key" ? null : auth.userId,
+        createdBy: auth.userId,
+        updatedBy: auth.userId,
       },
       include: summaryInclude,
     });

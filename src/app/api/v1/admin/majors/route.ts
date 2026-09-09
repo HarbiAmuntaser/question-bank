@@ -1,10 +1,10 @@
 import { prisma } from "@/lib/prisma";
-import { json, bad, unauth } from "@/lib/http";
-import { verifyAdmin } from "@/lib/admin-auth";
+import { json, bad } from "@/lib/server/admin-http";
+import { verifyAdmin, adminAuthResponse } from "@/lib/admin-auth";
 import { CACHE_CONTROL } from "@/lib/cache-tags";
 import { revalidateMajorCache } from "@/lib/cache-invalidation";
 import { listMajorsQuerySchema, createMajorSchema } from "@/validations/major";
-import { unstable_cache } from "next/cache";
+
 import { Prisma } from "@prisma/client";
 
 
@@ -26,8 +26,7 @@ type MajorListRow = Prisma.MajorGetPayload<{
   };
 }>;
 
-const listMajorsCached = unstable_cache(
-  async (q: Record<string, string | null | undefined>) => {
+const listMajors = async (q: Record<string, string | null | undefined>) => {
     const parsed = listMajorsQuerySchema.safeParse({
       page: q.page,
       pageSize: q.pageSize,
@@ -103,14 +102,11 @@ const listMajorsCached = unstable_cache(
         totalPages: Math.ceil(total / pageSize),
       },
     };
-  },
-  ["admin-majors-list"],
-  { revalidate: 3600, tags: ["majors"] }
-);
+  };
 
 export async function GET(req: Request) {
-  const auth = await verifyAdmin(req);
-  if (!auth.ok) return unauth();
+  const auth = await verifyAdmin(req, "majors:read");
+  if (!auth.ok) return adminAuthResponse(auth);
 
   const url = new URL(req.url);
   const q: Record<string, string | null | undefined> = {
@@ -123,7 +119,7 @@ export async function GET(req: Request) {
   };
 
   try {
-    const payload = await listMajorsCached(q);
+    const payload = await listMajors(q);
     const headers = new Headers({ "cache-control": CACHE_CONTROL.PRIVATE_NO_STORE });
     return json(payload, { status: 200, headers });
   } catch {
@@ -132,8 +128,8 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const auth = await verifyAdmin(req);
-  if (!auth.ok) return unauth();
+  const auth = await verifyAdmin(req, "majors:write");
+  if (!auth.ok) return adminAuthResponse(auth);
 
   const body = await req.json().catch(() => null);
   const parsed = createMajorSchema.safeParse(body);
@@ -148,7 +144,7 @@ export async function POST(req: Request) {
         degreeType: parsed.data.degreeType ?? null,
         durationYears: parsed.data.durationYears ?? null,
         isActive: parsed.data.isActive,
-        createdBy: auth.userId !== "api-key" ? auth.userId : null,
+        createdBy: auth.userId,
       },
     });
 

@@ -1,21 +1,20 @@
 // src/app/api/v1/admin/universities/route.ts
 
 import { prisma } from "@/lib/prisma";
-import { json, bad, unauth } from "@/lib/http";
-import { verifyAdmin } from "@/lib/admin-auth";
+import { json, bad } from "@/lib/server/admin-http";
+import { verifyAdmin, adminAuthResponse } from "@/lib/admin-auth";
 import { CACHE_CONTROL } from "@/lib/cache-tags";
 import { revalidateUniversityCache } from "@/lib/cache-invalidation";
 import {
   listQuerySchema,
   createUniversitySchema,
 } from "@/validations/university";
-import { unstable_cache } from "next/cache";
+
 
 export const dynamic = "force-dynamic";
 
 // ---- Cached list helper ----
-const listUniversitiesCached = unstable_cache(
-  async (q: Record<string, string | null>) => {
+const listUniversities = async (q: Record<string, string | null>) => {
     const parsed = listQuerySchema.safeParse(q);
     if (!parsed.success) throw new Error("bad_query");
     const { page, pageSize, sortBy, sortOrder, query } = parsed.data;
@@ -51,16 +50,13 @@ const listUniversitiesCached = unstable_cache(
         totalPages: Math.ceil(total / pageSize),
       },
     };
-  },
-  ["admin-universities-list"],
-  { revalidate: 3600, tags: ["universities"] }
-);
+  };
 
 // ---- GET /api/v1/admin/universities ----
 // ---- GET /api/v1/admin/universities ----
 export async function GET(req: Request) {
-  const auth = await verifyAdmin(req);
-  if (!auth.ok) return unauth();
+  const auth = await verifyAdmin(req, "universities:read");
+  if (!auth.ok) return adminAuthResponse(auth);
 
   const url = new URL(req.url);
 
@@ -133,8 +129,8 @@ export async function GET(req: Request) {
 
 // ---- POST /api/v1/admin/universities ----
 export async function POST(req: Request) {
-  const auth = await verifyAdmin(req);
-  if (!auth.ok) return unauth();
+  const auth = await verifyAdmin(req, "universities:write");
+  if (!auth.ok) return adminAuthResponse(auth);
 
   const body = await req.json().catch(() => null);
   const parsed = createUniversitySchema.safeParse(body);
@@ -150,7 +146,7 @@ export async function POST(req: Request) {
         logoUrl: parsed.data.logoUrl ?? null,
         isActive: parsed.data.isActive,
         // عند المصادقة بمفتاح أدمن لا يوجد userId حقيقي → تجنّب انتهاك FK
-        createdBy: auth.userId !== "api-key" ? auth.userId : null,
+        createdBy: auth.userId,
 
         countryCode: parsed.data.countryCode.toUpperCase(),
         institutionType: parsed.data.institutionType,

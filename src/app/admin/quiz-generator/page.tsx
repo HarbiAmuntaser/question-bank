@@ -1,9 +1,12 @@
+import { requireAdminPage } from "@/lib/server/admin-page-auth";
 // src/app/admin/quiz-generator/page.tsx
 import { Suspense } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { QuizGenerator } from "@/components/admin/quizzes/generator/quiz-generator";
 
-export default function QuizGeneratorPage() {
+export default async function QuizGeneratorPage() {
+  await requireAdminPage("quizzes:write");
+
   return (
     <div className="space-y-6">
       <div>

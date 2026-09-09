@@ -1,3 +1,4 @@
+import { requireAdminPage } from "@/lib/server/admin-page-auth";
 // src/app/admin/universities/page.tsx
 
 import { Suspense } from "react"
@@ -17,6 +18,8 @@ export default async function UniversitiesPage({
     institutionType?: string;
   }>
 }) {
+  await requireAdminPage("universities:read");
+
   const resolvedSearchParams = await searchParams
   const { page, query, countryCode, institutionType } = resolvedSearchParams
 

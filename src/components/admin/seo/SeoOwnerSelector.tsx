@@ -22,7 +22,7 @@ const ownerTypeOptions: Array<{ value: OwnerType; label: string }> = [
   { value: "study_summary", label: "ملخص دراسي" },
 ]
 
-// ✅ بدل fetch: ننادي Server Action (يرسل x-admin-key)
+// Server Action checks the current user's administrative permission.
 async function fetchOwners(params: {
   type: OwnerType
   query?: string

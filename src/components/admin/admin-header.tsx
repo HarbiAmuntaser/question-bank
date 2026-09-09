@@ -21,8 +21,9 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet"
 import { AdminNavList } from "./admin-nav"
+import type { AdminRole } from "@/lib/admin-permissions"
 
-export function AdminHeader() {
+export function AdminHeader({ role }: { role: AdminRole }) {
   const { data: session } = useSession()
 
   return (
@@ -38,7 +39,7 @@ export function AdminHeader() {
             <SheetTitle>مستواك</SheetTitle>
           </SheetHeader>
           <nav aria-label="تنقل الإدارة">
-            <AdminNavList closeOnNavigate />
+            <AdminNavList role={role} closeOnNavigate />
           </nav>
         </SheetContent>
       </Sheet>

@@ -25,7 +25,7 @@ import UserDialog from "./UserDialog";
 type Role = "admin" | "editor" | "moderator";
 type Row = { id: string; name: string | null; email: string; role: Role; isActive: boolean; createdAt: Date | string };
 
-export default function UsersTable({ initialRows }: { initialRows?: Row[] }) {
+export default function UsersTable({ initialRows, currentUserId }: { initialRows?: Row[]; currentUserId: string }) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(initialRows === undefined);
   const [rows, setRows] = useState<Row[]>(initialRows ?? []);
@@ -112,7 +112,7 @@ export default function UsersTable({ initialRows }: { initialRows?: Row[] }) {
                   </TableCell>
                   <TableCell className="text-left">
                     <div className="flex gap-2">
-                      <UserDialog user={u} onDone={load}>
+                      <UserDialog user={u} isCurrentUser={u.id === currentUserId} onDone={load}>
                         <Button variant="ghost" size="sm" title="تعديل" aria-label="تعديل المستخدم">
                           <Edit className="h-4 w-4" aria-hidden />
                         </Button>
@@ -122,6 +122,7 @@ export default function UsersTable({ initialRows }: { initialRows?: Row[] }) {
                         size="sm"
                         title="حذف"
                         aria-label="حذف المستخدم"
+                        disabled={u.id === currentUserId}
                         onClick={() => setDeleteId(u.id)}
                       >
                         <Trash2 className="h-4 w-4" aria-hidden />

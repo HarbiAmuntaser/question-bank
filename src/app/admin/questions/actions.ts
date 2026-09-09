@@ -1,30 +1,10 @@
 // src/app/admin/questions/actions.ts
 "use server";
 
-import { cookies } from "next/headers";
+
+import { requireAdminPermission } from "@/lib/admin-auth";
+import { adminApiFetch as apiFetch } from "@/lib/server/admin-api-fetch";
 import { revalidatePath, revalidateTag } from "next/cache";
-import { getRequestOrigin } from "@/lib/server/request-origin";
-
-async function apiFetch(path: string, init?: RequestInit) {
-  const base = await getRequestOrigin();
-  const jar = await cookies();
-  const cookieHeader = jar.toString();
-
-  const headers = new Headers(init?.headers);
-
-  if (cookieHeader) headers.set("cookie", cookieHeader);
-  if (process.env.ADMIN_API_KEY) headers.set("x-admin-key", process.env.ADMIN_API_KEY);
-
-  if (init?.body && !(init.body instanceof FormData)) {
-    headers.set("content-type", "application/json");
-  }
-
-  return fetch(`${base}${path}`, {
-    ...init,
-    headers,
-    cache: "no-store",
-  });
-}
 
 function toBool(v: FormDataEntryValue | null, fallback = false) {
   if (v == null) return fallback;
@@ -57,6 +37,8 @@ function extractOptions(formData: FormData) {
 }
 
 export async function getChaptersAction() {
+  await requireAdminPermission("questions:read");
+
   try {
     const qs = new URLSearchParams({
       page: "1",
@@ -77,6 +59,8 @@ export async function getChaptersAction() {
 }
 
 export async function createQuestionAction(formData: FormData) {
+  await requireAdminPermission("questions:write");
+
   try {
     const questionType = String(formData.get("questionType") || "multiple_choice");
 
@@ -127,6 +111,8 @@ export async function createQuestionAction(formData: FormData) {
 }
 
 export async function updateQuestionAction(id: string, formData: FormData) {
+  await requireAdminPermission("questions:write");
+
   try {
     const questionType = String(formData.get("questionType") || "multiple_choice");
 
@@ -177,6 +163,8 @@ export async function updateQuestionAction(id: string, formData: FormData) {
 }
 
 export async function deleteQuestionAction(id: string) {
+  await requireAdminPermission("questions:write");
+
   try {
     const res = await apiFetch(`/api/v1/admin/questions/${id}`, { method: "DELETE" });
     const data = await res.json().catch(() => ({}));

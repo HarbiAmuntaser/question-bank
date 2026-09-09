@@ -18,10 +18,12 @@ type UserRow = {
 export default function UserDialog({
   children,
   user,
+  isCurrentUser = false,
   onDone,
 }: {
   children?: React.ReactNode;
   user?: UserRow;
+  isCurrentUser?: boolean;
   onDone?: () => void;
 }) {
   const isEdit = Boolean(user);
@@ -109,7 +111,7 @@ export default function UserDialog({
 
           <div className="space-y-2">
             <Label>الصلاحية</Label>
-            <Select value={role} onValueChange={(v) => setRole(v as Role)}>
+            <Select value={role} onValueChange={(v) => setRole(v as Role)} disabled={isCurrentUser}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="admin">Admin</SelectItem>
@@ -120,7 +122,7 @@ export default function UserDialog({
           </div>
 
           <div className="flex items-center gap-3">
-            <Switch checked={isActive} onCheckedChange={(v) => setIsActive(Boolean(v))} id="isActive" />
+            <Switch checked={isActive} onCheckedChange={(v) => setIsActive(Boolean(v))} id="isActive" disabled={isCurrentUser} />
             <Label htmlFor="isActive">نشط</Label>
           </div>
         </div>
