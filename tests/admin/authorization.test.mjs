@@ -119,7 +119,7 @@ test("every admin page rejects at its own boundary before accessing data", async
       const h = authHarness(input);
       const page = h.load(path).default;
       await assert.rejects(page({ searchParams: Promise.resolve({}), params: Promise.resolve({ id: "target" }) }),
-        new RegExp("REDIRECT:/auth/" + (input.signedIn === false ? "signin" : "forbidden")));
+        new RegExp("REDIRECT:/auth/" + (input.signedIn === false ? "admin/signin" : "forbidden")));
       assert.equal(h.state.sideEffects, 0, path);
     }
   }
@@ -167,7 +167,7 @@ test("middleware distinguishes anonymous and unsupported roles, and leaves publi
   });
   const middleware = load("src/middleware.ts").default;
   let response = await middleware(new NextRequest("http://localhost/admin"));
-  assert.equal(new URL(response.headers.get("location")).pathname, "/auth/signin");
+  assert.equal(new URL(response.headers.get("location")).pathname, "/auth/admin/signin");
   token = { sub: "actor", role: "student" };
   response = await middleware(new NextRequest("http://localhost/admin/users"));
   assert.equal(new URL(response.headers.get("location")).pathname, "/auth/forbidden");
@@ -188,11 +188,11 @@ test("middleware distinguishes anonymous and unsupported roles, and leaves publi
 test("sign-in does not redirect a disabled or non-admin account back into an admin loop", async () => {
   for (const input of [{ active: false }, { role: "student" }]) {
     const h = authHarness(input);
-    const page = h.load("src/app/auth/signin/page.tsx").default;
-    await assert.rejects(page(), /REDIRECT:\/auth\/forbidden/);
+    const page = h.load("src/app/auth/admin/signin/page.tsx").default;
+    await assert.rejects(page({ searchParams: Promise.resolve({}) }), /REDIRECT:\/auth\/forbidden/);
   }
   const h = authHarness();
-  await assert.rejects(h.load("src/app/auth/signin/page.tsx").default(), /REDIRECT:\/admin/);
+  await assert.rejects(h.load("src/app/auth/admin/signin/page.tsx").default({ searchParams: Promise.resolve({}) }), /REDIRECT:\/admin/);
 });
 
 test("admin, editor and moderator retain read access to dashboard and analytics", async () => {

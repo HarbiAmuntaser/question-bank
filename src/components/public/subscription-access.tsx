@@ -9,7 +9,6 @@ import {
   FileText,
   Lock,
   ShieldCheck,
-  Ticket,
   Unlock,
 } from "lucide-react";
 
@@ -18,6 +17,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import type { SubscriptionGateDialogProps } from "./subscription-gate-dialog";
+import type { AccessStatus } from "@/lib/payment-access";
+export type { AccessStatus } from "@/lib/payment-access";
 
 const listCardClass =
   "group flex h-full flex-col overflow-hidden border bg-card/95 shadow-sm transition-colors hover:border-primary/40 hover:shadow-md dark:bg-gray-900/80";
@@ -31,31 +32,6 @@ const LazySubscriptionGateDialog = dynamic<SubscriptionGateDialogProps>(
     loading: () => <SubscriptionDialogFallback />,
   },
 );
-
-type AccessPlan = {
-  id: string;
-  scopeType: "major" | "subject";
-  title: string;
-  description: string | null;
-  price: string | null;
-  currency: string | null;
-  whatsappNumber: string | null;
-  telegramUsername: string | null;
-  contactMessage: string | null;
-  majorId: string | null;
-  subjectId: string | null;
-};
-
-export type AccessStatus = {
-  allowed: boolean;
-  requiresSubscription: boolean;
-  reason: string;
-  scopeType: "major" | "subject" | null;
-  majorId: string | null;
-  subjectId: string | null;
-  plan: AccessPlan | null;
-  entitlementId: string | null;
-};
 
 export type PublicQuizAccessItem = {
   id: string;
@@ -73,15 +49,11 @@ export function isOpenWithoutStatus(quiz: Pick<PublicQuizAccessItem, "accessType
   return quiz.accessType === "free" || quiz.isFreePreview;
 }
 
-function formatPrice(plan: AccessPlan | null) {
-  if (!plan?.price) return "السعر غير محدد";
-  return `${plan.price} ${plan.currency ?? ""}`.trim();
-}
-
 function accessStateLabel(quiz: Pick<PublicQuizAccessItem, "accessType" | "isFreePreview">, access?: AccessStatus | null) {
   if (quiz.accessType === "free") return "مجاني";
   if (quiz.isFreePreview) return "تجربة مجانية";
-  if (access?.allowed) return "مشترك";
+  if (access?.allowed) return access.reason === "entitled" ? "مشترك" : "مجاني";
+  if (access?.reason === "payments_unavailable" || access?.reason === "missing_context") return "غير متاح حاليًا";
   return "يتطلب اشتراك";
 }
 
@@ -168,6 +140,10 @@ export function QuizAccessAction({
     );
   }
 
+  if (access?.reason === "payments_unavailable" || access?.reason === "missing_context" || access?.reason === "not_found") {
+    return <Button disabled className={actionButtonClass}><Lock className="h-4 w-4" aria-hidden />غير متاح حاليًا</Button>;
+  }
+
   return (
     <>
       <Button
@@ -178,7 +154,7 @@ export function QuizAccessAction({
         disabled={loading}
       >
         <Lock className="h-4 w-4" aria-hidden />
-        {loading ? "جار التحقق..." : access?.plan ? "لدي كود اشتراك" : "عرض خيارات الاشتراك"}
+        {loading ? "جار التحقق..." : access?.reason === "student_signin_required" ? "تسجيل دخول الطالب" : "عرض خيارات الاشتراك"}
       </Button>
       {open ? (
         <LazySubscriptionGateDialog
@@ -190,75 +166,6 @@ export function QuizAccessAction({
           subjectId={subjectId}
           majorId={majorId}
           onRedeemed={onRedeemed}
-        />
-      ) : null}
-    </>
-  );
-}
-
-export function MajorSubscriptionCallout({
-  majorId,
-  title,
-}: {
-  majorId: string;
-  title: string;
-}) {
-  const [access, setAccess] = useState<AccessStatus | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [open, setOpen] = useState(false);
-
-  const refreshAccess = useCallback((signal?: AbortSignal) => {
-    setLoading(true);
-    void fetch(`/api/v1/student/access/status?majorId=${encodeURIComponent(majorId)}`, { cache: "no-store", signal })
-      .then((res) => res.json())
-      .then((body) => {
-        if (!signal?.aborted) setAccess(body?.data ?? null);
-      })
-      .catch(() => {
-        if (!signal?.aborted) setAccess(null);
-      })
-      .finally(() => {
-        if (!signal?.aborted) setLoading(false);
-      });
-  }, [majorId]);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    refreshAccess(controller.signal);
-    return () => controller.abort();
-  }, [refreshAccess]);
-
-  if (loading || !access?.requiresSubscription || !access.plan) return null;
-
-  return (
-    <>
-      <Card className="border-primary/20 bg-primary/5 text-right shadow-sm">
-        <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="space-y-2">
-            <QuizAccessBadges quiz={{ accessType: "paid", isFreePreview: false }} access={access} />
-            <div className="flex items-start gap-2 font-semibold leading-relaxed">
-              <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />
-              <span>هذا التخصص يحتاج اشتراك للوصول إلى الاختبارات المدفوعة.</span>
-            </div>
-            <p className="text-sm leading-relaxed text-muted-foreground">
-              الخطة: <span className="font-medium text-foreground">{access.plan.title}</span>
-              {access.plan.price ? ` • ${formatPrice(access.plan)}` : ""}
-            </p>
-          </div>
-          <Button type="button" className="h-11 w-full gap-2 rounded-lg sm:w-auto" onClick={() => setOpen(true)}>
-            <Ticket className="h-4 w-4" aria-hidden />
-            الاشتراك أو تفعيل كود
-          </Button>
-        </CardContent>
-      </Card>
-      {open ? (
-        <LazySubscriptionGateDialog
-          open={open}
-          onOpenChange={setOpen}
-          access={access}
-          targetTitle={title}
-          majorId={majorId}
-          onRedeemed={refreshAccess}
         />
       ) : null}
     </>
@@ -351,7 +258,7 @@ export function SubjectQuizzesAccessGrid({
 
               {locked ? (
                 <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
-                  الاختبار ظاهر لك بالكامل في القائمة، ويمكن فتحه بعد تفعيل كود الاشتراك.
+                  يتطلب اشتراكًا في المادة.
                 </p>
               ) : q.isFreePreview ? (
                 <p className="rounded-lg bg-[hsl(var(--brand-cyan)_/_0.08)] px-3 py-2 text-xs leading-relaxed text-[hsl(var(--brand-cyan))] dark:bg-[hsl(var(--brand-cyan)_/_0.14)]">

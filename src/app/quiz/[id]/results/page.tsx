@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 
 import type { QuizWithQuestions } from "@/types";
-import { fetchJSON } from "@/lib/server/student-fetch";
+import { fetchAuthenticatedStudentJSON } from "@/lib/server/student-fetch";
 import { encodeSlugPath, stripPrefix } from "@/lib/public/slug-utils";
 import { QuizResults } from "@/components/public/quiz/result/quiz-results";
 import type { ResultStudySummaryReference } from "@/components/public/quiz/result/result-study-guidance";
@@ -91,18 +91,14 @@ export default async function QuizResultsPage({
 
   if (!id || !sessionId) notFound();
 
-  const quizRes = await fetchJSON<QuizWithQuestions>(
-    `/api/v1/student/quizzes/by-id/${encodeURIComponent(id)}`,
-    { cache: "no-store" },
-    0
+  const quizRes = await fetchAuthenticatedStudentJSON<QuizWithQuestions>(
+    `/api/v1/student/quizzes/by-id/${encodeURIComponent(id)}`
   );
   if (!quizRes.ok || !quizRes.data) notFound();
   const quiz = quizRes.data;
 
-  const ctxRes = await fetchJSON<QuizContext>(
-    `/api/v1/student/quizzes/by-id-context/${encodeURIComponent(id)}`,
-    { cache: "no-store" },
-    0
+  const ctxRes = await fetchAuthenticatedStudentJSON<QuizContext>(
+    `/api/v1/student/quizzes/by-id-context/${encodeURIComponent(id)}`
   );
   const backToSubjectUrl = ctxRes.ok ? buildSubjectUrlFromContext(ctxRes.data) : null;
   const subjectId = ctxRes.ok ? ctxRes.data?.context?.subject?.id ?? null : null;

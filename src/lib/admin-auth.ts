@@ -23,9 +23,9 @@ export async function getAdminAccess(permission: AdminPermission): Promise<Admin
   // JWT roles are only a coarse hint. Revocation and role changes must take effect here.
   const user = await prisma.user.findUnique({
     where: { id },
-    select: { id: true, role: true, isActive: true },
+    select: { id: true, role: true, isActive: true, sessionVersion: true },
   });
-  if (!user?.isActive || !isAdminRole(user.role) || !hasAdminPermission(user.role, permission)) {
+  if (!user?.isActive || !Number.isInteger(session.user.sessionVersion) || user.sessionVersion !== session.user.sessionVersion || !isAdminRole(user.role) || !hasAdminPermission(user.role, permission)) {
     return { ok: false, status: 403, error: "forbidden" };
   }
   return { ok: true, userId: user.id, role: user.role };

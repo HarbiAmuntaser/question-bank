@@ -1,7 +1,9 @@
 import { prisma } from "@/lib/prisma";
+import { outOfPaymentQuizIds } from "@/lib/server/payment-public-metadata";
 import { json, bad } from "@/lib/http";
 import { CACHE_CONTROL, CACHE_TTL } from "@/lib/cache-tags";
-import { publicQuizWhere } from "@/lib/server/public-content-visibility";
+import type { Prisma } from "@prisma/client";
+import { publishedPaymentQuizWhere } from "@/lib/server/payment-scope";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +28,7 @@ export async function GET(req: Request) {
     const skip        = (page - 1) * pageSize;
 
     // نجمع شروط الأبعاد على شكل AND، وكل بُعد يضم OR بين المسارين (مباشر/غير مباشر).
-    const dimAND: any[] = [];
+    const dimAND: Prisma.QuizWhereInput[] = [];
 
     if (subjectId) {
       dimAND.push({
@@ -65,7 +67,7 @@ export async function GET(req: Request) {
     }
 
     // البحث النصّي: OR كبير (ونُدخله داخل AND كي يتقاطع مع بقية الأبعاد)
-    const searchOR: any[] = [];
+    const searchOR: Prisma.QuizWhereInput[] = [];
     if (searchTerm) {
       searchOR.push(
         { title: { contains: searchTerm, mode: "insensitive" } },
@@ -82,8 +84,7 @@ export async function GET(req: Request) {
       dimAND.push({ OR: searchOR });
     }
 
-    const where: any = { isActive: true, ...publicQuizWhere() };
-    if (dimAND.length) where.AND = dimAND;
+    const where: Prisma.QuizWhereInput = { AND: [publishedPaymentQuizWhere(), ...dimAND] };
 
     const [items, total] = await Promise.all([
       prisma.quiz.findMany({
@@ -152,6 +153,7 @@ export async function GET(req: Request) {
       prisma.quiz.count({ where }),
     ]);
 
+    const outside = await outOfPaymentQuizIds(items.map((quiz) => quiz.id));
     const data = items.map((q) => {
       const subjectViaQuiz = q.subject ?? null;
       const subjectViaQuestion = q.questions?.[0]?.question?.chapter?.subject ?? null;
@@ -166,7 +168,7 @@ export async function GET(req: Request) {
         description: q.description,
         timeLimit: q.timeLimit,
         createdAt: q.createdAt,
-        accessType: q.accessType,
+        accessType: outside.has(q.id) ? "free" : q.accessType,
         isFreePreview: q.isFreePreview,
         _count: q._count,
         university: effectiveUniversity ? { id: effectiveUniversity.id, name: effectiveUniversity.name } : null,

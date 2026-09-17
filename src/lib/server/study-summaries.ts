@@ -6,6 +6,8 @@ import { unstable_cache } from "next/cache";
 
 import { CACHE_TAGS, CACHE_TTL, cacheTags } from "@/lib/cache-tags";
 import { prisma } from "@/lib/prisma";
+import { isPaymentSubject, paymentSubjectSelect, publishedSubjectWhere } from "@/lib/server/payment-scope";
+import { checkStudySummaryAccess } from "@/lib/server/access-control";
 
 export type PublicStudySummary = {
   id: string;
@@ -140,12 +142,16 @@ async function queryPublishedSubjectSummaries(subjectId: string): Promise<Public
 }
 
 async function loadPublishedSubjectSummaries(subjectId: string): Promise<PublicStudySummary[]> {
+  const subject = await prisma.subject.findFirst({ where: { id: subjectId, ...publishedSubjectWhere() }, select: paymentSubjectSelect });
+  if (!subject) return [];
   const rows = await queryPublishedSubjectSummaries(subjectId);
 
-  return rows.map(serializeSummary);
+  return rows.map((row) => serializeSummary({ ...row, accessType: isPaymentSubject(subject) ? row.accessType : "free" }));
 }
 
 async function loadPublishedSubjectSummaryBySlug(subjectId: string, slug: string): Promise<PublicStudySummary | null> {
+  const subject = await prisma.subject.findFirst({ where: { id: subjectId, ...publishedSubjectWhere() }, select: paymentSubjectSelect });
+  if (!subject) return null;
   const now = new Date();
   const row = await prisma.studySummary.findFirst({
     where: {
@@ -171,10 +177,11 @@ async function loadPublishedSubjectSummaryBySlug(subjectId: string, slug: string
     },
   });
 
-  return row ? serializeSummaryDetail(row) : null;
+  return row ? serializeSummaryDetail({ ...row, accessType: isPaymentSubject(subject) ? row.accessType : "free" }) : null;
 }
 
 export async function getPublishedStudySummaryContent(summaryId: string): Promise<ProtectedStudySummaryContent | null> {
+  if (!(await checkStudySummaryAccess({ summaryId })).allowed) return null;
   const now = new Date();
   return prisma.studySummary.findFirst({
     where: {
@@ -208,7 +215,7 @@ async function loadStudySummarySeoMeta(summaryId: string): Promise<StudySummaryS
 export const getPublishedSubjectSummaries = cache(async (subjectId: string): Promise<PublicStudySummary[]> => {
   return unstable_cache(
     () => loadPublishedSubjectSummaries(subjectId),
-    ["public-study-summaries-safe-v3", subjectId],
+    ["public-study-summaries-safe-v3", "payment-v1-scope", subjectId],
     {
       revalidate: CACHE_TTL.publicLong,
       tags: cacheTags(
@@ -224,7 +231,7 @@ export const getPublishedSubjectSummaryBySlug = cache(
   async (subjectId: string, slug: string): Promise<PublicStudySummary | null> => {
     return unstable_cache(
       () => loadPublishedSubjectSummaryBySlug(subjectId, slug),
-      ["public-study-summary-detail-safe-v2", subjectId, slug],
+      ["public-study-summary-detail-safe-v2", "payment-v1-scope", subjectId, slug],
       {
         revalidate: CACHE_TTL.publicLong,
         tags: cacheTags(

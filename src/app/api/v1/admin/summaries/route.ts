@@ -6,6 +6,7 @@ import { CACHE_CONTROL } from "@/lib/cache-tags";
 import { json } from "@/lib/server/admin-http";
 import { prisma } from "@/lib/prisma";
 import { encodeSlugPath, stripPrefix } from "@/lib/public/slug-utils";
+import { getPaymentSummaryMediaIssue } from "@/lib/server/payment-media";
 import { createStudySummarySchema, listStudySummariesQuerySchema } from "@/validations/study-summary";
 
 export const dynamic = "force-dynamic";
@@ -316,6 +317,14 @@ export async function POST(req: Request) {
   if (!attachmentCheck.ok) return adminBad(attachmentCheck.error);
 
   const content = contentPayload(input.content, input.contentHtml, input.contentText);
+  const paymentMediaIssue = await getPaymentSummaryMediaIssue({
+    subjectId: input.subjectId,
+    accessType: input.accessType as QuizAccessType,
+    pdfAttachmentId: input.pdfAttachmentId,
+    contentHtml: content.contentHtml,
+    contentText: content.contentText,
+  });
+  if (paymentMediaIssue) return adminBad(paymentMediaIssue, undefined, 409);
 
   try {
     const created = await prisma.studySummary.create({

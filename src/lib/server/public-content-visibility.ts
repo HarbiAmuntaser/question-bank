@@ -7,7 +7,6 @@ import {
   isPublicInstitutionTypeEnabled,
 } from "@/config/public-features";
 import { prisma } from "@/lib/prisma";
-import { hashSubscriptionCode, normalizeSubscriptionCode } from "@/lib/server/subscription-code";
 
 export function publicUniversityWhere(): Prisma.UniversityWhereInput {
   return { institutionType: { in: getEnabledPublicTypes() } };
@@ -95,51 +94,6 @@ export async function isPublicStudySummaryId(id: string) {
     select: { id: true },
   });
   return Boolean(row);
-}
-
-export async function isPublicPaidAccessPlanId(id: string) {
-  const row = await prisma.paidAccessPlan.findFirst({
-    where: {
-      id,
-      OR: [
-        { scopeType: "major", major: publicMajorWhere() },
-        { scopeType: "subject", subject: publicSubjectWhere() },
-      ],
-    },
-    select: { id: true },
-  });
-  return Boolean(row);
-}
-
-/** Returns null for an unknown code so the existing redemption errors stay authoritative. */
-export async function isSubscriptionCodeForPublicContent(code: string): Promise<boolean | null> {
-  const normalized = normalizeSubscriptionCode(code);
-  if (!normalized) return null;
-
-  const row = await prisma.subscriptionCode.findUnique({
-    where: { codeHash: hashSubscriptionCode(normalized) },
-    select: {
-      plan: {
-        select: {
-          scopeType: true,
-          major: {
-            select: { university: { select: { institutionType: true } } },
-          },
-          subject: {
-            select: {
-              major: { select: { university: { select: { institutionType: true } } } },
-            },
-          },
-        },
-      },
-    },
-  });
-
-  if (!row) return null;
-  const university = row.plan.scopeType === "major"
-    ? row.plan.major?.university
-    : row.plan.subject?.major.university;
-  return isPublicInstitutionRecord(university);
 }
 
 export async function getPublicQuizIdSet(ids: string[]) {

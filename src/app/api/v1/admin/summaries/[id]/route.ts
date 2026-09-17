@@ -6,6 +6,7 @@ import { CACHE_CONTROL } from "@/lib/cache-tags";
 import { json } from "@/lib/server/admin-http";
 import { prisma } from "@/lib/prisma";
 import { encodeSlugPath, stripPrefix } from "@/lib/public/slug-utils";
+import { getPaymentSummaryMediaIssue } from "@/lib/server/payment-media";
 import { updateStudySummarySchema } from "@/validations/study-summary";
 
 export const dynamic = "force-dynamic";
@@ -265,6 +266,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
         contentHtml: true,
         contentText: true,
         pdfAttachmentId: true,
+        accessType: true,
         publishedAt: true,
       },
     });
@@ -278,6 +280,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
       typeof input.pdfAttachmentId !== "undefined" ? input.pdfAttachmentId : existing.pdfAttachmentId;
     const nextContentHtml = typeof input.contentHtml !== "undefined" ? input.contentHtml : existing.contentHtml;
     const nextContentText = typeof input.contentText !== "undefined" ? input.contentText : existing.contentText;
+    const nextAccessType = input.accessType ?? existing.accessType;
 
     if (!(await validateSubject(nextSubjectId))) return adminBad("subject_not_found", undefined, 404);
 
@@ -300,6 +303,14 @@ export async function PATCH(req: Request, ctx: Ctx) {
       typeof input.contentHtml !== "undefined" ||
       typeof input.contentText !== "undefined";
     const content = shouldUpdateContent ? contentPayload(input.content, nextContentHtml, nextContentText) : null;
+    const paymentMediaIssue = await getPaymentSummaryMediaIssue({
+      subjectId: nextSubjectId,
+      accessType: nextAccessType as QuizAccessType,
+      pdfAttachmentId: nextPdfAttachmentId,
+      contentHtml: content?.contentHtml ?? nextContentHtml,
+      contentText: content?.contentText ?? nextContentText,
+    });
+    if (paymentMediaIssue) return adminBad(paymentMediaIssue, undefined, 409);
 
     const data: Prisma.StudySummaryUpdateInput = {
       ...(typeof input.subjectId !== "undefined" ? { subject: { connect: { id: nextSubjectId } } } : {}),

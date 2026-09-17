@@ -47,7 +47,7 @@ export function CodeDialog({ children, plans }: { children: React.ReactNode; pla
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(next) => { if (!pending) { setOpen(next); if (!next) setGeneratedCode(""); } }}>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl" dir="rtl">
         <DialogHeader>
@@ -62,7 +62,7 @@ export function CodeDialog({ children, plans }: { children: React.ReactNode; pla
             <p className="text-sm text-muted-foreground">انسخ الكود الآن. بعد إغلاق النافذة سيظهر فقط جزء من الكود في الجدول.</p>
             <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" onClick={() => setGeneratedCode("")}>إنشاء كود آخر</Button>
-              <Button type="button" onClick={() => setOpen(false)}>تم</Button>
+              <Button type="button" onClick={() => { setGeneratedCode(""); setOpen(false); }}>تم</Button>
             </div>
           </div>
         ) : (
@@ -104,6 +104,7 @@ export function CodeDialog({ children, plans }: { children: React.ReactNode; pla
               </div>
             </div>
 
+            <div className="space-y-2"><Label htmlFor="code-reason">سبب إصدار الكود (داخلي)</Label><Textarea id="code-reason" name="reason" required minLength={5} maxLength={1000} rows={2} /></div>
             <DialogFooter>
               <Button type="submit" disabled={pending || !planId}>{pending ? "جار الإنشاء..." : "إنشاء الكود"}</Button>
             </DialogFooter>

@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { createUserAction, updateUserAction } from "@/app/admin/users/actions";
 
-type Role = "admin" | "editor" | "moderator";
+type Role = "admin" | "editor" | "moderator" | "student";
 type UserRow = {
   id: string; name: string | null; email: string; role: Role; isActive: boolean;
 };
@@ -34,7 +34,7 @@ export default function UserDialog({
   const [name, setName] = useState<string>(user?.name ?? "");
   const [email, setEmail] = useState<string>(user?.email ?? "");
   const [password, setPassword] = useState<string>("");
-  const [role, setRole] = useState<Role>(user?.role ?? "admin");
+  const [role, setRole] = useState<Role>(user?.role ?? "student");
   const [isActive, setIsActive] = useState<boolean>(user?.isActive ?? true);
 
   useEffect(() => {
@@ -47,7 +47,7 @@ export default function UserDialog({
     } else {
       setName("");
       setEmail("");
-      setRole("admin");
+      setRole("student");
       setIsActive(true);
       setPassword("");
     }
@@ -114,6 +114,7 @@ export default function UserDialog({
             <Select value={role} onValueChange={(v) => setRole(v as Role)} disabled={isCurrentUser}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
+                <SelectItem value="student">طالب</SelectItem>
                 <SelectItem value="admin">Admin</SelectItem>
                 <SelectItem value="editor">Editor</SelectItem>
                 <SelectItem value="moderator">Moderator</SelectItem>

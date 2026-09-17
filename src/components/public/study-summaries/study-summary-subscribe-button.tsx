@@ -43,6 +43,7 @@ export function StudySummarySubscribeButton({
 }) {
   const [open, setOpen] = useState(false);
   const router = useRouter();
+  const unavailable = access && ["payments_unavailable", "missing_context", "not_found"].includes(access.reason);
 
   return (
     <>
@@ -54,10 +55,10 @@ export function StudySummarySubscribeButton({
           className,
         )}
         onClick={() => setOpen(true)}
-        disabled={disabled}
+        disabled={disabled || Boolean(unavailable)}
       >
         <Lock className="h-4 w-4" aria-hidden />
-        {disabled ? "جاري التحقق..." : access?.plan ? "لدي كود اشتراك" : "عرض خيارات الاشتراك"}
+        {disabled ? "جاري التحقق..." : unavailable ? "غير متاح حاليًا" : access?.reason === "student_signin_required" ? "تسجيل الدخول" : "عرض خيارات الاشتراك"}
       </Button>
       {open ? (
         <LazySubscriptionGateDialog

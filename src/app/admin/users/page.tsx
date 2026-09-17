@@ -4,7 +4,8 @@ import { prisma } from "@/lib/prisma";
 
 async function getInitialUsers() {
   const users = await prisma.user.findMany({
-    orderBy: { createdAt: "desc" },
+    orderBy: [{ createdAt: "desc" }, { id: "asc" }],
+    take: 26,
     select: {
       id: true,
       name: true,
@@ -33,7 +34,7 @@ export default async function UsersPage() {
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white">إدارة المستخدمين</h1>
         <p className="mt-2 text-gray-600 dark:text-gray-400">إنشاء وتعديل وحذف المستخدمين ذوي الصلاحيات</p>
       </div>
-      <UsersTable initialRows={users} currentUserId={admin.userId} />
+      <UsersTable initialRows={users.slice(0, 25)} initialHasMore={users.length > 25} currentUserId={admin.userId} />
     </div>
   );
 }

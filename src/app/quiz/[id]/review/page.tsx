@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 
 import type { QuizWithQuestions } from "@/types";
-import { fetchJSON } from "@/lib/server/student-fetch";
+import { fetchAuthenticatedStudentJSON } from "@/lib/server/student-fetch";
 import QuizReview from "@/components/public/quiz/review/quiz-review";
 import { PublicHeader } from "@/components/public/public-header/public-header";
 
@@ -31,10 +31,8 @@ export default async function ReviewPage({
   const id = (p?.id || "").trim();
   if (!id) notFound();
 
-  const quizRes = await fetchJSON<QuizWithQuestions>(
-    `/api/v1/student/quizzes/by-id/${encodeURIComponent(id)}`,
-    { cache: "no-store" },
-    0
+  const quizRes = await fetchAuthenticatedStudentJSON<QuizWithQuestions>(
+    `/api/v1/student/quizzes/by-id/${encodeURIComponent(id)}`
   );
   if (!quizRes.ok || !quizRes.data) notFound();
 

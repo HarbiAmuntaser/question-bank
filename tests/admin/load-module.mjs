@@ -61,20 +61,20 @@ export function authHarness({ signedIn = true, role = "admin", active = true, mi
   const user = {
     ...forbiddenModel,
     async findUnique(query) {
-      const expected = { id: true, role: true, isActive: true };
+      const expected = { id: true, role: true, isActive: true, sessionVersion: true };
       if (query.where.id !== "actor" || JSON.stringify(query.select) !== JSON.stringify(expected)) {
         state.sideEffects += 1;
         throw new Error("UNEXPECTED_USER_DATA_ACCESS");
       }
       state.identityReads += 1;
-      return state.missing ? null : { id: "actor", role: state.role, isActive: state.active };
+      return state.missing ? null : { id: "actor", role: state.role, isActive: state.active, sessionVersion: 0 };
     },
   };
   const prisma = new Proxy({ user, ...models }, {
     get: (target, key) => key in target ? target[key] : forbiddenModel,
   });
   const mocks = {
-    "next-auth": { getServerSession: async () => state.signedIn ? { user: { id: "actor", role: "admin" } } : null },
+    "next-auth": { getServerSession: async () => state.signedIn ? { user: { id: "actor", role: "admin", sessionVersion: 0 } } : null },
     "@/lib/auth": { authOptions: {} },
     "@/lib/prisma": { prisma },
     "next/cache": {

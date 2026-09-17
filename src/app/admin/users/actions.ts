@@ -1,5 +1,6 @@
 "use server";
 import { requireAdminPermission } from "@/lib/admin-auth";
+import type { UserRole } from "@prisma/client";
 import { adminApiFetch as apiFetch } from "@/lib/server/admin-api-fetch";
 
 function userError(data: { error?: string; message?: string }, fallback: string) {
@@ -10,25 +11,27 @@ function userError(data: { error?: string; message?: string }, fallback: string)
     forbidden: "لا تملك صلاحية تنفيذ هذه العملية.",
     unauthorized: "انتهت الجلسة. سجّل الدخول مجددًا.",
     email_exists: "البريد الإلكتروني مستخدم بالفعل.",
+    user_has_payment_records: "للحساب سجلات مرتبطة لا يمكن حذفها. يمكنك تعطيله بدلًا من حذفه.",
     not_found: "المستخدم غير موجود.",
   };
   return messages[data.error ?? ""] ?? data.message ?? fallback;
 }
 
-export async function listUsersAction() {
+export async function listUsersAction(input: { page?: number; query?: string; role?: string } = {}) {
   await requireAdminPermission("users:manage");
 
-  const res = await apiFetch("/api/v1/admin/users");
+  const params = new URLSearchParams({ page: String(input.page ?? 1), query: input.query ?? "", role: input.role ?? "" });
+  const res = await apiFetch(`/api/v1/admin/users?${params}`);
   const data = await res.json().catch(() => ({}));
   if (!res.ok) return { success: false, message: userError(data, "فشل جلب المستخدمين") };
-  return { success: true, users: data?.data ?? [] };
+  return { success: true, users: data?.data ?? [], hasMore: Boolean(data.hasMore) };
 }
 
 export async function createUserAction(payload: {
   name?: string | null;
   email: string;
   password: string;
-  role: "admin" | "editor" | "moderator";
+  role: UserRole;
   isActive: boolean;
 }) {
   await requireAdminPermission("users:manage");
@@ -43,7 +46,7 @@ export async function updateUserAction(id: string, payload: {
   name?: string | null;
   email?: string;
   password?: string;
-  role?: "admin" | "editor" | "moderator";
+  role?: UserRole;
   isActive?: boolean;
 }) {
   await requireAdminPermission("users:manage");

@@ -5,7 +5,7 @@ import { json, bad } from "@/lib/server/admin-http";
 import { verifyAdmin, adminAuthResponse } from "@/lib/admin-auth";
 import { updateUserSchema } from "@/validations/user";
 import { revalidateTag } from "next/cache";
-import bcrypt from "bcryptjs";
+import { hashPassword } from "@/lib/server/auth-password";
 import { AdminUserError, updateManagedUser, deleteManagedUser } from "@/lib/server/admin-users";
 
 export const dynamic = "force-dynamic";
@@ -42,12 +42,12 @@ export async function PUT(req: Request, { params }: RouteContext) {
   // معالجة كلمة المرور إن وُجدت
   let password: string | undefined = undefined;
   if (parsed.data.password) {
-    password = await bcrypt.hash(parsed.data.password, 10);
+    password = await hashPassword(parsed.data.password);
   }
 
   // تجنب تعارض الإيميل
   if (parsed.data.email) {
-    const duplicate = await prisma.user.findUnique({ where: { email: parsed.data.email } });
+    const duplicate = await prisma.user.findUnique({ where: { normalizedEmail: parsed.data.email } });
     if (duplicate && duplicate.id !== id) return bad("email_exists");
   }
 

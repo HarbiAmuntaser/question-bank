@@ -3,7 +3,6 @@
 import { prisma } from "@/lib/prisma";
 import { json } from "@/lib/http";
 import { CACHE_CONTROL } from "@/lib/cache-tags";
-import { getOrCreateAnonymousSession } from "@/lib/server/anonymous-session";
 import { checkQuizAccess } from "@/lib/server/access-control";
 import { isPublicQuizId } from "@/lib/server/public-content-visibility";
 
@@ -28,8 +27,7 @@ export async function GET(_req: Request, { params }: RouteContext) {
       return json({ error: "not_found" }, { status: 404, headers: privateHeaders });
     }
 
-    const { session } = await getOrCreateAnonymousSession();
-    const access = await checkQuizAccess({ quizId: id, anonymousSessionId: session.id });
+    const access = await checkQuizAccess({ quizId: id });
     if (access.reason === "not_found") return json({ error: "not_found" }, { status: 404, headers: privateHeaders });
     if (!access.allowed) {
       return json({ error: "paid_access_required", details: access }, { status: 403, headers: privateHeaders });

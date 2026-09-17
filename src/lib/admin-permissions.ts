@@ -37,6 +37,7 @@ const pagePermissions: Record<string, AdminPermission> = {
   "/admin/analytics": "analytics:read",
   "/admin/users": "users:manage",
   "/admin/subscriptions": "subscriptions:manage",
+  "/admin/payment-orders": "subscriptions:manage",
   "/admin/quiz-generator": "quizzes:write",
   ...Object.fromEntries(CONTENT_RESOURCES.map((resource) => [`/admin/${resource}`, `${resource}:read`])),
 };

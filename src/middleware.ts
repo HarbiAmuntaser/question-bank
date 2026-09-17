@@ -160,7 +160,7 @@ async function adminMiddleware(req: NextRequest) {
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
   let res: NextResponse;
   if (!token) {
-    const url = new URL("/auth/signin", req.url);
+    const url = new URL("/auth/admin/signin", req.url);
     url.searchParams.set("callbackUrl", req.nextUrl.pathname);
     res = NextResponse.redirect(url);
   } else if (!isAdminRole(token.role)) {
@@ -170,6 +170,10 @@ async function adminMiddleware(req: NextRequest) {
   }
   res.headers.set("Cache-Control", "private, no-store");
   applySecurityHeaders(res);
+  if (/^\/admin\/(payment-orders|subscriptions)(\/|$)/.test(req.nextUrl.pathname)) {
+    res.headers.set("Referrer-Policy", "no-referrer");
+    res.headers.set("X-Robots-Tag", "noindex, nofollow");
+  }
   return res;
 }
 
@@ -179,6 +183,15 @@ export default function middleware(req: NextRequest) {
 
   if (req.nextUrl.pathname === "/admin" || req.nextUrl.pathname.startsWith("/admin/")) {
     return adminMiddleware(req);
+  }
+
+  if (/^\/(auth|account)(\/|$)/.test(req.nextUrl.pathname)) {
+    const res = NextResponse.next();
+    applySecurityHeaders(res);
+    res.headers.set("Cache-Control", "private, no-store");
+    res.headers.set("Referrer-Policy", "no-referrer");
+    res.headers.set("X-Robots-Tag", "noindex, nofollow");
+    return res;
   }
 
   return publicMiddleware(req);

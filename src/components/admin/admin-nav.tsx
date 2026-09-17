@@ -16,6 +16,7 @@ import {
   GraduationCap,
   Home,
   KeyRound,
+  Receipt,
   Newspaper,
   Shuffle,
   Tags,
@@ -47,6 +48,7 @@ export const adminNavigation: AdminNavEntry[] = [
   { name: "مولد الاختبارات", href: "/admin/quiz-generator", icon: Shuffle },
   { name: "الاختبارات المنشأة", href: "/admin/quizzes", icon: ClipboardList },
   { name: "الاشتراكات", href: "/admin/subscriptions", icon: KeyRound },
+  { name: "طلبات الدفع", href: "/admin/payment-orders", icon: Receipt },
   {
     name: "المدونة",
     href: "/admin/blog",

@@ -1,119 +1,42 @@
-"use client"
+"use client";
+import { useState, type FormEvent } from "react";
+import Link from "next/link";
+import { signIn } from "next-auth/react";
+import { LogIn, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { PasswordInput } from "./password-input";
+import { normalizeEmail, safeCallbackPath, type AuthPortal } from "@/lib/auth-policy";
 
-import { useState } from "react"
-import { signIn } from "next-auth/react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { useToast } from "@/hooks/use-toast"
-
-type SignInErrors = {
-  email?: string
-  password?: string
-}
-
-function isValidEmail(value: string) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
-}
-
-export function SignInForm() {
-  const [isLoading, setIsLoading] = useState(false)
-  const [errors, setErrors] = useState<SignInErrors>({})
-  const { toast } = useToast()
-
-  const handleSubmit = async (formData: FormData) => {
-    const email = String(formData.get("email") ?? "").trim().toLowerCase()
-    const password = String(formData.get("password") ?? "")
-    const nextErrors: SignInErrors = {}
-
-    if (!email) {
-      nextErrors.email = "البريد الإلكتروني مطلوب."
-    } else if (!isValidEmail(email)) {
-      nextErrors.email = "أدخل بريدًا إلكترونيًا صحيحًا."
-    }
-
-    if (!password) {
-      nextErrors.password = "كلمة المرور مطلوبة."
-    } else if (password.length < 6) {
-      nextErrors.password = "كلمة المرور يجب ألا تقل عن 6 أحرف."
-    }
-
-    setErrors(nextErrors)
-    if (Object.keys(nextErrors).length > 0) return
-
-    setIsLoading(true)
-
+export function SignInForm({ portal = "student", callbackUrl, registrationOpen = false }: { portal?: AuthPortal; callbackUrl?: string; registrationOpen?: boolean }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const destination = safeCallbackPath(callbackUrl, portal);
+  const suffix = `?callbackUrl=${encodeURIComponent(destination)}`;
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (busy) return;
+    const data = new FormData(event.currentTarget);
+    setBusy(true); setError("");
     try {
-      const result = await signIn("credentials", {
-        email,
-        password,
-        redirect: false,
-      })
-
-      if (result?.error) {
-        toast({
-          title: "تعذر تسجيل الدخول",
-          description: "البريد الإلكتروني أو كلمة المرور غير صحيحة.",
-          variant: "destructive",
-        })
-        setErrors({ password: "تحقق من بيانات الدخول ثم حاول مرة أخرى." })
-      } else {
-        window.location.href = "/admin"
-      }
-    } catch {
-      toast({
-        title: "تعذر تسجيل الدخول",
-        description: "حدث خطأ غير متوقع. حاول مرة أخرى بعد قليل.",
-        variant: "destructive",
-      })
-    } finally {
-      setIsLoading(false)
-    }
+      const result = await signIn(`${portal}-credentials`, { email: normalizeEmail(String(data.get("email"))), password: String(data.get("password")), callbackUrl: destination, redirect: false });
+      if (!result?.ok || result.error) setError("تعذر تسجيل الدخول. تحقق من بياناتك وتأكيد بريدك، أو حاول بعد قليل.");
+      else window.location.assign(destination);
+    } catch { setError("تعذر الاتصال. حاول مرة أخرى."); }
+    finally { setBusy(false); }
   }
-
-  return (
-    <form action={handleSubmit} className="space-y-5" noValidate>
-      <div className="space-y-2">
-        <Label htmlFor="email">البريد الإلكتروني</Label>
-        <Input
-          id="email"
-          name="email"
-          type="email"
-          inputMode="email"
-          autoComplete="email"
-          placeholder="admin@example.com"
-          aria-invalid={Boolean(errors.email)}
-          aria-describedby={errors.email ? "email-error" : undefined}
-          className="h-11"
-        />
-        {errors.email ? (
-          <p id="email-error" className="text-sm text-destructive">
-            {errors.email}
-          </p>
-        ) : null}
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="password">كلمة المرور</Label>
-        <Input
-          id="password"
-          name="password"
-          type="password"
-          autoComplete="current-password"
-          aria-invalid={Boolean(errors.password)}
-          aria-describedby={errors.password ? "password-error" : undefined}
-          className="h-11"
-        />
-        {errors.password ? (
-          <p id="password-error" className="text-sm text-destructive">
-            {errors.password}
-          </p>
-        ) : null}
-      </div>
-
-      <Button type="submit" className="h-11 w-full" disabled={isLoading}>
-        {isLoading ? "جاري تسجيل الدخول..." : "تسجيل الدخول"}
-      </Button>
+  return <div className="space-y-6">
+    <form onSubmit={submit} className="space-y-5">
+      <div className="space-y-2"><Label htmlFor="email">البريد الإلكتروني</Label><Input id="email" name="email" type="email" required maxLength={254} autoComplete="email" dir="ltr" className="h-11" /></div>
+      <div className="space-y-2"><Label htmlFor="password">كلمة المرور</Label><PasswordInput /></div>
+      {error && <p role="alert" className="text-sm leading-6 text-destructive">{error}</p>}
+      <Button type="submit" disabled={busy} className="h-11 w-full gap-2">{busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <LogIn className="h-4 w-4" aria-hidden />}تسجيل الدخول</Button>
     </form>
-  )
+    {portal === "student" && <div className="flex flex-col items-start gap-4 text-sm">
+      <Link href={`/auth/forgot-password${suffix}`} className="text-primary underline-offset-4 hover:underline">نسيت كلمة المرور؟</Link>
+      <Link href={`/auth/resend-verification${suffix}`} className="text-primary underline-offset-4 hover:underline">إعادة إرسال رسالة التأكيد</Link>
+      {registrationOpen && <Link href={`/auth/register${suffix}`} className="font-semibold text-primary underline-offset-4 hover:underline">إنشاء حساب طالب</Link>}
+    </div>}
+  </div>;
 }

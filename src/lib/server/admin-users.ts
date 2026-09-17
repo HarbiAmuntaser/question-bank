@@ -2,6 +2,7 @@ import "server-only";
 
 import { Prisma, type UserRole } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { normalizeEmail } from "@/lib/auth-policy";
 
 type UserUpdate = {
   name?: string | null;
@@ -27,7 +28,7 @@ async function guardUserChange(tx: Prisma.TransactionClient, actorId: string, id
 
   const target = await tx.user.findUnique({
     where: { id },
-    select: { role: true, isActive: true },
+    select: { role: true, isActive: true, email: true },
   });
   if (!target) throw new AdminUserError("not_found", 404);
 
@@ -38,6 +39,7 @@ async function guardUserChange(tx: Prisma.TransactionClient, actorId: string, id
     if (count <= 1) throw new AdminUserError("last_active_admin", 409);
   }
   if (actorId === id && removesAdmin) throw new AdminUserError("cannot_remove_own_admin_access", 409);
+  return target;
 }
 
 async function userTransaction<T>(work: (tx: Prisma.TransactionClient) => Promise<T>): Promise<T> {
@@ -49,6 +51,7 @@ async function userTransaction<T>(work: (tx: Prisma.TransactionClient) => Promis
       if (!(error instanceof Prisma.PrismaClientKnownRequestError)) throw error;
       if (error.code === "P2002") throw new AdminUserError("email_exists", 409);
       if (error.code === "P2025") throw new AdminUserError("not_found", 404);
+      if (error.code === "P2003") throw new AdminUserError("user_has_payment_records", 409);
       if (error.code !== "P2034") throw error;
     }
   }
@@ -57,10 +60,18 @@ async function userTransaction<T>(work: (tx: Prisma.TransactionClient) => Promis
 
 export async function updateManagedUser(actorId: string, id: string, data: UserUpdate) {
   return userTransaction(async (tx) => {
-    await guardUserChange(tx, actorId, id, data);
+    const target = await guardUserChange(tx, actorId, id, data);
+    const changesEmail = data.email !== undefined && normalizeEmail(data.email) !== normalizeEmail(target.email);
+    const invalidatesSessions = data.password !== undefined || changesEmail ||
+      (data.role !== undefined && data.role !== target.role) || (data.isActive !== undefined && data.isActive !== target.isActive);
     return tx.user.update({
       where: { id },
-      data,
+      data: {
+        ...data,
+        ...(data.email !== undefined ? { normalizedEmail: normalizeEmail(data.email) } : {}),
+        ...(changesEmail ? { emailVerified: null } : {}),
+        ...(invalidatesSessions ? { sessionVersion: { increment: 1 } } : {}),
+      },
       select: { id: true, name: true, email: true, role: true, isActive: true, createdAt: true },
     });
   });

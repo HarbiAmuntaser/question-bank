@@ -76,7 +76,7 @@ export function AdminHeader({ role }: { role: AdminRole }) {
                 <span>الإعدادات</span>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => signOut()}>
+              <DropdownMenuItem onClick={() => signOut({ callbackUrl: "/auth/admin/signin" })}>
                 <LogOut className="ml-2 h-4 w-4" />
                 <span>تسجيل الخروج</span>
               </DropdownMenuItem>

@@ -1,11 +1,11 @@
 import { json } from "@/lib/http";
 import { CACHE_CONTROL } from "@/lib/cache-tags";
-import { getOrCreateAnonymousSession } from "@/lib/server/anonymous-session";
 import {
   checkQuizAccess,
   checkScopeAccess,
   checkStudySummaryAccess,
   getStudySummaryAccessMap,
+  getQuizAccessMap,
 } from "@/lib/server/access-control";
 import {
   getPublicQuizIdSet,
@@ -48,19 +48,14 @@ export async function GET(req: Request) {
 
     if (quizIds.length > 0) {
       const publicIds = await getPublicQuizIdSet(Array.from(new Set(quizIds)));
-      const { session } = await getOrCreateAnonymousSession();
-      const entries = await Promise.all(
-        Array.from(publicIds).map(async (id) => [id, await checkQuizAccess({ quizId: id, anonymousSessionId: session.id })] as const),
-      );
-      return json({ data: { items: Object.fromEntries(entries) } }, { status: 200, headers });
+      const items = await getQuizAccessMap(Array.from(publicIds));
+      return json({ data: { items } }, { status: 200, headers });
     }
 
     if (summaryIds.length > 0) {
       const publicIds = await getPublicStudySummaryIdSet(Array.from(new Set(summaryIds)));
-      const { session } = await getOrCreateAnonymousSession();
       const items = await getStudySummaryAccessMap({
         summaryIds: Array.from(publicIds),
-        anonymousSessionId: session.id,
       });
       return json({ data: { items } }, { status: 200, headers });
     }
@@ -79,12 +74,13 @@ export async function GET(req: Request) {
       return json({ error: "not_found" }, { status: 404, headers });
     }
 
-    const { session } = await getOrCreateAnonymousSession();
     const access = quizId
-      ? await checkQuizAccess({ quizId, anonymousSessionId: session.id })
+      ? await checkQuizAccess({ quizId })
       : summaryId
-        ? await checkStudySummaryAccess({ summaryId, anonymousSessionId: session.id })
-      : await checkScopeAccess({ subjectId, majorId, anonymousSessionId: session.id });
+        ? await checkStudySummaryAccess({ summaryId })
+      : await checkScopeAccess({ subjectId, majorId });
+
+    if (access.reason === "not_found") return json({ error: "not_found" }, { status: 404, headers });
 
     return json({ data: access }, { status: 200, headers });
   } catch {

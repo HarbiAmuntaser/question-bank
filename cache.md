@@ -167,7 +167,7 @@ The invalidation layer also uses older literal tags. These are kept for compatib
 | `POST /api/v1/student/quizzes/grade` | Private no-store. | `CACHE_CONTROL.PRIVATE_NO_STORE`. | None. | No cache. | Saves attempts/answers and returns current response shape. |
 | `GET /api/v1/student/access/status` | Private no-store. | `CACHE_CONTROL.PRIVATE_NO_STORE`. | None. | No cache. | AnonymousSession/access-status specific. |
 | `POST /api/v1/student/access/redeem` | Private no-store. | `CACHE_CONTROL.PRIVATE_NO_STORE`. | None. | No cache. | Subscription code redemption. |
-| `POST /api/v1/student/access/payment-request` | Private no-store. | `CACHE_CONTROL.PRIVATE_NO_STORE`. | None. | No cache. | Manual subscription contact/request flow. |
+| `POST /api/v1/student/access/payment-request` | Private no-store. | Explicit response headers. | None. | No cache. | Retired legacy endpoint; always `410`, no payment write. |
 | `GET /api/v1/student/stats` | `unstable_cache` + public CDN header. | `CACHE_TTL.publicStable`. | `student-stats`, `public:stats`. | Content invalidation helpers include `public:stats` and `student-stats`. | Public platform stats, only real available counts should be shown. |
 | `GET /api/v1/student/seo/[university/major/subject/quiz]` | Public CDN header. | `CACHE_TTL.publicLong`. | No `unstable_cache` tag binding found in this audit. | `revalidateSeoCache` invalidates SEO tags, but these endpoints appear to rely on TTL/CDN header unless changed. | Watch item if instant SEO changes are required. |
 
@@ -242,7 +242,7 @@ The following must remain uncached:
 - Quiz results/review pages.
 - Subscription status: `/api/v1/student/access/status`.
 - Subscription redemption: `/api/v1/student/access/redeem`.
-- Manual payment requests: `/api/v1/student/access/payment-request`.
+- Retired manual payment request route: `/api/v1/student/access/payment-request` returns `410` and creates no record.
 
 Reason: these depend on `AnonymousSession`, access entitlements, submitted answers, or current student/session state. Shared CDN caching would leak or stale user-specific state.
 
