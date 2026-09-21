@@ -6,35 +6,28 @@ import { safeCallbackPath } from "@/lib/auth-policy";
 import { authOrigin } from "@/lib/server/auth-config";
 import { comparePassword, hashPassword } from "@/lib/server/auth-password";
 import { sendAuthMail } from "@/lib/server/auth-mail";
-import { classifySmtpFailure, type AuthFailureStage } from "@/lib/server/student-auth-diagnostic";
 
 export class InvalidAuthTokenError extends Error {
   constructor() { super("invalid_or_expired_token"); }
 }
 function tokenHash(token: string) { return createHash("sha256").update(token).digest("hex"); }
 
-async function issueToken(user: Pick<User, "id" | "email" | "sessionVersion">, purpose: UserAuthTokenPurpose, callback: unknown, onStage?: (stage: AuthFailureStage) => void) {
-  onStage?.("token_create");
+async function issueToken(user: Pick<User, "id" | "email" | "sessionVersion">, purpose: UserAuthTokenPurpose, callback: unknown) {
   const raw = randomBytes(32).toString("base64url");
   const token = await prisma.userAuthToken.create({ data: {
     userId: user.id, purpose, tokenHash: tokenHash(raw), sessionVersion: user.sessionVersion,
     callbackPath: safeCallbackPath(callback),
     expiresAt: new Date(Date.now() + (purpose === "verify_email" ? 24 * 60 : 30) * 60_000),
   } });
-  onStage?.("config");
   const link = new URL(purpose === "verify_email" ? "/auth/verify-email" : "/auth/reset-password", authOrigin());
   link.searchParams.set("token", raw);
-  onStage?.("smtp_connect");
   try {
     await sendAuthMail(user.email,
       purpose === "verify_email" ? "تأكيد بريدك في مستواك" : "استعادة كلمة المرور في مستواك",
       (purpose === "verify_email" ? "لتأكيد حسابك، افتح الرابط وأدخل كلمة المرور التي اخترتها أثناء التسجيل.\n" : "لاختيار كلمة مرور جديدة، افتح الرابط التالي خلال 30 دقيقة.\n") +
       link.href + "\n\nإذا لم تطلب ذلك، تجاهل هذه الرسالة. لا تشارك هذا الرابط مع أي شخص.");
   } catch (error) {
-    const smtpStage = onStage ? classifySmtpFailure(error) : undefined;
-    onStage?.("token_cleanup");
     await prisma.userAuthToken.deleteMany({ where: { id: token.id } });
-    if (smtpStage) onStage?.(smtpStage);
     throw error;
   }
 }
@@ -57,11 +50,10 @@ export async function registerStudent(input: { name: string; email: string; pass
   if (user?.role === "student" && user.isActive && !user.emailVerified) await issueToken(user, "verify_email", input.callbackUrl);
 }
 
-export async function requestStudentEmail(email: string, purpose: UserAuthTokenPurpose, callback?: string, onStage?: (stage: AuthFailureStage) => void) {
-  onStage?.("user_lookup");
+export async function requestStudentEmail(email: string, purpose: UserAuthTokenPurpose, callback?: string) {
   const user = await prisma.user.findUnique({ where: { normalizedEmail: email } });
   if (!user || user.role !== "student" || !user.isActive || (purpose === "verify_email" && user.emailVerified)) return;
-  await issueToken(user, purpose, callback, onStage);
+  await issueToken(user, purpose, callback);
 }
 
 export async function consumeStudentToken(raw: string, purpose: UserAuthTokenPurpose, password: string): Promise<string> {
