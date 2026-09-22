@@ -1,34 +1,20 @@
+import { requireAdminPage } from "@/lib/server/admin-page-auth";
+import { adminApiFetch } from "@/lib/server/admin-api-fetch";
 import { Suspense } from "react"
-import { headers as nextHeaders } from "next/headers"
+
 
 import { AnalyticsDashboard } from "@/components/admin/analytics-dashboard"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { parseAnalyticsDays } from "@/lib/admin/analytics"
-import { getRequestOrigin } from "@/lib/server/request-origin"
+
 import type { AnalyticsData } from "@/types/analytics"
 
 interface ApiResponse<T> {
   data: T
 }
 
-async function buildHeaders(): Promise<Headers> {
-  const incoming = await nextHeaders()
-  const headers = new Headers()
-  headers.set("accept", "application/json")
-
-  const adminKey = process.env.ADMIN_API_KEY
-  if (adminKey) headers.set("x-admin-key", adminKey)
-
-  const cookie = incoming.get("cookie")
-  if (cookie) headers.set("cookie", cookie)
-
-  return headers
-}
-
 async function getAnalyticsData(days: number): Promise<AnalyticsData> {
-  const base = await getRequestOrigin()
-  const res = await fetch(`${base}/api/v1/admin/analytics?days=${days}`, {
-    headers: await buildHeaders(),
+  const res = await adminApiFetch(`/api/v1/admin/analytics?days=${days}`, {
     cache: "no-store",
   })
 
@@ -50,6 +36,8 @@ export default async function AnalyticsPage({
 }: {
   searchParams: Promise<{ days?: string }>
 }) {
+  await requireAdminPage("analytics:read");
+
   const resolvedSearchParams = await searchParams
   const days = parseAnalyticsDays(resolvedSearchParams.days)
 

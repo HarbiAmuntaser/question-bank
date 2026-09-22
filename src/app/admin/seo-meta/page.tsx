@@ -1,3 +1,4 @@
+import { requireAdminPage } from "@/lib/server/admin-page-auth";
 // src/app/admin/seo-meta/page.tsx
 import { SeoMetaPageClient } from "@/components/admin/seo/SeoMetaPageClient";
 import { prisma } from "@/lib/prisma";
@@ -32,6 +33,8 @@ async function getInitialSeoMeta() {
 }
 
 export default async function SeoMetaPage() {
+  await requireAdminPage("seo-meta:read");
+
   const initialData = await getInitialSeoMeta();
 
   return <SeoMetaPageClient initialData={initialData} />;

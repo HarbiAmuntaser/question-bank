@@ -2,10 +2,10 @@
 import { createHash } from "crypto"
 import { revalidateTag } from "next/cache"
 
-import { verifyAdmin } from "@/lib/admin-auth"
+import { verifyAdmin, adminAuthResponse } from "@/lib/admin-auth"
 import { CACHE_CONTROL, CACHE_TAGS } from "@/lib/cache-tags"
 import { revalidateBlogCache } from "@/lib/cache-invalidation"
-import { json } from "@/lib/http"
+import { json } from "@/lib/server/admin-http";
 import { prisma } from "@/lib/prisma"
 import {
   buildDatedStorageKey,
@@ -33,9 +33,7 @@ function adminBad(message: string, details?: unknown, status = 400) {
   return json({ error: message, details }, { status, headers: privateHeaders() })
 }
 
-function adminUnauth(message = "غير مصرح") {
-  return json({ error: message }, { status: 401, headers: privateHeaders() })
-}
+
 
 function folderForPurpose(purpose: "blog-cover" | "blog-inline" | "summary-pdf" | "attachment"): StorageKeyFolder {
   if (purpose === "blog-cover") return "blog/covers"
@@ -87,8 +85,8 @@ function safeRevalidateBlogCover(input: Parameters<typeof revalidateBlogCache>[0
 }
 
 export async function GET(req: Request) {
-  const auth = await verifyAdmin(req)
-  if (!auth.ok) return adminUnauth()
+  const auth = await verifyAdmin(req, "attachments:read")
+  if (!auth.ok) return adminAuthResponse(auth);
 
   const url = new URL(req.url)
   const pageParam = url.searchParams.get("page")
@@ -132,8 +130,8 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const auth = await verifyAdmin(req)
-  if (!auth.ok) return adminUnauth()
+  const auth = await verifyAdmin(req, "attachments:write")
+  if (!auth.ok) return adminAuthResponse(auth);
 
   const formData = await req.formData().catch(() => null)
   if (!formData) return adminBad("invalid_form_data")

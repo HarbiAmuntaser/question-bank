@@ -13,6 +13,9 @@
 
 import { useCallback, useMemo } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import Link from "next/link";
+import { UserRound } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 import { ThemeToggle } from "@/components/theme-toggle";
 import { buildNavItems } from "./nav-items";
@@ -88,6 +91,7 @@ export function PublicHeader() {
 
         {/* يمين الهيدر: ثيم + قائمة جوال */}
         <div className="flex items-center gap-2">
+          <Button asChild size="icon" variant="ghost" title="حسابي"><Link href="/account" aria-label="حسابي"><UserRound className="h-5 w-5" aria-hidden /></Link></Button>
           <ThemeToggle />
 
           <MobileNav

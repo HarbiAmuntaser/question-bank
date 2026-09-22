@@ -1,8 +1,8 @@
 import { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
-import { bad, json, notFound, unauth } from "@/lib/http";
-import { verifyAdmin } from "@/lib/admin-auth";
+import { bad, json, notFound } from "@/lib/server/admin-http";
+import { verifyAdmin, adminAuthResponse } from "@/lib/admin-auth";
 import { CACHE_CONTROL } from "@/lib/cache-tags";
 import { revalidateBlogCache } from "@/lib/cache-invalidation";
 import { updateBlogTagSchema } from "@/validations/blog";
@@ -20,8 +20,8 @@ function duplicateError() {
 }
 
 export async function GET(req: Request, ctx: Ctx) {
-  const auth = await verifyAdmin(req);
-  if (!auth.ok) return unauth();
+  const auth = await verifyAdmin(req, "blog:read");
+  if (!auth.ok) return adminAuthResponse(auth);
 
   const { id } = await ctx.params;
   const tag = await prisma.blogTag.findUnique({
@@ -51,8 +51,8 @@ export async function GET(req: Request, ctx: Ctx) {
 }
 
 export async function PUT(req: Request, ctx: Ctx) {
-  const auth = await verifyAdmin(req);
-  if (!auth.ok) return unauth();
+  const auth = await verifyAdmin(req, "blog:write");
+  if (!auth.ok) return adminAuthResponse(auth);
 
   const { id } = await ctx.params;
   const body = await req.json().catch(() => null);
@@ -78,8 +78,8 @@ export async function PUT(req: Request, ctx: Ctx) {
 }
 
 export async function DELETE(req: Request, ctx: Ctx) {
-  const auth = await verifyAdmin(req);
-  if (!auth.ok) return unauth();
+  const auth = await verifyAdmin(req, "blog:write");
+  if (!auth.ok) return adminAuthResponse(auth);
 
   const { id } = await ctx.params;
 

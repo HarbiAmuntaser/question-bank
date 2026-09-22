@@ -2,7 +2,6 @@ import { CACHE_CONTROL } from "@/lib/cache-tags";
 import { json } from "@/lib/http";
 import { prisma } from "@/lib/prisma";
 import { checkStudySummaryAccess } from "@/lib/server/access-control";
-import { getOrCreateAnonymousSession } from "@/lib/server/anonymous-session";
 import { createPresignedGetUrl } from "@/lib/server/storage";
 import { isPublicStudySummaryId } from "@/lib/server/public-content-visibility";
 
@@ -110,14 +109,16 @@ export async function GET(_req: Request, ctx: Ctx) {
     return fail("invalid_summary_pdf_attachment", 409);
   }
 
-  const { session } = await getOrCreateAnonymousSession();
   const access = await checkStudySummaryAccess({
     summaryId: summary.id,
-    anonymousSessionId: session.id,
   });
 
   if (!access.allowed) {
     return fail("summary_pdf_access_denied", 403);
+  }
+
+  if (access.effectiveAccessType === "paid" && (attachment.storageProvider !== "r2" || attachment.visibility !== "private")) {
+    return fail("paid_pdf_private_storage_required", 409);
   }
 
   if (attachment.storageProvider === "r2" && attachment.visibility === "private") {

@@ -7,10 +7,8 @@ import { getPublicVisibilityCacheKey } from "@/config/public-features";
 import { CACHE_TAGS, CACHE_TTL } from "@/lib/cache-tags";
 import { prisma } from "@/lib/prisma";
 import { stripPrefix } from "@/lib/public/slug-utils";
-import {
-  isPublicSubjectId,
-  publicQuizWhere,
-} from "@/lib/server/public-content-visibility";
+import { outOfPaymentQuizIds } from "@/lib/server/payment-public-metadata";
+import { publishedPaymentQuizWhere, publishedSubjectWhere } from "@/lib/server/payment-scope";
 
 const publicQuizPreviewSelect = {
   id: true,
@@ -151,7 +149,7 @@ function normalizePublicQuizId(raw: string) {
 
 async function loadPublicQuizPreview(id: string): Promise<PublicQuizPreview | null> {
   const quiz = await prisma.quiz.findFirst({
-    where: { id, isActive: true, ...publicQuizWhere() },
+    where: { id, ...publishedPaymentQuizWhere() },
     select: publicQuizPreviewSelect,
   });
   if (!quiz) return null;
@@ -190,7 +188,7 @@ async function loadPublicQuizPreview(id: string): Promise<PublicQuizPreview | nu
     totalQuestions: quiz.totalQuestions ?? quiz._count.questions ?? 0,
     totalPoints: quiz.totalPoints ?? 0,
     createdAt: quiz.createdAt.toISOString(),
-    accessType: quiz.accessType,
+    accessType: (await outOfPaymentQuizIds([quiz.id])).has(quiz.id) ? "free" : quiz.accessType,
     isFreePreview: quiz.isFreePreview,
     seo: { slug: quizSeo?.slug ?? null },
     context: {
@@ -213,7 +211,7 @@ async function loadPublicQuizPreview(id: string): Promise<PublicQuizPreview | nu
 const getPublicQuizPreviewByIdCached = (id: string) =>
   unstable_cache(
     () => loadPublicQuizPreview(id),
-    ["student-quiz-preview-by-id", id, getPublicVisibilityCacheKey()],
+    ["student-quiz-preview-by-id", "payment-v1-scope", id, getPublicVisibilityCacheKey()],
     {
       revalidate: CACHE_TTL.publicLong,
       tags: [
@@ -242,7 +240,7 @@ async function findQuizIdBySlug(input: NormalizedQuizSlug) {
 const getPublicQuizPreviewByResolvedSlugCached = (id: string) =>
   unstable_cache(
     () => getPublicQuizPreviewByIdCached(id),
-    ["student-quiz-preview-by-slug-id", id, getPublicVisibilityCacheKey()],
+    ["student-quiz-preview-by-slug-id", "payment-v1-scope", id, getPublicVisibilityCacheKey()],
     {
       revalidate: CACHE_TTL.publicLong,
       tags: [
@@ -323,12 +321,13 @@ const listPublicQuizzesBySubjectCached = (subjectId: string, query: PublicQuizze
       }
 
       const quizzes = await prisma.quiz.findMany({
-        where: { isActive: true, ...publicQuizWhere(), AND: and },
+        where: { AND: [publishedPaymentQuizWhere(), ...and] },
         orderBy: { createdAt: "desc" },
         take: limit,
         select: publicQuizListItemSelect,
       });
       const ids = quizzes.map((quiz) => quiz.id);
+      const outside = await outOfPaymentQuizIds(ids);
       const seoRows = ids.length
         ? await prisma.seoMeta.findMany({
             where: { ownerType: "exam", locale: "ar", ownerId: { in: ids } },
@@ -339,12 +338,14 @@ const listPublicQuizzesBySubjectCached = (subjectId: string, query: PublicQuizze
 
       return quizzes.map((quiz) => ({
         ...quiz,
+        accessType: outside.has(quiz.id) ? "free" as const : quiz.accessType,
         createdAt: quiz.createdAt.toISOString(),
         seo: { slug: seoMap.get(quiz.id) ?? null },
       }));
     },
     [
       "student-quizzes-by-subject",
+      "payment-v1-scope",
       subjectId,
       query.degreeType ?? "",
       query.limit ?? "",
@@ -366,6 +367,6 @@ export async function getPublicQuizzesBySubject(
   query: PublicQuizzesBySubjectQuery = {},
 ) {
   const subjectId = rawSubjectId.trim();
-  if (!subjectId || !(await isPublicSubjectId(subjectId))) return null;
+  if (!subjectId || !(await prisma.subject.findFirst({ where: { id: subjectId, ...publishedSubjectWhere() }, select: { id: true } }))) return null;
   return listPublicQuizzesBySubjectCached(subjectId, query);
 }

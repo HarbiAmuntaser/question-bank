@@ -1,7 +1,7 @@
 // src/app/api/v1/admin/seo-meta/route.ts
 import { prisma } from "@/lib/prisma";
-import { json, bad, unauth } from "@/lib/http";
-import { verifyAdmin } from "@/lib/admin-auth";
+import { json, bad } from "@/lib/server/admin-http";
+import { verifyAdmin, adminAuthResponse } from "@/lib/admin-auth";
 import { CACHE_CONTROL } from "@/lib/cache-tags";
 import { revalidateChapterCache, revalidateSeoCache } from "@/lib/cache-invalidation";
 import { Prisma } from "@prisma/client"; // ✅ ليس type
@@ -46,8 +46,8 @@ function parseSchemaJson(value: unknown): SchemaJsonParseResult {
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
-  const auth = await verifyAdmin(req);
-  if (!auth.ok) return unauth();
+  const auth = await verifyAdmin(req, "seo-meta:read");
+  if (!auth.ok) return adminAuthResponse(auth);
 
   const url = new URL(req.url);
   const get = (k: string) => url.searchParams.get(k) ?? undefined;
@@ -109,8 +109,8 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const auth = await verifyAdmin(req);
-  if (!auth.ok) return unauth();
+  const auth = await verifyAdmin(req, "seo-meta:write");
+  if (!auth.ok) return adminAuthResponse(auth);
 
   const rawBody = await req.json().catch(() => null);
   let body = rawBody;

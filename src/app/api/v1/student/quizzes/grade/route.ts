@@ -85,12 +85,13 @@ export async function POST(req: Request) {
       return json({ error: "not_found" }, { status: 404, headers: privateHeaders });
     }
 
-    const { session } = await getOrCreateAnonymousSession();
-    const access = await checkQuizAccess({ quizId, anonymousSessionId: session.id });
+    const access = await checkQuizAccess({ quizId });
     if (access.reason === "not_found") return json({ error: "not_found" }, { status: 404, headers: privateHeaders });
     if (!access.allowed) {
       return json({ error: "paid_access_required", details: access }, { status: 403, headers: privateHeaders });
     }
+
+    const { session } = await getOrCreateAnonymousSession();
 
     const quiz = await prisma.quiz.findUnique({
       where: { id: quizId, isActive: true },

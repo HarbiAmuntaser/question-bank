@@ -16,6 +16,7 @@ import {
   GraduationCap,
   Home,
   KeyRound,
+  Receipt,
   Newspaper,
   Shuffle,
   Tags,
@@ -26,6 +27,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { SheetClose } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
+import { adminPagePermission, hasAdminPermission, type AdminRole } from "@/lib/admin-permissions";
 
 type NavItem = { name: string; href: string; icon: LucideIcon };
 type NavGroup = { name: string; href: string; icon: LucideIcon; children: NavItem[] };
@@ -46,6 +48,7 @@ export const adminNavigation: AdminNavEntry[] = [
   { name: "مولد الاختبارات", href: "/admin/quiz-generator", icon: Shuffle },
   { name: "الاختبارات المنشأة", href: "/admin/quizzes", icon: ClipboardList },
   { name: "الاشتراكات", href: "/admin/subscriptions", icon: KeyRound },
+  { name: "طلبات الدفع", href: "/admin/payment-orders", icon: Receipt },
   {
     name: "المدونة",
     href: "/admin/blog",
@@ -137,12 +140,16 @@ function NavGroupItem({
   );
 }
 
-export function AdminNavList({ closeOnNavigate = false }: { closeOnNavigate?: boolean }) {
+export function AdminNavList({ role, closeOnNavigate = false }: { role: AdminRole; closeOnNavigate?: boolean }) {
   const pathname = usePathname();
+  const navigation = adminNavigation.filter((item) => {
+    const permission = adminPagePermission(item.href);
+    return permission !== null && hasAdminPermission(role, permission);
+  });
 
   return (
     <ul role="list" className="-mx-2 space-y-1">
-      {adminNavigation.map((item) => (
+      {navigation.map((item) => (
         <li key={item.href}>
           {isGroup(item) ? (
             <NavGroupItem group={item} pathname={pathname} closeOnNavigate={closeOnNavigate} />

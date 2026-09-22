@@ -1,12 +1,12 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
+import { safeCallbackPath } from "@/lib/auth-policy";
 import {
   AlertCircle,
   CheckCircle2,
   CreditCard,
-  MessageCircle,
-  Send,
   Ticket,
 } from "lucide-react";
 
@@ -45,8 +45,8 @@ type RedeemResponse = {
   error?: string;
 };
 
-function scopeLabel(scopeType: AccessPlan["scopeType"] | null | undefined) {
-  return scopeType === "major" ? "اشتراك تخصص" : "اشتراك مادة";
+function scopeLabel(_scopeType: AccessPlan["scopeType"] | null | undefined) {
+  return "اشتراك مادة";
 }
 
 function formatPrice(plan: AccessPlan | null) {
@@ -54,39 +54,10 @@ function formatPrice(plan: AccessPlan | null) {
   return `${plan.price} ${plan.currency ?? ""}`.trim();
 }
 
-function buildRequestMessage(plan: AccessPlan | null, title: string) {
-  const pageUrl = typeof window !== "undefined" ? window.location.href : "";
-  const scope = scopeLabel(plan?.scopeType);
-  const intro =
-    plan?.contactMessage?.trim() ||
-    "أرغب في الاشتراك للوصول إلى المحتوى المدفوع.";
-
-  return [
-    intro,
-    `نوع الطلب: ${scope}`,
-    plan?.title ? `الخطة: ${plan.title}` : null,
-    title ? `المحتوى: ${title}` : null,
-    `الرابط: ${pageUrl}`,
-  ]
-    .filter(Boolean)
-    .join("\n");
-}
-
-function whatsappHref(plan: AccessPlan | null, title: string) {
-  if (!plan?.whatsappNumber) return null;
-  const phone = plan.whatsappNumber.replace(/[^\d+]/g, "");
-  return `https://wa.me/${phone.replace(/^\+/, "")}?text=${encodeURIComponent(
-    buildRequestMessage(plan, title),
-  )}`;
-}
-
-function telegramHref(plan: AccessPlan | null) {
-  if (!plan?.telegramUsername) return null;
-  return `https://t.me/${plan.telegramUsername.replace(/^@/, "")}`;
-}
-
 function redeemMessage(code: string | undefined) {
   switch (code) {
+    case "payment_codes_unavailable":
+      return "تفعيل الأكواد متوقف حاليًا.";
     case "code_used":
       return "هذا الكود مستخدم حاليًا أو وصل إلى الحد الأقصى من الاستخدامات. تواصل معنا للحصول على كود جديد.";
     case "inactive_code":
@@ -112,7 +83,6 @@ export function SubscriptionGateDialog({
   targetTitle,
   quizId,
   subjectId,
-  majorId,
   onRedeemed,
 }: SubscriptionGateDialogProps) {
   const [code, setCode] = useState("");
@@ -122,27 +92,8 @@ export function SubscriptionGateDialog({
   } | null>(null);
   const [pending, startTransition] = useTransition();
   const plan = access?.plan ?? null;
-  const whats = whatsappHref(plan, targetTitle);
-  const telegram = telegramHref(plan);
   const planTitle = plan?.title ?? "خطة الاشتراك";
   const scopeText = scopeLabel(plan?.scopeType);
-
-  const recordContactClick = (method: "whatsapp" | "telegram") => {
-    if (!plan?.id) return;
-
-    void fetch("/api/v1/student/access/payment-request", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      cache: "no-store",
-      body: JSON.stringify({
-        planId: plan.id,
-        contactMethod: method,
-        contactValue: method === "whatsapp" ? plan.whatsappNumber : plan.telegramUsername,
-        message: buildRequestMessage(plan, targetTitle),
-        pageUrl: window.location.href,
-      }),
-    }).catch(() => null);
-  };
 
   const redeem = () => {
     const value = code.trim();
@@ -157,7 +108,7 @@ export function SubscriptionGateDialog({
         method: "POST",
         headers: { "content-type": "application/json" },
         cache: "no-store",
-        body: JSON.stringify({ code: value, quizId, subjectId, majorId }),
+        body: JSON.stringify({ code: value, quizId, subjectId: access?.subjectId ?? subjectId }),
       });
       const body = (await res.json().catch(() => null)) as RedeemResponse | null;
 
@@ -169,8 +120,8 @@ export function SubscriptionGateDialog({
       setMessage({
         type: "success",
         text: body?.data?.alreadyRedeemed
-          ? "هذا الكود مفعّل مسبقًا لهذا المتصفح."
-          : "تم تفعيل الاشتراك بنجاح وفتح المحتوى لهذا المتصفح.",
+          ? "هذا الكود مرتبط بحسابك مسبقًا."
+          : "تم تفعيل الاشتراك وربطه بحسابك.",
       });
       setCode("");
       onRedeemed();
@@ -178,6 +129,16 @@ export function SubscriptionGateDialog({
     });
   };
 
+  const unavailable = !access || ["payments_unavailable", "missing_context", "not_found"].includes(access.reason);
+  const needsLogin = access?.reason === "student_signin_required";
+  if (unavailable || needsLogin) {
+    const callback = safeCallbackPath(typeof window === "undefined" ? "/account" : window.location.pathname + window.location.search);
+    return <Dialog open={open} onOpenChange={onOpenChange}><DialogContent dir="rtl" className="text-right">
+      <DialogHeader><DialogTitle>{needsLogin ? "تسجيل دخول الطالب" : "غير متاح حاليًا"}</DialogTitle>
+        <DialogDescription>{needsLogin ? "سجّل الدخول بحسابك للمتابعة." : "الاشتراك والتفعيل غير متاحين حاليًا."}</DialogDescription></DialogHeader>
+      {needsLogin && <Button asChild><Link href={`/auth/signin?callbackUrl=${encodeURIComponent(callback)}`}>تسجيل الدخول</Link></Button>}
+    </DialogContent></Dialog>;
+  }
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto text-right sm:max-w-xl" dir="rtl">
@@ -187,12 +148,12 @@ export function SubscriptionGateDialog({
           </Badge>
           <DialogTitle className="text-xl leading-snug sm:text-2xl">{planTitle}</DialogTitle>
           <DialogDescription className="leading-relaxed">
-            أدخل كود الاشتراك أو تواصل معنا للحصول على كود يفتح المحتوى لهذا المتصفح.
+            اشتراك المادة مرتبط بحساب الطالب.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-5">
-          <div className="grid gap-3 rounded-lg border bg-muted/25 p-4 sm:grid-cols-[1fr_auto] sm:items-center">
+          <div className="grid gap-3 border-y py-4 sm:grid-cols-[1fr_auto] sm:items-center">
             <div className="space-y-2">
               <div className="flex flex-wrap items-center gap-2">
                 <Badge variant="outline" className="rounded-md bg-background">
@@ -207,11 +168,11 @@ export function SubscriptionGateDialog({
                 </p>
               ) : (
                 <p className="text-sm leading-relaxed text-muted-foreground">
-                  الاشتراك يفعّل الوصول على هذا المتصفح حسب الخطة المرتبطة بالكود.
+                  اشتراك المادة
                 </p>
               )}
             </div>
-            <div className="rounded-lg border bg-background px-4 py-3 text-center shadow-sm">
+            <div className="px-4 py-3 text-center">
               <CreditCard className="mx-auto mb-1 h-4 w-4 text-muted-foreground" aria-hidden />
               <div className="text-xs text-muted-foreground">السعر</div>
               <div className="text-base font-bold">{formatPrice(plan)}</div>
@@ -222,13 +183,16 @@ export function SubscriptionGateDialog({
             <Alert className="border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200">
               <AlertCircle className="h-4 w-4" aria-hidden />
               <AlertDescription className="leading-relaxed">
-                لا توجد خطة اشتراك نشطة ظاهرة لهذا المحتوى حاليًا. يمكنك تجربة إدخال كود لديك
-                أو التواصل معنا لتأكيد طريقة الاشتراك.
+                لا توجد خطة متاحة للبيع لهذا المحتوى حاليًا.
               </AlertDescription>
             </Alert>
           ) : null}
 
-          <div className="space-y-2">
+          {plan && access?.canPurchase && <Button asChild className="w-full gap-2"><Link href={`/account/orders/new?planId=${encodeURIComponent(plan.id)}`}>
+            <CreditCard className="h-4 w-4" aria-hidden />طلب اشتراك
+          </Link></Button>}
+
+          {access?.canRedeemCode && <div className="space-y-2 border-t pt-4">
             <Label htmlFor="subscriptionCode">كود الاشتراك</Label>
             <div className="flex flex-col gap-2 sm:flex-row">
               <Input
@@ -251,7 +215,7 @@ export function SubscriptionGateDialog({
               </Button>
             </div>
             <p id="subscriptionCodeHelp" className="text-xs leading-relaxed text-muted-foreground">
-              الصق الكود كما وصلك. سيتم حفظ الوصول لهذا المتصفح تلقائيًا بعد التفعيل.
+              التفعيل مرتبط بحسابك، وليس بالمتصفح.
             </p>
             {message ? (
               <Alert
@@ -271,40 +235,8 @@ export function SubscriptionGateDialog({
                 <AlertDescription className="leading-relaxed">{message.text}</AlertDescription>
               </Alert>
             ) : null}
-          </div>
+          </div>}
 
-          <div className="grid gap-2 sm:grid-cols-2">
-            {whats ? (
-              <Button
-                asChild
-                variant="outline"
-                className="h-11 gap-2 rounded-lg border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-300"
-                onClick={() => recordContactClick("whatsapp")}
-              >
-                <a href={whats} target="_blank" rel="noreferrer">
-                  <MessageCircle className="h-4 w-4" aria-hidden />
-                  اشترك عبر واتساب
-                </a>
-              </Button>
-            ) : null}
-            {telegram ? (
-              <Button
-                asChild
-                variant="outline"
-                className="h-11 gap-2 rounded-lg border-[hsl(var(--brand-cyan)_/_0.22)] bg-[hsl(var(--brand-cyan)_/_0.08)] text-[hsl(var(--brand-cyan))] hover:bg-[hsl(var(--brand-cyan)_/_0.12)] dark:border-[hsl(var(--brand-cyan)_/_0.35)] dark:bg-[hsl(var(--brand-cyan)_/_0.14)]"
-                onClick={() => recordContactClick("telegram")}
-              >
-                <a href={telegram} target="_blank" rel="noreferrer">
-                  <Send className="h-4 w-4" aria-hidden />
-                  اشترك عبر تليجرام
-                </a>
-              </Button>
-            ) : null}
-          </div>
-
-          <p className="rounded-lg bg-muted/30 px-3 py-2 text-xs leading-relaxed text-muted-foreground">
-            هل فقدت الوصول؟ تواصل معنا مع رقم الكود أو رقم الواتساب المستخدم.
-          </p>
         </div>
       </DialogContent>
     </Dialog>

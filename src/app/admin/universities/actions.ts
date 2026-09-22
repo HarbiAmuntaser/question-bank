@@ -4,8 +4,10 @@
 // Server Actions تستدعي API v1 (admin) بدل الوصول المباشر لقاعدة البيانات.
 // تُستخدم من مكوّنات الواجهة (الحوارات والجداول) لتنفيذ CRUD ثم إعادة تفعيل الكاش.
 
+import { requireAdminPermission } from "@/lib/admin-auth";
+import { adminApiFetch as apiFetch } from "@/lib/server/admin-api-fetch";
 import { revalidatePath, revalidateTag } from "next/cache";
-import { getRequestOrigin } from "@/lib/server/request-origin";
+
 
 // ------- أنواع موحّدة للاستجابات -------
 export type ActionResult = { success: boolean; message: string };
@@ -56,18 +58,6 @@ export interface UpdateUniversityInput {
   visibility?: "country" | "global";
 }
 
-async function getApiBase(): Promise<string> {
-  return getRequestOrigin();
-}
-
-function buildHeaders(): Headers {
-  const h = new Headers();
-  h.set("content-type", "application/json; charset=utf-8");
-  const adminKey = process.env.ADMIN_API_KEY;
-  if (adminKey) h.set("x-admin-key", adminKey);
-  return h;
-}
-
 function optionalLocationField(formData: FormData, key: "city" | "region"): string | null {
   const value = formData.get(key);
   if (typeof value !== "string") return null;
@@ -85,6 +75,8 @@ async function parseJson<T>(res: Response): Promise<T | ApiError> {
 }
 
 export async function createUniversityAction(formData: FormData): Promise<ActionResult> {
+  await requireAdminPermission("universities:write");
+
   const rawCountry = String(formData.get("countryCode") ?? "").trim().toUpperCase();
   const rawType = String(formData.get("institutionType") ?? "").trim();
   const rawVisibility = String(formData.get("visibility") ?? "country").trim();
@@ -107,11 +99,8 @@ export async function createUniversityAction(formData: FormData): Promise<Action
     return { success: false, message: "رمز الدولة مطلوب بصيغة ISO-2 مثل SA" };
   if (!["university", "school", "academy"].includes(payload.institutionType))
     return { success: false, message: "نوع المؤسسة مطلوب (university | school | academy)" };
-
-  const base = await getApiBase();
-  const res = await fetch(`${base}/api/v1/admin/universities`, {
+  const res = await apiFetch(`/api/v1/admin/universities`, {
     method: "POST",
-    headers: buildHeaders(),
     body: JSON.stringify(payload),
     cache: "no-store",
   });
@@ -128,6 +117,8 @@ export async function createUniversityAction(formData: FormData): Promise<Action
 }
 
 export async function updateUniversityAction(id: string, formData: FormData): Promise<ActionResult> {
+  await requireAdminPermission("universities:write");
+
   // نقرأ القيم إن أُرسلت — ونتجاهل الفارغ ("") حتى لا نمسّ القيم القديمة
   const rawCountry = formData.get("countryCode");
   const rawType = formData.get("institutionType");
@@ -166,11 +157,8 @@ export async function updateUniversityAction(id: string, formData: FormData): Pr
     }
     payload.visibility = visibility as UpdateUniversityInput["visibility"];
   }
-
-  const base = await getApiBase();
-  const res = await fetch(`${base}/api/v1/admin/universities/${id}`, {
+  const res = await apiFetch(`/api/v1/admin/universities/${id}`, {
     method: "PUT",
-    headers: buildHeaders(),
     body: JSON.stringify(payload),
     cache: "no-store",
   });
@@ -187,10 +175,9 @@ export async function updateUniversityAction(id: string, formData: FormData): Pr
 }
 
 export async function deleteUniversityAction(id: string): Promise<ActionResult> {
-  const base = await getApiBase();
-  const res = await fetch(`${base}/api/v1/admin/universities/${id}`, {
+  await requireAdminPermission("universities:write");
+  const res = await apiFetch(`/api/v1/admin/universities/${id}`, {
     method: "DELETE",
-    headers: buildHeaders(),
     cache: "no-store",
   });
 

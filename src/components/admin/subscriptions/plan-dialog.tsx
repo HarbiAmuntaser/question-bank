@@ -2,10 +2,9 @@
 
 import type React from "react";
 import { useEffect, useState, useTransition } from "react";
-import type { AccessScopeType } from "@prisma/client";
 
-import { createPaidAccessPlanAction, updatePaidAccessPlanAction } from "@/app/admin/subscriptions/actions";
-import { AdminLookupCombobox } from "@/components/admin/admin-lookup-combobox";
+import { createPaidAccessPlanAction, updatePaidAccessPlanAction, searchPaymentSubjectsAction } from "@/app/admin/subscriptions/actions";
+import { AsyncCombobox, type ComboOption } from "@/components/admin/seo/AsyncCombobox";
 import type { PlanRow } from "@/components/admin/subscriptions/types";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,39 +18,25 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 
-export function PlanDialog({ children, plan }: { children: React.ReactNode; plan?: PlanRow }) {
+export function PlanDialog({ children, plan, paymentsEnabled = false }: { children: React.ReactNode; plan?: PlanRow; paymentsEnabled?: boolean }) {
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
-  const [scopeType, setScopeType] = useState<AccessScopeType>("subject");
-  const [universityId, setUniversityId] = useState("");
-  const [majorId, setMajorId] = useState("");
-  const [subjectId, setSubjectId] = useState("");
+  const [subject, setSubject] = useState<ComboOption | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
     if (!open) return;
-    const initialScope = plan?.scopeType ?? "subject";
-    setScopeType(initialScope);
-    setUniversityId(plan?.major?.universityId ?? plan?.subject?.universityId ?? "");
-    setMajorId(plan?.majorId ?? plan?.subject?.majorId ?? "");
-    setSubjectId(plan?.subjectId ?? "");
+    setSubject(plan?.subject ? { id: plan.subject.id, label: plan.subject.name, subLabel: plan.subject.universityName ?? undefined } : null);
   }, [open, plan]);
 
   function handleSubmit(formData: FormData) {
-    formData.set("scopeType", scopeType);
-    formData.set("majorId", majorId);
-    formData.set("subjectId", subjectId);
-
-    if (scopeType === "major" && !majorId) {
-      toast({ title: "خطأ", description: "اختيار التخصص مطلوب", variant: "destructive" });
-      return;
-    }
-    if (scopeType === "subject" && !subjectId) {
+    formData.set("scopeType", "subject");
+    formData.set("subjectId", subject?.id ?? "");
+    if (!subject) {
       toast({ title: "خطأ", description: "اختيار المقرر مطلوب", variant: "destructive" });
       return;
     }
@@ -76,70 +61,15 @@ export function PlanDialog({ children, plan }: { children: React.ReactNode; plan
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl" dir="rtl">
         <DialogHeader>
           <DialogTitle>{plan ? "تعديل خطة اشتراك" : "إنشاء خطة اشتراك"}</DialogTitle>
-          <DialogDescription>حدد نطاق الخطة ومعلومات التواصل التي ستظهر لاحقاً للطالب.</DialogDescription>
+          <DialogDescription>مواد الجامعات السعودية</DialogDescription>
         </DialogHeader>
 
         <form action={handleSubmit} className="space-y-5">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label>نطاق الخطة</Label>
-              <Select
-                value={scopeType}
-                onValueChange={(value: AccessScopeType) => {
-                  setScopeType(value);
-                  setSubjectId("");
-                }}
-              >
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="major">تخصص</SelectItem>
-                  <SelectItem value="subject">مقرر</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>الجامعة</Label>
-              <AdminLookupCombobox
-                type="university"
-                value={universityId}
-                onValueChange={(value) => {
-                  setUniversityId(value);
-                  setMajorId("");
-                  setSubjectId("");
-                }}
-                placeholder="ابحث عن جامعة"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>التخصص</Label>
-              <AdminLookupCombobox
-                type="major"
-                value={majorId}
-                onValueChange={(value) => {
-                  setMajorId(value);
-                  setSubjectId("");
-                }}
-                universityId={universityId}
-                disabled={!universityId}
-                placeholder={universityId ? "ابحث عن تخصص" : "اختر الجامعة أولاً"}
-              />
-            </div>
-
-            {scopeType === "subject" ? (
-              <div className="space-y-2">
-                <Label>المقرر</Label>
-                <AdminLookupCombobox
-                  type="subject"
-                  value={subjectId}
-                  onValueChange={setSubjectId}
-                  majorId={majorId}
-                  disabled={!majorId}
-                  placeholder={majorId ? "ابحث عن مقرر" : "اختر التخصص أولاً"}
-                />
-              </div>
-            ) : null}
+          {plan && <input type="hidden" name="expectedUpdatedAt" value={plan.updatedAt} />}
+          <div className="space-y-2">
+            <Label>المادة</Label>
+            <AsyncCombobox value={subject} onChange={setSubject} fetcher={searchPaymentSubjectsAction}
+              disabled={Boolean(plan)} disablePortal placeholder="ابحث عن مادة جامعية سعودية" />
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
@@ -182,10 +112,18 @@ export function PlanDialog({ children, plan }: { children: React.ReactNode; plan
           </div>
 
           <div className="flex items-center gap-3">
-            <Switch id="isActive" name="isActive" defaultChecked={plan?.isActive ?? true} />
+            <Switch id="isActive" name="isActive" defaultChecked={paymentsEnabled && (plan?.isActive ?? false)} disabled={!paymentsEnabled} />
             <Label htmlFor="isActive">الخطة نشطة</Label>
           </div>
 
+          <div className="space-y-2">
+            <Label htmlFor="plan-reason">سبب الإنشاء أو التعديل (داخلي)</Label>
+            <Textarea id="plan-reason" name="reason" required minLength={5} maxLength={1000} rows={2} />
+          </div>
+          {plan?.isActive && <label className="flex items-start gap-2 text-sm">
+            <input type="checkbox" name="confirmContentChange" className="mt-1" />
+            <span>عند تعطيل الخطة، أقر بأن المحتوى الذي يرثها قد يصبح مجانيًا.</span>
+          </label>}
           <DialogFooter>
             <Button type="submit" disabled={pending}>{pending ? "جار الحفظ..." : "حفظ"}</Button>
           </DialogFooter>

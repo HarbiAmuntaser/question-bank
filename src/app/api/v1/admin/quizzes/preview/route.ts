@@ -1,14 +1,14 @@
 // src/app/api/v1/admin/quizzes/preview/route.ts
 import { prisma } from "@/lib/prisma";
-import { json, bad, unauth } from "@/lib/http";
-import { verifyAdmin } from "@/lib/admin-auth";
+import { json, bad } from "@/lib/server/admin-http";
+import { verifyAdmin, adminAuthResponse } from "@/lib/admin-auth";
 import { quizGenerationSettingsSchema } from "@/validations/quiz";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
-  const auth = await verifyAdmin(req);
-  if (!auth.ok) return unauth();
+  const auth = await verifyAdmin(req, "quizzes:read");
+  if (!auth.ok) return adminAuthResponse(auth);
 
   const body = await req.json().catch(() => null);
   const parsed = quizGenerationSettingsSchema.safeParse(body);

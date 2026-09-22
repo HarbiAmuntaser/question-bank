@@ -1,3 +1,4 @@
+import { requireAdminPage } from "@/lib/server/admin-page-auth";
 import { Suspense } from "react";
 import type { Metadata } from "next";
 
@@ -19,6 +20,8 @@ export default async function AdminBlogTagsPage({
 }: {
   searchParams: Promise<BlogTagsSearchParams>;
 }) {
+  await requireAdminPage("blog:read");
+
   const resolvedSearchParams = await searchParams;
 
   return (

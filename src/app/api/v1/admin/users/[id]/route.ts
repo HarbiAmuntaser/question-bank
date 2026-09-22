@@ -1,11 +1,12 @@
 /* Fixed Next 15 params typing */
 
 import { prisma } from "@/lib/prisma";
-import { json, bad, unauth } from "@/lib/http";
-import { verifyAdmin } from "@/lib/admin-auth";
+import { json, bad } from "@/lib/server/admin-http";
+import { verifyAdmin, adminAuthResponse } from "@/lib/admin-auth";
 import { updateUserSchema } from "@/validations/user";
 import { revalidateTag } from "next/cache";
-import bcrypt from "bcryptjs";
+import { hashPassword } from "@/lib/server/auth-password";
+import { AdminUserError, updateManagedUser, deleteManagedUser } from "@/lib/server/admin-users";
 
 export const dynamic = "force-dynamic";
 
@@ -15,8 +16,8 @@ type RouteContext = {
 };
 
 export async function GET(req: Request, { params }: RouteContext) {
-  const auth = await verifyAdmin(req);
-  if (!auth.ok) return unauth();
+  const auth = await verifyAdmin(req, "users:manage");
+  if (!auth.ok) return adminAuthResponse(auth);
 
   const { id } = await params;
 
@@ -31,8 +32,8 @@ export async function GET(req: Request, { params }: RouteContext) {
 export async function PUT(req: Request, { params }: RouteContext) {
   const { id } = await params;
 
-  const auth = await verifyAdmin(req);
-  if (!auth.ok) return unauth();
+  const auth = await verifyAdmin(req, "users:manage");
+  if (!auth.ok) return adminAuthResponse(auth);
 
   const body = await req.json().catch(() => null);
   const parsed = updateUserSchema.safeParse(body);
@@ -41,38 +42,43 @@ export async function PUT(req: Request, { params }: RouteContext) {
   // معالجة كلمة المرور إن وُجدت
   let password: string | undefined = undefined;
   if (parsed.data.password) {
-    password = await bcrypt.hash(parsed.data.password, 10);
+    password = await hashPassword(parsed.data.password);
   }
 
   // تجنب تعارض الإيميل
   if (parsed.data.email) {
-    const duplicate = await prisma.user.findUnique({ where: { email: parsed.data.email } });
+    const duplicate = await prisma.user.findUnique({ where: { normalizedEmail: parsed.data.email } });
     if (duplicate && duplicate.id !== id) return bad("email_exists");
   }
 
-  const updated = await prisma.user.update({
-    where: { id },
-    data: {
+  try {
+    const updated = await updateManagedUser(auth.userId, id, {
       name: parsed.data.name ?? undefined,
       email: parsed.data.email ?? undefined,
       password: password ?? undefined,
       role: parsed.data.role ?? undefined,
       isActive: parsed.data.isActive ?? undefined,
-    },
-    select: { id: true, name: true, email: true, role: true, isActive: true, createdAt: true },
-  });
-
-  revalidateTag("users");
-  return json({ data: updated, message: "تم تحديث المستخدم" }, 200);
+    });
+    revalidateTag("users");
+    return json({ data: updated, message: "تم تحديث المستخدم" }, 200);
+  } catch (error) {
+    if (error instanceof AdminUserError) return bad(error.message, undefined, error.status);
+    throw error;
+  }
 }
 
 export async function DELETE(req: Request, { params }: RouteContext) {
   const { id } = await params;
 
-  const auth = await verifyAdmin(req);
-  if (!auth.ok) return unauth();
+  const auth = await verifyAdmin(req, "users:manage");
+  if (!auth.ok) return adminAuthResponse(auth);
 
-  await prisma.user.delete({ where: { id } });
-  revalidateTag("users");
-  return json({ message: "تم حذف المستخدم" }, 200);
+  try {
+    await deleteManagedUser(auth.userId, id);
+    revalidateTag("users");
+    return json({ message: "تم حذف المستخدم" }, 200);
+  } catch (error) {
+    if (error instanceof AdminUserError) return bad(error.message, undefined, error.status);
+    throw error;
+  }
 }

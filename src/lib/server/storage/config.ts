@@ -53,17 +53,21 @@ function readEnv() {
 
 function parsePositiveInteger(name: string, value: string) {
   const parsed = Number.parseInt(value, 10);
-  if (!Number.isFinite(parsed) || parsed <= 0) {
-    throw new R2StorageConfigError(`${name} must be a positive integer.`);
+  if (!Number.isInteger(parsed) || parsed < 60 || parsed > 900) {
+    throw new R2StorageConfigError(`${name} must be between 60 and 900 seconds.`);
   }
   return parsed;
 }
 
 function validateUrl(name: string, value: string) {
   try {
-    return stripTrailingSlash(new URL(value).toString());
+    const parsed = new URL(value);
+    if (parsed.protocol !== "https:" || parsed.username || parsed.password || parsed.pathname !== "/" || parsed.search || parsed.hash) {
+      throw new Error("unsafe_url");
+    }
+    return stripTrailingSlash(parsed.toString());
   } catch {
-    throw new R2StorageConfigError(`${name} must be a valid URL.`);
+    throw new R2StorageConfigError(`${name} must be a credential-free HTTPS origin.`);
   }
 }
 
@@ -71,11 +75,18 @@ export function getR2StorageConfig(): R2StorageConfig {
   if (cachedConfig) return cachedConfig;
 
   const env = readEnv();
+  if (env.R2_PUBLIC_BUCKET === env.R2_PRIVATE_BUCKET) {
+    throw new R2StorageConfigError("R2 public and private buckets must be different.");
+  }
+  const endpoint = validateUrl("R2_ENDPOINT", env.R2_ENDPOINT);
+  if (new URL(endpoint).hostname !== `${env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`) {
+    throw new R2StorageConfigError("R2_ENDPOINT must match R2_ACCOUNT_ID.");
+  }
   cachedConfig = {
     accountId: env.R2_ACCOUNT_ID,
     accessKeyId: env.R2_ACCESS_KEY_ID,
     secretAccessKey: env.R2_SECRET_ACCESS_KEY,
-    endpoint: validateUrl("R2_ENDPOINT", env.R2_ENDPOINT),
+    endpoint,
     publicBucket: env.R2_PUBLIC_BUCKET,
     privateBucket: env.R2_PRIVATE_BUCKET,
     publicBaseUrl: validateUrl("R2_PUBLIC_BASE_URL", env.R2_PUBLIC_BASE_URL),

@@ -9,7 +9,6 @@ import { Separator } from "@/components/ui/separator";
 import type { InstitutionType } from "@/config/regions";
 import { encodeSlugPath, stripPrefix } from "@/lib/public/slug-utils";
 import { checkStudySummaryAccess } from "@/lib/server/access-control";
-import { getExistingAnonymousSession } from "@/lib/server/anonymous-session";
 import { getPublicSubjectByRouteKey } from "@/lib/server/public-education-loaders";
 import {
   getPublishedStudySummaryContent,
@@ -92,10 +91,8 @@ export async function StudySummaryDetails({
   const summary = await getPublishedSubjectSummaryBySlug(subject.id, summarySlug);
   if (!summary) notFound();
 
-  const session = await getExistingAnonymousSession();
   const access = await checkStudySummaryAccess({
     summaryId: summary.id,
-    anonymousSessionId: session?.id ?? null,
   });
   if (access.reason === "not_found") notFound();
   const protectedContent = access.allowed ? await getPublishedStudySummaryContent(summary.id) : null;

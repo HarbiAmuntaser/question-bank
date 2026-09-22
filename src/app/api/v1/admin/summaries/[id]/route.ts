@@ -1,11 +1,12 @@
 import { Prisma, QuizAccessType, StudySummaryStatus } from "@prisma/client";
 
-import { verifyAdmin } from "@/lib/admin-auth";
+import { verifyAdmin, adminAuthResponse } from "@/lib/admin-auth";
 import { revalidateStudySummaryCache, type StudySummaryCacheSnapshot } from "@/lib/cache-invalidation";
 import { CACHE_CONTROL } from "@/lib/cache-tags";
-import { json } from "@/lib/http";
+import { json } from "@/lib/server/admin-http";
 import { prisma } from "@/lib/prisma";
 import { encodeSlugPath, stripPrefix } from "@/lib/public/slug-utils";
+import { getPaymentSummaryMediaIssue } from "@/lib/server/payment-media";
 import { updateStudySummarySchema } from "@/validations/study-summary";
 
 export const dynamic = "force-dynamic";
@@ -20,9 +21,7 @@ function adminBad(message: string, details?: unknown, status = 400) {
   return json({ error: message, details }, { status, headers: privateHeaders() });
 }
 
-function adminUnauth(message = "غير مصرح") {
-  return json({ error: message }, { status: 401, headers: privateHeaders() });
-}
+
 
 function adminNotFound(message = "غير موجود") {
   return json({ error: message }, { status: 404, headers: privateHeaders() });
@@ -232,8 +231,8 @@ async function validatePdfAttachment(
 }
 
 export async function GET(req: Request, ctx: Ctx) {
-  const auth = await verifyAdmin(req);
-  if (!auth.ok) return adminUnauth();
+  const auth = await verifyAdmin(req, "summaries:read");
+  if (!auth.ok) return adminAuthResponse(auth);
 
   const { id } = await ctx.params;
   const summary = await prisma.studySummary.findUnique({
@@ -247,8 +246,8 @@ export async function GET(req: Request, ctx: Ctx) {
 }
 
 export async function PATCH(req: Request, ctx: Ctx) {
-  const auth = await verifyAdmin(req);
-  if (!auth.ok) return adminUnauth();
+  const auth = await verifyAdmin(req, "summaries:write");
+  if (!auth.ok) return adminAuthResponse(auth);
 
   const { id } = await ctx.params;
   const body = await req.json().catch(() => null);
@@ -267,6 +266,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
         contentHtml: true,
         contentText: true,
         pdfAttachmentId: true,
+        accessType: true,
         publishedAt: true,
       },
     });
@@ -280,6 +280,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
       typeof input.pdfAttachmentId !== "undefined" ? input.pdfAttachmentId : existing.pdfAttachmentId;
     const nextContentHtml = typeof input.contentHtml !== "undefined" ? input.contentHtml : existing.contentHtml;
     const nextContentText = typeof input.contentText !== "undefined" ? input.contentText : existing.contentText;
+    const nextAccessType = input.accessType ?? existing.accessType;
 
     if (!(await validateSubject(nextSubjectId))) return adminBad("subject_not_found", undefined, 404);
 
@@ -302,6 +303,14 @@ export async function PATCH(req: Request, ctx: Ctx) {
       typeof input.contentHtml !== "undefined" ||
       typeof input.contentText !== "undefined";
     const content = shouldUpdateContent ? contentPayload(input.content, nextContentHtml, nextContentText) : null;
+    const paymentMediaIssue = await getPaymentSummaryMediaIssue({
+      subjectId: nextSubjectId,
+      accessType: nextAccessType as QuizAccessType,
+      pdfAttachmentId: nextPdfAttachmentId,
+      contentHtml: content?.contentHtml ?? nextContentHtml,
+      contentText: content?.contentText ?? nextContentText,
+    });
+    if (paymentMediaIssue) return adminBad(paymentMediaIssue, undefined, 409);
 
     const data: Prisma.StudySummaryUpdateInput = {
       ...(typeof input.subjectId !== "undefined" ? { subject: { connect: { id: nextSubjectId } } } : {}),
@@ -331,7 +340,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
             contentText: content.contentText,
           }
         : {}),
-      ...(auth.userId !== "api-key" ? { updatedBy: auth.userId } : {}),
+      updatedBy: auth.userId,
     };
 
     const updated = await prisma.studySummary.update({

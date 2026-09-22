@@ -1,5 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { normalizeEmail } from "../src/lib/auth-policy";
+import { emailSchema, newPasswordSchema } from "../src/validations/student-auth";
 
 const prisma = new PrismaClient();
 
@@ -9,34 +11,17 @@ async function main() {
   // ---------------------------------------------------------------------------
   // 1) إنشاء / تحديث مستخدم المدير (Admin)
   // ---------------------------------------------------------------------------
-  const adminEmail = "admin@saudibank.edu.sa";
-  const adminPlainPassword = "admin123";
-  const hashedPassword = await bcrypt.hash(adminPlainPassword, 12);
-
-  /**
-   * ✅ أهم إصلاح:
-   * لازم نخزن ناتج upsert داخل متغير (adminUser)
-   * لأننا نستخدم adminUser.id في createdBy لاحقاً
-   */
-  const adminUser = await prisma.user.upsert({
-    where: { email: adminEmail },
-    update: {
-      // تحديثات آمنة (اختياري) حتى لو المستخدم موجود
-      name: "مدير النظام",
-      password: hashedPassword,
-      role: "admin",
-      isActive: true,
-    },
-    create: {
-      id: "admin-001",
-      name: "مدير النظام",
-      email: adminEmail,
-      password: hashedPassword,
-      role: "admin",
-      isActive: true,
-    },
-  });
-  console.log("تم إنشاء/تحديث المستخدم المدير:", adminUser.email);
+  const adminEmail = emailSchema.parse(process.env.SEED_ADMIN_EMAIL);
+  let adminUser = await prisma.user.findUnique({ where: { normalizedEmail: normalizeEmail(adminEmail) } });
+  if (adminUser && (adminUser.role !== "admin" || !adminUser.isActive)) throw new Error("seed_existing_user_is_not_active_admin");
+  if (!adminUser) {
+    const password = newPasswordSchema.parse(process.env.SEED_ADMIN_PASSWORD);
+    adminUser = await prisma.user.create({ data: {
+      name: "مدير النظام", email: adminEmail, normalizedEmail: adminEmail,
+      password: await bcrypt.hash(password, 12), role: "admin", isActive: true,
+    } });
+  }
+  console.log("تم التحقق من حساب المدير دون تغيير بياناته.");
 
   // ---------------------------------------------------------------------------
   // 2) إدخال الجامعات (Universities)
@@ -456,7 +441,6 @@ async function main() {
   console.log("تمت عملية إدخال البيانات الأولية بنجاح! 🎉");
   console.log("يمكنك الآن تسجيل الدخول باستخدام:");
   console.log("البريد الإلكتروني:", adminEmail);
-  console.log("كلمة المرور:", adminPlainPassword);
 }
 
 main()
@@ -468,4 +452,3 @@ main()
     await prisma.$disconnect();
     process.exit(1);
   });
-  

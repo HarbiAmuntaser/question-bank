@@ -1,9 +1,9 @@
 import { prisma } from "@/lib/prisma";
-import { json, bad, unauth } from "@/lib/http";
-import { verifyAdmin } from "@/lib/admin-auth";
+import { json, bad } from "@/lib/server/admin-http";
+import { verifyAdmin, adminAuthResponse } from "@/lib/admin-auth";
 import { CACHE_CONTROL } from "@/lib/cache-tags";
 import { revalidateChapterCache } from "@/lib/cache-invalidation";
-import { unstable_cache } from "next/cache";
+
 import { listChaptersQuerySchema, createChapterSchema } from "@/validations/chapter";
 import { buildChapterSlug, normalizeChapterSlug } from "@/lib/chapter-slugs";
 
@@ -35,8 +35,7 @@ type ChapterListRow = {
   _count: { questions: number };
 };
 
-const listChaptersCached = unstable_cache(
-  async (q: Record<string, string | null | undefined>) => {
+const listChapters = async (q: Record<string, string | null | undefined>) => {
     const parsed = listChaptersQuerySchema.safeParse({
       page: q.page,
       pageSize: q.pageSize,
@@ -146,14 +145,11 @@ const listChaptersCached = unstable_cache(
         totalPages: Math.ceil(total / pageSize),
       },
     };
-  },
-  ["admin-chapters-list"],
-  { revalidate: 3600, tags: ["chapters"] }
-);
+  };
 
 export async function GET(req: Request) {
-  const auth = await verifyAdmin(req);
-  if (!auth.ok) return unauth();
+  const auth = await verifyAdmin(req, "chapters:read");
+  if (!auth.ok) return adminAuthResponse(auth);
 
   const url = new URL(req.url);
   const q: Record<string, string | null | undefined> = {
@@ -168,7 +164,7 @@ export async function GET(req: Request) {
   };
 
   try {
-    const payload = await listChaptersCached(q);
+    const payload = await listChapters(q);
     const headers = new Headers({
       "cache-control": CACHE_CONTROL.PRIVATE_NO_STORE,
     });
@@ -179,8 +175,8 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const auth = await verifyAdmin(req);
-  if (!auth.ok) return unauth();
+  const auth = await verifyAdmin(req, "chapters:write");
+  if (!auth.ok) return adminAuthResponse(auth);
 
   const body = await req.json().catch(() => null);
   const parsed = createChapterSchema.safeParse(body);
@@ -205,7 +201,7 @@ export async function POST(req: Request) {
       description: parsed.data.description ?? null,
       learningObjectives: parsed.data.learningObjectives ?? [],
       isActive: parsed.data.isActive,
-      // createdBy: auth.userId !== "api-key" ? auth.userId : null, // إن أحببت
+      // createdBy: auth.userId, // إن أحببت
     },
   });
 

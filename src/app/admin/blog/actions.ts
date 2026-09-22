@@ -1,9 +1,8 @@
 "use server";
 
+import { requireAdminPermission } from "@/lib/admin-auth";
+import { adminApiFetch as apiFetch } from "@/lib/server/admin-api-fetch";
 import { revalidatePath } from "next/cache";
-import { cookies } from "next/headers";
-
-import { getRequestOrigin } from "@/lib/server/request-origin";
 
 type BlogTaxonomyPayload = {
   name: string;
@@ -38,13 +37,6 @@ type ActionResult = {
 const ADMIN_BLOG_PATH = "/admin/blog";
 const ADMIN_BLOG_TOPICS_PATH = "/admin/blog/topics";
 const ADMIN_BLOG_TAGS_PATH = "/admin/blog/tags";
-
-function adminHeaders(): HeadersInit {
-  return {
-    "content-type": "application/json",
-    ...(process.env.ADMIN_API_KEY ? { "x-admin-key": process.env.ADMIN_API_KEY } : {}),
-  };
-}
 
 function normalize(value: FormDataEntryValue | null) {
   return typeof value === "string" ? value.trim() : "";
@@ -122,17 +114,9 @@ async function readErrorMessage(res: Response, fallback: string) {
 }
 
 async function sendJson(path: string, method: "POST" | "PUT" | "PATCH" | "DELETE", body?: unknown) {
-  const base = await getRequestOrigin();
-  const jar = await cookies();
-  const requestHeaders = new Headers(adminHeaders());
-  const cookieHeader = jar.toString();
-  if (cookieHeader) requestHeaders.set("cookie", cookieHeader);
-
-  return fetch(`${base}${path}`, {
+  return apiFetch(path, {
     method,
-    headers: requestHeaders,
-    cache: "no-store",
-    body: body ? JSON.stringify(body) : undefined,
+    body: body === undefined ? undefined : JSON.stringify(body),
   });
 }
 
@@ -148,6 +132,8 @@ function success(message: string): ActionResult {
 }
 
 export async function createBlogTopicAction(formData: FormData): Promise<ActionResult> {
+  await requireAdminPermission("blog:write");
+
   const res = await sendJson("/api/v1/admin/blog/topics", "POST", formPayload(formData));
   if (!res.ok) {
     return { success: false, message: await readErrorMessage(res, "فشل إنشاء الموضوع") };
@@ -156,6 +142,8 @@ export async function createBlogTopicAction(formData: FormData): Promise<ActionR
 }
 
 export async function updateBlogTopicAction(id: string, formData: FormData): Promise<ActionResult> {
+  await requireAdminPermission("blog:write");
+
   const res = await sendJson(`/api/v1/admin/blog/topics/${id}`, "PUT", formPayload(formData));
   if (!res.ok) {
     return { success: false, message: await readErrorMessage(res, "فشل تحديث الموضوع") };
@@ -164,6 +152,8 @@ export async function updateBlogTopicAction(id: string, formData: FormData): Pro
 }
 
 export async function disableBlogTopicAction(id: string): Promise<ActionResult> {
+  await requireAdminPermission("blog:write");
+
   const res = await sendJson(`/api/v1/admin/blog/topics/${id}`, "DELETE");
   if (!res.ok) {
     return { success: false, message: await readErrorMessage(res, "فشل تعطيل الموضوع") };
@@ -172,6 +162,8 @@ export async function disableBlogTopicAction(id: string): Promise<ActionResult> 
 }
 
 export async function createBlogTagAction(formData: FormData): Promise<ActionResult> {
+  await requireAdminPermission("blog:write");
+
   const res = await sendJson("/api/v1/admin/blog/tags", "POST", formPayload(formData));
   if (!res.ok) {
     return { success: false, message: await readErrorMessage(res, "فشل إنشاء الوسم") };
@@ -180,6 +172,8 @@ export async function createBlogTagAction(formData: FormData): Promise<ActionRes
 }
 
 export async function updateBlogTagAction(id: string, formData: FormData): Promise<ActionResult> {
+  await requireAdminPermission("blog:write");
+
   const res = await sendJson(`/api/v1/admin/blog/tags/${id}`, "PUT", formPayload(formData));
   if (!res.ok) {
     return { success: false, message: await readErrorMessage(res, "فشل تحديث الوسم") };
@@ -188,6 +182,8 @@ export async function updateBlogTagAction(id: string, formData: FormData): Promi
 }
 
 export async function disableBlogTagAction(id: string): Promise<ActionResult> {
+  await requireAdminPermission("blog:write");
+
   const res = await sendJson(`/api/v1/admin/blog/tags/${id}`, "DELETE");
   if (!res.ok) {
     return { success: false, message: await readErrorMessage(res, "فشل تعطيل الوسم") };
@@ -196,6 +192,8 @@ export async function disableBlogTagAction(id: string): Promise<ActionResult> {
 }
 
 export async function createBlogPostAction(formData: FormData): Promise<ActionResult> {
+  await requireAdminPermission("blog:write");
+
   const res = await sendJson("/api/v1/admin/blog/posts", "POST", postPayload(formData));
   if (!res.ok) {
     return { success: false, message: await readErrorMessage(res, "فشل إنشاء المقال") };
@@ -204,6 +202,8 @@ export async function createBlogPostAction(formData: FormData): Promise<ActionRe
 }
 
 export async function updateBlogPostAction(id: string, formData: FormData): Promise<ActionResult> {
+  await requireAdminPermission("blog:write");
+
   const res = await sendJson(`/api/v1/admin/blog/posts/${id}`, "PATCH", postPayload(formData));
   if (!res.ok) {
     return { success: false, message: await readErrorMessage(res, "فشل تحديث المقال") };
@@ -212,6 +212,8 @@ export async function updateBlogPostAction(id: string, formData: FormData): Prom
 }
 
 export async function archiveBlogPostAction(id: string): Promise<ActionResult> {
+  await requireAdminPermission("blog:write");
+
   const res = await sendJson(`/api/v1/admin/blog/posts/${id}`, "PATCH", { status: "archived" });
   if (!res.ok) {
     return { success: false, message: await readErrorMessage(res, "فشل أرشفة المقال") };

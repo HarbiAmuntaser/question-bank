@@ -1,5 +1,7 @@
-import { headers as nextHeaders } from "next/headers"
-import { getRequestOrigin } from "@/lib/server/request-origin"
+import { requireAdminPage } from "@/lib/server/admin-page-auth";
+import { adminApiFetch } from "@/lib/server/admin-api-fetch";
+
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import type { DashboardData } from "@/types/dashboard"
 import {
@@ -17,29 +19,8 @@ interface ApiResponse<T> {
   data: T
 }
 
-async function getApiBase(): Promise<string> {
-  return getRequestOrigin()
-}
-
-async function buildHeaders(): Promise<Headers> {
-  const incoming = await nextHeaders()
-  const headers = new Headers()
-  headers.set("accept", "application/json")
-
-  const adminKey = process.env.ADMIN_API_KEY
-  if (adminKey) headers.set("x-admin-key", adminKey)
-
-  const cookie = incoming.get("cookie")
-  if (cookie) headers.set("cookie", cookie)
-
-  return headers
-}
-
 async function getDashboardData(): Promise<DashboardData> {
-  const base = await getApiBase()
-  const res = await fetch(`${base}/api/v1/admin/dashboard`, {
-    headers: await buildHeaders(),
-    next: { revalidate: 300, tags: ["dashboard"] },
+  const res = await adminApiFetch(`/api/v1/admin/dashboard`, {
   })
 
   if (!res.ok) {
@@ -85,6 +66,8 @@ function getActivityDotColor(type: DashboardData["recentActivity"][number]["type
 }
 
 export default async function AdminDashboard() {
+  await requireAdminPage("dashboard:read");
+
   const { stats, recentActivity, health } = await getDashboardData()
 
   const statCards = [

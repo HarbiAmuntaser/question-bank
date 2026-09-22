@@ -28,6 +28,7 @@ enum UserRole {
   admin
   editor
   moderator
+  student
 }
 
 // Content language tag per record
@@ -101,16 +102,25 @@ model User {
   id            String    @id @default(uuid())
   name          String?
   email         String    @unique
+  normalizedEmail String  @unique
   password      String
   emailVerified DateTime?
   image         String?
-  role          UserRole  @default(admin)
+  role          UserRole  @default(student)
   isActive      Boolean   @default(true)
+  sessionVersion Int      @default(0)
   createdAt     DateTime  @default(now())
 
   // Relations
   accounts                 Account[]
   sessions                 Session[]
+  authTokens               UserAuthToken[]
+  accessEntitlements       AccessEntitlement[] @relation("UserAccessEntitlements")
+  paymentOrders            PaymentOrder[]
+  paymentOrderEvents       PaymentOrderEvent[]
+  paymentReviewEvents      PaymentReviewEvent[]
+  paymentAdminEvents       PaymentAdminEvent[]
+  paymentAccountLock       PaymentAccountLock?
   universitiesCreated      University[]        @relation("UniversityCreatedBy")
   majorsCreated            Major[]             @relation("MajorCreatedBy")
   subjectsCreated          Subject[]           @relation("SubjectCreatedBy")
@@ -124,6 +134,36 @@ model User {
   subscriptionCodesCreated SubscriptionCode[]  @relation("SubscriptionCodeCreatedBy")
 
   @@map("users")
+}
+
+enum UserAuthTokenPurpose {
+  verify_email
+  reset_password
+}
+
+model UserAuthToken {
+  id             String   @id @default(uuid())
+  userId         String
+  purpose        UserAuthTokenPurpose
+  tokenHash      String   @unique
+  sessionVersion Int
+  callbackPath   String
+  expiresAt      DateTime
+  createdAt      DateTime @default(now())
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, purpose])
+  @@index([expiresAt])
+  @@map("user_auth_tokens")
+}
+
+model AuthRateLimit {
+  key       String   @id
+  attempts  Int
+  expiresAt DateTime
+
+  @@index([expiresAt])
+  @@map("auth_rate_limits")
 }
 
 // -----------------
@@ -185,7 +225,6 @@ model Major {
   creator            User?               @relation("MajorCreatedBy", fields: [createdBy], references: [id])
   subjects           Subject[]
   paidAccessPlans    PaidAccessPlan[]    @relation("MajorPaidAccessPlans")
-  accessEntitlements AccessEntitlement[] @relation("MajorAccessEntitlements")
 
   @@unique([universityId, code])
   @@map("majors")
@@ -216,6 +255,7 @@ model Subject {
   studySummaries     StudySummary[]
   paidAccessPlans    PaidAccessPlan[]    @relation("SubjectPaidAccessPlans")
   accessEntitlements AccessEntitlement[] @relation("SubjectAccessEntitlements")
+  paymentOrderItems  PaymentOrderItem[]
 
   @@unique([majorId, code])
   @@map("subjects")
@@ -431,8 +471,6 @@ model AnonymousSession {
   // Relations
   quizAttempts       QuizAttempt[]
   sessionProgress    SessionProgress[]
-  accessEntitlements AccessEntitlement[]    @relation("AnonymousSessionEntitlements")
-  paymentRequests    ManualPaymentRequest[] @relation("AnonymousSessionPaymentRequests")
 
   @@map("anonymous_sessions")
 }
@@ -621,14 +659,6 @@ enum ContactMethod {
   telegram
 }
 
-enum ManualPaymentStatus {
-  pending
-  contacted
-  paid
-  rejected
-  completed
-}
-
 enum QuizAccessType {
   inherit
   free
@@ -664,13 +694,171 @@ model PaidAccessPlan {
   subject Subject? @relation("SubjectPaidAccessPlans", fields: [subjectId], references: [id], onDelete: Cascade)
 
   codes           SubscriptionCode[]
-  paymentRequests ManualPaymentRequest[]
+  orderItems      PaymentOrderItem[]
+  adminEvents     PaymentAdminEvent[]
 
   @@index([scopeType])
   @@index([majorId])
   @@index([subjectId])
   @@index([isActive])
   @@map("paid_access_plans")
+}
+
+enum PaymentOrderStatus {
+  pending_payment
+  pending_review
+  awaiting_additional_payment
+  approved
+  rejected
+  cancelled
+  expired
+}
+
+enum PaymentOrderEventType {
+  created
+  contact_requested
+  cancelled
+  expired
+}
+
+model PaymentOrder {
+  id                 String @id @default(uuid())
+  reference          String @unique
+  userId             String
+  user               User @relation(fields: [userId], references: [id], onDelete: NoAction)
+  idempotencyKey     String
+  requestHash        String
+  cartKey            String
+  activeCartKey      String?
+  status             PaymentOrderStatus @default(pending_payment)
+  currency           String @default("SAR")
+  total              Decimal @db.Decimal(12, 2)
+  itemCount          Int
+  contactMethod      ContactMethod
+  contactValue       String
+  expiresAt          DateTime @db.Timestamptz(3)
+    contactRequestedAt DateTime? @db.Timestamptz(3)
+    reviewStartedAt    DateTime? @db.Timestamptz(3)
+    reviewVersion      Int @default(0)
+  createdAt          DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime @updatedAt @db.Timestamptz(3)
+  items              PaymentOrderItem[]
+    events             PaymentOrderEvent[]
+    reviews            PaymentReviewEvent[]
+    ledger             PaymentLedgerEntry[]
+
+  @@unique([userId, idempotencyKey])
+  @@unique([userId, activeCartKey])
+  @@index([userId, createdAt, id])
+  @@index([status, expiresAt])
+  @@map("payment_orders")
+}
+
+model PaymentOrderItem {
+  id             String @id @default(uuid())
+  orderId        String
+  order          PaymentOrder @relation(fields: [orderId], references: [id], onDelete: NoAction)
+  subjectId      String
+  subject        Subject @relation(fields: [subjectId], references: [id], onDelete: NoAction)
+  planId         String
+  plan           PaidAccessPlan @relation(fields: [planId], references: [id], onDelete: NoAction)
+  subjectName    String
+  universityName String
+  planTitle      String
+  price          Decimal @db.Decimal(10, 2)
+    durationDays   Int?
+    entitlement    AccessEntitlement?
+
+  @@unique([orderId, subjectId])
+  @@index([subjectId])
+  @@index([planId])
+  @@map("payment_order_items")
+}
+
+model PaymentOrderEvent {
+  id        String @id @default(uuid())
+  orderId   String
+  order     PaymentOrder @relation(fields: [orderId], references: [id], onDelete: NoAction)
+  actorId   String?
+  actor     User? @relation(fields: [actorId], references: [id], onDelete: NoAction)
+  type      PaymentOrderEventType
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  @@unique([orderId, type])
+  @@index([actorId])
+  @@map("payment_order_events")
+}
+
+enum PaymentReviewAction {
+  submitted
+  receipt
+  refund
+  correction
+  additional_requested
+  approved
+  rejected
+  approval_blocked
+  note
+}
+
+model PaymentAccountLock {
+  userId  String @id
+  user    User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  version BigInt @default(0)
+
+  @@map("payment_account_locks")
+}
+
+enum PaymentLedgerKind {
+  receipt
+  refund
+  void
+  correction
+}
+
+model PaymentReviewEvent {
+  id                  String @id @default(uuid())
+  orderId             String
+  order               PaymentOrder @relation(fields: [orderId], references: [id], onDelete: NoAction)
+  actorId             String
+  actor               User @relation(fields: [actorId], references: [id], onDelete: NoAction)
+  actorSessionVersion Int
+  action              PaymentReviewAction
+  version             Int
+  fromStatus          PaymentOrderStatus
+  toStatus            PaymentOrderStatus
+  idempotencyKey      String
+  requestHash         String
+  internalNote        String @default("")
+  studentMessage      String?
+  conflictCode        String?
+  createdAt           DateTime @default(now()) @db.Timestamptz(3)
+  ledger              PaymentLedgerEntry[]
+
+  @@unique([orderId, idempotencyKey])
+  @@unique([orderId, version])
+  @@index([actorId])
+  @@map("payment_review_events")
+}
+
+model PaymentLedgerEntry {
+  id          String @id @default(uuid())
+  orderId     String
+  order       PaymentOrder @relation(fields: [orderId], references: [id], onDelete: NoAction)
+  eventId     String
+  event       PaymentReviewEvent @relation(fields: [eventId], references: [id], onDelete: NoAction)
+  kind        PaymentLedgerKind
+  amount      Decimal @db.Decimal(12, 2)
+  reference   String? @unique
+  sourceId    String?
+  source      PaymentLedgerEntry? @relation("LedgerCorrections", fields: [sourceId], references: [id], onDelete: NoAction)
+  adjustments PaymentLedgerEntry[] @relation("LedgerCorrections")
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+
+  @@unique([sourceId, kind])
+  @@index([orderId, createdAt, id])
+  @@index([eventId])
+  @@map("payment_ledger_entries")
 }
 
 model SubscriptionCode {
@@ -699,6 +887,7 @@ model SubscriptionCode {
   creator User? @relation("SubscriptionCodeCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
 
   entitlements AccessEntitlement[]
+  adminEvents  PaymentAdminEvent[]
 
   @@index([planId])
   @@index([isActive])
@@ -709,16 +898,17 @@ model SubscriptionCode {
 
 model AccessEntitlement {
   id String @id @default(uuid())
+  orderItemId String? @unique
+  orderItem   PaymentOrderItem? @relation(fields: [orderItemId], references: [id], onDelete: NoAction)
 
-  anonymousSessionId String
-  anonymousSession   AnonymousSession @relation("AnonymousSessionEntitlements", fields: [anonymousSessionId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation("UserAccessEntitlements", fields: [userId], references: [id], onDelete: NoAction)
 
   codeId String?
   code   SubscriptionCode? @relation(fields: [codeId], references: [id], onDelete: SetNull)
 
   scopeType AccessScopeType
-  majorId   String?
-  subjectId String?
+  subjectId String
 
   startsAt  DateTime  @default(now())
   expiresAt DateTime?
@@ -727,43 +917,50 @@ model AccessEntitlement {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  major   Major?   @relation("MajorAccessEntitlements", fields: [majorId], references: [id], onDelete: Cascade)
-  subject Subject? @relation("SubjectAccessEntitlements", fields: [subjectId], references: [id], onDelete: Cascade)
+  revocation PaymentAdminEvent?
 
-  @@index([anonymousSessionId])
+  subject Subject @relation("SubjectAccessEntitlements", fields: [subjectId], references: [id], onDelete: NoAction)
+
+  @@index([userId, subjectId, isActive, expiresAt])
+  @@unique([userId, codeId])
   @@index([scopeType])
-  @@index([majorId])
   @@index([subjectId])
   @@index([expiresAt])
   @@index([isActive])
   @@map("access_entitlements")
 }
 
-model ManualPaymentRequest {
-  id String @id @default(uuid())
+enum PaymentAdminAction {
+  plan_created
+  plan_updated
+  plan_disabled
+  code_issued
+  code_disabled
+  entitlement_revoked
+}
 
-  anonymousSessionId String?
-  anonymousSession   AnonymousSession? @relation("AnonymousSessionPaymentRequests", fields: [anonymousSessionId], references: [id], onDelete: SetNull)
+model PaymentAdminEvent {
+  id                  String @id @default(uuid())
+  actorId             String
+  actor               User @relation(fields: [actorId], references: [id], onDelete: NoAction)
+  actorSessionVersion Int
+  action              PaymentAdminAction
+  planId              String?
+  plan                PaidAccessPlan? @relation(fields: [planId], references: [id], onDelete: NoAction)
+  codeId              String?
+  code                SubscriptionCode? @relation(fields: [codeId], references: [id], onDelete: NoAction)
+  entitlementId       String? @unique
+  entitlement         AccessEntitlement? @relation(fields: [entitlementId], references: [id], onDelete: NoAction)
+  reason              String
+  before              Json
+  after               Json
+  createdAt           DateTime @default(now()) @db.Timestamptz(3)
 
-  planId String?
-  plan   PaidAccessPlan? @relation(fields: [planId], references: [id], onDelete: SetNull)
-
-  contactMethod ContactMethod?
-  contactValue  String?
-
-  message String?
-  pageUrl String?
-
-  status ManualPaymentStatus @default(pending)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([anonymousSessionId])
+  @@index([createdAt, id])
+  @@index([actorId])
   @@index([planId])
-  @@index([status])
-  @@index([createdAt])
-  @@map("manual_payment_requests")
+  @@index([codeId])
+  @@map("payment_admin_events")
 }
 
 // -----------------

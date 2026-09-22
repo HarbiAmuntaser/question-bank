@@ -2,6 +2,7 @@
 import "server-only";
 import { headers } from "next/headers";
 import { CACHE_TTL } from "@/lib/cache-tags";
+import { authOrigin } from "@/lib/server/auth-config";
 
 type StudentFetchInit = RequestInit & {
   next?: {
@@ -19,6 +20,17 @@ export async function apiBase() {
   const proto = h.get("x-forwarded-proto") ?? "http";
   const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
   return `${proto}://${host}`;
+}
+
+/** Authenticated content reads must never forward cookies to a request-controlled host. */
+export async function fetchAuthenticatedStudentJSON<T>(path: string) {
+  const origin = authOrigin();
+  const url = new URL(path, origin);
+  if (url.origin !== origin || !url.pathname.startsWith("/api/v1/student/") || url.username || url.password) {
+    throw new Error("invalid_student_api_path");
+  }
+  const incoming = await headers();
+  return fetchJSON<T>(url.href, { cache: "no-store", headers: { cookie: incoming.get("cookie") ?? "" } }, 0);
 }
 
 export async function fetchJSON<T>(

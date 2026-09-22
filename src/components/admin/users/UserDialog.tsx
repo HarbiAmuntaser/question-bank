@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { createUserAction, updateUserAction } from "@/app/admin/users/actions";
 
-type Role = "admin" | "editor" | "moderator";
+type Role = "admin" | "editor" | "moderator" | "student";
 type UserRow = {
   id: string; name: string | null; email: string; role: Role; isActive: boolean;
 };
@@ -18,10 +18,12 @@ type UserRow = {
 export default function UserDialog({
   children,
   user,
+  isCurrentUser = false,
   onDone,
 }: {
   children?: React.ReactNode;
   user?: UserRow;
+  isCurrentUser?: boolean;
   onDone?: () => void;
 }) {
   const isEdit = Boolean(user);
@@ -32,7 +34,7 @@ export default function UserDialog({
   const [name, setName] = useState<string>(user?.name ?? "");
   const [email, setEmail] = useState<string>(user?.email ?? "");
   const [password, setPassword] = useState<string>("");
-  const [role, setRole] = useState<Role>(user?.role ?? "admin");
+  const [role, setRole] = useState<Role>(user?.role ?? "student");
   const [isActive, setIsActive] = useState<boolean>(user?.isActive ?? true);
 
   useEffect(() => {
@@ -45,7 +47,7 @@ export default function UserDialog({
     } else {
       setName("");
       setEmail("");
-      setRole("admin");
+      setRole("student");
       setIsActive(true);
       setPassword("");
     }
@@ -109,9 +111,10 @@ export default function UserDialog({
 
           <div className="space-y-2">
             <Label>الصلاحية</Label>
-            <Select value={role} onValueChange={(v) => setRole(v as Role)}>
+            <Select value={role} onValueChange={(v) => setRole(v as Role)} disabled={isCurrentUser}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
+                <SelectItem value="student">طالب</SelectItem>
                 <SelectItem value="admin">Admin</SelectItem>
                 <SelectItem value="editor">Editor</SelectItem>
                 <SelectItem value="moderator">Moderator</SelectItem>
@@ -120,7 +123,7 @@ export default function UserDialog({
           </div>
 
           <div className="flex items-center gap-3">
-            <Switch checked={isActive} onCheckedChange={(v) => setIsActive(Boolean(v))} id="isActive" />
+            <Switch checked={isActive} onCheckedChange={(v) => setIsActive(Boolean(v))} id="isActive" disabled={isCurrentUser} />
             <Label htmlFor="isActive">نشط</Label>
           </div>
         </div>

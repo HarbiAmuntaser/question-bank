@@ -1,3 +1,4 @@
+import { requireAdminPage } from "@/lib/server/admin-page-auth";
 import { Suspense } from "react";
 import type { Metadata } from "next";
 
@@ -13,6 +14,8 @@ export default async function AdminSummariesPage({
 }: {
   searchParams: Promise<SummariesSearchParams>;
 }) {
+  await requireAdminPage("summaries:read");
+
   const resolvedSearchParams = await searchParams;
 
   return (

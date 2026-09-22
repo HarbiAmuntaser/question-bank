@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, BookOpen } from "lucide-react";
 import type { InstitutionType } from "@/config/regions";
 
-import { MajorSubscriptionCallout } from "@/components/public/subscription-access";
 import { PublicSubjectCard } from "@/components/public/public-subject-card";
 import {
   compareAcademicPeriods,
@@ -207,7 +206,6 @@ export async function MajorDetails({
         </CardHeader>
       </Card>
 
-      <MajorSubscriptionCallout majorId={major.id} title={major.name} />
 
       <section id="subjects-section" className="space-y-5">
         <div className="text-center">

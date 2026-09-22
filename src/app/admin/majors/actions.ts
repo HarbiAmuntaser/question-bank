@@ -1,8 +1,10 @@
 // src/app/admin/majors/actions.ts
 "use server";
 
+import { requireAdminPermission } from "@/lib/admin-auth";
+import { adminApiFetch as apiFetch } from "@/lib/server/admin-api-fetch";
 import { revalidatePath, revalidateTag } from "next/cache";
-import { getRequestOrigin } from "@/lib/server/request-origin";
+
 import { normalizeDegreeType } from "@/lib/degree-types";
 
 function normalize(v: FormDataEntryValue | null): string | null {
@@ -10,11 +12,9 @@ function normalize(v: FormDataEntryValue | null): string | null {
   return s.length ? s : null;
 }
 
-async function getBase(): Promise<string> {
-  return getRequestOrigin();
-}
-
 export async function createMajorAction(formData: FormData) {
+  await requireAdminPermission("majors:write");
+
   const payload = {
     universityId: (formData.get("universityId") ?? "").toString(),
     name: (formData.get("name") ?? "").toString().trim(),
@@ -30,12 +30,10 @@ export async function createMajorAction(formData: FormData) {
   };
 
   try {
-    const base = await getBase();
-    const res = await fetch(`${base}/api/v1/admin/majors`, {
+    const res = await apiFetch(`/api/v1/admin/majors`, {
       method: "POST",
       headers: {
         "content-type": "application/json",
-        "x-admin-key": process.env.ADMIN_API_KEY ?? "",
       },
       body: JSON.stringify(payload),
     });
@@ -54,6 +52,8 @@ export async function createMajorAction(formData: FormData) {
 }
 
 export async function updateMajorAction(id: string, formData: FormData) {
+  await requireAdminPermission("majors:write");
+
   const payload = {
     universityId: normalize(formData.get("universityId")) ?? undefined,
     name: normalize(formData.get("name")) ?? undefined,
@@ -72,12 +72,10 @@ export async function updateMajorAction(id: string, formData: FormData) {
   };
 
   try {
-    const base = await getBase();
-    const res = await fetch(`${base}/api/v1/admin/majors/${id}`, {
+    const res = await apiFetch(`/api/v1/admin/majors/${id}`, {
       method: "PUT",
       headers: {
         "content-type": "application/json",
-        "x-admin-key": process.env.ADMIN_API_KEY ?? "",
       },
       body: JSON.stringify(payload),
     });
@@ -96,11 +94,11 @@ export async function updateMajorAction(id: string, formData: FormData) {
 }
 
 export async function deleteMajorAction(id: string) {
+  await requireAdminPermission("majors:write");
+
   try {
-    const base = await getBase();
-    const res = await fetch(`${base}/api/v1/admin/majors/${id}`, {
+    const res = await apiFetch(`/api/v1/admin/majors/${id}`, {
       method: "DELETE",
-      headers: { "x-admin-key": process.env.ADMIN_API_KEY ?? "" },
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));

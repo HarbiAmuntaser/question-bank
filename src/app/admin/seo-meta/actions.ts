@@ -1,25 +1,9 @@
 // src/app/admin/seo-meta/actions.ts
 "use server"
-
-import { cookies } from "next/headers"
-import { getRequestOrigin } from "@/lib/server/request-origin"
+import { requireAdminPermission } from "@/lib/admin-auth";
+import { adminApiFetch as apiFetch } from "@/lib/server/admin-api-fetch";
 
 type SortableColumn = "updatedAt" | "createdAt" | "slug"
-
-async function apiFetch(path: string, init?: RequestInit) {
-  const base = await getRequestOrigin()
-  const jar = await cookies()
-  const cookieHeader = jar.toString()
-
-  const headers = new Headers(init?.headers)
-  headers.set("cookie", cookieHeader)
-  if (init?.body && !(init.body instanceof FormData)) {
-    headers.set("content-type", "application/json")
-  }
-  if (process.env.ADMIN_API_KEY) headers.set("x-admin-key", process.env.ADMIN_API_KEY)
-
-  return fetch(`${base}${path}`, { ...init, headers, cache: "no-store" })
-}
 
 function pickErrorMessage(data: any, fallback: string) {
   return data?.error ?? data?.message ?? fallback
@@ -35,6 +19,8 @@ export async function listSeoMetaAction(args: {
   sortBy?: SortableColumn
   sortOrder?: "asc" | "desc"
 }) {
+  await requireAdminPermission("seo-meta:read");
+
   const params = new URLSearchParams()
   if (args.ownerType) params.set("ownerType", args.ownerType)
   if (args.ownerId) params.set("ownerId", args.ownerId)
@@ -53,6 +39,8 @@ export async function listSeoMetaAction(args: {
 }
 
 export async function getSeoMetaByIdAction(id: string) {
+  await requireAdminPermission("seo-meta:read");
+
   const res = await apiFetch(`/api/v1/admin/seo-meta/${id}`)
   const data = await res.json().catch(() => ({}))
   if (!res.ok) return { success: false, message: pickErrorMessage(data, "فشل تحميل بيانات السجل") }
@@ -61,9 +49,9 @@ export async function getSeoMetaByIdAction(id: string) {
 
 // src/app/admin/seo-meta/actions.ts
 
-
-
 export async function createSeoMetaAction(payload: any) {
+  await requireAdminPermission("seo-meta:write");
+
   const res = await apiFetch(`/api/v1/admin/seo-meta`, {
     method: "POST",
     body: JSON.stringify(payload),
@@ -86,6 +74,8 @@ export async function createSeoMetaAction(payload: any) {
 }
 
 export async function updateSeoMetaAction(id: string, payload: any) {
+  await requireAdminPermission("seo-meta:write");
+
   const res = await apiFetch(`/api/v1/admin/seo-meta/${id}`, {
     method: "PUT",
     body: JSON.stringify(payload),
@@ -109,13 +99,13 @@ export async function updateSeoMetaAction(id: string, payload: any) {
 
 
 export async function deleteSeoMetaAction(id: string) {
+  await requireAdminPermission("seo-meta:write");
+
   const res = await apiFetch(`/api/v1/admin/seo-meta/${id}`, { method: "DELETE" })
   const data = await res.json().catch(() => ({}))
   if (!res.ok) return { success: false, message: pickErrorMessage(data, "فشل حذف بيانات SEO") }
   return { success: true, message: data?.message ?? "تم حذف بيانات SEO" }
 }
-
-
 
 // ✅ NEW
 export type SeoOwnerType =
@@ -140,9 +130,6 @@ export type ComboOption = {
 // existing helpers (as-is)
 // =========================
 
-
-
-
 // =========================
 // ✅ NEW: Owners actions
 // =========================
@@ -153,6 +140,8 @@ export async function listSeoOwnersAction(args: {
   majorId?: string
   subjectId?: string
 }) {
+  await requireAdminPermission("seo-meta:read");
+
   const params = new URLSearchParams()
   params.set("type", args.type)
   if (args.query) params.set("query", args.query)
@@ -175,6 +164,8 @@ export async function listSeoOwnersAction(args: {
 }
 
 export async function resolveSeoOwnerAction(args: { type: SeoOwnerType; id: string }) {
+  await requireAdminPermission("seo-meta:read");
+
   const params = new URLSearchParams()
   params.set("mode", "resolve")
   params.set("type", args.type)

@@ -2,41 +2,19 @@
 "use server";
 
 
+import { requireAdminPermission } from "@/lib/admin-auth";
+import { adminApiFetch as apiFetch } from "@/lib/server/admin-api-fetch";
 import { revalidatePath, revalidateTag } from "next/cache";
-import { getRequestOrigin } from "@/lib/server/request-origin";
+
 
 // اجلب base URL آمن يعمل على السيرفر
-import { cookies } from "next/headers";
+
 
 // ✅ اجلب base URL آمن يعمل على السيرفر (Next 15: headers() async)
-async function getApiBase() {
-  return getRequestOrigin();
-
-}
-
-async function apiFetch(path: string, init: RequestInit = {}) {
-  const base = await getApiBase(); // ✅ لازم await
-
-  // (لو ظهر لك لاحقًا نفس فكرة Promise مع cookies في build)
-  // استخدم: const cookieHeader = (await cookies()).toString();
-  const cookieHeader = (await cookies()).toString();
-
-  const headers: Record<string, string> = {
-    "content-type": "application/json",
-    ...(init.headers as Record<string, string> | undefined),
-  };
-
-  if (cookieHeader) headers["cookie"] = cookieHeader;
-  if (process.env.ADMIN_API_KEY) headers["x-api-key"] = process.env.ADMIN_API_KEY;
-
-  return fetch(`${base}${path}`, {
-    ...init,
-    headers,
-    cache: "no-store",
-  });
-}
 
 export async function createChapterAction(formData: FormData) {
+  await requireAdminPermission("chapters:write");
+
   try {
     const learningObjectives = (formData.get("learningObjectives") as string) || "";
     const data = {
@@ -77,6 +55,8 @@ export async function createChapterAction(formData: FormData) {
 }
 
 export async function updateChapterAction(id: string, formData: FormData) {
+  await requireAdminPermission("chapters:write");
+
   try {
     const learningObjectives = (formData.get("learningObjectives") as string) || "";
     const data = {
@@ -116,6 +96,8 @@ export async function updateChapterAction(id: string, formData: FormData) {
 }
 
 export async function deleteChapterAction(id: string) {
+  await requireAdminPermission("chapters:write");
+
   try {
     const res = await apiFetch(`/api/v1/admin/chapters/${id}`, { method: "DELETE" });
 

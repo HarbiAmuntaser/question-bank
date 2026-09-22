@@ -1,20 +1,21 @@
 import { z } from "zod";
+import { emailSchema, newPasswordSchema } from "@/validations/student-auth";
 
-export const userRoleEnum = z.enum(["admin", "editor", "moderator"]);
+export const userRoleEnum = z.enum(["admin", "editor", "moderator", "student"]);
 
 export const createUserSchema = z.object({
   name: z.string().trim().min(1, "name_required").optional().nullable(),
-  email: z.string().email("invalid_email"),
-  password: z.string().min(6, "min_6"),
-  role: userRoleEnum.default("admin"),
+  email: emailSchema,
+  password: newPasswordSchema,
+  role: userRoleEnum,
   isActive: z.boolean().default(true),
 });
 
 export const updateUserSchema = z.object({
   name: z.string().trim().min(1).optional().nullable(),
-  email: z.string().email().optional(),
+  email: emailSchema.optional(),
   // كلمة المرور اختيارية عند التعديل
-  password: z.string().min(6).optional(),
+  password: newPasswordSchema.optional(),
   role: userRoleEnum.optional(),
   isActive: z.boolean().optional(),
 });

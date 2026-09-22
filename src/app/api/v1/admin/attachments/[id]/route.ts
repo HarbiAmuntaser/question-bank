@@ -1,7 +1,7 @@
 // src/app/api/v1/admin/attachments/[id]/route.ts
 import { prisma } from "@/lib/prisma"
-import { json } from "@/lib/http"
-import { verifyAdmin } from "@/lib/admin-auth"
+import { json } from "@/lib/server/admin-http";
+import { verifyAdmin, adminAuthResponse } from "@/lib/admin-auth"
 import { revalidateTag } from "next/cache"
 import path from "path"
 import { promises as fs } from "fs"
@@ -22,9 +22,7 @@ function adminBad(message: string, details?: unknown, status = 400) {
   return json({ error: message, details }, { status, headers: privateHeaders() })
 }
 
-function adminUnauth(message = "غير مصرح") {
-  return json({ error: message }, { status: 401, headers: privateHeaders() })
-}
+
 
 function revalidateAttachmentCaches() {
   revalidateTag(CACHE_TAGS.admin.attachments)
@@ -41,8 +39,8 @@ function safeRevalidateBlogAttachment(input: Parameters<typeof revalidateBlogCac
 }
 
 export async function DELETE(req: Request, ctx: { params: Promise<{ id: string }> }) {
-  const auth = await verifyAdmin(req)
-  if (!auth.ok) return adminUnauth()
+  const auth = await verifyAdmin(req, "attachments:write")
+  if (!auth.ok) return adminAuthResponse(auth);
 
   const { id } = await ctx.params
   if (!id) return adminBad("missing_id")

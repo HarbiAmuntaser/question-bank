@@ -1,13 +1,9 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useTransition } from "react";
-import { Edit, Plus, Power, Ticket } from "lucide-react";
+import { Edit, Plus, Ticket } from "lucide-react";
 
-import {
-  disableAccessEntitlementAction,
-  disableSubscriptionCodeAction,
-} from "@/app/admin/subscriptions/actions";
+import { DisableSubscriptionDialog } from "@/components/admin/subscriptions/disable-dialog";
 import { AdminTableShell } from "@/components/admin/admin-table-shell";
 import { CodeDialog } from "@/components/admin/subscriptions/code-dialog";
 import { PlanDialog } from "@/components/admin/subscriptions/plan-dialog";
@@ -24,7 +20,6 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useToast } from "@/hooks/use-toast";
 
 function formatDate(value: string | null) {
   if (!value) return "-";
@@ -143,6 +138,9 @@ function TablePager({
 }
 
 export function SubscriptionsAdmin({
+  paymentsEnabled,
+  codesEnabled,
+  launchPlanIds,
   plans,
   codePlanOptions,
   codes,
@@ -152,6 +150,9 @@ export function SubscriptionsAdmin({
   codesPagination,
   entitlementsPagination,
 }: {
+  paymentsEnabled: boolean;
+  codesEnabled: boolean;
+  launchPlanIds: string[];
   plans: PlanRow[];
   codePlanOptions: PlanRow[];
   codes: CodeRow[];
@@ -161,23 +162,7 @@ export function SubscriptionsAdmin({
   codesPagination: PaginationMeta;
   entitlementsPagination: PaginationMeta;
 }) {
-  const [pending, startTransition] = useTransition();
-  const { toast } = useToast();
   const { tab, setParams } = useAdminTableParams();
-
-  const disableCode = (id: string) => {
-    startTransition(async () => {
-      const result = await disableSubscriptionCodeAction(id);
-      toast({ title: result.success ? "تم" : "خطأ", description: result.message, variant: result.success ? "default" : "destructive" });
-    });
-  };
-
-  const disableEntitlement = (id: string) => {
-    startTransition(async () => {
-      const result = await disableAccessEntitlementAction(id);
-      toast({ title: result.success ? "تم" : "خطأ", description: result.message, variant: result.success ? "default" : "destructive" });
-    });
-  };
 
   return (
     <Tabs value={tab} onValueChange={(value) => setParams({ tab: value })} className="space-y-4" dir="rtl">
@@ -188,14 +173,14 @@ export function SubscriptionsAdmin({
           <TabsTrigger value="entitlements">التفعيلات</TabsTrigger>
         </TabsList>
         <div className="flex flex-col gap-2 sm:flex-row">
-          <PlanDialog>
+          <PlanDialog paymentsEnabled={paymentsEnabled}>
             <Button className="h-10">
               <Plus className="ml-2 h-4 w-4" aria-hidden />
               خطة جديدة
             </Button>
           </PlanDialog>
           <CodeDialog plans={codePlanOptions}>
-            <Button variant="outline" className="h-10">
+            <Button variant="outline" className="h-10" disabled={!codesEnabled}>
               <Ticket className="ml-2 h-4 w-4" aria-hidden />
               كود جديد
             </Button>
@@ -239,6 +224,8 @@ export function SubscriptionsAdmin({
                 <TableRow key={plan.id}>
                   <TableCell>
                     <div className="font-medium">{plan.title}</div>
+                    <div dir="ltr" className="break-all font-mono text-xs text-muted-foreground">{plan.id}</div>
+                    {launchPlanIds.includes(plan.id) && <Badge variant="outline">ضمن قائمة الإطلاق</Badge>}
                     {plan.description ? <div className="line-clamp-1 text-xs text-muted-foreground">{plan.description}</div> : null}
                   </TableCell>
                   <TableCell>{scopeLabel(plan.scopeType)}</TableCell>
@@ -254,11 +241,13 @@ export function SubscriptionsAdmin({
                   </TableCell>
                   <TableCell>{statusBadge(plan.isActive)}</TableCell>
                   <TableCell className="text-left">
-                    <PlanDialog plan={plan}>
-                      <Button variant="ghost" size="sm" aria-label="تعديل الخطة">
+                    <PlanDialog plan={plan} paymentsEnabled={paymentsEnabled}>
+                      <Button variant="ghost" size="sm" aria-label="تعديل الخطة" title="تعديل الخطة" disabled={!plan.paymentEligible || (!paymentsEnabled && plan.isActive)}>
                         <Edit className="h-4 w-4" aria-hidden />
                       </Button>
                     </PlanDialog>
+                    {!plan.paymentEligible && <Badge variant="secondary">خارج النطاق</Badge>}
+                    <DisableSubscriptionDialog kind="plan" id={plan.id} updatedAt={plan.updatedAt} label={plan.title} disabled={!plan.isActive} />
                   </TableCell>
                 </TableRow>
               ))}
@@ -314,15 +303,7 @@ export function SubscriptionsAdmin({
                   <TableCell>{statusBadge(code.isActive)}</TableCell>
                   <TableCell className="max-w-[220px] truncate">{code.note ?? "-"}</TableCell>
                   <TableCell className="text-left">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      disabled={pending || !code.isActive}
-                      onClick={() => disableCode(code.id)}
-                      aria-label="تعطيل الكود"
-                    >
-                      <Power className="h-4 w-4" aria-hidden />
-                    </Button>
+                    <DisableSubscriptionDialog kind="code" id={code.id} updatedAt={code.updatedAt} label={`${code.planTitle} / ${code.codePreview ?? code.id}`} disabled={!code.isActive} />
                   </TableCell>
                 </TableRow>
               ))}
@@ -352,7 +333,7 @@ export function SubscriptionsAdmin({
               <TableRow>
                 <TableHead>النطاق</TableHead>
                 <TableHead>الهدف</TableHead>
-                <TableHead>الجلسة</TableHead>
+                <TableHead>الحساب</TableHead>
                 <TableHead>الكود</TableHead>
                 <TableHead>البداية</TableHead>
                 <TableHead>النهاية</TableHead>
@@ -367,21 +348,13 @@ export function SubscriptionsAdmin({
                 <TableRow key={entitlement.id}>
                   <TableCell>{scopeLabel(entitlement.scopeType)}</TableCell>
                   <TableCell>{entitlement.scopeType === "major" ? entitlement.majorName : entitlement.subjectName}</TableCell>
-                  <TableCell dir="ltr" className="font-mono text-xs">{entitlement.sessionPreview}</TableCell>
+                  <TableCell className="text-xs">{entitlement.userId ? <span dir="ltr">{entitlement.userEmail ?? entitlement.userId}</span> : <Badge variant="secondary">قديم غير منسوب</Badge>}</TableCell>
                   <TableCell dir="ltr" className="font-mono text-xs">{entitlement.codePreview ?? "-"}</TableCell>
                   <TableCell>{formatDate(entitlement.startsAt)}</TableCell>
                   <TableCell>{formatDate(entitlement.expiresAt)}</TableCell>
                   <TableCell>{statusBadge(entitlement.isActive)}</TableCell>
                   <TableCell className="text-left">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      disabled={pending || !entitlement.isActive}
-                      onClick={() => disableEntitlement(entitlement.id)}
-                      aria-label="تعطيل الاشتراك"
-                    >
-                      <Power className="h-4 w-4" aria-hidden />
-                    </Button>
+                    <DisableSubscriptionDialog kind="entitlement" id={entitlement.id} updatedAt={entitlement.updatedAt} label={`${entitlement.subjectName ?? entitlement.majorName ?? entitlement.id} / ${entitlement.userEmail ?? "قديم غير منسوب"}`} disabled={!entitlement.isActive} />
                   </TableCell>
                 </TableRow>
               ))}

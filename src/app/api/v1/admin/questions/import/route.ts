@@ -1,8 +1,8 @@
 import { revalidateQuestionCache } from "@/lib/cache-invalidation";
 import type { Prisma } from "@prisma/client";
 
-import { verifyAdmin } from "@/lib/admin-auth";
-import { bad, json, unauth } from "@/lib/http";
+import { verifyAdmin, adminAuthResponse } from "@/lib/admin-auth";
+import { bad, json } from "@/lib/server/admin-http";
 import { prisma } from "@/lib/prisma";
 import { questionsImportSchema, type ImportItem } from "@/validations/question-import";
 
@@ -33,8 +33,8 @@ function duplicateDetails(items: ImportItem[], existingKeys: Set<string>) {
 }
 
 export async function POST(req: Request) {
-  const auth = await verifyAdmin(req);
-  if (!auth.ok) return unauth();
+  const auth = await verifyAdmin(req, "questions:write");
+  if (!auth.ok) return adminAuthResponse(auth);
 
   let body: unknown;
   try {

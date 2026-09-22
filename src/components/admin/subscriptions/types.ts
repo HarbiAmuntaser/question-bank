@@ -16,6 +16,7 @@ export type SubscriptionFilters = {
 };
 
 export type PlanRow = {
+  paymentEligible: boolean;
   id: string;
   scopeType: AccessScopeType;
   majorId: string | null;
@@ -31,6 +32,7 @@ export type PlanRow = {
   defaultDurationDays: number | null;
   defaultMaxUses: number;
   createdAt: string;
+  updatedAt: string;
   major: { id: string; name: string; universityId: string; universityName: string | null } | null;
   subject: {
     id: string;
@@ -43,6 +45,7 @@ export type PlanRow = {
 };
 
 export type CodeRow = {
+  updatedAt: string;
   id: string;
   planId: string;
   planTitle: string;
@@ -59,11 +62,13 @@ export type CodeRow = {
 };
 
 export type EntitlementRow = {
+  updatedAt: string;
   id: string;
   scopeType: AccessScopeType;
   majorName: string | null;
   subjectName: string | null;
-  sessionPreview: string;
+  userId: string | null;
+  userEmail: string | null;
   codePreview: string | null;
   startsAt: string;
   expiresAt: string | null;

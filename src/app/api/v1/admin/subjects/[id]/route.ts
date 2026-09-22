@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
-import { json, bad, unauth, notFound } from "@/lib/http";
-import { verifyAdmin } from "@/lib/admin-auth";
+import { json, bad, notFound } from "@/lib/server/admin-http";
+import { verifyAdmin, adminAuthResponse } from "@/lib/admin-auth";
 import { CACHE_CONTROL } from "@/lib/cache-tags";
 import { revalidateSubjectCache } from "@/lib/cache-invalidation";
 import type { Prisma } from "@prisma/client";
@@ -12,8 +12,8 @@ import { updateSubjectSchema, universitySubjectAcademicPeriodSchema } from "@/va
 type Ctx = { params: Promise<{ id: string }> };
 
 export async function GET(req: Request, ctx: Ctx) {
-  const auth = await verifyAdmin(req);
-  if (!auth.ok) return unauth();
+  const auth = await verifyAdmin(req, "subjects:read");
+  if (!auth.ok) return adminAuthResponse(auth);
 
   const { id } = await ctx.params;
 
@@ -45,8 +45,8 @@ export async function GET(req: Request, ctx: Ctx) {
 }
 
 export async function PUT(req: Request, ctx: Ctx) {
-  const auth = await verifyAdmin(req);
-  if (!auth.ok) return unauth();
+  const auth = await verifyAdmin(req, "subjects:write");
+  if (!auth.ok) return adminAuthResponse(auth);
 
   const { id } = await ctx.params;
 
@@ -108,8 +108,8 @@ export async function PUT(req: Request, ctx: Ctx) {
 }
 
 export async function DELETE(req: Request, ctx: Ctx) {
-  const auth = await verifyAdmin(req);
-  if (!auth.ok) return unauth();
+  const auth = await verifyAdmin(req, "subjects:write");
+  if (!auth.ok) return adminAuthResponse(auth);
 
   const { id } = await ctx.params;
 

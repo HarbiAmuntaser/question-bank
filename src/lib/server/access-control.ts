@@ -1,56 +1,13 @@
-import { Prisma, type AccessScopeType, type ContactMethod, type QuizAccessType } from "@prisma/client";
-
+import "server-only";
+import type { Prisma, QuizAccessType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { hashSubscriptionCode, normalizeSubscriptionCode } from "@/lib/server/subscription-code";
-
-type AccessReason =
-  | "free"
-  | "free_preview"
-  | "no_paid_plan"
-  | "entitled"
-  | "paid_access_required"
-  | "missing_context"
-  | "not_found";
-
-type LitePlan = {
-  id: string;
-  scopeType: AccessScopeType;
-  title: string;
-  description: string | null;
-  price: string | null;
-  currency: string | null;
-  whatsappNumber: string | null;
-  telegramUsername: string | null;
-  contactMessage: string | null;
-  majorId: string | null;
-  subjectId: string | null;
-};
-
-type AccessStatus = {
-  allowed: boolean;
-  requiresSubscription: boolean;
-  reason: AccessReason;
-  scopeType: AccessScopeType | null;
-  majorId: string | null;
-  subjectId: string | null;
-  plan: LitePlan | null;
-  entitlementId: string | null;
-};
-
-type QuizContext = {
-  quizId: string;
-  accessType: QuizAccessType;
-  isFreePreview: boolean;
-  subjectId: string | null;
-  majorId: string | null;
-};
-
-type StudySummaryContext = {
-  summaryId: string;
-  accessType: QuizAccessType;
-  subjectId: string | null;
-  majorId: string | null;
-};
+import type { AccessPlan, AccessStatus } from "@/lib/payment-access";
+import { publicMajorWhere } from "@/lib/server/public-content-visibility";
+import {
+  getPaymentStudent, isPaymentSubject, paymentPlanWhere, paymentSubjectSelect,
+  paymentCodesEnabled, paymentLaunchPlanIds, paymentPlanOnSale, paymentSalesEnabled,
+  publishedPaymentQuizWhere, publishedSubjectWhere, type PaymentSubject,
+} from "@/lib/server/payment-scope";
 
 export type StudySummaryAccessStatus = AccessStatus & {
   summaryId: string | null;
@@ -58,642 +15,125 @@ export type StudySummaryAccessStatus = AccessStatus & {
   effectiveAccessType: Exclude<QuizAccessType, "inherit"> | null;
 };
 
-export class RedeemCodeError extends Error {
-  constructor(
-    public code:
-      | "invalid_code"
-      | "inactive_code"
-      | "code_not_started"
-      | "code_expired"
-      | "code_used"
-      | "inactive_plan"
-      | "invalid_plan_scope",
-    message: string,
-    public status = 400,
-  ) {
-    super(message);
+export const accessPlanSelect = {
+  id: true, scopeType: true, title: true, description: true, price: true, currency: true,
+  whatsappNumber: true, telegramUsername: true, contactMessage: true, majorId: true, subjectId: true,
+} satisfies Prisma.PaidAccessPlanSelect;
+
+export function serializeAccessPlan(plan: Prisma.PaidAccessPlanGetPayload<{ select: typeof accessPlanSelect }>): AccessPlan {
+  return { ...plan, scopeType: "subject", price: plan.price?.toString() ?? null };
+}
+
+function status(reason: AccessStatus["reason"], subject?: PaymentSubject | null): AccessStatus {
+  const allowed = ["free", "free_preview", "no_paid_plan", "out_of_scope", "entitled"].includes(reason);
+  return { allowed, reason, canPurchase: false, canRedeemCode: false, requiresSubscription: reason === "paid_access_required" || reason === "student_signin_required",
+    scopeType: subject && isPaymentSubject(subject) ? "subject" : null,
+    subjectId: subject?.id ?? null, majorId: subject?.majorId ?? null, plan: null, entitlementId: null };
+}
+
+// Caches are private to this invocation, never shared across visitors or requests.
+function accessReader() {
+  let student: ReturnType<typeof getPaymentStudent> | undefined;
+  const plans = new Map<string, ReturnType<typeof loadPlan>>();
+  async function loadPlan(subjectId: string) {
+    if (paymentSalesEnabled()) {
+      const sale = await prisma.paidAccessPlan.findFirst({ where: { isActive: true, subjectId, ...paymentPlanWhere(), id: { in: paymentLaunchPlanIds() } },
+        orderBy: [{ updatedAt: "desc" }, { id: "asc" }], select: accessPlanSelect });
+      if (sale) return sale;
+    }
+    return prisma.paidAccessPlan.findFirst({ where: { isActive: true, subjectId, ...paymentPlanWhere() },
+      orderBy: [{ updatedAt: "desc" }, { id: "asc" }], select: accessPlanSelect });
   }
-}
-
-function nowActiveWhere(now: Date) {
-  return {
-    isActive: true,
-    startsAt: { lte: now },
-    AND: [{ OR: [{ expiresAt: null }, { expiresAt: { gt: now } }] }],
-  } satisfies Prisma.AccessEntitlementWhereInput;
-}
-
-function serializePlan(plan: {
-  id: string;
-  scopeType: AccessScopeType;
-  title: string;
-  description: string | null;
-  price: Prisma.Decimal | null;
-  currency: string | null;
-  whatsappNumber: string | null;
-  telegramUsername: string | null;
-  contactMessage: string | null;
-  majorId: string | null;
-  subjectId: string | null;
-}): LitePlan {
-  return {
-    id: plan.id,
-    scopeType: plan.scopeType,
-    title: plan.title,
-    description: plan.description,
-    price: plan.price ? plan.price.toString() : null,
-    currency: plan.currency,
-    whatsappNumber: plan.whatsappNumber,
-    telegramUsername: plan.telegramUsername,
-    contactMessage: plan.contactMessage,
-    majorId: plan.majorId,
-    subjectId: plan.subjectId,
+  function planFor(subjectId: string) {
+    if (!plans.has(subjectId)) plans.set(subjectId, loadPlan(subjectId));
+    return plans.get(subjectId)!;
+  }
+  return async (subject: PaymentSubject, accessType: QuizAccessType, preview = false): Promise<AccessStatus> => {
+    // Publication is checked by the resolver before reaching this payment-only policy.
+    if (!isPaymentSubject(subject)) return status("out_of_scope", subject);
+    if (accessType === "free") return status("free", subject);
+    if (preview) return status("free_preview", subject);
+    const plan = await planFor(subject.id);
+    if (accessType === "inherit" && !plan) return status("no_paid_plan", subject);
+    const options = { canPurchase: Boolean(plan && paymentPlanOnSale(plan.id)), canRedeemCode: paymentCodesEnabled(),
+      plan: plan ? serializeAccessPlan(plan) : null };
+    student ??= getPaymentStudent();
+    const user = await student;
+    // Existing buyers must still be able to sign in when new sales are paused.
+    if (!user) return { ...status("student_signin_required", subject), ...options };
+    const now = new Date();
+    const entitlement = await prisma.accessEntitlement.findFirst({
+      where: { userId: user.id, scopeType: "subject", subjectId: subject.id,
+        isActive: true, startsAt: { lte: now }, OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+        AND: [{ OR: [{ codeId: null }, { code: { plan: { subjectId: subject.id, ...paymentPlanWhere() } } }] }] },
+      orderBy: { createdAt: "desc" }, select: { id: true },
+    });
+    return { ...status(entitlement ? "entitled" : options.canPurchase || options.canRedeemCode ? "paid_access_required" : "payments_unavailable", subject),
+      ...options, entitlementId: entitlement?.id ?? null };
   };
 }
 
-async function activePlanForScope(scopeType: AccessScopeType, scopeId: string) {
-  return prisma.paidAccessPlan.findFirst({
-    where: {
-      isActive: true,
-      scopeType,
-      ...(scopeType === "subject" ? { subjectId: scopeId } : { majorId: scopeId }),
-    },
-    orderBy: { updatedAt: "desc" },
-    select: {
-      id: true,
-      scopeType: true,
-      title: true,
-      description: true,
-      price: true,
-      currency: true,
-      whatsappNumber: true,
-      telegramUsername: true,
-      contactMessage: true,
-      majorId: true,
-      subjectId: true,
-    },
-  });
-}
-
-async function findEntitlement(input: {
-  anonymousSessionId?: string | null;
-  subjectId?: string | null;
-  majorId?: string | null;
-}) {
-  if (!input.anonymousSessionId) return null;
-  const now = new Date();
-  const scopeOr: Prisma.AccessEntitlementWhereInput[] = [];
-
+export async function checkScopeAccess(input: { subjectId?: string | null; majorId?: string | null }): Promise<AccessStatus> {
   if (input.subjectId) {
-    scopeOr.push({ scopeType: "subject", subjectId: input.subjectId });
+    const subject = await prisma.subject.findFirst({ where: { id: input.subjectId, ...publishedSubjectWhere() }, select: paymentSubjectSelect });
+    return subject ? accessReader()(subject, "inherit") : status("not_found");
   }
   if (input.majorId) {
-    scopeOr.push({ scopeType: "major", majorId: input.majorId });
+    const major = await prisma.major.findFirst({ where: { id: input.majorId, AND: [publicMajorWhere(), { isActive: true, university: { isActive: true } }] }, select: { id: true } });
+    return major ? { ...status("out_of_scope"), majorId: major.id } : status("not_found");
   }
-  if (!scopeOr.length) return null;
-
-  return prisma.accessEntitlement.findFirst({
-    where: {
-      anonymousSessionId: input.anonymousSessionId,
-      ...nowActiveWhere(now),
-      OR: scopeOr,
-    },
-    orderBy: { createdAt: "desc" },
-    select: { id: true },
-  });
+  return status("missing_context");
 }
 
-async function resolveQuizContext(quizId: string): Promise<QuizContext | null> {
+async function quizAccess(quizId: string, read: ReturnType<typeof accessReader>): Promise<AccessStatus> {
   const quiz = await prisma.quiz.findFirst({
-    where: { id: quizId, isActive: true },
-    select: {
-      id: true,
-      accessType: true,
-      isFreePreview: true,
-      subject: { select: { id: true, majorId: true } },
-      questions: {
-        take: 1,
-        orderBy: { questionOrder: "asc" },
-        select: {
-          question: {
-            select: {
-              chapter: {
-                select: {
-                  subject: { select: { id: true, majorId: true } },
-                },
-              },
-            },
-          },
-        },
-      },
-    },
+    where: { id: quizId, ...publishedPaymentQuizWhere() },
+    select: { accessType: true, isFreePreview: true, subject: { select: paymentSubjectSelect },
+      questions: { select: { question: { select: { chapter: { select: { subject: { select: paymentSubjectSelect } } } } } } } },
   });
-
-  if (!quiz) return null;
-
-  const subject = quiz.subject ?? quiz.questions[0]?.question?.chapter?.subject ?? null;
-
-  return {
-    quizId: quiz.id,
-    accessType: quiz.accessType,
-    isFreePreview: quiz.isFreePreview,
-    subjectId: subject?.id ?? null,
-    majorId: subject?.majorId ?? null,
-  };
+  if (!quiz) return status("not_found");
+  const subjects = new Map<string, PaymentSubject>();
+  if (quiz.subject) subjects.set(quiz.subject.id, quiz.subject);
+  for (const row of quiz.questions) {
+    const subject = row.question.chapter.subject;
+    subjects.set(subject.id, subject);
+  }
+  if (subjects.size === 0) return status(quiz.accessType === "free" || quiz.isFreePreview ? "free" : "missing_context");
+  if (subjects.size > 1) {
+    // Never decide a paid quiz's owner from the first question or an unrelated subjectId.
+    return status(Array.from(subjects.values()).some(isPaymentSubject) ? "missing_context" : "out_of_scope");
+  }
+  return read(subjects.values().next().value!, quiz.accessType, quiz.isFreePreview);
 }
 
-function studySummaryNotFound(summaryId: string): StudySummaryAccessStatus {
-  return {
-    allowed: false,
-    requiresSubscription: false,
-    reason: "not_found",
-    scopeType: null,
-    majorId: null,
-    subjectId: null,
-    plan: null,
-    entitlementId: null,
-    summaryId,
-    accessType: null,
-    effectiveAccessType: null,
-  };
+export async function checkQuizAccess(input: { quizId: string }) {
+  return quizAccess(input.quizId, accessReader());
 }
 
-async function resolveStudySummaryContexts(summaryIds: string[]): Promise<Map<string, StudySummaryContext>> {
-  const ids = Array.from(new Set(summaryIds.map((id) => id.trim()).filter(Boolean)));
-  if (!ids.length) return new Map();
-
-  const now = new Date();
-  const rows = await prisma.studySummary.findMany({
-    where: {
-      id: { in: ids },
-      status: "published",
-      publishedAt: { lte: now },
-    },
-    select: {
-      id: true,
-      accessType: true,
-      subjectId: true,
-      subject: { select: { majorId: true } },
-    },
-  });
-
-  return new Map(
-    rows.map((row) => [
-      row.id,
-      {
-        summaryId: row.id,
-        accessType: row.accessType,
-        subjectId: row.subjectId,
-        majorId: row.subject.majorId,
-      },
-    ]),
-  );
+export async function getQuizAccessMap(quizIds: string[]): Promise<Record<string, AccessStatus>> {
+  const read = accessReader();
+  return Object.fromEntries(await Promise.all(Array.from(new Set(quizIds)).map(async (id) => [id, await quizAccess(id, read)])));
 }
 
-async function resolveStudySummaryContext(summaryId: string): Promise<StudySummaryContext | null> {
-  return (await resolveStudySummaryContexts([summaryId])).get(summaryId) ?? null;
-}
-
-export async function checkScopeAccess(input: {
-  anonymousSessionId?: string | null;
-  subjectId?: string | null;
-  majorId?: string | null;
-}): Promise<AccessStatus> {
-  const resolvedMajorId =
-    input.majorId ??
-    (input.subjectId
-      ? (
-          await prisma.subject.findUnique({
-            where: { id: input.subjectId },
-            select: { majorId: true },
-          })
-        )?.majorId ?? null
-      : null);
-
-  if (input.subjectId) {
-    const subjectPlan = await activePlanForScope("subject", input.subjectId);
-    if (subjectPlan) {
-      const entitlement = await findEntitlement({ ...input, majorId: resolvedMajorId });
-      return {
-        allowed: Boolean(entitlement),
-        requiresSubscription: !entitlement,
-        reason: entitlement ? "entitled" : "paid_access_required",
-        scopeType: "subject",
-        majorId: resolvedMajorId ?? subjectPlan.majorId,
-        subjectId: input.subjectId,
-        plan: serializePlan(subjectPlan),
-        entitlementId: entitlement?.id ?? null,
-      };
-    }
-  }
-
-  if (resolvedMajorId) {
-    const majorPlan = await activePlanForScope("major", resolvedMajorId);
-    if (majorPlan) {
-      const entitlement = await findEntitlement({ anonymousSessionId: input.anonymousSessionId, majorId: resolvedMajorId });
-      return {
-        allowed: Boolean(entitlement),
-        requiresSubscription: !entitlement,
-        reason: entitlement ? "entitled" : "paid_access_required",
-        scopeType: "major",
-        majorId: resolvedMajorId,
-        subjectId: input.subjectId ?? null,
-        plan: serializePlan(majorPlan),
-        entitlementId: entitlement?.id ?? null,
-      };
-    }
-  }
-
-  return {
-    allowed: true,
-    requiresSubscription: false,
-    reason: "no_paid_plan",
-    scopeType: null,
-    majorId: resolvedMajorId,
-    subjectId: input.subjectId ?? null,
-    plan: null,
-    entitlementId: null,
-  };
-}
-
-export async function checkQuizAccess(input: {
-  quizId: string;
-  anonymousSessionId?: string | null;
-}): Promise<AccessStatus> {
-  const context = await resolveQuizContext(input.quizId);
-
-  if (!context) {
-    return {
-      allowed: false,
-      requiresSubscription: false,
-      reason: "not_found",
-      scopeType: null,
-      majorId: null,
-      subjectId: null,
-      plan: null,
-      entitlementId: null,
-    };
-  }
-
-  if (context.accessType === "free") {
-    return {
-      allowed: true,
-      requiresSubscription: false,
-      reason: "free",
-      scopeType: null,
-      majorId: context.majorId,
-      subjectId: context.subjectId,
-      plan: null,
-      entitlementId: null,
-    };
-  }
-
-  if (context.isFreePreview) {
-    return {
-      allowed: true,
-      requiresSubscription: false,
-      reason: "free_preview",
-      scopeType: null,
-      majorId: context.majorId,
-      subjectId: context.subjectId,
-      plan: null,
-      entitlementId: null,
-    };
-  }
-
-  if (context.accessType === "paid" && !context.subjectId && !context.majorId) {
-    return {
-      allowed: false,
-      requiresSubscription: true,
-      reason: "missing_context",
-      scopeType: null,
-      majorId: null,
-      subjectId: null,
-      plan: null,
-      entitlementId: null,
-    };
-  }
-
-  if (context.accessType === "paid") {
-    const entitlement = await findEntitlement({
-      anonymousSessionId: input.anonymousSessionId,
-      subjectId: context.subjectId,
-      majorId: context.majorId,
-    });
-    const subjectPlan = context.subjectId ? await activePlanForScope("subject", context.subjectId) : null;
-    const majorPlan = !subjectPlan && context.majorId ? await activePlanForScope("major", context.majorId) : null;
-    const plan = subjectPlan ?? majorPlan;
-
-    return {
-      allowed: Boolean(entitlement),
-      requiresSubscription: !entitlement,
-      reason: entitlement ? "entitled" : "paid_access_required",
-      scopeType: context.subjectId ? "subject" : context.majorId ? "major" : null,
-      majorId: context.majorId,
-      subjectId: context.subjectId,
-      plan: plan ? serializePlan(plan) : null,
-      entitlementId: entitlement?.id ?? null,
-    };
-  }
-
-  return checkScopeAccess({
-    anonymousSessionId: input.anonymousSessionId,
-    subjectId: context.subjectId,
-    majorId: context.majorId,
-  });
-}
-
-function withStudySummaryAccessMeta(
-  access: AccessStatus,
-  context: StudySummaryContext,
-  effectiveAccessType: Exclude<QuizAccessType, "inherit">,
-): StudySummaryAccessStatus {
-  return {
-    ...access,
-    summaryId: context.summaryId,
-    accessType: context.accessType,
-    effectiveAccessType,
-  };
-}
-
-async function checkStudySummaryContextAccess(input: {
-  context: StudySummaryContext;
-  anonymousSessionId?: string | null;
-}): Promise<StudySummaryAccessStatus> {
-  const { context } = input;
-
-  if (context.accessType === "free") {
-    return withStudySummaryAccessMeta(
-      {
-        allowed: true,
-        requiresSubscription: false,
-        reason: "free",
-        scopeType: null,
-        majorId: context.majorId,
-        subjectId: context.subjectId,
-        plan: null,
-        entitlementId: null,
-      },
-      context,
-      "free",
-    );
-  }
-
-  if (context.accessType === "paid" && !context.subjectId && !context.majorId) {
-    return withStudySummaryAccessMeta(
-      {
-        allowed: false,
-        requiresSubscription: true,
-        reason: "missing_context",
-        scopeType: null,
-        majorId: null,
-        subjectId: null,
-        plan: null,
-        entitlementId: null,
-      },
-      context,
-      "paid",
-    );
-  }
-
-  if (context.accessType === "paid") {
-    const entitlement = await findEntitlement({
-      anonymousSessionId: input.anonymousSessionId,
-      subjectId: context.subjectId,
-      majorId: context.majorId,
-    });
-    const subjectPlan = context.subjectId ? await activePlanForScope("subject", context.subjectId) : null;
-    const majorPlan = !subjectPlan && context.majorId ? await activePlanForScope("major", context.majorId) : null;
-    const plan = subjectPlan ?? majorPlan;
-
-    return withStudySummaryAccessMeta(
-      {
-        allowed: Boolean(entitlement),
-        requiresSubscription: !entitlement,
-        reason: entitlement ? "entitled" : "paid_access_required",
-        scopeType: context.subjectId ? "subject" : context.majorId ? "major" : null,
-        majorId: context.majorId,
-        subjectId: context.subjectId,
-        plan: plan ? serializePlan(plan) : null,
-        entitlementId: entitlement?.id ?? null,
-      },
-      context,
-      "paid",
-    );
-  }
-
-  const inheritedAccess = await checkScopeAccess({
-    anonymousSessionId: input.anonymousSessionId,
-    subjectId: context.subjectId,
-    majorId: context.majorId,
-  });
-
-  return withStudySummaryAccessMeta(
-    inheritedAccess,
-    context,
-    inheritedAccess.reason === "no_paid_plan" ? "free" : "paid",
-  );
-}
-
-export async function checkStudySummaryAccess(input: {
-  summaryId: string;
-  anonymousSessionId?: string | null;
-}): Promise<StudySummaryAccessStatus> {
-  const context = await resolveStudySummaryContext(input.summaryId);
-  if (!context) return studySummaryNotFound(input.summaryId);
-
-  return checkStudySummaryContextAccess({
-    context,
-    anonymousSessionId: input.anonymousSessionId,
-  });
-}
-
-export async function getStudySummaryAccessMap(input: {
-  summaryIds: string[];
-  anonymousSessionId?: string | null;
-}): Promise<Record<string, StudySummaryAccessStatus>> {
+export async function getStudySummaryAccessMap(input: { summaryIds: string[] }): Promise<Record<string, StudySummaryAccessStatus>> {
   const ids = Array.from(new Set(input.summaryIds.map((id) => id.trim()).filter(Boolean)));
   if (!ids.length) return {};
-
-  const contexts = await resolveStudySummaryContexts(ids);
-  const entries = await Promise.all(
-    ids.map(async (id) => {
-      const context = contexts.get(id);
-      const access = context
-        ? await checkStudySummaryContextAccess({ context, anonymousSessionId: input.anonymousSessionId })
-        : studySummaryNotFound(id);
-
-      return [id, access] as const;
-    }),
-  );
-
-  return Object.fromEntries(entries);
-}
-
-function validateCodeWindow(code: {
-  isActive: boolean;
-  startsAt: Date | null;
-  expiresAt: Date | null;
-  usedCount: number;
-  maxUses: number;
-  plan: { isActive: boolean; scopeType: AccessScopeType; majorId: string | null; subjectId: string | null };
-}) {
-  const now = new Date();
-  if (!code.isActive) throw new RedeemCodeError("inactive_code", "code_inactive");
-  if (code.startsAt && code.startsAt > now) throw new RedeemCodeError("code_not_started", "code_not_started");
-  if (code.expiresAt && code.expiresAt <= now) throw new RedeemCodeError("code_expired", "code_expired");
-  if (code.usedCount >= code.maxUses) throw new RedeemCodeError("code_used", "code_max_uses_reached");
-  if (!code.plan.isActive) throw new RedeemCodeError("inactive_plan", "plan_inactive");
-  if (code.plan.scopeType === "major" && !code.plan.majorId) {
-    throw new RedeemCodeError("invalid_plan_scope", "missing_major_scope");
-  }
-  if (code.plan.scopeType === "subject" && !code.plan.subjectId) {
-    throw new RedeemCodeError("invalid_plan_scope", "missing_subject_scope");
-  }
-}
-
-function addDays(date: Date, days: number) {
-  return new Date(date.getTime() + days * 24 * 60 * 60 * 1000);
-}
-
-export async function redeemSubscriptionCode(input: {
-  code: string;
-  anonymousSessionId: string;
-}) {
-  const normalized = normalizeSubscriptionCode(input.code);
-  if (!normalized) throw new RedeemCodeError("invalid_code", "invalid_code");
-
-  const codeHash = hashSubscriptionCode(normalized);
-  const now = new Date();
-
-  return prisma.$transaction(async (tx) => {
-    const code = await tx.subscriptionCode.findUnique({
-      where: { codeHash },
-      include: {
-        plan: {
-          select: {
-            id: true,
-            scopeType: true,
-            title: true,
-            description: true,
-            price: true,
-            currency: true,
-            isActive: true,
-            whatsappNumber: true,
-            telegramUsername: true,
-            contactMessage: true,
-            defaultDurationDays: true,
-            majorId: true,
-            subjectId: true,
-          },
-        },
-      },
-    });
-
-    if (!code) throw new RedeemCodeError("invalid_code", "invalid_code");
-
-    const existing = await tx.accessEntitlement.findFirst({
-      where: {
-        anonymousSessionId: input.anonymousSessionId,
-        codeId: code.id,
-        ...nowActiveWhere(now),
-      },
-      select: {
-        id: true,
-        scopeType: true,
-        majorId: true,
-        subjectId: true,
-        startsAt: true,
-        expiresAt: true,
-        isActive: true,
-      },
-    });
-
-    if (existing) {
-      return {
-        alreadyRedeemed: true,
-        entitlement: existing,
-        plan: serializePlan(code.plan),
-        codePreview: code.codePreview,
-      };
-    }
-
-    validateCodeWindow(code);
-
-    const increment = await tx.subscriptionCode.updateMany({
-      where: {
-        id: code.id,
-        isActive: true,
-        usedCount: { lt: code.maxUses },
-        AND: [
-          { OR: [{ startsAt: null }, { startsAt: { lte: now } }] },
-          { OR: [{ expiresAt: null }, { expiresAt: { gt: now } }] },
-        ],
-      },
-      data: { usedCount: { increment: 1 } },
-    });
-
-    if (increment.count !== 1) {
-      throw new RedeemCodeError("code_used", "code_unavailable");
-    }
-
-    const durationDays = code.durationDays ?? code.plan.defaultDurationDays;
-    const entitlement = await tx.accessEntitlement.create({
-      data: {
-        anonymousSessionId: input.anonymousSessionId,
-        codeId: code.id,
-        scopeType: code.plan.scopeType,
-        majorId: code.plan.scopeType === "major" ? code.plan.majorId : null,
-        subjectId: code.plan.scopeType === "subject" ? code.plan.subjectId : null,
-        startsAt: now,
-        expiresAt: durationDays && durationDays > 0 ? addDays(now, durationDays) : null,
-        isActive: true,
-      },
-      select: {
-        id: true,
-        scopeType: true,
-        majorId: true,
-        subjectId: true,
-        startsAt: true,
-        expiresAt: true,
-        isActive: true,
-      },
-    });
-
-    return {
-      alreadyRedeemed: false,
-      entitlement,
-      plan: serializePlan(code.plan),
-      codePreview: code.codePreview,
-    };
-  }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
-}
-
-export async function createManualPaymentRequest(input: {
-  anonymousSessionId: string;
-  planId: string;
-  contactMethod?: ContactMethod | null;
-  contactValue?: string | null;
-  message?: string | null;
-  pageUrl?: string | null;
-}) {
-  const plan = await prisma.paidAccessPlan.findFirst({
-    where: { id: input.planId, isActive: true },
-    select: { id: true },
+  const rows = await prisma.studySummary.findMany({
+    where: { id: { in: ids }, status: "published", publishedAt: { lte: new Date() }, subject: publishedSubjectWhere(),
+      OR: [{ chapterId: null }, { chapter: { isActive: true, subject: publishedSubjectWhere() } }] },
+    select: { id: true, accessType: true, subject: { select: paymentSubjectSelect }, chapter: { select: { subjectId: true } } },
   });
+  const byId = new Map(rows.map((row) => [row.id, row]));
+  const read = accessReader();
+  return Object.fromEntries(await Promise.all(ids.map(async (id) => {
+    const row = byId.get(id);
+    const valid = row && (!row.chapter || row.chapter.subjectId === row.subject.id);
+    const access = valid ? await read(row.subject, row.accessType) : status("not_found");
+    return [id, { ...access, summaryId: id, accessType: valid ? row.accessType : null,
+      effectiveAccessType: valid ? (access.allowed && access.reason !== "entitled" ? "free" : "paid") : null }];
+  })));
+}
 
-  if (!plan) throw new RedeemCodeError("inactive_plan", "plan_not_found_or_inactive", 404);
-
-  return prisma.manualPaymentRequest.create({
-    data: {
-      anonymousSessionId: input.anonymousSessionId,
-      planId: input.planId,
-      contactMethod: input.contactMethod ?? null,
-      contactValue: input.contactValue?.trim() || null,
-      message: input.message?.trim() || null,
-      pageUrl: input.pageUrl?.trim() || null,
-      status: "pending",
-    },
-    select: { id: true, status: true, createdAt: true },
-  });
+export async function checkStudySummaryAccess(input: { summaryId: string }): Promise<StudySummaryAccessStatus> {
+  return (await getStudySummaryAccessMap({ summaryIds: [input.summaryId] }))[input.summaryId];
 }

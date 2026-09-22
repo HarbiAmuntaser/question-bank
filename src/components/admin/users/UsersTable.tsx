@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Edit, Plus, Trash2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Edit, Plus, Trash2, Search, ChevronRight, ChevronLeft } from "lucide-react";
+import { Input } from "@/components/ui/input";
 
 import { deleteUserAction, listUsersAction } from "@/app/admin/users/actions";
 import {
@@ -22,24 +23,35 @@ import { useToast } from "@/hooks/use-toast";
 
 import UserDialog from "./UserDialog";
 
-type Role = "admin" | "editor" | "moderator";
+type Role = "admin" | "editor" | "moderator" | "student";
 type Row = { id: string; name: string | null; email: string; role: Role; isActive: boolean; createdAt: Date | string };
 
-export default function UsersTable({ initialRows }: { initialRows?: Row[] }) {
+export default function UsersTable({ initialRows, initialHasMore = false, currentUserId }: { initialRows?: Row[]; initialHasMore?: boolean; currentUserId: string }) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(initialRows === undefined);
   const [rows, setRows] = useState<Row[]>(initialRows ?? []);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [query, setQuery] = useState("");
+  const [role, setRole] = useState("");
+  const [hasMore, setHasMore] = useState(initialHasMore);
+  const requestId = useRef(0);
 
-  async function load() {
+  async function load(nextPage = page) {
+    const id = ++requestId.current;
     setLoading(true);
-    const r = await listUsersAction();
+    try {
+    const r = await listUsersAction({ page: nextPage, query, role });
+    if (id !== requestId.current) return;
     if (r.success) {
       setRows(r.users ?? []);
+      setPage(nextPage);
+      setHasMore(Boolean(r.hasMore));
     } else {
       toast({ title: "خطأ", description: r.message, variant: "destructive" });
     }
-    setLoading(false);
+    } catch { toast({ title: "تعذر تحميل المستخدمين", variant: "destructive" }); }
+    finally { if (id === requestId.current) setLoading(false); }
   }
 
   useEffect(() => {
@@ -65,12 +77,20 @@ export default function UsersTable({ initialRows }: { initialRows?: Row[] }) {
     <div className="rounded-md border">
       <div className="flex flex-col gap-3 border-b p-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="font-medium">المستخدمون</div>
-        <UserDialog onDone={load}>
+        <UserDialog onDone={() => void load()}>
           <Button className="gap-2">
             <Plus className="h-4 w-4" aria-hidden /> مستخدم جديد
           </Button>
         </UserDialog>
       </div>
+
+      <form onSubmit={(event) => { event.preventDefault(); void load(1); }} className="flex flex-wrap gap-3 border-b p-4">
+        <Input aria-label="بحث بالاسم أو البريد" placeholder="الاسم أو البريد" value={query} maxLength={100} onChange={(event) => setQuery(event.target.value)} className="min-w-0 flex-1 basis-48" />
+        <select aria-label="الدور" value={role} onChange={(event) => setRole(event.target.value)} className="h-10 rounded-md border bg-background px-3 text-sm">
+          <option value="">جميع الأدوار</option><option value="student">طالب</option><option value="admin">Admin</option><option value="editor">Editor</option><option value="moderator">Moderator</option>
+        </select>
+        <Button type="submit" size="icon" disabled={loading} title="بحث" aria-label="بحث"><Search className="h-4 w-4" /></Button>
+      </form>
 
       {loading ? (
         <TableSkeleton columns={6} rows={5} />
@@ -112,7 +132,7 @@ export default function UsersTable({ initialRows }: { initialRows?: Row[] }) {
                   </TableCell>
                   <TableCell className="text-left">
                     <div className="flex gap-2">
-                      <UserDialog user={u} onDone={load}>
+                      <UserDialog user={u} isCurrentUser={u.id === currentUserId} onDone={() => void load()}>
                         <Button variant="ghost" size="sm" title="تعديل" aria-label="تعديل المستخدم">
                           <Edit className="h-4 w-4" aria-hidden />
                         </Button>
@@ -122,6 +142,7 @@ export default function UsersTable({ initialRows }: { initialRows?: Row[] }) {
                         size="sm"
                         title="حذف"
                         aria-label="حذف المستخدم"
+                        disabled={u.id === currentUserId}
                         onClick={() => setDeleteId(u.id)}
                       >
                         <Trash2 className="h-4 w-4" aria-hidden />
@@ -135,6 +156,12 @@ export default function UsersTable({ initialRows }: { initialRows?: Row[] }) {
         </div>
       )}
 
+      <div className="flex items-center justify-between border-t p-4 text-sm">
+        <span>الصفحة {page}</span><div className="flex gap-2">
+          <Button variant="outline" size="icon" disabled={loading || page === 1} onClick={() => void load(page - 1)} title="الصفحة السابقة" aria-label="الصفحة السابقة"><ChevronRight className="h-4 w-4" /></Button>
+          <Button variant="outline" size="icon" disabled={loading || !hasMore} onClick={() => void load(page + 1)} title="الصفحة التالية" aria-label="الصفحة التالية"><ChevronLeft className="h-4 w-4" /></Button>
+        </div>
+      </div>
       <AlertDialog open={Boolean(deleteId)} onOpenChange={(open) => !open && setDeleteId(null)}>
         <AlertDialogContent dir="rtl" className="text-right">
           <AlertDialogHeader>

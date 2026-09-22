@@ -1,7 +1,7 @@
 // src/app/api/v1/admin/seo-meta/owners/route.ts
 import { prisma } from "@/lib/prisma";
-import { json, bad, unauth } from "@/lib/http";
-import { verifyAdmin } from "@/lib/admin-auth";
+import { json, bad } from "@/lib/server/admin-http";
+import { verifyAdmin, adminAuthResponse } from "@/lib/admin-auth";
 import { buildChapterSlug } from "@/lib/chapter-slugs";
 
 export const dynamic = "force-dynamic";
@@ -14,8 +14,8 @@ function pick(v: string | null) {
 }
 
 export async function GET(req: Request) {
-  const auth = await verifyAdmin(req);
-  if (!auth.ok) return unauth();
+  const auth = await verifyAdmin(req, "seo-meta:read");
+  if (!auth.ok) return adminAuthResponse(auth);
 
   const url = new URL(req.url);
   const type = pick(url.searchParams.get("type")) as OwnerType | null;

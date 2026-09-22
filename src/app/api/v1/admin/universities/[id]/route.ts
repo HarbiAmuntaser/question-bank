@@ -3,8 +3,8 @@
 // src/app/api/v1/admin/universities/[id]/route.ts
 
 import { prisma } from "@/lib/prisma";
-import { json, bad, unauth, notFound } from "@/lib/http";
-import { verifyAdmin } from "@/lib/admin-auth";
+import { json, bad, notFound } from "@/lib/server/admin-http";
+import { verifyAdmin, adminAuthResponse } from "@/lib/admin-auth";
 import { CACHE_CONTROL } from "@/lib/cache-tags";
 import { revalidateUniversityCache } from "@/lib/cache-invalidation";
 import { updateUniversitySchema } from "@/validations/university";
@@ -17,8 +17,8 @@ type RouteContext = {
 
 // GET /api/v1/admin/universities/[id]
 export async function GET(req: Request, { params }: RouteContext) {
-  const auth = await verifyAdmin(req);
-  if (!auth.ok) return unauth();
+  const auth = await verifyAdmin(req, "universities:read");
+  if (!auth.ok) return adminAuthResponse(auth);
 
   const { id } = await params;
 
@@ -42,8 +42,8 @@ export async function GET(req: Request, { params }: RouteContext) {
 export async function PUT(req: Request, { params }: RouteContext) {
   const { id } = await params;
 
-  const auth = await verifyAdmin(req);
-  if (!auth.ok) return unauth();
+  const auth = await verifyAdmin(req, "universities:write");
+  if (!auth.ok) return adminAuthResponse(auth);
 
   const body = (await req.json().catch(() => null)) as unknown;
   const parsed = updateUniversitySchema.safeParse(body);
@@ -89,8 +89,8 @@ export async function PUT(req: Request, { params }: RouteContext) {
 export async function DELETE(req: Request, { params }: RouteContext) {
   const { id } = await params;
 
-  const auth = await verifyAdmin(req);
-  if (!auth.ok) return unauth();
+  const auth = await verifyAdmin(req, "universities:write");
+  if (!auth.ok) return adminAuthResponse(auth);
 
   const target = await prisma.university.findUnique({
     where: { id },

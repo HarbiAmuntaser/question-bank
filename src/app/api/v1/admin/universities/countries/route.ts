@@ -1,14 +1,14 @@
 // src/app/api/v1/admin/universities/countries/route.ts
 import { prisma } from "@/lib/prisma";
-import { json, bad, unauth } from "@/lib/http";
-import { verifyAdmin } from "@/lib/admin-auth";
+import { json, bad } from "@/lib/server/admin-http";
+import { verifyAdmin, adminAuthResponse } from "@/lib/admin-auth";
 import { CACHE_CONTROL } from "@/lib/cache-tags";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
-  const auth = await verifyAdmin(req);
-  if (!auth.ok) return unauth();
+  const auth = await verifyAdmin(req, "universities:read");
+  if (!auth.ok) return adminAuthResponse(auth);
 
   try {
     const rows = await prisma.university.findMany({
