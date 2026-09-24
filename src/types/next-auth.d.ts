@@ -10,7 +10,7 @@ user: { id: string; role?: UserRole; sessionVersion?: number; emailVerified: str
 interface User extends DefaultUser {
 role: UserRole;
 sessionVersion: number;
-emailVerified: string | null;
+emailVerified: string | Date | null;
 }
 }
 

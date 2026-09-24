@@ -7,9 +7,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PasswordInput } from "./password-input";
+import { GoogleAuthButton } from "./google-auth-button";
 import { normalizeEmail, safeCallbackPath, type AuthPortal } from "@/lib/auth-policy";
 
-export function SignInForm({ portal = "student", callbackUrl, registrationOpen = false }: { portal?: AuthPortal; callbackUrl?: string; registrationOpen?: boolean }) {
+export function SignInForm({ portal = "student", callbackUrl, registrationOpen = false, googleAuthEnabled = false, oauthError }: {
+  portal?: AuthPortal;
+  callbackUrl?: string;
+  registrationOpen?: boolean;
+  googleAuthEnabled?: boolean;
+  oauthError?: string;
+}) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const destination = safeCallbackPath(callbackUrl, portal);
@@ -27,6 +34,15 @@ export function SignInForm({ portal = "student", callbackUrl, registrationOpen =
     finally { setBusy(false); }
   }
   return <div className="space-y-6">
+    {portal === "student" && googleAuthEnabled && <>
+      <GoogleAuthButton callbackUrl={destination} />
+      <div className="flex items-center gap-3 text-xs text-muted-foreground" aria-hidden>
+        <span className="h-px flex-1 bg-border" />
+        <span>أو</span>
+        <span className="h-px flex-1 bg-border" />
+      </div>
+    </>}
+    {oauthError && <p role="alert" className="text-sm leading-6 text-destructive">{oauthError}</p>}
     <form onSubmit={submit} className="space-y-5">
       <div className="space-y-2"><Label htmlFor="email">البريد الإلكتروني</Label><Input id="email" name="email" type="email" required maxLength={254} autoComplete="email" dir="ltr" className="h-11" /></div>
       <div className="space-y-2"><Label htmlFor="password">كلمة المرور</Label><PasswordInput /></div>

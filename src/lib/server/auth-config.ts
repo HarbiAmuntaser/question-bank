@@ -21,11 +21,27 @@ export function mailConfig() {
 }
 
 export function registrationConfigured(): boolean {
-  if (process.env.STUDENT_REGISTRATION_ENABLED !== "true") return false;
+  if (!studentRegistrationEnabled()) return false;
   try {
     mailConfig();
     return Boolean(process.env.NEXTAUTH_SECRET && process.env.DATABASE_URL);
   } catch {
     return false;
   }
+}
+
+export function studentRegistrationEnabled(): boolean {
+  return process.env.STUDENT_REGISTRATION_ENABLED === "true";
+}
+
+export function googleAuthConfig(): { clientId: string; clientSecret: string } | null {
+  if (process.env.GOOGLE_AUTH_ENABLED !== "true") return null;
+  const clientId = process.env.GOOGLE_CLIENT_ID?.trim() ?? "";
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET ?? "";
+  if (!clientId || !clientSecret || /[\r\n]/.test(clientId + clientSecret)) return null;
+  return { clientId, clientSecret };
+}
+
+export function googleAuthConfigured(): boolean {
+  return googleAuthConfig() !== null;
 }

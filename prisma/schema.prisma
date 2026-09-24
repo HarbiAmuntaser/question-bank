@@ -103,7 +103,7 @@ model User {
   name          String?
   email         String    @unique
   normalizedEmail String  @unique
-  password      String
+  password      String?
   emailVerified DateTime?
   image         String?
   role          UserRole  @default(student)

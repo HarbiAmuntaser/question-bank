@@ -9,6 +9,7 @@ const accountId = "a".repeat(32);
 const readyEnv = {
   NODE_ENV: "production",
   STUDENT_REGISTRATION_ENABLED: "false",
+  GOOGLE_AUTH_ENABLED: "false",
   PAYMENT_V1_ENABLED: "false",
   PAYMENT_REVIEW_ENABLED: "false",
   PAYMENT_CODES_ENABLED: "false",
@@ -49,6 +50,7 @@ test("preflight fails closed for launch flags, unsafe origins, shared databases,
   const report = evaluateClosedReadiness({
     ...readyEnv,
     PAYMENT_V1_ENABLED: "TRUE",
+    GOOGLE_AUTH_ENABLED: "true",
     PAYMENT_LAUNCH_PLAN_IDS: '["plan"]',
     NEXTAUTH_URL: "http://mustawak.example/path",
     DIRECT_URL: readyEnv.DATABASE_URL,
@@ -58,7 +60,7 @@ test("preflight fails closed for launch flags, unsafe origins, shared databases,
   });
   assert.equal(report.automatedReady, false);
   const failures = report.checks.filter((check) => check.status === "fail").map((check) => check.id);
-  for (const id of ["closed_payment_v1_enabled", "closed_launch_plan_ids", "https_auth_origin", "database_connection_separation", "neon_pooling", "r2_bucket_separation", "r2_signed_url_ttl", "trusted_ip_header"]) {
+  for (const id of ["closed_google_auth_enabled", "google_oauth_configuration", "closed_payment_v1_enabled", "closed_launch_plan_ids", "https_auth_origin", "database_connection_separation", "neon_pooling", "r2_bucket_separation", "r2_signed_url_ttl", "trusted_ip_header"]) {
     assert.ok(failures.includes(id), id);
   }
 });
@@ -96,7 +98,7 @@ test("R4 package commands remain read-only and keep every release switch closed 
   assert.equal(pkg.scripts["security:audit:read-only"], "node scripts/dependency-audit-report.mjs");
   assert.doesNotMatch(pkg.scripts["security:audit:read-only"], /fix|install|upgrade/i);
   const example = readFileSync(".env.example", "utf8");
-  for (const key of ["STUDENT_REGISTRATION_ENABLED", "PAYMENT_V1_ENABLED", "PAYMENT_REVIEW_ENABLED", "PAYMENT_CODES_ENABLED"]) {
+  for (const key of ["STUDENT_REGISTRATION_ENABLED", "GOOGLE_AUTH_ENABLED", "PAYMENT_V1_ENABLED", "PAYMENT_REVIEW_ENABLED", "PAYMENT_CODES_ENABLED"]) {
     assert.match(example, new RegExp(`^${key}=false$`, "m"));
   }
   assert.match(example, /^PAYMENT_LAUNCH_PLAN_IDS=\[\]$/m);

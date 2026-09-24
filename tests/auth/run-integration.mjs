@@ -28,7 +28,8 @@ const password = randomBytes(24).toString("hex");
 const url = `postgresql://postgres:${password}@127.0.0.1:${dbPort}/p2_test`;
 const env = { ...process.env, DATABASE_URL: url, DIRECT_URL: url, P2_TEST_DATABASE_URL: url,
   NEXTAUTH_SECRET: randomBytes(32).toString("hex"), NEXTAUTH_URL: `http://localhost:${webPort}`, NODE_ENV: "development",
-  STUDENT_REGISTRATION_ENABLED: "true", PAYMENT_V1_ENABLED: "false", PAYMENT_LAUNCH_PLAN_IDS: "[]", PAYMENT_REVIEW_ENABLED: "false", PAYMENT_CODES_ENABLED: "false",
+  STUDENT_REGISTRATION_ENABLED: "true", GOOGLE_AUTH_ENABLED: "true", GOOGLE_CLIENT_ID: "local.apps.googleusercontent.com", GOOGLE_CLIENT_SECRET: "local-google-secret",
+  PAYMENT_V1_ENABLED: "false", PAYMENT_LAUNCH_PLAN_IDS: "[]", PAYMENT_REVIEW_ENABLED: "false", PAYMENT_CODES_ENABLED: "false",
   SMTP_HOST: "localhost", SMTP_PORT: String(mailPort), SMTP_USER: "local-test", SMTP_PASSWORD: password,
   AUTH_EMAIL_FROM: "Mustawak Test <no-reply@example.test>", AUTH_TRUSTED_IP_HEADER: "", P2_TEST_WORK: work, NEXT_TELEMETRY_DISABLED: "1" };
 const pg = new EmbeddedPostgres({ databaseDir: join(work, "postgres"), user: "postgres", password,
@@ -165,6 +166,18 @@ try {
   assert.equal((await client.query('SELECT count(*)::int AS count FROM payment_admin_events')).rows[0].count, 0);
   console.log("PASS R3 blocks unsafe paid media, removes only legacy payment data and preserves financial/audit history");
   cli(["migrate", "deploy", "--schema", schemaPath]);
+  const oauthMigration = "20260924090000_google_oauth_nullable_password";
+  const passwordsBeforeOauth = (await client.query('SELECT id,password,role::text FROM users ORDER BY id')).rows;
+  mkdirSync(join(migrations, oauthMigration));
+  copyFileSync(join("prisma/migrations", oauthMigration, "migration.sql"), join(migrations, oauthMigration, "migration.sql"));
+  console.log(cli(["migrate", "deploy", "--schema", schemaPath]).split("\n").filter((line) => /Applying migration|successfully/.test(line)).join("\n"));
+  assert.deepEqual((await client.query('SELECT id,password,role::text FROM users ORDER BY id')).rows, passwordsBeforeOauth);
+  assert.equal((await client.query(`SELECT is_nullable FROM information_schema.columns WHERE table_name='users' AND column_name='password'`)).rows[0].is_nullable, "YES");
+  await client.query(`INSERT INTO users (id,email,"normalizedEmail",password,role,"emailVerified") VALUES ('oauth-migration-test','oauth-migration@example.test','oauth-migration@example.test',NULL,'student',now())`);
+  await assert.rejects(client.query(`INSERT INTO users (id,email,"normalizedEmail",password,role) VALUES ('oauth-admin-test','oauth-admin@example.test','oauth-admin@example.test',NULL,'admin')`), /users_administrative_password_required/);
+  await client.query(`DELETE FROM users WHERE id='oauth-migration-test'`);
+  cli(["migrate", "deploy", "--schema", schemaPath]);
+  console.log("PASS Google OAuth migration preserves credentials, permits only student NULL passwords and redeploys idempotently");
   const drift = cli(["migrate", "diff", "--from-url", url, "--to-schema-datamodel", resolve("prisma/schema.prisma"), "--script"]);
   assert.match(drift, /empty migration/i);
   console.log("PASS P3-R3 migrations preserve roles/passwords and financial history with no schema drift");

@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "test:admin": "node --test tests/admin/authorization.test.mjs tests/admin/fetch.test.mjs tests/admin/users.test.mjs",
-    "test:auth": "node --test tests/auth/policy.test.mjs tests/auth/http.test.mjs",
+    "test:auth": "node --test tests/auth/policy.test.mjs tests/auth/http.test.mjs tests/auth/google.test.mjs",
     "test:auth:integration": "node tests/auth/run-integration.mjs",
     "test:payments": "node --test tests/payments/policy.test.mjs",
     "test:payments:integration": "node tests/auth/run-integration.mjs --payments",

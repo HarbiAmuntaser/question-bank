@@ -36,6 +36,18 @@ test("registration is fail-closed without flag or mail and does not activate wit
   const missing = moduleLoader({}, { process: { env: { ...env, SMTP_PASSWORD: "", STUDENT_REGISTRATION_ENABLED: "true" } } })("src/lib/server/auth-config.ts");
   assert.equal(missing.registrationConfigured(), false);
 });
+test("Google auth and registration controls are independent and fail closed", () => {
+  const base = { GOOGLE_CLIENT_ID: "client.apps.googleusercontent.com", GOOGLE_CLIENT_SECRET: "secret" };
+  for (const flag of [undefined, "false", "1", "TRUE"]) {
+    const config = moduleLoader({}, { process: { env: { ...base, GOOGLE_AUTH_ENABLED: flag } } })("src/lib/server/auth-config.ts");
+    assert.equal(config.googleAuthConfigured(), false);
+  }
+  const enabled = moduleLoader({}, { process: { env: { ...base, GOOGLE_AUTH_ENABLED: "true", STUDENT_REGISTRATION_ENABLED: "false" } } })("src/lib/server/auth-config.ts");
+  assert.equal(enabled.googleAuthConfigured(), true);
+  assert.equal(enabled.studentRegistrationEnabled(), false);
+  const missingSecret = moduleLoader({}, { process: { env: { GOOGLE_AUTH_ENABLED: "true", GOOGLE_CLIENT_ID: base.GOOGLE_CLIENT_ID } } })("src/lib/server/auth-config.ts");
+  assert.equal(missingSecret.googleAuthConfigured(), false);
+});
 test("R3 preserves pricing plans while removing only the retired request relation", () => {
   const old = execFileSync("git", ["show", "3d4ba6d:prisma/schema.prisma"], { encoding: "utf8" });
   const current = readFileSync("prisma/schema.prisma", "utf8");

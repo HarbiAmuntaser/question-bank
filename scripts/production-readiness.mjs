@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 
 const CLOSED_FLAGS = [
   "STUDENT_REGISTRATION_ENABLED",
+  "GOOGLE_AUTH_ENABLED",
   "PAYMENT_V1_ENABLED",
   "PAYMENT_REVIEW_ENABLED",
   "PAYMENT_CODES_ENABLED",
@@ -82,6 +83,10 @@ export function evaluateClosedReadiness(env = process.env) {
   const authSecret = value(env, "NEXTAUTH_SECRET");
   const secretReady = authSecret.length >= 32 && !/^(test|change|replace|secret|example)/i.test(authSecret);
   add("auth_secret", secretReady ? "pass" : "fail", "NEXTAUTH_SECRET must be a non-placeholder secret of at least 32 characters.");
+
+  const googleEnabled = value(env, "GOOGLE_AUTH_ENABLED") === "true";
+  const googleReady = !googleEnabled || Boolean(value(env, "GOOGLE_CLIENT_ID") && value(env, "GOOGLE_CLIENT_SECRET"));
+  add("google_oauth_configuration", googleReady ? "pass" : "fail", "Enabled Google authentication requires both GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.");
 
   const runtimeDb = validDatabaseUrl(value(env, "DATABASE_URL"));
   const directDb = validDatabaseUrl(value(env, "DIRECT_URL"));

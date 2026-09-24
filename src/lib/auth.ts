@@ -1,12 +1,16 @@
 import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
 import { isAdminRole } from "@/lib/admin-permissions";
 import { safeAuthRedirect, SESSION_MAX_AGE, type AuthPortal } from "@/lib/auth-policy";
 import { loginSchema } from "@/validations/student-auth";
 import { comparePassword } from "@/lib/server/auth-password";
 import { limitLogin } from "@/lib/server/auth-rate-limit";
+import {
+  allowGoogleStudentSignIn,
+  createGoogleProvider,
+  createStudentAuthAdapter,
+} from "@/lib/server/google-auth";
 
 function credentialsProvider(portal: AuthPortal) {
   return CredentialsProvider({
@@ -32,15 +36,23 @@ function credentialsProvider(portal: AuthPortal) {
   });
 }
 
+const googleProvider = createGoogleProvider();
+
+function verifiedAt(value: unknown): string | null {
+  if (value instanceof Date) return value.toISOString();
+  return typeof value === "string" ? value : null;
+}
+
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma), secret: process.env.NEXTAUTH_SECRET,
+  adapter: createStudentAuthAdapter(), secret: process.env.NEXTAUTH_SECRET,
   session: { strategy: "jwt", maxAge: SESSION_MAX_AGE }, jwt: { maxAge: SESSION_MAX_AGE },
-  providers: [credentialsProvider("student"), credentialsProvider("admin")],
-  pages: { signIn: "/auth/signin" },
+  providers: [credentialsProvider("student"), credentialsProvider("admin"), ...(googleProvider ? [googleProvider] : [])],
+  pages: { signIn: "/auth/signin", error: "/auth/signin" },
   callbacks: {
+    async signIn({ account, profile }) { return allowGoogleStudentSignIn({ account, profile }); },
     async redirect({ url, baseUrl }) { return safeAuthRedirect(url, baseUrl); },
     async jwt({ token, user }) {
-      if (user) return { ...token, sub: user.id, role: user.role, sessionVersion: user.sessionVersion, emailVerified: user.emailVerified };
+      if (user) return { ...token, sub: user.id, role: user.role, sessionVersion: user.sessionVersion, emailVerified: verifiedAt(user.emailVerified) };
       // Tokens issued before P2 require one fresh sign-in.
       if (!token.sub || !Number.isInteger(token.sessionVersion)) return {};
       const current = await prisma.user.findUnique({ where: { id: token.sub }, select: {

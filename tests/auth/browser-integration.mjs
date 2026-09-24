@@ -95,11 +95,13 @@ try {
     assert.equal(await prisma.user.count({ where: { normalizedEmail: "closed@example.test" } }), 0);
     await screenshot(page, "registration-closed-mobile", { width: 390, height: 844 });
     await page.goto("/auth/signin"); assert.equal(await page.locator('a[href^="/auth/register"]').count(), 0);
+    assert.equal(await page.getByRole("button", { name: "المتابعة باستخدام Google" }).count(), 1);
   });
   await stop(); await start(true);
   let verificationLink;
   await check("registration form, password confirmation, TLS delivery, safe callback", async () => {
     await page.goto("/auth/register?callbackUrl=https%3A%2F%2Fevil.example");
+    assert.equal(await page.getByRole("button", { name: "إنشاء حساب باستخدام Google" }).count(), 1);
     await screenshot(page, "registration-desktop", { width: 1440, height: 1000 });
     await screenshot(page, "registration-mobile", { width: 360, height: 800 });
     const response = await submit(page, "/api/v1/auth/register", { name: "Browser Student", email, password, confirmPassword: password });
@@ -167,6 +169,7 @@ try {
     const adminPage = await newPage(adminContext);
     assert.equal((await signin(adminPage, "student", "legacy.admin@example.test")).status(), 401);
     await adminPage.goto(`${origin}/auth/admin/signin`);
+    assert.equal(await adminPage.getByRole("button", { name: /Google/ }).count(), 0);
     await screenshot(adminPage, "admin-signin-desktop", { width: 1440, height: 1000 });
     assert.equal((await signin(adminPage, "admin", "legacy.admin@example.test")).status(), 200);
     try {

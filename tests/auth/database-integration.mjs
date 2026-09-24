@@ -55,6 +55,37 @@ try {
     assert.ok(await login("admin", "legacy.admin@example.test"));
     assert.equal(auth.session.maxAge, 30 * 86400);
   });
+  await check("Google OAuth creates only a verified normalized student and persists no provider tokens", async () => {
+    const google = auth.providers.find((candidate) => candidate.id === "google");
+    assert.ok(google);
+    assert.equal(google.options.authorization.params.scope, "openid email");
+    assert.equal(google.options.allowDangerousEmailAccountLinking, undefined);
+    assert.throws(() => google.options.profile({ sub: "bad-google", email: "bad@example.test", email_verified: false }), /google_profile_not_verified/);
+    const profile = google.options.profile({ sub: "google-student-sub", email: " Google.Student@Example.test ", email_verified: true });
+    const oauthUser = await auth.adapter.createUser(profile);
+    assert.equal(oauthUser.normalizedEmail, "google.student@example.test");
+    assert.equal(oauthUser.password, null);
+    assert.equal(oauthUser.role, "student");
+    assert.equal(oauthUser.sessionVersion, 0);
+    assert.ok(oauthUser.emailVerified);
+    await auth.adapter.linkAccount({ userId: oauthUser.id, type: "oauth", provider: "google", providerAccountId: "google-student-sub",
+      access_token: "not-persisted", refresh_token: "not-persisted", id_token: "not-persisted", expires_at: 9999999999 });
+    const stored = await prisma.account.findUniqueOrThrow({ where: { provider_providerAccountId: { provider: "google", providerAccountId: "google-student-sub" } } });
+    for (const field of ["access_token", "refresh_token", "id_token", "expires_at", "scope", "token_type", "session_state"]) assert.equal(stored[field], null);
+    await assert.rejects(auth.adapter.linkAccount({ userId: oauthUser.id, type: "oauth", provider: "google", providerAccountId: "second-google-sub" }), /google_account_link_not_allowed/);
+    assert.equal(await prisma.account.count({ where: { userId: oauthUser.id } }), 1);
+    assert.equal(await login("student", oauthUser.email, "any password remains invalid"), null);
+    const oauthJwt = await auth.callbacks.jwt({ token: {}, user: oauthUser, account: stored, profile, trigger: "signUp", isNewUser: true });
+    assert.equal(oauthJwt.role, "student"); assert.equal(oauthJwt.sessionVersion, 0); assert.ok(oauthJwt.emailVerified);
+    process.env.STUDENT_REGISTRATION_ENABLED = "false";
+    assert.equal(await auth.callbacks.signIn({ user: oauthUser, account: { provider: "google", providerAccountId: "google-student-sub" }, profile: { ...profile, email_verified: true } }), true);
+    assert.equal(await auth.callbacks.signIn({ user: profile, account: { provider: "google", providerAccountId: "new-google-sub" }, profile: { ...profile, sub: "new-google-sub", email: "new-google@example.test", email_verified: true } }), false);
+    process.env.STUDENT_REGISTRATION_ENABLED = "true";
+    const credentialsUser = await prisma.user.findUniqueOrThrow({ where: { normalizedEmail: "student@example.test" } });
+    assert.equal(await auth.callbacks.signIn({ user: profile, account: { provider: "google", providerAccountId: "collision-sub" }, profile: { ...profile, email: credentialsUser.email, email_verified: true } }), true);
+    assert.equal((await auth.adapter.getUserByEmail(" STUDENT@EXAMPLE.TEST ")).id, credentialsUser.id);
+    assert.equal(await prisma.account.count({ where: { providerAccountId: "collision-sub" } }), 0);
+  });
   let jwt;
   await check("JWT ignores client session updates and rejects versionless legacy cookies", async () => {
     jwt = await auth.callbacks.jwt({ token: {}, user: session });
