@@ -24,6 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { makeQuizKeys, safeJsonParse } from "@/components/public/quiz/storage";
+import { QuestionIndex, type QuestionIndexItem } from "@/components/public/quiz/question-index";
 import { detectDir, dirTextAlign } from "./text-direction";
 import {
   getQuestionLang,
@@ -370,40 +371,13 @@ function ReviewQuestionIndex({
 }) {
   if (items.length <= 1) return null;
 
-  return (
-    <div className="space-y-2">
-      <div className="text-sm font-semibold text-muted-foreground">فهرس الأسئلة</div>
-      <div className="overflow-x-auto pb-1">
-        <div className="flex min-w-max gap-2">
-          {items.map((item, itemIndex) => {
-            const active = itemIndex === activeIndex;
-            const stateClass = !item.isAnswered
-              ? "border-slate-300 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-200"
-              : item.isCorrect
-                ? "border-green-300 bg-green-50 text-green-800 dark:border-green-800 dark:bg-green-900/25 dark:text-green-200"
-                : "border-red-300 bg-red-50 text-red-800 dark:border-red-800 dark:bg-red-900/25 dark:text-red-200";
+  const indexItems: QuestionIndexItem[] = items.map((item) => ({
+    id: item.question.id,
+    number: item.questionNumber,
+    state: !item.isAnswered ? "unanswered" : item.isCorrect ? "correct" : "incorrect",
+  }));
 
-            return (
-              <button
-                key={item.question.id}
-                type="button"
-                onClick={() => onSelect(itemIndex)}
-                aria-current={active ? "true" : undefined}
-                aria-label={`السؤال ${item.questionNumber}`}
-                className={[
-                  "flex h-10 min-w-10 items-center justify-center rounded-lg border px-3 text-sm font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-                  stateClass,
-                  active ? "ring-2 ring-primary/40" : "hover:bg-muted",
-                ].join(" ")}
-              >
-                {item.questionNumber}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-    </div>
-  );
+  return <QuestionIndex items={indexItems} activeIndex={activeIndex} onSelect={onSelect} />;
 }
 
 function ReviewAnswers({ item, align, lang }: { item: ReviewItem; align: string; lang: TextLang }) {

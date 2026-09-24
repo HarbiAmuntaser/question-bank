@@ -232,6 +232,13 @@ export function QuizInterface({ quiz }: { quiz: QuizWithQuestions }) {
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_18rem] lg:gap-6">
         <div className="space-y-4">
+          <QuizMobileNav
+            questions={quiz.questions}
+            answers={answers}
+            currentQuestionIndex={currentQuestionIndex}
+            onQuestionSelect={setCurrentQuestionIndex}
+          />
+
           <QuestionDisplay
             question={currentQuestion}
             questionNumber={currentQuestionIndex + 1}
@@ -239,12 +246,6 @@ export function QuizInterface({ quiz }: { quiz: QuizWithQuestions }) {
             onAnswerChange={(answer) => setAnswer(currentQuestion.id, answer)}
           />
 
-          <QuizMobileNav
-            questions={quiz.questions}
-            answers={answers}
-            currentQuestionIndex={currentQuestionIndex}
-            onQuestionSelect={setCurrentQuestionIndex}
-          />
         </div>
 
         <aside className="hidden lg:block">

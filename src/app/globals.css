@@ -460,6 +460,14 @@
     text-wrap: balance;
   }
 
+  .question-index-scroll {
+    scrollbar-width: none;
+  }
+
+  .question-index-scroll::-webkit-scrollbar {
+    display: none;
+  }
+
 }
 
 /* RTL Support */
