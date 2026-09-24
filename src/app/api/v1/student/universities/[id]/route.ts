@@ -48,18 +48,7 @@ const getUniversityDetailsCached = (id: string) =>
 
     if (!university) return null;
 
-    // عدّ الاختبارات المرتبطة بمواد نفس الجامعة (اختياري للاستفادة لاحقاً)
-    const quizzesCount = await prisma.quiz.count({
-      where: { isActive: true, subject: { major: { universityId: university.id } } },
-    });
-
-    return {
-      ...university,
-      _count: {
-        majors: university.majors.length,
-        quizzes: quizzesCount,
-      },
-    };
+    return university;
   },
   ["student-university-detail", id, getPublicVisibilityCacheKey()],
   {

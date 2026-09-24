@@ -77,7 +77,7 @@ export function PublicHeader() {
       >
         الانتقال إلى المحتوى الرئيسي
       </a>
-      <div className="mx-auto flex h-16 w-full max-w-screen-2xl items-center justify-between px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto flex h-16 w-full max-w-screen-2xl items-center justify-between gap-2 px-4 sm:px-6 lg:px-8">
         {/* الشعار */}
         <Brand homeHref={homeHref} />
 
@@ -90,7 +90,7 @@ export function PublicHeader() {
         />
 
         {/* يمين الهيدر: ثيم + قائمة جوال */}
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           <Button asChild size="icon" variant="ghost" title="حسابي"><Link href="/account" aria-label="حسابي"><UserRound className="h-5 w-5" aria-hidden /></Link></Button>
           <ThemeToggle />
 

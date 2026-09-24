@@ -3,7 +3,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-import type { UniversityWithStats } from "@/types/student";
 import { studentGet } from "@/lib/student-client";
 
 import { InstitutionsSectionHeader } from "./section-header";
@@ -20,15 +19,13 @@ import {
   normalizeType,
 } from "./utils";
 
-/**
- * ✅ نوع محلي يطابق ما ترسله الـ API فعليًا (بدون any)
- * إذا كانت هذه الحقول موجودة في الداتا، الأفضل لاحقًا تضيفها داخل UniversityWithStats نفسه.
- */
-export type UniversityPreviewItem = UniversityWithStats & {
-  code?: string | null;
-  logoUrl?: string | null;
-  city?: string | null;
-  region?: string | null;
+/** البيانات المختصرة التي تحتاجها بطاقات المؤسسات فقط. */
+export type UniversityPreviewItem = {
+  id: string;
+  name: string;
+  code: string | null;
+  logoUrl: string | null;
+  majors: Array<{ id: string; name: string }>;
   seo?: { slug?: string | null } | null;
   seoSlug?: string | null;
 };
@@ -172,12 +169,8 @@ export function InstitutionsPreviewSection({
                       name={u.name}
                       logoUrl={u.logoUrl ?? null}
                       code={u.code ?? null}
-                      city={u.city ?? null}
-                      region={u.region ?? null}
                       href={href}
                       variant={variant}
-                      majorCount={u._count?.majors ?? u.majors?.length ?? null}
-                      quizCount={u._count?.quizzes ?? null}
                       majors={u.majors ?? []}
                     />
                   </div>

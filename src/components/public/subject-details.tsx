@@ -1,17 +1,13 @@
 // file: src/components/public/subject-details.tsx
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { Card, CardHeader } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-
-import { ArrowRight } from "lucide-react";
 import type { InstitutionType } from "@/config/regions";
 
+import { ContextBackLink } from "@/components/public/context-back-link";
 import type { PublicQuizAccessItem } from "@/components/public/subscription-access";
 import { SubjectLearningSwitcher } from "@/components/public/subject-learning-switcher";
 import {
-  ChapterOverviewIntro,
   DirectSubjectLearningContent,
   SubjectChapterDirectory,
   SubjectQuizzesSection,
@@ -26,7 +22,6 @@ import { stripPrefix, encodeSlugPath } from "@/lib/public/slug-utils";
 export const revalidate = 21600;
 
 const surfaceCardClass = "overflow-hidden border bg-card/95 shadow-sm";
-const outlineButtonClass = "h-11 w-full rounded-lg sm:w-auto";
 
 type SeoLite = { slug: string | null };
 
@@ -39,7 +34,6 @@ type SubjectDto = {
   semester: number | null;
   year: number | null;
   seo?: SeoLite;
-  _count?: { chapters?: number; quizzes?: number };
   major: {
     id: string;
     name: string;
@@ -142,7 +136,6 @@ export async function SubjectDetails({
   const majorLink = `/${ccNorm}/${typeNorm}/universities/${encodeSlugPath(canonicalUni)}/majors/${encodeSlugPath(
     canonicalMajor,
   )}`;
-  const uniLink = `/${ccNorm}/${typeNorm}/universities/${encodeSlugPath(canonicalUni)}`;
 
   const [summaries, chapterCatalog] = await Promise.all([
     getPublishedSubjectSummaries(subject.id),
@@ -201,6 +194,8 @@ export async function SubjectDetails({
 
   return (
     <div className="space-y-6 lg:space-y-8">
+      <ContextBackLink href={majorLink} label={subject.major.name} />
+
       <Card className={surfaceCardClass}>
         <CardHeader className="space-y-3 px-5 text-center sm:px-6">
           <div className="text-xs font-medium text-foreground/70">تفاصيل المادة</div>
@@ -223,7 +218,6 @@ export async function SubjectDetails({
         />
       ) : hasChapters ? (
         <div className="space-y-8">
-          <ChapterOverviewIntro />
           <SubjectChapterDirectory chapters={chapterCards} />
           <SubjectStudySummaries
             summaries={generalSummaries}
@@ -253,21 +247,6 @@ export async function SubjectDetails({
         />
       )}
 
-      <nav className="flex flex-col justify-center gap-3 pt-2 sm:flex-row" aria-label="روابط الرجوع">
-        <Button asChild variant="outline" className={outlineButtonClass}>
-          <Link href={majorLink} prefetch={false} className="flex items-center gap-2">
-            <ArrowRight className="h-4 w-4" aria-hidden />
-            الرجوع إلى التخصص
-          </Link>
-        </Button>
-
-        <Button asChild variant="outline" className={outlineButtonClass}>
-          <Link href={uniLink} prefetch={false} className="flex items-center gap-2">
-            <ArrowRight className="h-4 w-4" aria-hidden />
-            الرجوع إلى المؤسسة
-          </Link>
-        </Button>
-      </nav>
     </div>
   );
 }

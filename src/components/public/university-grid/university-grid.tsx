@@ -162,10 +162,6 @@ export function UniversityGrid({
                     type={typeNorm}
                     logoUrl={u.logoUrl}
                     code={u.code}
-                    city={u.city}
-                    region={u.region}
-                    majorCount={u._count?.majors}
-                    quizCount={u._count?.quizzes}
                     ctaText={ui.ctaExplore}
                   />
                 </div>

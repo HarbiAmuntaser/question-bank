@@ -5,9 +5,10 @@ import { notFound, redirect } from "next/navigation";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
-import { ArrowRight, BookOpen } from "lucide-react";
+import { BookOpen } from "lucide-react";
 import type { InstitutionType } from "@/config/regions";
 
+import { ContextBackLink } from "@/components/public/context-back-link";
 import { PublicSubjectCard } from "@/components/public/public-subject-card";
 import {
   compareAcademicPeriods,
@@ -22,7 +23,6 @@ import { stripPrefix, encodeSlugPath } from "@/lib/public/slug-utils";
 export const revalidate = 21600;
 
 const surfaceCardClass = "overflow-hidden border bg-card/95 shadow-sm";
-const metaTileClass = "rounded-lg border bg-muted/30 px-4 py-3";
 
 type SeoLite = { slug: string | null };
 
@@ -35,7 +35,6 @@ type SubjectDto = {
   year: number | null;
   description: string | null;
   seo?: SeoLite;
-  _count?: { chapters?: number };
 };
 
 type UniversityLiteForMajor = {
@@ -57,7 +56,6 @@ type MajorDto = {
   durationYears: number | null;
   university: UniversityLiteForMajor;
   subjects: SubjectDto[];
-  _count: { subjects: number; quizzes?: number };
   seo?: SeoLite;
 };
 
@@ -181,27 +179,13 @@ export async function MajorDetails({
 
   return (
     <div className="space-y-6 lg:space-y-8">
+      <ContextBackLink href={uniLink} label={major.university.name} />
+
       <Card className={surfaceCardClass}>
-        <CardHeader className="space-y-5 px-5 text-center sm:px-6">
+        <CardHeader className="px-5 text-center sm:px-6">
           <div className="space-y-2">
             <div className="text-xs font-medium text-foreground/70">تفاصيل التخصص</div>
             <h1 className="text-2xl font-bold leading-tight sm:text-3xl">{major.name}</h1>
-          </div>
-
-          <div className="mx-auto grid w-full max-w-xl grid-cols-1 gap-3 text-base font-semibold sm:grid-cols-2 sm:text-lg">
-            <div className={metaTileClass}>
-              <span className="text-2xl font-bold sm:text-3xl arabic-numbers">
-                {major._count?.subjects ?? subjects.length}
-              </span>
-              <span className="mt-1 block text-sm font-medium text-foreground/70">مواد متاحة</span>
-            </div>
-
-            {typeof major._count?.quizzes === "number" ? (
-              <div className={metaTileClass}>
-                <span className="text-2xl font-bold sm:text-3xl arabic-numbers">{major._count.quizzes}</span>
-                <span className="mt-1 block text-sm font-medium text-foreground/70">اختبارات متاحة</span>
-              </div>
-            ) : null}
           </div>
         </CardHeader>
       </Card>
@@ -217,7 +201,7 @@ export async function MajorDetails({
         {showAcademicLevels ? (
           <>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6 xl:grid-cols-3 xl:gap-8">
-              {academicCatalog.groups.map(({ period, subjects: periodSubjects }) => {
+              {academicCatalog.groups.map(({ period }) => {
                 const routeKey = getAcademicPeriodRouteKey(period);
                 const href = `/${ccNorm}/${typeNorm}/universities/${encodeSlugPath(canonicalUni)}/majors/${encodeSlugPath(
                   canonicalMajor,
@@ -233,10 +217,7 @@ export async function MajorDetails({
                         {getAcademicPeriodLabel(major.university.countryCode || ccNorm, period)}
                       </h3>
                     </CardHeader>
-                    <CardContent className="flex flex-1 flex-col justify-between gap-4 pb-6 pt-0">
-                      <p className="text-sm font-medium text-foreground/75">
-                        {periodSubjects.length} {periodSubjects.length === 1 ? "مادة" : "مواد"}
-                      </p>
+                    <CardContent className="mt-auto pb-6 pt-0">
                       <Button asChild className="h-11 w-full rounded-lg text-sm sm:text-base">
                         <Link href={href} prefetch={false}>
                           عرض مواد المستوى
@@ -282,14 +263,6 @@ export async function MajorDetails({
         )}
       </section>
 
-      <div className="pt-2">
-        <Button asChild variant="outline" className="h-11 w-full rounded-lg sm:w-auto">
-          <Link href={uniLink} prefetch={false} className="flex items-center gap-2">
-            <ArrowRight className="h-4 w-4" aria-hidden />
-            الرجوع إلى المؤسسة
-          </Link>
-        </Button>
-      </div>
     </div>
   );
 }

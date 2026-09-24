@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BookOpenCheck, ClipboardCheck, FileText, Layers3 } from "lucide-react";
+import { ClipboardCheck, FileText, Layers3 } from "lucide-react";
 
 import { SubjectQuizzesAccessGrid, type PublicQuizAccessItem } from "@/components/public/subscription-access";
 import {
@@ -19,16 +19,7 @@ export type SubjectChapterCard = PublicSubjectChapter & {
 
 export function SubjectChapterDirectory({ chapters }: { chapters: SubjectChapterCard[] }) {
   return (
-    <section className="space-y-5" aria-labelledby="subject-chapters-heading">
-      <div className="text-center">
-        <h2 id="subject-chapters-heading" className="text-xl font-bold sm:text-2xl">
-          فصول المادة
-        </h2>
-        <p className="mt-1 text-sm leading-relaxed text-muted-foreground sm:text-base">
-          اختر فصلًا للوصول إلى ملخصاته واختباراته المرتبطة.
-        </p>
-      </div>
-
+    <section className="space-y-5" aria-label="فصول المادة">
       <div className="grid gap-4 lg:grid-cols-2">
         {chapters.map((chapter) => (
           <Card key={chapter.id} className="flex h-full flex-col border bg-card/95 shadow-sm transition-colors hover:border-primary/40">
@@ -132,15 +123,6 @@ export function DirectSubjectLearningContent({
         majorId={majorId}
       />
       <SubjectQuizzesSection quizzes={quizzes} subjectId={subjectId} majorId={majorId} />
-    </div>
-  );
-}
-
-export function ChapterOverviewIntro() {
-  return (
-    <div className="flex items-center justify-center gap-2 text-sm font-medium text-primary">
-      <BookOpenCheck className="h-4 w-4" aria-hidden />
-      محتوى منظم حسب فصول المادة
     </div>
   );
 }

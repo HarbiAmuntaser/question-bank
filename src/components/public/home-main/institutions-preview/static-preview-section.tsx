@@ -83,12 +83,8 @@ export function StaticInstitutionsPreviewSection({
                     name={u.name}
                     logoUrl={u.logoUrl ?? null}
                     code={u.code ?? null}
-                    city={u.city ?? null}
-                    region={u.region ?? null}
                     href={href}
                     variant={variant}
-                    majorCount={u._count?.majors ?? u.majors?.length ?? null}
-                    quizCount={u._count?.quizzes ?? null}
                     majors={u.majors ?? []}
                   />
                 </div>

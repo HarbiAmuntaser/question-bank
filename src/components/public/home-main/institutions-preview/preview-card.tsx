@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { BookOpen, Building2, MapPin, Star } from "lucide-react";
+import { BookOpen, Building2, Star } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -20,29 +20,20 @@ type Props = {
   name: string;
   logoUrl?: string | null;
   code?: string | null;
-  city?: string | null;
-  region?: string | null;
   href: string;
   variant?: "default" | "featured" | "compact";
-  majorCount?: number | null;
-  quizCount?: number | null;
   majors?: PreviewMajor[];
 };
 
 export function InstitutionPreviewCard({
   name,
   code,
-  city,
-  region,
   href,
   variant = "default",
-  majorCount,
-  quizCount,
   majors = [],
 }: Props) {
   // Keep imagery local and stable until real hosted institution logos are ready.
   const imageSrc = getFallbackImageSrc(code);
-  const location = [city, region].filter(Boolean).join("، ");
   const shownMajors = majors
     .filter((major) => major.name)
     .slice(0, variant === "featured" ? 3 : 2);
@@ -52,11 +43,8 @@ export function InstitutionPreviewCard({
       <DirectoryInstitutionCard
         name={name}
         code={code}
-        location={location}
         href={href}
         variant={variant}
-        majorCount={majorCount}
-        quizCount={quizCount}
         shownMajors={shownMajors}
       />
     );
@@ -90,16 +78,9 @@ export function InstitutionPreviewCard({
       </CardHeader>
 
       <CardContent className="flex flex-1 flex-col justify-between gap-4">
-        {location ? (
-          <div className="flex items-center gap-2 text-sm font-medium text-foreground/70">
-            <MapPin className="h-4 w-4" aria-hidden />
-            <span className="line-clamp-1">{location}</span>
-          </div>
-        ) : (
-          <div className="text-sm font-medium text-foreground/75">
-            استكشف المحتوى المتاح داخل هذه المؤسسة.
-          </div>
-        )}
+        <div className="text-sm font-medium text-foreground/75">
+          استكشف المحتوى المتاح داخل هذه المؤسسة.
+        </div>
 
         <Button asChild className="h-11 w-full rounded-lg text-sm sm:text-base">
           <Link href={href} prefetch={false} className="flex items-center justify-center">
@@ -114,20 +95,14 @@ export function InstitutionPreviewCard({
 function DirectoryInstitutionCard({
   name,
   code,
-  location,
   href,
   variant,
-  majorCount,
-  quizCount,
   shownMajors,
 }: {
   name: string;
   code?: string | null;
-  location: string;
   href: string;
   variant: "featured" | "compact";
-  majorCount?: number | null;
-  quizCount?: number | null;
   shownMajors: PreviewMajor[];
 }) {
   const isFeatured = variant === "featured";
@@ -181,23 +156,6 @@ function DirectoryInstitutionCard({
               {name}
             </CardTitle>
 
-            {location ? (
-              <div className="mt-3 flex items-center gap-2 text-sm font-medium text-foreground/70">
-                <MapPin className="h-4 w-4 shrink-0" aria-hidden />
-                <span className="line-clamp-1">{location}</span>
-              </div>
-            ) : null}
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-lg border bg-muted/30 p-3">
-            <p className="text-xs font-medium text-foreground/70">التخصصات</p>
-            <p className="mt-1 text-xl font-bold text-foreground">{majorCount ?? "-"}</p>
-          </div>
-          <div className="rounded-lg border bg-muted/30 p-3">
-            <p className="text-xs font-medium text-foreground/70">الاختبارات</p>
-            <p className="mt-1 text-xl font-bold text-foreground">{quizCount ?? "-"}</p>
           </div>
         </div>
 

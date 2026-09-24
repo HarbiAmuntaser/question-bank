@@ -6,6 +6,7 @@
 // ============================================================================
 
 import { prisma } from "@/lib/prisma";
+import type { Prisma } from "@prisma/client";
 import { json, bad } from "@/lib/http";
 import { cacheTags, CACHE_CONTROL, CACHE_TAGS, CACHE_TTL } from "@/lib/cache-tags";
 import { unstable_cache } from "next/cache";
@@ -78,7 +79,7 @@ async function listUniversities(q: Q) {
         }
       : {};
 
-    const where: any = {
+    const where: Prisma.UniversityWhereInput = {
       isActive: true,
       institutionType: instType ?? { in: getEnabledPublicTypes() },
       AND: [countryWhere, searchWhere].filter((item) => Object.keys(item).length > 0),
@@ -88,8 +89,14 @@ async function listUniversities(q: Q) {
       where,
       orderBy,
       take: limit,
-      include: {
-        _count: { select: { majors: true } },
+      select: {
+        id: true,
+        name: true,
+        code: true,
+        logoUrl: true,
+        countryCode: true,
+        institutionType: true,
+        visibility: true,
         ...(includeMajors
           ? {
               majors: {
@@ -99,42 +106,23 @@ async function listUniversities(q: Q) {
                   id: true,
                   name: true,
                   code: true,
-                  _count: { select: { subjects: true } },
                 },
-                take: 2, // للعرض المختصر
+                take: 2,
               },
             }
           : {}),
       },
     });
 
-    // عدد الاختبارات لكل مؤسسة
-    const quizzesCounts = await Promise.all(
-      universities.map((u) =>
-        prisma.quiz.count({
-          where: {
-            isActive: true,
-            subject: { major: { universityId: u.id } },
-          },
-        })
-      )
-    );
-
-    return universities.map((u, idx) => ({
+    return universities.map((u) => ({
       id: u.id,
       name: u.name,
       code: u.code,
-      city: u.city,
-      region: u.region,
       logoUrl: u.logoUrl,
       countryCode: u.countryCode ?? null,
       institutionType: u.institutionType ?? null,
       visibility: u.visibility ?? "country",
-      _count: {
-        majors: u._count.majors,
-        quizzes: quizzesCounts[idx] ?? 0,
-      },
-      ...(includeMajors ? { majors: u.majors } : { majors: [] as never[] }),
+      ...(includeMajors && "majors" in u ? { majors: u.majors } : { majors: [] as never[] }),
     }));
 }
 

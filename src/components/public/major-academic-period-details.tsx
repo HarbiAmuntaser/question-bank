@@ -1,9 +1,8 @@
-import Link from "next/link";
-import { ArrowRight, BookOpen } from "lucide-react";
+import { BookOpen } from "lucide-react";
 import { notFound, redirect } from "next/navigation";
 
+import { ContextBackLink } from "@/components/public/context-back-link";
 import { PublicSubjectCard } from "@/components/public/public-subject-card";
-import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import type { InstitutionType } from "@/config/regions";
 import {
@@ -112,6 +111,8 @@ export async function MajorAcademicPeriodDetails({
 
   return (
     <div className="space-y-6 lg:space-y-8">
+      <ContextBackLink href={majorPath} label={major.name} />
+
       <Card className="overflow-hidden border bg-card/95 shadow-sm dark:bg-gray-900/80">
         <CardHeader className="space-y-4 px-5 text-center sm:px-6">
           <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-md bg-primary/10 text-primary">
@@ -127,10 +128,7 @@ export async function MajorAcademicPeriodDetails({
         </CardHeader>
       </Card>
 
-      <section className="space-y-5" aria-labelledby="academic-period-subjects-heading">
-        <h2 id="academic-period-subjects-heading" className="text-center text-xl font-bold leading-tight sm:text-2xl">
-          مواد {label}
-        </h2>
+      <section className="space-y-5" aria-label={label}>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6 xl:grid-cols-3 xl:gap-8">
           {subjects.map((subject) => (
             <PublicSubjectCard
@@ -143,12 +141,6 @@ export async function MajorAcademicPeriodDetails({
         </div>
       </section>
 
-      <Button asChild variant="outline" className="h-11 w-full rounded-lg sm:w-auto">
-        <Link href={majorPath} prefetch={false} className="flex items-center gap-2">
-          <ArrowRight className="h-4 w-4" aria-hidden />
-          الرجوع إلى التخصص
-        </Link>
-      </Button>
     </div>
   );
 }

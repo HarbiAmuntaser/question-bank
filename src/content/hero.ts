@@ -157,7 +157,7 @@ const defaultCopy: HeroCopy = {
 
 const saCopy: HeroCopy = {
   ...defaultCopy,
-  badgeTemplate: "منصة مستواك لطلاب {{country}}",
+  badgeTemplate: "منصة مستواك {{country}}",
   subtitle: "نماذج وأسئلة منظمة حسب الجامعات والتخصصات والمقررات.",
   description:
     "اختر جامعتك، ثم تخصصك ومقررك، وابدأ التدريب على اختبارات تساعدك على قياس جاهزيتك قبل الاختبار الحقيقي.",
@@ -177,7 +177,7 @@ const saCopy: HeroCopy = {
 
 const yeCopy: HeroCopy = {
   ...defaultCopy,
-  badgeTemplate: "منصة مستواك لطلاب {{country}}",
+  badgeTemplate: "منصة مستواك {{country}}",
   subtitle: "اختبارات منظمة تساعدك على المراجعة وقياس الجاهزية.",
   description:
     "ابدأ من الجهة التعليمية، اختر التخصص أو المقرر، ثم تدرّب على نماذج واضحة تساعدك على معرفة مستواك قبل الاختبار.",

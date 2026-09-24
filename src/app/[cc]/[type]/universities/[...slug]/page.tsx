@@ -5,6 +5,7 @@ import type { Metadata } from "next";
 
 import { PublicHeader } from "@/components/public/public-header/public-header";
 import { PublicFooter } from "@/components/public/public-footer";
+import { ContextBackLink } from "@/components/public/context-back-link";
 import { UniversityHero } from "@/components/public/university-hero";
 import { MajorsList } from "@/components/public/majors-list";
 import { UniversityDegreeSelector } from "@/components/public/university-degree-selector";
@@ -891,6 +892,8 @@ export default async function UniversitiesCatchAllPage({
         ? degreeGroups[0].value
         : null;
   const universityBasePath = `/${cc}/${type}/universities/${encodeSlugPath(universitySlugForLinks)}`;
+  const institutionListLabel =
+    type === "academy" ? "المسارات التدريبية" : type === "school" ? "المدارس" : "الجامعات";
   const visibleMajors =
     isUniversityType && selectedDegree
       ? allMajors.filter((major) => normalizeDegreeType(major.degreeType) === selectedDegree)
@@ -916,6 +919,9 @@ export default async function UniversitiesCatchAllPage({
       <div className="min-h-screen bg-background">
         <PublicHeader />
         <main id="main-content" tabIndex={-1}>
+          <div className="mx-auto max-w-7xl px-4 pt-4 sm:px-6 lg:px-8">
+            <ContextBackLink href={`/${cc}/${type}`} label={institutionListLabel} />
+          </div>
           <UniversityDegreeSelector
             universityName={uniTyped.name}
             basePath={universityBasePath}
@@ -931,6 +937,9 @@ export default async function UniversitiesCatchAllPage({
     <div className="min-h-screen bg-background">
       <PublicHeader />
       <main id="main-content" tabIndex={-1}>
+        <div className="mx-auto max-w-7xl px-4 pt-4 sm:px-6 lg:px-8">
+          <ContextBackLink href={`/${cc}/${type}`} label={institutionListLabel} />
+        </div>
         <UniversityHero university={uniTyped} />
 
         <section id="majors-section" className="px-4 pb-10 pt-4 sm:px-6 sm:pb-12 sm:pt-5 lg:px-8 lg:pb-14 lg:pt-6">

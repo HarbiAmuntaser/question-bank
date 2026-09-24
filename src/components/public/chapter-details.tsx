@@ -1,12 +1,11 @@
-import Link from "next/link";
-import { ArrowRight, CheckCircle2, Layers3 } from "lucide-react";
+import { CheckCircle2, Layers3 } from "lucide-react";
 import { notFound, redirect } from "next/navigation";
 
 import { SubjectQuizzesSection } from "@/components/public/subject-chapters";
 import type { PublicQuizAccessItem } from "@/components/public/subscription-access";
 import { SubjectStudySummaries } from "@/components/public/study-summaries/subject-study-summaries";
+import { ContextBackLink } from "@/components/public/context-back-link";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import type { InstitutionType } from "@/config/regions";
 import { encodeSlugPath, stripPrefix } from "@/lib/public/slug-utils";
@@ -129,6 +128,8 @@ export async function ChapterDetails({
 
   return (
     <div className="space-y-6 lg:space-y-8">
+      <ContextBackLink href={subjectPath} label={subject.name} />
+
       <Card className="overflow-hidden border bg-card/95 shadow-sm">
         <CardHeader className="space-y-4 px-5 text-center sm:px-6">
           <div className="flex justify-center">
@@ -187,14 +188,6 @@ export async function ChapterDetails({
         </div>
       ) : null}
 
-      <nav className="flex justify-center pt-2" aria-label="الرجوع إلى المادة">
-        <Button asChild variant="outline" className="h-11 w-full rounded-lg sm:w-auto">
-          <Link href={subjectPath} prefetch={false} className="flex items-center gap-2">
-            <ArrowRight className="h-4 w-4" aria-hidden />
-            الرجوع إلى المادة
-          </Link>
-        </Button>
-      </nav>
     </div>
   );
 }

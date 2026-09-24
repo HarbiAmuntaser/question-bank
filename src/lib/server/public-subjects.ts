@@ -19,7 +19,6 @@ const publicSubjectDetailsSelect = {
   isActive: true,
   createdAt: true,
   updatedAt: true,
-  _count: { select: { chapters: true } },
   major: {
     select: {
       id: true,
@@ -48,7 +47,7 @@ type PublicSubjectRow = Prisma.SubjectGetPayload<{
 
 export type PublicSubjectFullDetails = Omit<
   PublicSubjectRow,
-  "createdAt" | "updatedAt" | "major" | "_count"
+  "createdAt" | "updatedAt" | "major"
 > & {
   createdAt: string;
   updatedAt: string;
@@ -59,7 +58,6 @@ export type PublicSubjectFullDetails = Omit<
       seo: { slug: string | null };
     };
   };
-  _count: { chapters: number; quizzes: number };
 };
 
 export type PublicSubjectDetails = Omit<
@@ -98,7 +96,7 @@ export function normalizePublicSubjectId(raw: string | null | undefined) {
 }
 
 async function addSubjectDetails(subject: PublicSubjectRow): Promise<PublicSubjectFullDetails> {
-  const [subjectSeo, majorSeo, universitySeo, quizzesCount] = await Promise.all([
+  const [subjectSeo, majorSeo, universitySeo] = await Promise.all([
     prisma.seoMeta.findFirst({
       where: { ownerType: "subject", ownerId: subject.id, locale: "ar" },
       select: { slug: true },
@@ -115,15 +113,6 @@ async function addSubjectDetails(subject: PublicSubjectRow): Promise<PublicSubje
       },
       select: { slug: true },
     }),
-    prisma.quiz.count({
-      where: {
-        isActive: true,
-        OR: [
-          { subjectId: subject.id },
-          { questions: { some: { question: { chapter: { subjectId: subject.id } } } } },
-        ],
-      },
-    }),
   ]);
 
   return {
@@ -139,7 +128,6 @@ async function addSubjectDetails(subject: PublicSubjectRow): Promise<PublicSubje
         seo: { slug: universitySeo?.slug ?? null },
       },
     },
-    _count: { chapters: subject._count.chapters, quizzes: quizzesCount },
   };
 }
 
@@ -191,7 +179,6 @@ export function toPublicSubjectDetails(
     description: subject.description,
     seo: subject.seo,
     major: subject.major,
-    _count: subject._count,
   };
 }
 

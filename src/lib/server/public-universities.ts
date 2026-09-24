@@ -43,7 +43,6 @@ export type PublicUniversityDetails = Omit<PublicUniversityRow, "createdAt" | "u
   createdAt: string;
   updatedAt: string;
   seo: { slug: string | null };
-  _count: { majors: number; quizzes: number };
 };
 
 export type NormalizedUniversitySlug = {
@@ -105,25 +104,16 @@ export function normalizePublicUniversityCode(raw: string): NormalizedUniversity
 }
 
 async function addUniversityDetails(university: PublicUniversityRow): Promise<PublicUniversityDetails> {
-  const [quizzesCount, seo] = await Promise.all([
-    prisma.quiz.count({
-      where: {
-        isActive: true,
-        subject: { major: { universityId: university.id } },
-      },
-    }),
-    prisma.seoMeta.findFirst({
-      where: { ownerType: "university", ownerId: university.id, locale: "ar" },
-      select: { slug: true },
-    }),
-  ]);
+  const seo = await prisma.seoMeta.findFirst({
+    where: { ownerType: "university", ownerId: university.id, locale: "ar" },
+    select: { slug: true },
+  });
 
   return {
     ...university,
     createdAt: university.createdAt.toISOString(),
     updatedAt: university.updatedAt.toISOString(),
     seo: { slug: seo?.slug ?? null },
-    _count: { majors: university.majors.length, quizzes: quizzesCount },
   };
 }
 

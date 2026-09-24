@@ -31,10 +31,8 @@ const publicMajorDetailsInclude = {
       semester: true,
       year: true,
       description: true,
-      _count: { select: { chapters: true } },
     },
   },
-  _count: { select: { subjects: true } },
 } satisfies Prisma.MajorInclude;
 
 type PublicMajorRow = Prisma.MajorGetPayload<{
@@ -43,13 +41,12 @@ type PublicMajorRow = Prisma.MajorGetPayload<{
 
 export type PublicMajorDetails = Omit<
   PublicMajorRow,
-  "createdAt" | "updatedAt" | "university" | "_count"
+  "createdAt" | "updatedAt" | "university"
 > & {
   createdAt: string;
   updatedAt: string;
   seo: { slug: string | null };
   university: PublicMajorRow["university"] & { seo: { slug: string | null } };
-  _count: { subjects: number; quizzes: number };
 };
 
 export type NormalizedMajorSlug = {
@@ -78,7 +75,7 @@ export function normalizePublicMajorCode(raw: string) {
 }
 
 async function addMajorDetails(major: PublicMajorRow): Promise<PublicMajorDetails> {
-  const [majorSeo, universitySeo, quizzesCount] = await Promise.all([
+  const [majorSeo, universitySeo] = await Promise.all([
     prisma.seoMeta.findFirst({
       where: { ownerType: "major", ownerId: major.id, locale: "ar" },
       select: { slug: true },
@@ -86,9 +83,6 @@ async function addMajorDetails(major: PublicMajorRow): Promise<PublicMajorDetail
     prisma.seoMeta.findFirst({
       where: { ownerType: "university", ownerId: major.university.id, locale: "ar" },
       select: { slug: true },
-    }),
-    prisma.quiz.count({
-      where: { isActive: true, subject: { majorId: major.id } },
     }),
   ]);
 
@@ -101,7 +95,6 @@ async function addMajorDetails(major: PublicMajorRow): Promise<PublicMajorDetail
       ...major.university,
       seo: { slug: universitySeo?.slug ?? null },
     },
-    _count: { subjects: major.subjects.length, quizzes: quizzesCount },
   };
 }
 

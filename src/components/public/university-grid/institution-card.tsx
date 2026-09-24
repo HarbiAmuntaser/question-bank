@@ -1,7 +1,7 @@
 // file: src/components/public/university-grid/institution-card.tsx
 
 import Link from "next/link";
-import { BookOpen, Landmark, MapPin, Route, School } from "lucide-react";
+import { BookOpen, Landmark, Route, School } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -15,27 +15,13 @@ type Props = {
   type: InstType;
   logoUrl: string | null;
   code: string | null;
-  city?: string | null;
-  region?: string | null;
-  majorCount?: number | null;
-  quizCount?: number | null;
   ctaText: string;
 };
-
-function StatPill({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="rounded-lg border bg-muted/30 p-3">
-      <p className="text-xs font-medium text-foreground/70">{label}</p>
-      <p className="mt-1 text-xl font-bold text-foreground">{value}</p>
-    </div>
-  );
-}
 
 function getInstitutionCopy(type: InstType) {
   if (type === "academy") {
     return {
       typeLabel: "مسار تدريبي",
-      programsLabel: "البرامج",
       emptyText: "استكشف البرامج والمهارات والاختبارات المتاحة داخل هذا المسار التدريبي.",
       Icon: Route,
     };
@@ -44,7 +30,6 @@ function getInstitutionCopy(type: InstType) {
   if (type === "school") {
     return {
       typeLabel: "مدرسة",
-      programsLabel: "المسارات",
       emptyText: "استكشف المسارات والمواد والاختبارات المتاحة داخل هذه المدرسة.",
       Icon: School,
     };
@@ -52,7 +37,6 @@ function getInstitutionCopy(type: InstType) {
 
   return {
     typeLabel: "جامعة",
-    programsLabel: "التخصصات",
     emptyText: "استكشف التخصصات والمقررات والاختبارات المتاحة داخل هذه الجامعة.",
     Icon: Landmark,
   };
@@ -64,15 +48,9 @@ export function InstitutionGridCard({
   type,
   logoUrl,
   code,
-  city,
-  region,
-  majorCount,
-  quizCount,
   ctaText,
 }: Props) {
-  const { typeLabel, programsLabel, emptyText, Icon } = getInstitutionCopy(type);
-  const location = Array.from(new Set([city, region].map((value) => value?.trim()).filter(Boolean))).join("، ");
-  const hasStats = typeof majorCount === "number" || typeof quizCount === "number";
+  const { typeLabel, emptyText, Icon } = getInstitutionCopy(type);
 
   return (
     <Card className="group relative flex h-full flex-col overflow-hidden border bg-card/95 p-5 shadow-sm transition-colors hover:border-primary/40 hover:shadow-md">
@@ -103,26 +81,13 @@ export function InstitutionGridCard({
             <CardTitle className="line-clamp-2 text-lg font-bold leading-snug text-foreground transition-colors group-hover:text-primary sm:text-xl">
               {name}
             </CardTitle>
-            {location ? (
-              <div className="mt-2 flex items-center gap-2 text-sm font-medium text-foreground/75">
-                <MapPin className="h-4 w-4 shrink-0 text-primary" aria-hidden />
-                <span className="line-clamp-1">{location}</span>
-              </div>
-            ) : null}
           </div>
         </div>
 
-        {hasStats ? (
-          <div className="grid grid-cols-2 gap-3">
-            {typeof majorCount === "number" ? <StatPill label={programsLabel} value={majorCount} /> : null}
-            {typeof quizCount === "number" ? <StatPill label="الاختبارات" value={quizCount} /> : null}
-          </div>
-        ) : (
-          <div className="flex items-start gap-2 rounded-lg border bg-muted/30 p-3 text-sm font-medium leading-6 text-foreground/75">
-            <BookOpen className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />
-            {emptyText}
-          </div>
-        )}
+        <div className="flex items-start gap-2 rounded-lg border bg-muted/30 p-3 text-sm font-medium leading-6 text-foreground/75">
+          <BookOpen className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />
+          {emptyText}
+        </div>
 
         <Button asChild className="mt-auto h-11 w-full rounded-lg text-sm sm:text-base">
           <Link href={href} prefetch={false} className="flex items-center justify-center">

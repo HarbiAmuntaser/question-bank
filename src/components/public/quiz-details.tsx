@@ -1,23 +1,21 @@
 // file: src/components/public/quiz-details.tsx
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 
 import type { InstitutionType } from "@/config/regions";
 import { getPublicQuizPreviewByRouteKey } from "@/lib/server/public-education-loaders";
 import { stripPrefix, encodeSlugPath } from "@/lib/public/slug-utils";
 
-import { ArrowRight, Share2 } from "lucide-react";
+import { Share2 } from "lucide-react";
+import { ContextBackLink } from "@/components/public/context-back-link";
 import { LazyQuizShare } from "@/components/public/lazy-quiz-share";
 import { QuizDetailsAccessGate } from "@/components/public/subscription-access";
 
 export const revalidate = 21600;
 
 const surfaceCardClass = "overflow-hidden border bg-card/95 shadow-sm transition-shadow hover:shadow-md dark:bg-gray-900/80";
-const outlineButtonClass = "h-11 w-full rounded-lg sm:w-auto";
 const actionPanelClass = "rounded-lg border bg-muted/20 p-4 sm:p-5";
 
 function normalizeInstitutionType(v: string | null): InstitutionType | null {
@@ -98,15 +96,13 @@ export async function QuizDetails({
     `/majors/${encodeSlugPath(canonicalMajor)}` +
     `/subjects/${encodeSlugPath(canonicalSubject)}`;
 
-  const majorLink =
-    `/${ccNorm}/${typeNorm}/universities/${encodeSlugPath(canonicalUni)}` +
-    `/majors/${encodeSlugPath(canonicalMajor)}`;
-
   const shareUrl = canonicalPath;
   const shareText = `جرّب اختبار: ${quiz.title}`;
 
   return (
     <div className="space-y-6 lg:space-y-8">
+      <ContextBackLink href={subjectLink} label={subject.name} />
+
       <Card className={surfaceCardClass}>
         <CardHeader className="space-y-3 px-5 text-center sm:px-6">
           <div className="text-xs font-medium text-foreground/70">تفاصيل الاختبار</div>
@@ -151,20 +147,6 @@ export async function QuizDetails({
             <LazyQuizShare url={shareUrl} title={quiz.title} text={shareText} />
           </div>
 
-          <div className="mt-2 flex flex-col justify-center gap-3 sm:flex-row">
-            <Button asChild variant="outline" className={outlineButtonClass}>
-              <Link href={subjectLink} prefetch={false} className="flex items-center gap-2">
-                <ArrowRight className="h-4 w-4" aria-hidden />
-                الرجوع للمادة
-              </Link>
-            </Button>
-            <Button asChild variant="outline" className={outlineButtonClass}>
-              <Link href={majorLink} prefetch={false} className="flex items-center gap-2">
-                <ArrowRight className="h-4 w-4" aria-hidden />
-                الرجوع للتخصص
-              </Link>
-            </Button>
-          </div>
         </CardContent>
       </Card>
     </div>

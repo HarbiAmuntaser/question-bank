@@ -5,6 +5,7 @@ import { ArrowRight, BookOpenText, Clock, Download, FileText, GraduationCap, Lay
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
+import { ContextBackLink } from "@/components/public/context-back-link";
 import { Separator } from "@/components/ui/separator";
 import type { InstitutionType } from "@/config/regions";
 import { encodeSlugPath, stripPrefix } from "@/lib/public/slug-utils";
@@ -20,7 +21,6 @@ import { CopyableSummaryContent } from "./copyable-summary-content";
 import { StudySummarySubscribeButton } from "./study-summary-subscribe-button";
 
 const surfaceCardClass = "overflow-hidden border bg-card/95 shadow-sm";
-const outlineButtonClass = "h-11 w-full rounded-lg sm:w-auto";
 
 type SeoLite = { slug: string | null };
 
@@ -145,11 +145,12 @@ export async function StudySummaryDetails({
   )}/subjects/${encodeSlugPath(canonicalSubject)}`;
   const majorLink = `/${ccNorm}/${type}/universities/${encodeSlugPath(canonicalUni)}/majors/${encodeSlugPath(canonicalMajor)}`;
   const uniLink = `/${ccNorm}/${type}/universities/${encodeSlugPath(canonicalUni)}`;
-  const hasReadableContent = Boolean(protectedContent?.contentHtml?.trim() || protectedContent?.contentText?.trim());
   const pdfDownloadHref = `/api/v1/student/summaries/${summary.id}/pdf`;
 
   return (
     <div className="space-y-6 lg:space-y-8">
+      <ContextBackLink href={subjectLink} label={subject.name} />
+
       <Card className={surfaceCardClass}>
         <CardHeader className="px-5 text-center sm:px-6">
           <div className="mb-2 flex flex-wrap items-center justify-center gap-2 text-xs font-medium text-muted-foreground">
@@ -243,12 +244,6 @@ export async function StudySummaryDetails({
                   subjectId={access.subjectId ?? subject.id}
                   majorId={access.majorId ?? subject.major.id}
                 />
-                <Button asChild variant="outline" className={outlineButtonClass}>
-                  <Link href={subjectLink} prefetch={false} className="flex items-center gap-2">
-                    <BookOpenText className="h-4 w-4" aria-hidden />
-                    الرجوع إلى المادة
-                  </Link>
-                </Button>
               </div>
             </div>
           ) : (
@@ -277,12 +272,6 @@ export async function StudySummaryDetails({
               </Button>
             ) : null}
 
-            <Button asChild variant={hasReadableContent ? "outline" : "default"} className={outlineButtonClass}>
-              <Link href={subjectLink} prefetch={false} className="flex items-center gap-2">
-                <BookOpenText className="h-4 w-4" aria-hidden />
-                الرجوع إلى المادة
-              </Link>
-            </Button>
           </div>
             </>
           )}
