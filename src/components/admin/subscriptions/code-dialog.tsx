@@ -1,7 +1,7 @@
 "use client";
 
 import type React from "react";
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 
 import { createSubscriptionCodeAction } from "@/app/admin/subscriptions/actions";
 import type { PlanRow } from "@/components/admin/subscriptions/types";
@@ -25,11 +25,14 @@ export function CodeDialog({ children, plans }: { children: React.ReactNode; pla
   const [open, setOpen] = useState(false);
   const [planId, setPlanId] = useState("");
   const [generatedCode, setGeneratedCode] = useState("");
+  const issuanceKey = useRef("");
   const [pending, startTransition] = useTransition();
   const { toast } = useToast();
 
   function handleSubmit(formData: FormData) {
     formData.set("planId", planId);
+    issuanceKey.current ||= crypto.randomUUID();
+    formData.set("idempotencyKey", issuanceKey.current);
     if (!planId) {
       toast({ title: "خطأ", description: "اختيار الخطة مطلوب", variant: "destructive" });
       return;
@@ -38,6 +41,12 @@ export function CodeDialog({ children, plans }: { children: React.ReactNode; pla
     startTransition(async () => {
       const result = await createSubscriptionCodeAction(formData);
       if (result.success) {
+        if (result.alreadyIssued) {
+          toast({ title: "تمت المعالجة", description: result.message });
+          issuanceKey.current = "";
+          setOpen(false);
+          return;
+        }
         setGeneratedCode(result.plainCode ?? "");
         toast({ title: "تم", description: result.message });
       } else {
@@ -47,7 +56,7 @@ export function CodeDialog({ children, plans }: { children: React.ReactNode; pla
   }
 
   return (
-    <Dialog open={open} onOpenChange={(next) => { if (!pending) { setOpen(next); if (!next) setGeneratedCode(""); } }}>
+    <Dialog open={open} onOpenChange={(next) => { if (!pending) { setOpen(next); if (!next) { setGeneratedCode(""); issuanceKey.current = ""; } } }}>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl" dir="rtl">
         <DialogHeader>
@@ -61,15 +70,15 @@ export function CodeDialog({ children, plans }: { children: React.ReactNode; pla
             <Input value={generatedCode} readOnly dir="ltr" className="font-mono text-base" onFocus={(e) => e.currentTarget.select()} />
             <p className="text-sm text-muted-foreground">انسخ الكود الآن. بعد إغلاق النافذة سيظهر فقط جزء من الكود في الجدول.</p>
             <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => setGeneratedCode("")}>إنشاء كود آخر</Button>
+              <Button type="button" variant="outline" onClick={() => { setGeneratedCode(""); issuanceKey.current = ""; }}>إنشاء كود آخر</Button>
               <Button type="button" onClick={() => { setGeneratedCode(""); setOpen(false); }}>تم</Button>
             </div>
           </div>
         ) : (
-          <form action={handleSubmit} className="space-y-4">
+          <form action={handleSubmit} onChangeCapture={() => { if (!pending) issuanceKey.current = ""; }} className="space-y-4">
             <div className="space-y-2">
               <Label>الخطة</Label>
-              <Select value={planId} onValueChange={setPlanId}>
+              <Select value={planId} onValueChange={(value) => { setPlanId(value); issuanceKey.current = ""; }}>
                 <SelectTrigger><SelectValue placeholder="اختر خطة" /></SelectTrigger>
                 <SelectContent>
                   {plans.map((plan) => (
@@ -91,11 +100,11 @@ export function CodeDialog({ children, plans }: { children: React.ReactNode; pla
                 <Input id="maxUses" name="maxUses" type="number" min="1" />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="startsAt">يبدأ في</Label>
+                <Label htmlFor="startsAt">يبدأ في (توقيت الرياض)</Label>
                 <Input id="startsAt" name="startsAt" type="datetime-local" />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="expiresAt">ينتهي في</Label>
+                <Label htmlFor="expiresAt">ينتهي في (توقيت الرياض)</Label>
                 <Input id="expiresAt" name="expiresAt" type="datetime-local" />
               </div>
               <div className="space-y-2 sm:col-span-2">

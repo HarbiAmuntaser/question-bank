@@ -77,6 +77,13 @@ export function evaluateClosedReadiness(env = process.env) {
     add("closed_launch_plan_ids", "fail", "PAYMENT_LAUNCH_PLAN_IDS must be valid JSON containing an empty array.");
   }
 
+  try {
+    const ids = JSON.parse(value(env, "PAYMENT_CODE_PLAN_IDS"));
+    add("closed_code_plan_ids", Array.isArray(ids) && ids.length === 0 ? "pass" : "fail", "PAYMENT_CODE_PLAN_IDS must be an empty JSON array.");
+  } catch {
+    add("closed_code_plan_ids", "fail", "PAYMENT_CODE_PLAN_IDS must be valid JSON containing an empty array.");
+  }
+
   const origin = validOrigin(value(env, "NEXTAUTH_URL"));
   add("https_auth_origin", origin ? "pass" : "fail", "NEXTAUTH_URL must be one credential-free HTTPS origin with no path, query or fragment.");
 

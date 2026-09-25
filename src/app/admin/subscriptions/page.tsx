@@ -16,7 +16,7 @@ import type {
 } from "@/components/admin/subscriptions/types";
 import { TableSkeleton } from "@/components/ui/table-skeleton";
 import { prisma } from "@/lib/prisma";
-import { paymentPlanWhere, paymentV1Enabled, paymentSalesEnabled, paymentCodesEnabled, paymentReviewEnabled, paymentLaunchPlanIds } from "@/lib/server/payment-scope";
+import { paymentCodePlanIds, paymentPlanWhere, paymentV1Enabled, paymentSalesEnabled, paymentCodesEnabled, paymentReviewEnabled, paymentLaunchPlanIds } from "@/lib/server/payment-scope";
 
 export const dynamic = "force-dynamic";
 
@@ -49,6 +49,7 @@ function pagination(page: number, total: number): PaginationMeta {
 
 async function getSubscriptionAdminData(params: SearchParams) {
   const now = new Date();
+  const codePlanIds = paymentCodePlanIds();
   const plansPage = pageParam(params, "plansPage");
   const codesPage = pageParam(params, "codesPage");
   const entitlementsPage = pageParam(params, "entitlementsPage");
@@ -116,7 +117,7 @@ async function getSubscriptionAdminData(params: SearchParams) {
       },
     }),
     prisma.paidAccessPlan.findMany({
-      where: { isActive: true, ...paymentPlanWhere() },
+      where: { id: { in: codePlanIds }, isActive: true, ...paymentPlanWhere() },
       orderBy: { createdAt: "desc" },
       include: {
         major: {
@@ -282,6 +283,7 @@ async function getSubscriptionAdminData(params: SearchParams) {
     codesEnabled: paymentCodesEnabled(),
     reviewEnabled: paymentReviewEnabled(),
     launchPlanIds: paymentLaunchPlanIds(),
+    codePlanIds,
     plans: planRows,
     codePlanOptions: codePlanRows,
     codes: codeRows,
@@ -313,7 +315,7 @@ export default async function SubscriptionsPage({
           <div><dt className="text-muted-foreground">المبيعات الجديدة</dt><dd>{data.salesEnabled ? "مفتوحة" : "مغلقة"}</dd></div>
           <div><dt className="text-muted-foreground">مراجعة الطلبات</dt><dd>{data.reviewEnabled ? "متاحة" : "متوقفة"}</dd></div>
           <div><dt className="text-muted-foreground">إصدار وتفعيل الأكواد</dt><dd>{data.codesEnabled ? "متاح" : "متوقف"}</dd></div>
-          <div><dt className="text-muted-foreground">خطط قائمة الإطلاق</dt><dd>{data.launchPlanIds.length}</dd></div>
+          <div><dt className="text-muted-foreground">خطط قائمة الإطلاق / الأكواد</dt><dd>{data.launchPlanIds.length} / {data.codePlanIds.length}</dd></div>
         </dl>
       </div>
 

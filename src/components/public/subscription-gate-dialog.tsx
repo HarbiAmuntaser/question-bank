@@ -66,6 +66,12 @@ function redeemMessage(code: string | undefined) {
       return "هذا الكود لم يبدأ تفعيله بعد.";
     case "code_expired":
       return "انتهت صلاحية هذا الكود.";
+    case "code_plan_not_enabled":
+      return "الخطة المرتبطة بهذا الكود غير مفعلة حاليًا ضمن قناة الأكواد.";
+    case "active_entitlement_exists":
+      return "لديك وصول فعال لهذه المادة بالفعل. يمكنك استخدام الكود لاحقًا بعد انتهاء الاستحقاق إذا ظل صالحًا.";
+    case "invalid_code_window":
+      return "لا يحتوي الكود أو خطته على مدة استحقاق صالحة. تواصل مع الإدارة.";
     case "inactive_plan":
       return "الخطة المرتبطة بهذا الكود غير نشطة حاليًا.";
     case "invalid_plan_scope":

@@ -20,6 +20,8 @@
     "test:release:integration": "node tests/auth/run-integration.mjs --payments --orders --reviews --release",
     "test:security": "node --test tests/security/policy.test.mjs",
     "test:security:integration": "node tests/auth/run-integration.mjs --payments --orders --reviews --release --security",
+    "test:codes": "node --test tests/codes/policy.test.mjs",
+    "test:codes:integration": "node tests/auth/run-integration.mjs --codes",
     "test:r3:integration": "node tests/auth/run-integration.mjs --payments --orders --reviews --release --security --cleanup",
     "test:r4": "node --test tests/readiness/policy.test.mjs",
     "ops:preflight": "node scripts/production-readiness.mjs",

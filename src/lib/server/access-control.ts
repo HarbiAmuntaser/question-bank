@@ -5,7 +5,7 @@ import type { AccessPlan, AccessStatus } from "@/lib/payment-access";
 import { publicMajorWhere } from "@/lib/server/public-content-visibility";
 import {
   getPaymentStudent, isPaymentSubject, paymentPlanWhere, paymentSubjectSelect,
-  paymentCodesEnabled, paymentLaunchPlanIds, paymentPlanOnSale, paymentSalesEnabled,
+  paymentCodePlanIds, paymentCodesEnabled, paymentLaunchPlanIds, paymentPlanOnSale, paymentSalesEnabled,
   publishedPaymentQuizWhere, publishedSubjectWhere, type PaymentSubject,
 } from "@/lib/server/payment-scope";
 
@@ -35,6 +35,7 @@ function status(reason: AccessStatus["reason"], subject?: PaymentSubject | null)
 function accessReader() {
   let student: ReturnType<typeof getPaymentStudent> | undefined;
   const plans = new Map<string, ReturnType<typeof loadPlan>>();
+  const codePlans = new Map<string, Promise<boolean>>();
   async function loadPlan(subjectId: string) {
     if (paymentSalesEnabled()) {
       const sale = await prisma.paidAccessPlan.findFirst({ where: { isActive: true, subjectId, ...paymentPlanWhere(), id: { in: paymentLaunchPlanIds() } },
@@ -48,6 +49,15 @@ function accessReader() {
     if (!plans.has(subjectId)) plans.set(subjectId, loadPlan(subjectId));
     return plans.get(subjectId)!;
   }
+  function codePlanFor(subjectId: string) {
+    if (!codePlans.has(subjectId)) {
+      const ids = paymentCodePlanIds();
+      codePlans.set(subjectId, !paymentCodesEnabled() || ids.length === 0 ? Promise.resolve(false) : prisma.paidAccessPlan.findFirst({
+        where: { id: { in: ids }, isActive: true, subjectId, ...paymentPlanWhere() }, select: { id: true },
+      }).then(Boolean));
+    }
+    return codePlans.get(subjectId)!;
+  }
   return async (subject: PaymentSubject, accessType: QuizAccessType, preview = false): Promise<AccessStatus> => {
     // Publication is checked by the resolver before reaching this payment-only policy.
     if (!isPaymentSubject(subject)) return status("out_of_scope", subject);
@@ -55,7 +65,7 @@ function accessReader() {
     if (preview) return status("free_preview", subject);
     const plan = await planFor(subject.id);
     if (accessType === "inherit" && !plan) return status("no_paid_plan", subject);
-    const options = { canPurchase: Boolean(plan && paymentPlanOnSale(plan.id)), canRedeemCode: paymentCodesEnabled(),
+    const options = { canPurchase: Boolean(plan && paymentPlanOnSale(plan.id)), canRedeemCode: await codePlanFor(subject.id),
       plan: plan ? serializeAccessPlan(plan) : null };
     student ??= getPaymentStudent();
     const user = await student;

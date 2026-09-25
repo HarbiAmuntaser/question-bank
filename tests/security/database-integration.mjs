@@ -20,7 +20,7 @@ const meta = (row, reason = "R2 isolated security review") => ({ reason, expecte
 const planInput = { scopeType: "subject", subjectId: f.sa, title: "R2 test plan", description: null, price: "100", currency: "SAR", isActive: true,
   whatsappNumber: "966500000000", telegramUsername: null, contactMessage: null, defaultDurationDays: 30, defaultMaxUses: 1 };
 const grant = () => prisma.accessEntitlement.create({ data: { userId: studentId, subjectId: f.sa, scopeType: "subject" } });
-const codeInput = (planId) => ({ planId, maxUses: 1, durationDays: 30, startsAt: null, expiresAt: null, note: null });
+const codeInput = (planId) => ({ planId, idempotencyKey: randomUUID(), maxUses: 1, durationDays: 30, startsAt: null, expiresAt: null, note: null });
 try {
   for (const [id, role] of [[adminId, "admin"], [studentId, "student"]]) {
     const email = `${id}@r2.example.test`;
@@ -105,7 +105,8 @@ try {
   await check("codes stay closed by default; enabled test issuance/disable are audited without storing code or hash in audit", async () => {
     await assert.rejects(admin.issuePaymentCode(codeInput(plan.id), "R2 test issuance"), /payment_codes_unavailable/);
     process.env.PAYMENT_CODES_ENABLED = "true";
-    const plainCode = await admin.issuePaymentCode(codeInput(plan.id), "R2 test issuance");
+    process.env.PAYMENT_CODE_PLAN_IDS = JSON.stringify([plan.id]);
+    const plainCode = (await admin.issuePaymentCode(codeInput(plan.id), "R2 test issuance")).plainCode;
     const code = await prisma.subscriptionCode.findFirstOrThrow({ where: { createdBy: adminId } });
     const redemption = await buyer("src/lib/server/payment-mutations.ts").redeemSubscriptionCode({ code: plainCode, subjectId: f.sa });
     process.env.PAYMENT_CODES_ENABLED = "false";

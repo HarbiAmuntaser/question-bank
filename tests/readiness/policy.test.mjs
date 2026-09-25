@@ -14,6 +14,7 @@ const readyEnv = {
   PAYMENT_REVIEW_ENABLED: "false",
   PAYMENT_CODES_ENABLED: "false",
   PAYMENT_LAUNCH_PLAN_IDS: "[]",
+  PAYMENT_CODE_PLAN_IDS: "[]",
   NEXTAUTH_URL: "https://mustawak.example",
   NEXTAUTH_SECRET: "r4-test-secret-with-more-than-32-characters",
   DATABASE_URL: "postgresql://app:password@ep-r4-pooler.us-east-2.aws.neon.tech/app?sslmode=require",
@@ -52,6 +53,7 @@ test("preflight fails closed for launch flags, unsafe origins, shared databases,
     PAYMENT_V1_ENABLED: "TRUE",
     GOOGLE_AUTH_ENABLED: "true",
     PAYMENT_LAUNCH_PLAN_IDS: '["plan"]',
+    PAYMENT_CODE_PLAN_IDS: '["plan"]',
     NEXTAUTH_URL: "http://mustawak.example/path",
     DIRECT_URL: readyEnv.DATABASE_URL,
     R2_PRIVATE_BUCKET: readyEnv.R2_PUBLIC_BUCKET,
@@ -60,7 +62,7 @@ test("preflight fails closed for launch flags, unsafe origins, shared databases,
   });
   assert.equal(report.automatedReady, false);
   const failures = report.checks.filter((check) => check.status === "fail").map((check) => check.id);
-  for (const id of ["closed_google_auth_enabled", "google_oauth_configuration", "closed_payment_v1_enabled", "closed_launch_plan_ids", "https_auth_origin", "database_connection_separation", "neon_pooling", "r2_bucket_separation", "r2_signed_url_ttl", "trusted_ip_header"]) {
+  for (const id of ["closed_google_auth_enabled", "google_oauth_configuration", "closed_payment_v1_enabled", "closed_launch_plan_ids", "closed_code_plan_ids", "https_auth_origin", "database_connection_separation", "neon_pooling", "r2_bucket_separation", "r2_signed_url_ttl", "trusted_ip_header"]) {
     assert.ok(failures.includes(id), id);
   }
 });
@@ -102,4 +104,5 @@ test("R4 package commands remain read-only and keep every release switch closed 
     assert.match(example, new RegExp(`^${key}=false$`, "m"));
   }
   assert.match(example, /^PAYMENT_LAUNCH_PLAN_IDS=\[\]$/m);
+  assert.match(example, /^PAYMENT_CODE_PLAN_IDS=\[\]$/m);
 });

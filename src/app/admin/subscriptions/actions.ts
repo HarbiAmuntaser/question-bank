@@ -9,11 +9,17 @@ import { PaymentError, paymentSubjectWhere } from "@/lib/server/payment-scope";
 import { disablePaymentPlan, disablePaymentCode, revokePaymentEntitlement, issuePaymentCode, savePaymentPlan } from "@/lib/server/payment-admin";
 import { protectPaymentAdminAction } from "@/lib/server/payment-admin-action";
 import { AuthRateLimitError } from "@/lib/server/auth-rate-limit";
+import { parsePaymentDateTimeLocal } from "@/lib/payment-time";
 
 function text(form: FormData, key: string) { const value = form.get(key); return typeof value === "string" ? value.trim() : ""; }
 function nullableText(form: FormData, key: string) { return text(form, key) || null; }
 function number(form: FormData, key: string) { const value = text(form, key); return value ? Number(value) : null; }
-function date(form: FormData, key: string) { const value = text(form, key); return value ? new Date(value) : null; }
+function date(form: FormData, key: string) {
+  const value = text(form, key);
+  if (!value) return null;
+  try { return parsePaymentDateTimeLocal(value); }
+  catch { throw new PaymentError("invalid_code_window", 409); }
+}
 function changeInput(form: FormData) {
   return { reason: text(form, "reason"), expectedUpdatedAt: text(form, "expectedUpdatedAt") || undefined,
     confirmContentChange: form.get("confirmContentChange") === "on" };
@@ -31,6 +37,9 @@ function failure(error: unknown) {
   if (error instanceof PaymentError) {
     const messages: Record<string, string> = { payments_unavailable: "تفعيل خطط البيع متوقف حاليًا.",
       payment_codes_unavailable: "إصدار الأكواد متوقف حاليًا.",
+      code_plan_not_enabled: "الخطة غير مضافة إلى قائمة الخطط المعتمدة للأكواد.",
+      invalid_code_window: "يجب تحديد مدة استحقاق صالحة، ومراجعة وقت بداية الكود ونهايته بتوقيت الرياض.",
+      payment_idempotency_conflict: "تعذر إعادة الطلب لأن بياناته تغيرت. أغلق النافذة وأنشئ طلب إصدار جديدًا.",
       payment_target_changed: "تغيّر السجل. حدّث الصفحة وراجع بياناته قبل إعادة المحاولة.",
       payment_content_confirmation_required: "تأكيد أثر تعطيل الخطة على إتاحة المحتوى مطلوب.",
       not_found: "السجل غير موجود.",
@@ -67,10 +76,11 @@ export async function createSubscriptionCodeAction(form: FormData) {
   const admin = await requireAdminPermission("subscriptions:manage");
   try {
     await protectPaymentAdminAction(admin.userId);
-    const plainCode = await issuePaymentCode({ planId: text(form, "planId"), maxUses: number(form, "maxUses"),
+    const issued = await issuePaymentCode({ planId: text(form, "planId"), idempotencyKey: text(form, "idempotencyKey"), maxUses: number(form, "maxUses"),
       durationDays: number(form, "durationDays"), startsAt: date(form, "startsAt"), expiresAt: date(form, "expiresAt"), note: nullableText(form, "note") }, text(form, "reason"));
-    revalidateSubscriptions(); return { success: true, message: "تم إنشاء الكود", plainCode };
-  } catch (error) { return { ...failure(error), plainCode: undefined }; }
+    revalidateSubscriptions(); return { success: true, message: issued.alreadyIssued ? "تمت معالجة طلب الإصدار مسبقًا، ولن يعاد عرض الكود الصريح." : "تم إنشاء الكود",
+      plainCode: issued.plainCode ?? undefined, alreadyIssued: issued.alreadyIssued, codeId: issued.codeId };
+  } catch (error) { return { ...failure(error), plainCode: undefined, alreadyIssued: undefined, codeId: undefined }; }
 }
 export async function disableSubscriptionCodeAction(id: string, input: unknown) {
   const admin = await requireAdminPermission("subscriptions:manage");

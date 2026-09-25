@@ -22,7 +22,7 @@ test("R2 payment admin services independently reject every non-admin identity", 
     const service = load("src/lib/server/payment-admin.ts");
     for (const name of ["disablePaymentPlan", "disablePaymentCode", "revokePaymentEntitlement"]) await assert.rejects(service[name](id, change), /forbidden|unauthorized/);
     await assert.rejects(service.savePaymentPlan(plan, change), /forbidden|unauthorized/);
-    await assert.rejects(service.issuePaymentCode({ planId: id, maxUses: 1, durationDays: 1, startsAt: null, expiresAt: null, note: null }, change.reason), /forbidden|unauthorized/);
+    await assert.rejects(service.issuePaymentCode({ planId: id, idempotencyKey: id, maxUses: 1, durationDays: 1, startsAt: null, expiresAt: null, note: null }, change.reason), /forbidden|unauthorized/);
   }
 });
 

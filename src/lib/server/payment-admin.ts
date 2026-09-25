@@ -1,8 +1,9 @@
 import "server-only";
+import { createHash } from "node:crypto";
 import type { AccessEntitlement, PaidAccessPlan, Prisma, SubscriptionCode } from "@prisma/client";
 import { issuePaymentCodeSchema, paymentPlanSchema } from "@/validations/payment";
 import { paymentAdminChangeSchema, paymentAdminReasonSchema, paymentAdminTargetSchema } from "@/validations/payment-admin";
-import { PaymentError, paymentPlanWhere, requirePaymentSubject, requirePaymentV1, requirePaymentCodes } from "@/lib/server/payment-scope";
+import { PaymentError, paymentPlanWhere, requirePaymentCodePlan, requirePaymentSubject, requirePaymentV1, requirePaymentCodes } from "@/lib/server/payment-scope";
 import { paymentTransaction } from "@/lib/server/payment-mutations";
 import { requirePaymentAdmin, recheckPaymentAdmin } from "@/lib/server/payment-admin-auth";
 import { lockPaymentUsers } from "@/lib/server/payment-order-access";
@@ -24,6 +25,17 @@ function assertUnchanged(row: { updatedAt: Date }, expected?: string) {
   if (!expected || row.updatedAt.toISOString() !== expected) throw new PaymentError("payment_target_changed", 409);
 }
 function nextUpdate(row: { updatedAt: Date }) { return new Date(Math.max(Date.now(), row.updatedAt.getTime() + 1)); }
+function codeIssuanceRequestHash(input: ReturnType<typeof issuePaymentCodeSchema.parse>, reason: string) {
+  return createHash("sha256").update(JSON.stringify({
+    planId: input.planId,
+    maxUses: input.maxUses,
+    durationDays: input.durationDays,
+    startsAt: input.startsAt?.toISOString() ?? null,
+    expiresAt: input.expiresAt?.toISOString() ?? null,
+    note: input.note,
+    reason,
+  })).digest("hex");
+}
 
 export async function savePaymentPlan(raw: unknown, change: unknown, id?: string) {
   const input = paymentPlanSchema.parse(raw); const meta = paymentAdminChangeSchema.parse(change);
@@ -63,21 +75,35 @@ export async function savePaymentPlan(raw: unknown, change: unknown, id?: string
 export async function issuePaymentCode(raw: unknown, reason: unknown) {
   requirePaymentCodes();
   const input = issuePaymentCodeSchema.parse(raw); const note = paymentAdminReasonSchema.parse(reason);
+  const requestHash = codeIssuanceRequestHash(input, note);
   const actor = await requirePaymentAdmin();
   return paymentTransaction(async (tx) => {
     requirePaymentCodes(); await lockPaymentUsers(tx, [actor.id]); await recheckPaymentAdmin(tx, actor);
+    const existing = await tx.subscriptionCode.findUnique({
+      where: { createdBy_issuanceIdempotencyKey: { createdBy: actor.id, issuanceIdempotencyKey: input.idempotencyKey } },
+      select: { id: true, issuanceRequestHash: true },
+    });
+    if (existing) {
+      if (existing.issuanceRequestHash !== requestHash) throw new PaymentError("payment_idempotency_conflict", 409);
+      return { alreadyIssued: true, codeId: existing.id, plainCode: null };
+    }
+    requirePaymentCodePlan(input.planId);
     await tx.$queryRaw`SELECT id FROM paid_access_plans WHERE id = ${input.planId} FOR SHARE`;
-    const plan = await tx.paidAccessPlan.findFirst({ where: { id: input.planId, isActive: true, ...paymentPlanWhere() }, select: { id: true, defaultMaxUses: true } });
+    const plan = await tx.paidAccessPlan.findFirst({ where: { id: input.planId, isActive: true, ...paymentPlanWhere() },
+      select: { id: true, defaultMaxUses: true, defaultDurationDays: true } });
     if (!plan) throw new PaymentError("payment_scope_not_allowed", 409);
+    const durationDays = input.durationDays ?? plan.defaultDurationDays;
+    if (!Number.isInteger(durationDays) || durationDays! < 1 || durationDays! > 36500) throw new PaymentError("invalid_code_window", 409);
     const plainCode = generateSubscriptionCode();
     const code = await tx.subscriptionCode.create({ data: {
       planId: plan.id, codeHash: hashSubscriptionCode(plainCode), codePreview: codePreviewFromPlainCode(plainCode),
       durationDays: input.durationDays, startsAt: input.startsAt, expiresAt: input.expiresAt,
       maxUses: input.maxUses ?? plan.defaultMaxUses, usedCount: 0, isActive: true, note: input.note, createdBy: actor.id,
+      issuanceIdempotencyKey: input.idempotencyKey, issuanceRequestHash: requestHash,
     } });
     await tx.paymentAdminEvent.create({ data: { actorId: actor.id, actorSessionVersion: actor.sessionVersion,
       action: "code_issued", codeId: code.id, reason: note, before: {}, after: codeSnapshot(code) } });
-    return plainCode;
+    return { alreadyIssued: false, codeId: code.id, plainCode };
   });
 }
 

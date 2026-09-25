@@ -17,6 +17,18 @@ test("launch list is explicit, bounded, structured and fails closed as a whole",
   config.requirePaymentSales(["p1"]);
   assert.throws(() => config.requirePaymentSales(["p3"]), /plan_not_in_launch/);
 });
+test("code plan list is independent, bounded and fail-closed", () => {
+  for (const value of [undefined, "", "*", '"p1"', '["p1",null]', '[" p1"]', JSON.stringify(Array(201).fill("p"))]) {
+    const config = release({ PAYMENT_CODES_ENABLED: "true", PAYMENT_CODE_PLAN_IDS: value });
+    assert.deepEqual(Array.from(config.paymentCodePlanIds()), []);
+    assert.equal(config.paymentCodePlanEnabled("p1"), false);
+    assert.throws(() => config.requirePaymentCodePlan("p1"), /code_plan_not_enabled/);
+  }
+  const config = release({ PAYMENT_CODES_ENABLED: "true", PAYMENT_CODE_PLAN_IDS: '["p1","p1"]', PAYMENT_LAUNCH_PLAN_IDS: '["sale-only"]' });
+  assert.deepEqual(Array.from(config.paymentCodePlanIds()), ["p1"]);
+  assert.equal(config.paymentCodePlanEnabled("p1"), true);
+  assert.equal(config.paymentCodePlanEnabled("sale-only"), false);
+});
 test("sales, reviews and codes are independent explicit switches; old sales flag alone opens nothing", () => {
   const old = release({ PAYMENT_V1_ENABLED: "true" });
   assert.equal(old.paymentSalesEnabled(), false); assert.equal(old.paymentReviewEnabled(), false); assert.equal(old.paymentCodesEnabled(), false);
@@ -29,7 +41,7 @@ test("sales, reviews and codes are independent explicit switches; old sales flag
     for (const run of [config.requirePaymentSales, config.requirePaymentReview, config.requirePaymentCodes]) assert.throws(() => run());
   }
 });
-function accessHarness({ sales = false, codes = false, user = true, grant = false, type = "paid", outside = false, plans = ["p1"], listed = ["p1"] } = {}) {
+function accessHarness({ sales = false, codes = false, user = true, grant = false, type = "paid", outside = false, plans = ["p1"], listed = ["p1"], codeListed = ["p1"] } = {}) {
   const counts = { auth: 0, plans: 0, grants: 0 };
   const subject = { id: "s1", majorId: "m1", isActive: true, major: { isActive: true, university: { isActive: true, countryCode: outside ? "YE" : "SA", institutionType: "university" } } };
   const prisma = {
@@ -39,7 +51,7 @@ function accessHarness({ sales = false, codes = false, user = true, grant = fals
   };
   const load = moduleLoader({ "@/lib/prisma": { prisma }, "@/lib/auth-helpers": { getCurrentUser: async () => {
     counts.auth++; return user ? { id: "student", role: "student", isActive: true, emailVerified: new Date() } : null;
-  } } }, { process: { env: { PAYMENT_V1_ENABLED: String(sales), PAYMENT_CODES_ENABLED: String(codes), PAYMENT_LAUNCH_PLAN_IDS: JSON.stringify(listed) } } });
+  } } }, { process: { env: { PAYMENT_V1_ENABLED: String(sales), PAYMENT_CODES_ENABLED: String(codes), PAYMENT_LAUNCH_PLAN_IDS: JSON.stringify(listed), PAYMENT_CODE_PLAN_IDS: JSON.stringify(codeListed) } } });
   return { counts, read: () => load("src/lib/server/access-control.ts").checkQuizAccess({ quizId: "quiz" }) };
 }
 test("pausing sales or removing a plan never revokes paid access or opens it to another student", async () => {
@@ -57,6 +69,7 @@ test("sale options prefer an approved plan; codes do not inherit sales availabil
   assert.equal(sale.plan.id, "p1"); assert.equal(sale.canPurchase, true); assert.equal(sale.canRedeemCode, false);
   const codeOnly = await accessHarness({ codes: true }).read();
   assert.equal(codeOnly.canPurchase, false); assert.equal(codeOnly.canRedeemCode, true);
+  assert.equal((await accessHarness({ codes: true, codeListed: [], listed: ["p1"] }).read()).canRedeemCode, false);
   for (const options of [{ outside: true }, { type: "free" }, { type: "inherit", plans: [] }]) {
     const h = accessHarness({ sales: true, codes: true, ...options }); const result = await h.read();
     assert.equal(result.allowed, true); assert.equal(result.canPurchase, false); assert.equal(result.canRedeemCode, false);

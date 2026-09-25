@@ -141,6 +141,7 @@ export function SubscriptionsAdmin({
   paymentsEnabled,
   codesEnabled,
   launchPlanIds,
+  codePlanIds,
   plans,
   codePlanOptions,
   codes,
@@ -153,6 +154,7 @@ export function SubscriptionsAdmin({
   paymentsEnabled: boolean;
   codesEnabled: boolean;
   launchPlanIds: string[];
+  codePlanIds: string[];
   plans: PlanRow[];
   codePlanOptions: PlanRow[];
   codes: CodeRow[];
@@ -180,7 +182,7 @@ export function SubscriptionsAdmin({
             </Button>
           </PlanDialog>
           <CodeDialog plans={codePlanOptions}>
-            <Button variant="outline" className="h-10" disabled={!codesEnabled}>
+            <Button variant="outline" className="h-10" disabled={!codesEnabled || codePlanOptions.length === 0}>
               <Ticket className="ml-2 h-4 w-4" aria-hidden />
               كود جديد
             </Button>
@@ -226,6 +228,7 @@ export function SubscriptionsAdmin({
                     <div className="font-medium">{plan.title}</div>
                     <div dir="ltr" className="break-all font-mono text-xs text-muted-foreground">{plan.id}</div>
                     {launchPlanIds.includes(plan.id) && <Badge variant="outline">ضمن قائمة الإطلاق</Badge>}
+                    {codePlanIds.includes(plan.id) && <Badge variant="outline">معتمدة للأكواد</Badge>}
                     {plan.description ? <div className="line-clamp-1 text-xs text-muted-foreground">{plan.description}</div> : null}
                   </TableCell>
                   <TableCell>{scopeLabel(plan.scopeType)}</TableCell>

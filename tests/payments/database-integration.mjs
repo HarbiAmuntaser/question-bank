@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
 import { PrismaClient } from "@prisma/client";
 import { moduleLoader } from "../admin/load-module.mjs";
 import { f } from "./fixtures.mjs";
@@ -20,7 +21,7 @@ const mutations = load("src/lib/server/payment-mutations.ts");
 const admin = forUser(() => "legacy-admin")("src/lib/server/payment-admin.ts");
 const http = load("src/lib/server/payment-http.ts");
 const origin = process.env.NEXTAUTH_URL;
-const issue = (options = {}) => admin.issuePaymentCode({ planId: f.plan, maxUses: 1, durationDays: 30, startsAt: null, expiresAt: null, note: null, ...options }, "P3 isolated test issuance");
+const issue = async (options = {}) => (await admin.issuePaymentCode({ planId: f.plan, idempotencyKey: randomUUID(), maxUses: 1, durationDays: 30, startsAt: null, expiresAt: null, note: null, ...options }, "P3 isolated test issuance")).plainCode;
 let count = 0;
 async function check(name, test) { await test(); console.log(`PASS P3 ${++count}: ${name}`); }
 function request(action, data, headers = {}) {
@@ -41,6 +42,7 @@ try {
   process.env.PAYMENT_V1_ENABLED = "true";
   process.env.PAYMENT_CODES_ENABLED = "true";
   process.env.PAYMENT_LAUNCH_PLAN_IDS = JSON.stringify([f.plan]);
+  process.env.PAYMENT_CODE_PLAN_IDS = JSON.stringify([f.plan, f.yePlan, f.academyPlan, f.majorPlan]);
   await check("outside scope skips every account/plan/entitlement query and metadata advertises free access", async () => {
     queries.length = 0;
     for (const quizId of [f.yeQuiz, f.academyQuiz]) assert.equal((await access.checkQuizAccess({ quizId })).reason, "out_of_scope");
@@ -77,7 +79,7 @@ try {
   await check("server mutations derive scope from plan/subject and require a verified student", async () => {
     for (const planId of [f.yePlan, f.academyPlan, f.majorPlan]) await assert.rejects(issue({ planId }), /payment_scope_not_allowed/);
     actorId = f.alice;
-    await assert.rejects(load("src/lib/server/payment-admin.ts").issuePaymentCode({ planId: f.plan, maxUses: 1, durationDays: 1, startsAt: null, expiresAt: null, note: null }, "Denied student issuance"), /forbidden/);
+    await assert.rejects(load("src/lib/server/payment-admin.ts").issuePaymentCode({ planId: f.plan, idempotencyKey: randomUUID(), maxUses: 1, durationDays: 1, startsAt: null, expiresAt: null, note: null }, "Denied student issuance"), /forbidden/);
   });
   let code;
   await check("concurrent repeats redeem one code once for the same account", async () => {

@@ -4,6 +4,7 @@ import { resolve, join } from "node:path";
 import { createWriteStream, writeFileSync } from "node:fs";
 import { spawn, execFileSync } from "node:child_process";
 import { setTimeout as delay } from "node:timers/promises";
+import { randomUUID } from "node:crypto";
 import { PrismaClient } from "@prisma/client";
 import { moduleLoader } from "../admin/load-module.mjs";
 import { f, password } from "./fixtures.mjs";
@@ -24,6 +25,7 @@ async function start(enabled) {
   process.env.PAYMENT_V1_ENABLED = String(enabled);
   process.env.PAYMENT_CODES_ENABLED = String(enabled);
   process.env.PAYMENT_LAUNCH_PLAN_IDS = JSON.stringify([f.plan]);
+  process.env.PAYMENT_CODE_PLAN_IDS = JSON.stringify([f.plan]);
   log = createWriteStream(join(work, `next-payments-${enabled}.log`));
   server = spawn(process.execPath, ["node_modules/next/dist/bin/next", "dev", "--turbo", "--hostname", "127.0.0.1", "--port", new URL(origin).port], {
     env: { ...process.env, STUDENT_REGISTRATION_ENABLED: "false" }, windowsHide: true, stdio: ["ignore", "pipe", "pipe"],
@@ -143,9 +145,9 @@ try {
   const studentPage = await newPage(student);
   await check("student redeems through the dialog and opens the authenticated server-rendered quiz", async () => {
     await signin(studentPage, "student", "alice@p3.example.test", password, detail(f.sa, f.paid));
-    const code = await load("src/lib/server/payment-admin.ts").issuePaymentCode({
-      planId: f.plan, maxUses: 1, durationDays: 30, startsAt: null, expiresAt: null, note: "P3 browser test",
-    }, "P3 browser test issuance");
+    const code = (await load("src/lib/server/payment-admin.ts").issuePaymentCode({
+      planId: f.plan, idempotencyKey: randomUUID(), maxUses: 1, durationDays: 30, startsAt: null, expiresAt: null, note: "P3 browser test",
+    }, "P3 browser test issuance")).plainCode;
     await studentPage.getByRole("button", { name: "عرض خيارات الاشتراك", exact: true }).click();
     await studentPage.locator("#subscriptionCode").fill(code);
     await screenshot(studentPage, "p3-redeem-desktop", { width: 1440, height: 1000 });

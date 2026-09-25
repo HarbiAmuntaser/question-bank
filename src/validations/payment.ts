@@ -15,6 +15,6 @@ export const paymentPlanSchema = z.object({
   defaultMaxUses: z.number().int().min(1).max(10000),
 }).strict();
 export const issuePaymentCodeSchema = z.object({
-  planId: id, maxUses: z.number().int().min(1).max(10000).nullable(), durationDays: days,
+  planId: id, idempotencyKey: z.string().uuid(), maxUses: z.number().int().min(1).max(10000).nullable(), durationDays: days,
   startsAt: z.date().nullable(), expiresAt: z.date().nullable(), note: z.string().max(2000).nullable(),
 }).strict().refine((v) => !v.startsAt || !v.expiresAt || v.startsAt < v.expiresAt, { message: "invalid_code_window" });

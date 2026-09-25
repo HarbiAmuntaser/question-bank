@@ -120,6 +120,7 @@ model User {
   paymentOrderEvents       PaymentOrderEvent[]
   paymentReviewEvents      PaymentReviewEvent[]
   paymentAdminEvents       PaymentAdminEvent[]
+  paymentCodeRedemptions   PaymentCodeRedemptionEvent[]
   paymentAccountLock       PaymentAccountLock?
   universitiesCreated      University[]        @relation("UniversityCreatedBy")
   majorsCreated            Major[]             @relation("MajorCreatedBy")
@@ -256,6 +257,7 @@ model Subject {
   paidAccessPlans    PaidAccessPlan[]    @relation("SubjectPaidAccessPlans")
   accessEntitlements AccessEntitlement[] @relation("SubjectAccessEntitlements")
   paymentOrderItems  PaymentOrderItem[]
+  codeRedemptions    PaymentCodeRedemptionEvent[]
 
   @@unique([majorId, code])
   @@map("subjects")
@@ -696,6 +698,7 @@ model PaidAccessPlan {
   codes           SubscriptionCode[]
   orderItems      PaymentOrderItem[]
   adminEvents     PaymentAdminEvent[]
+  codeRedemptions PaymentCodeRedemptionEvent[]
 
   @@index([scopeType])
   @@index([majorId])
@@ -881,6 +884,8 @@ model SubscriptionCode {
   note     String?
 
   createdBy String?
+  issuanceIdempotencyKey String?
+  issuanceRequestHash    String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -888,7 +893,9 @@ model SubscriptionCode {
 
   entitlements AccessEntitlement[]
   adminEvents  PaymentAdminEvent[]
+  redemptions  PaymentCodeRedemptionEvent[]
 
+  @@unique([createdBy, issuanceIdempotencyKey])
   @@index([planId])
   @@index([isActive])
   @@index([expiresAt])
@@ -918,6 +925,7 @@ model AccessEntitlement {
   updatedAt DateTime @updatedAt
 
   revocation PaymentAdminEvent?
+  redemption PaymentCodeRedemptionEvent?
 
   subject Subject @relation("SubjectAccessEntitlements", fields: [subjectId], references: [id], onDelete: NoAction)
 
@@ -928,6 +936,30 @@ model AccessEntitlement {
   @@index([expiresAt])
   @@index([isActive])
   @@map("access_entitlements")
+}
+
+model PaymentCodeRedemptionEvent {
+  id            String @id @default(uuid())
+  userId        String
+  codeId        String
+  planId        String
+  subjectId     String
+  entitlementId String @unique
+  usageNumber   Int
+  createdAt     DateTime @default(now()) @db.Timestamptz(3)
+
+  user        User              @relation(fields: [userId], references: [id], onDelete: NoAction)
+  code        SubscriptionCode  @relation(fields: [codeId], references: [id], onDelete: NoAction)
+  plan        PaidAccessPlan    @relation(fields: [planId], references: [id], onDelete: NoAction)
+  subject     Subject           @relation(fields: [subjectId], references: [id], onDelete: NoAction)
+  entitlement AccessEntitlement @relation(fields: [entitlementId], references: [id], onDelete: NoAction)
+
+  @@unique([userId, codeId])
+  @@unique([codeId, usageNumber])
+  @@index([userId, createdAt, id])
+  @@index([planId])
+  @@index([subjectId])
+  @@map("payment_code_redemption_events")
 }
 
 enum PaymentAdminAction {

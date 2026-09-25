@@ -29,7 +29,7 @@ const url = `postgresql://postgres:${password}@127.0.0.1:${dbPort}/p2_test`;
 const env = { ...process.env, DATABASE_URL: url, DIRECT_URL: url, P2_TEST_DATABASE_URL: url,
   NEXTAUTH_SECRET: randomBytes(32).toString("hex"), NEXTAUTH_URL: `http://localhost:${webPort}`, NODE_ENV: "development",
   STUDENT_REGISTRATION_ENABLED: "true", GOOGLE_AUTH_ENABLED: "true", GOOGLE_CLIENT_ID: "local.apps.googleusercontent.com", GOOGLE_CLIENT_SECRET: "local-google-secret",
-  PAYMENT_V1_ENABLED: "false", PAYMENT_LAUNCH_PLAN_IDS: "[]", PAYMENT_REVIEW_ENABLED: "false", PAYMENT_CODES_ENABLED: "false",
+  PAYMENT_V1_ENABLED: "false", PAYMENT_LAUNCH_PLAN_IDS: "[]", PAYMENT_REVIEW_ENABLED: "false", PAYMENT_CODES_ENABLED: "false", PAYMENT_CODE_PLAN_IDS: "[]",
   SMTP_HOST: "localhost", SMTP_PORT: String(mailPort), SMTP_USER: "local-test", SMTP_PASSWORD: password,
   AUTH_EMAIL_FROM: "Mustawak Test <no-reply@example.test>", AUTH_TRUSTED_IP_HEADER: "", P2_TEST_WORK: work, NEXT_TELEMETRY_DISABLED: "1" };
 const pg = new EmbeddedPostgres({ databaseDir: join(work, "postgres"), user: "postgres", password,
@@ -178,6 +178,22 @@ try {
   await client.query(`DELETE FROM users WHERE id='oauth-migration-test'`);
   cli(["migrate", "deploy", "--schema", schemaPath]);
   console.log("PASS Google OAuth migration preserves credentials, permits only student NULL passwords and redeploys idempotently");
+  const codeHardeningMigration = "20260925090000_activation_code_hardening";
+  const historicalCode = randomUUID(); const historicalEntitlement = randomUUID();
+  await client.query(`INSERT INTO subscription_codes (id,"planId","codeHash","durationDays","maxUses","usedCount","updatedAt") VALUES ($1,$2,$3,30,1,1,now())`, [historicalCode, f.plan, randomUUID()]);
+  await client.query(`INSERT INTO access_entitlements (id,"userId","codeId","scopeType","subjectId","startsAt","expiresAt","updatedAt") VALUES ($1,$2,$3,'subject',$4,'2000-01-01',NULL,now())`, [historicalEntitlement, f.alice, historicalCode, f.sa]);
+  const hardeningSql = readFileSync(join("prisma/migrations", codeHardeningMigration, "migration.sql"), "utf8");
+  await assert.rejects(client.query(hardeningSql), /permanent_code_entitlement_requires_review/);
+  await client.query("ROLLBACK");
+  assert.equal((await client.query(`SELECT "expiresAt" FROM access_entitlements WHERE id=$1`, [historicalEntitlement])).rows[0].expiresAt, null);
+  await client.query(`UPDATE access_entitlements SET "expiresAt"='2000-01-02' WHERE id=$1`, [historicalEntitlement]);
+  mkdirSync(join(migrations, codeHardeningMigration));
+  copyFileSync(join("prisma/migrations", codeHardeningMigration, "migration.sql"), join(migrations, codeHardeningMigration, "migration.sql"));
+  console.log(cli(["migrate", "deploy", "--schema", schemaPath]).split("\n").filter((line) => /Applying migration|successfully/.test(line)).join("\n"));
+  assert.equal((await client.query(`SELECT "issuanceIdempotencyKey","issuanceRequestHash" FROM subscription_codes WHERE id=$1`, [historicalCode])).rows[0].issuanceIdempotencyKey, null);
+  assert.equal((await client.query(`SELECT count(*)::int AS count FROM payment_code_redemption_events`)).rows[0].count, 0);
+  cli(["migrate", "deploy", "--schema", schemaPath]);
+  console.log("PASS activation-code migration blocks permanent code grants, preserves historical rows and redeploys idempotently");
   const drift = cli(["migrate", "diff", "--from-url", url, "--to-schema-datamodel", resolve("prisma/schema.prisma"), "--script"]);
   assert.match(drift, /empty migration/i);
   console.log("PASS P3-R3 migrations preserve roles/passwords and financial history with no schema drift");
@@ -209,6 +225,7 @@ try {
   if (process.argv.includes("--reviews")) await child("tests/reviews/database-integration.mjs");
   if (process.argv.includes("--release")) await child("tests/release/database-integration.mjs");
   if (process.argv.includes("--security")) await child("tests/security/database-integration.mjs");
+  if (process.argv.includes("--codes")) await child("tests/codes/database-integration.mjs");
   if (process.argv.includes("--cleanup")) await child("tests/r3/database-integration.mjs");
   if (!process.argv.includes("--no-browser") && !process.argv.includes("--skip-auth-browser")) await child("tests/auth/browser-integration.mjs");
   if (process.argv.includes("--payments") && !process.argv.includes("--no-browser")) await child("tests/payments/browser-integration.mjs");

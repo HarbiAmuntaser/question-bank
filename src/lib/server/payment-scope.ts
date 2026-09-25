@@ -13,8 +13,8 @@ export function paymentV1Enabled() { return process.env.PAYMENT_V1_ENABLED === "
 export function requirePaymentV1() {
   if (!paymentV1Enabled()) throw new PaymentError("payments_unavailable", 503);
 }
-export function paymentLaunchPlanIds(): string[] {
-  const raw = process.env.PAYMENT_LAUNCH_PLAN_IDS ?? "[]";
+function paymentPlanIdsFromEnvironment(name: "PAYMENT_LAUNCH_PLAN_IDS" | "PAYMENT_CODE_PLAN_IDS"): string[] {
+  const raw = process.env[name] ?? "[]";
   if (raw.length > 20000) return [];
   try {
     const ids: unknown = JSON.parse(raw);
@@ -22,6 +22,7 @@ export function paymentLaunchPlanIds(): string[] {
     return [...new Set(ids as string[])];
   } catch { return []; }
 }
+export function paymentLaunchPlanIds(): string[] { return paymentPlanIdsFromEnvironment("PAYMENT_LAUNCH_PLAN_IDS"); }
 export function paymentSalesEnabled() { return paymentV1Enabled() && paymentLaunchPlanIds().length > 0; }
 export function paymentPlanOnSale(id: string) { return paymentSalesEnabled() && paymentLaunchPlanIds().includes(id); }
 export function requirePaymentSales(ids?: string[]) {
@@ -35,6 +36,12 @@ export function requirePaymentReview() {
 export function paymentCodesEnabled() { return process.env.PAYMENT_CODES_ENABLED === "true"; }
 export function requirePaymentCodes() {
   if (!paymentCodesEnabled()) throw new PaymentError("payment_codes_unavailable", 503);
+}
+export function paymentCodePlanIds(): string[] { return paymentPlanIdsFromEnvironment("PAYMENT_CODE_PLAN_IDS"); }
+export function paymentCodePlanEnabled(id: string) { return paymentCodesEnabled() && paymentCodePlanIds().includes(id); }
+export function requirePaymentCodePlan(id: string) {
+  requirePaymentCodes();
+  if (!paymentCodePlanEnabled(id)) throw new PaymentError("code_plan_not_enabled", 409);
 }
 
 export const paymentSubjectSelect = {

@@ -53,8 +53,8 @@ test("R3 preserves pricing plans while removing only the retired request relatio
   const current = readFileSync("prisma/schema.prisma", "utf8");
   for (const model of ["PaidAccessPlan"]) {
     const pattern = new RegExp("model " + model + " \\{[\\s\\S]*?\\n\\}");
-    // P4/R2 relations and R3's retired manual-request relation are the only allowed shape changes.
-    const normalize = (value) => value.replaceAll("\r", "").replace(/^\s*orderItems\s+PaymentOrderItem\[\]\n/m, "").replace(/^\s*adminEvents\s+PaymentAdminEvent\[\]\n/m, "").replace(/^\s*paymentRequests\s+ManualPaymentRequest\[\]\n/m, "");
+    // Later payment stages may add relations without restoring R3's retired manual-request model.
+    const normalize = (value) => value.replaceAll("\r", "").replace(/^\s*orderItems\s+PaymentOrderItem\[\]\n/m, "").replace(/^\s*adminEvents\s+PaymentAdminEvent\[\]\n/m, "").replace(/^\s*codeRedemptions\s+PaymentCodeRedemptionEvent\[\]\n/m, "").replace(/^\s*paymentRequests\s+ManualPaymentRequest\[\]\n/m, "");
     assert.equal(normalize(current.match(pattern)[0]), normalize(old.match(pattern)[0]));
   }
 });
