@@ -149,10 +149,12 @@ export function revalidateCollegeCache(
 
   revalidateTags([
     "colleges",
+    "student-university-detail",
     CACHE_TAGS.admin.colleges,
     CACHE_TAGS.public.colleges,
     input.id ? CACHE_TAGS.public.college(input.id) : null,
     ...universityIds.map((id) => CACHE_TAGS.public.collegesByUniversity(id)),
+    ...universityIds.map((id) => CACHE_TAGS.public.majorsByUniversity(id)),
     ...universityIds.map((id) => CACHE_TAGS.public.institution(id)),
     CACHE_TAGS.public.institutions,
     CACHE_TAGS.public.majors,
@@ -163,10 +165,19 @@ export function revalidateMajorCache(
   input: {
     id?: string | null;
     universityId?: string | null;
+    previousUniversityId?: string | null;
     collegeId?: string | null;
     previousCollegeId?: string | null;
   } = {},
 ) {
+  const universityIds = Array.from(
+    new Set(
+      [input.universityId, input.previousUniversityId]
+        .map((id) => id?.trim())
+        .filter(Boolean) as string[],
+    ),
+  );
+
   revalidateTags([
     "majors",
     "student-majors",
@@ -174,7 +185,9 @@ export function revalidateMajorCache(
     CACHE_TAGS.admin.majors,
     CACHE_TAGS.public.majors,
     input.id ? CACHE_TAGS.public.major(input.id) : null,
-    input.universityId ? CACHE_TAGS.public.majorsByUniversity(input.universityId) : null,
+    ...universityIds.map((id) => CACHE_TAGS.public.majorsByUniversity(id)),
+    ...universityIds.map((id) => CACHE_TAGS.public.collegesByUniversity(id)),
+    ...universityIds.map((id) => CACHE_TAGS.public.institution(id)),
     input.collegeId ? CACHE_TAGS.public.college(input.collegeId) : null,
     input.previousCollegeId ? CACHE_TAGS.public.college(input.previousCollegeId) : null,
     CACHE_TAGS.public.colleges,

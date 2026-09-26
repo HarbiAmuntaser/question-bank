@@ -27,12 +27,17 @@ test("College migration is additive and preserves existing Major and payment own
   assert.match(sql, /colleges_universityId_slug_key/);
   assert.match(sql, /ADD COLUMN "collegeId" TEXT/);
   assert.match(sql, /ON DELETE RESTRICT/);
+  assert.match(
+    sql,
+    /CONSTRAINT "colleges_universityId_fkey"[\s\S]*?ON DELETE RESTRICT ON UPDATE CASCADE/,
+  );
   assert.doesNotMatch(sql, /UPDATE "majors"|UPDATE majors/i);
   assert.doesNotMatch(sql, /paid_access|payment_|access_entitlements|seo_meta/i);
 
   const schema = readFileSync("prisma/schema.prisma", "utf8");
   assert.match(schema, /collegeId\s+String\?/);
   assert.match(schema, /college\s+College\?[^\n]+onDelete: Restrict/);
+  assert.match(schema, /university\s+University[^\n]+onDelete: Restrict/);
   assert.match(schema, /universityId\s+String\n\s+collegeId/);
   assert.match(schema, /slug\s+String/);
   assert.match(schema, /@@unique\(\[universityId, slug\]\)/);

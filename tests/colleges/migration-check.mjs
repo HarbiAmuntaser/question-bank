@@ -16,9 +16,17 @@ function prisma(args) {
 }
 
 try {
+  const collegeIntroductionCommit = execFileSync(
+    "git",
+    ["log", "-S", "model College", "--format=%H", "--", "prisma/schema.prisma"],
+    { encoding: "utf8", windowsHide: true },
+  )
+    .trim()
+    .split(/\r?\n/)[0];
+  assert.ok(collegeIntroductionCommit, "College introduction commit must be discoverable");
   const oldSchema = execFileSync(
     "git",
-    ["show", "HEAD:prisma/schema.prisma"],
+    ["show", `${collegeIntroductionCommit}^:prisma/schema.prisma`],
     { encoding: "utf8", windowsHide: true },
   );
   writeFileSync(oldSchemaPath, oldSchema);
@@ -53,6 +61,10 @@ try {
   assert.match(migration, /COMMIT;/);
   assert.match(migration, /colleges_universityId_code_key/);
   assert.match(migration, /colleges_universityId_slug_key/);
+  assert.match(
+    migration,
+    /CONSTRAINT "colleges_universityId_fkey"[\s\S]*?ON DELETE RESTRICT ON UPDATE CASCADE/,
+  );
   assert.match(migration, /colleges_universityId_isActive_idx/);
   prisma(["validate", "--schema", resolve("prisma/schema.prisma")]);
   console.log("PASS College migration matches the Prisma schema diff and contains no data rewrite");

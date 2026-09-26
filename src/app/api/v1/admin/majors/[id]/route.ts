@@ -62,6 +62,7 @@ export async function PUT(req: Request, ctx: RouteParams) {
     revalidateMajorCache({
       id: updated.id,
       universityId: updated.universityId,
+      previousUniversityId: exists.universityId,
       collegeId: updated.collegeId,
       previousCollegeId: exists.collegeId,
     });

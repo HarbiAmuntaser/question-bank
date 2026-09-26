@@ -9,6 +9,7 @@ import { ContextBackLink } from "@/components/public/context-back-link";
 import { UniversityHero } from "@/components/public/university-hero";
 import { MajorsList } from "@/components/public/majors-list";
 import { UniversityDegreeSelector } from "@/components/public/university-degree-selector";
+import { UniversityCollegeSelector } from "@/components/public/university-college-selector";
 import { MajorDetails } from "@/components/public/major-details";
 import { MajorAcademicPeriodDetails } from "@/components/public/major-academic-period-details";
 import { SubjectDetails } from "@/components/public/subject-details";
@@ -63,11 +64,15 @@ import {
   getAcademicPeriodRouteKey,
   parseAcademicPeriodRouteKey,
 } from "@/lib/academic-periods";
+import {
+  buildCollegeMajorGroups,
+  selectCollegeMajorGroup,
+} from "@/lib/public/college-major-groups";
 
 export const revalidate = 21600;
 
 type PageParams = { cc: string; type: string; slug: string[] };
-type PageSearchParams = { degree?: string | string[] };
+type PageSearchParams = { degree?: string | string[]; college?: string | string[] };
 
 function getFirstSearchValue(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
@@ -898,6 +903,15 @@ export default async function UniversitiesCatchAllPage({
     isUniversityType && selectedDegree
       ? allMajors.filter((major) => normalizeDegreeType(major.degreeType) === selectedDegree)
       : allMajors;
+  const activeColleges = isUniversityType ? uniTyped.colleges ?? [] : [];
+  const { collegeGroups, universityMajors } = buildCollegeMajorGroups(
+    activeColleges,
+    visibleMajors,
+  );
+  const selectedCollegeGroup = selectCollegeMajorGroup(
+    collegeGroups,
+    getFirstSearchValue(sp.college),
+  );
   const majorsSectionCopy =
     type === "academy"
       ? {
@@ -953,12 +967,50 @@ export default async function UniversitiesCatchAllPage({
               </p>
             </div>
 
-            <MajorsList
-              cc={cc}
-              type={type}
-              universitySlug={universitySlugForLinks}
-              majors={visibleMajors}
-            />
+            {isUniversityType && activeColleges.length > 0 && selectedCollegeGroup ? (
+              <div className="space-y-8">
+                <div>
+                  <UniversityCollegeSelector
+                    basePath={universityBasePath}
+                    degree={selectedDegree}
+                    groups={collegeGroups}
+                    selectedKey={selectedCollegeGroup.key}
+                  />
+                  <div className="mb-5">
+                    <h3 className="text-xl font-bold leading-tight text-foreground sm:text-2xl">
+                      {selectedCollegeGroup.label}
+                    </h3>
+                  </div>
+                  <MajorsList
+                    cc={cc}
+                    type={type}
+                    universitySlug={universitySlugForLinks}
+                    majors={selectedCollegeGroup.majors}
+                  />
+                </div>
+
+                {universityMajors.length > 0 ? (
+                  <section id="university-majors-section" className="border-t border-border/70 pt-8">
+                    <h3 className="mb-5 text-xl font-bold leading-tight text-foreground sm:text-2xl">
+                      تخصصات الجامعة
+                    </h3>
+                    <MajorsList
+                      cc={cc}
+                      type={type}
+                      universitySlug={universitySlugForLinks}
+                      majors={universityMajors}
+                    />
+                  </section>
+                ) : null}
+              </div>
+            ) : (
+              <MajorsList
+                cc={cc}
+                type={type}
+                universitySlug={universitySlugForLinks}
+                majors={visibleMajors}
+              />
+            )}
           </div>
         </section>
       </main>

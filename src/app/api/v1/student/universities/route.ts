@@ -106,6 +106,7 @@ async function listUniversities(q: Q) {
                   id: true,
                   name: true,
                   code: true,
+                  collegeId: true,
                 },
                 take: 2,
               },
@@ -128,8 +129,9 @@ async function listUniversities(q: Q) {
 
 // ✅ مهم: unstable_cache يأخذ keyParts ثابتة (string[])،
 // وNext سيُميّز الكاش تلقائياً حسب Arguments (q) التي نمررها للدالة.
-const listUniversitiesCached = (q: Q) =>
-  unstable_cache(
+const listUniversitiesCached = (q: Q) => {
+  const includeMajors = ["1", "true"].includes((q.withMajors ?? "").toLowerCase());
+  return unstable_cache(
   async () => listUniversities(q),
   [
     "student-universities",
@@ -146,10 +148,13 @@ const listUniversitiesCached = (q: Q) =>
     tags: cacheTags(
       "student-universities",
       CACHE_TAGS.public.institutions,
+      includeMajors ? CACHE_TAGS.public.colleges : null,
+      includeMajors ? CACHE_TAGS.public.majors : null,
       q.cc ? CACHE_TAGS.public.institutionsCountry(q.cc) : null
     ),
   }
-)();
+  )();
+};
 
 export async function GET(req: Request) {
   try {

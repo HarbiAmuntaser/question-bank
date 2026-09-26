@@ -9,6 +9,15 @@ import { prisma } from "@/lib/prisma";
 import { publicMajorWhere } from "@/lib/server/public-content-visibility";
 
 const publicMajorDetailsInclude = {
+  college: {
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      code: true,
+      isActive: true,
+    },
+  },
   university: {
     select: {
       id: true,
@@ -41,11 +50,12 @@ type PublicMajorRow = Prisma.MajorGetPayload<{
 
 export type PublicMajorDetails = Omit<
   PublicMajorRow,
-  "createdAt" | "updatedAt" | "university"
+  "college" | "createdAt" | "updatedAt" | "university"
 > & {
   createdAt: string;
   updatedAt: string;
   seo: { slug: string | null };
+  college: Omit<NonNullable<PublicMajorRow["college"]>, "isActive"> | null;
   university: PublicMajorRow["university"] & { seo: { slug: string | null } };
 };
 
@@ -88,6 +98,14 @@ async function addMajorDetails(major: PublicMajorRow): Promise<PublicMajorDetail
 
   return {
     ...major,
+    college: major.college?.isActive
+      ? {
+          id: major.college.id,
+          name: major.college.name,
+          slug: major.college.slug,
+          code: major.college.code,
+        }
+      : null,
     createdAt: major.createdAt.toISOString(),
     updatedAt: major.updatedAt.toISOString(),
     seo: { slug: majorSeo?.slug ?? null },
@@ -129,6 +147,7 @@ const getMajorDetailsByIdCached = (id: string) =>
         "student-major-detail",
         CACHE_TAGS.public.majors,
         CACHE_TAGS.public.major(id),
+        CACHE_TAGS.public.colleges,
       ],
     },
   )();

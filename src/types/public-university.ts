@@ -2,10 +2,19 @@
 
 export type SeoLite = { slug: string | null };
 
+export type CollegePublicLite = {
+  id: string;
+  name: string;
+  slug: string;
+  code: string | null;
+};
+
 export type MajorPublicLite = {
   id: string;
   name: string;
   code: string | null;
+  collegeId: string | null;
+  college?: CollegePublicLite | null;
   degreeType: string | null;
   durationYears: number | null;
   seo?: SeoLite | null;
@@ -20,6 +29,7 @@ export type UniversityPublicLite = {
   region: string | null;
   logoUrl: string | null;
   createdAt?: string | Date; // بعض APIs ترجع string
+  colleges?: CollegePublicLite[];
   majors?: MajorPublicLite[];
   seo?: SeoLite | null;
   countryCode?: string | null;

@@ -222,7 +222,7 @@ model College {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  university University @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  university University @relation(fields: [universityId], references: [id], onDelete: Restrict)
   creator    User?      @relation("CollegeCreatedBy", fields: [createdBy], references: [id])
   majors     Major[]
 

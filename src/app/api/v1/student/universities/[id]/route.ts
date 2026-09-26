@@ -1,12 +1,9 @@
 /* Fixed Next 15 params typing */
 
 // src/app/api/v1/student/universities/[id]/route.ts
-import { prisma } from "@/lib/prisma";
 import { json, bad } from "@/lib/http";
-import { CACHE_CONTROL, CACHE_TAGS, CACHE_TTL } from "@/lib/cache-tags";
-import { unstable_cache } from "next/cache";
-import { getPublicVisibilityCacheKey } from "@/config/public-features";
-import { publicUniversityWhere } from "@/lib/server/public-content-visibility";
+import { CACHE_CONTROL, CACHE_TTL } from "@/lib/cache-tags";
+import { getPublicUniversityById } from "@/lib/server/public-universities";
 
 export const dynamic = "force-dynamic";
 
@@ -15,59 +12,12 @@ type RouteContext = {
   params: Promise<RouteParams>;
 };
 
-const getUniversityDetailsCached = (id: string) =>
-  unstable_cache(
-  async () => {
-    // الجامعة + التخصصات + عدّ المواد لكل تخصص
-    const university = await prisma.university.findFirst({
-      where: { id, isActive: true, AND: [publicUniversityWhere()] },
-      select: {
-        id: true,
-        name: true,
-        code: true,
-        city: true,
-        region: true,
-        logoUrl: true,
-        isActive: true,
-        createdAt: true,
-        updatedAt: true,
-        majors: {
-          where: { isActive: true },
-          orderBy: { name: "asc" },
-          select: {
-            id: true,
-            name: true,
-            code: true,
-            degreeType: true,
-            durationYears: true,
-            _count: { select: { subjects: true } },
-          },
-        },
-      },
-    });
-
-    if (!university) return null;
-
-    return university;
-  },
-  ["student-university-detail", id, getPublicVisibilityCacheKey()],
-  {
-    revalidate: CACHE_TTL.publicLong,
-    tags: [
-      "student-universities",
-      "student-university-detail",
-      CACHE_TAGS.public.institutions,
-      CACHE_TAGS.public.institution(id),
-    ],
-  }
-)();
-
 export async function GET(_req: Request, { params }: RouteContext) {
   const { id } = await params;
   if (!id) return bad("missing_id", undefined, 400);
 
   try {
-    const data = await getUniversityDetailsCached(id);
+    const data = await getPublicUniversityById(id);
     if (!data) return bad("not_found", undefined, 404);
 
     const headers = new Headers({

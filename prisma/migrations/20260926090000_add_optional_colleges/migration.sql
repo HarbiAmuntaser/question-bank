@@ -24,7 +24,7 @@ CREATE INDEX "majors_collegeId_idx" ON "majors"("collegeId");
 ALTER TABLE "colleges"
   ADD CONSTRAINT "colleges_universityId_fkey"
   FOREIGN KEY ("universityId") REFERENCES "universities"("id")
-  ON DELETE CASCADE ON UPDATE CASCADE;
+  ON DELETE RESTRICT ON UPDATE CASCADE;
 
 ALTER TABLE "colleges"
   ADD CONSTRAINT "colleges_createdBy_fkey"

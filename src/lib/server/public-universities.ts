@@ -21,6 +21,16 @@ const publicUniversityDetailsSelect = {
   isActive: true,
   createdAt: true,
   updatedAt: true,
+  colleges: {
+    where: { isActive: true },
+    orderBy: { name: "asc" },
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      code: true,
+    },
+  },
   majors: {
     where: { isActive: true },
     orderBy: { name: "asc" },
@@ -28,6 +38,7 @@ const publicUniversityDetailsSelect = {
       id: true,
       name: true,
       code: true,
+      collegeId: true,
       degreeType: true,
       durationYears: true,
       _count: { select: { subjects: true } },
@@ -43,6 +54,11 @@ export type PublicUniversityDetails = Omit<PublicUniversityRow, "createdAt" | "u
   createdAt: string;
   updatedAt: string;
   seo: { slug: string | null };
+  majors: Array<
+    PublicUniversityRow["majors"][number] & {
+      college: PublicUniversityRow["colleges"][number] | null;
+    }
+  >;
 };
 
 export type NormalizedUniversitySlug = {
@@ -109,8 +125,14 @@ async function addUniversityDetails(university: PublicUniversityRow): Promise<Pu
     select: { slug: true },
   });
 
+  const collegesById = new Map(university.colleges.map((college) => [college.id, college]));
+
   return {
     ...university,
+    majors: university.majors.map((major) => ({
+      ...major,
+      college: major.collegeId ? collegesById.get(major.collegeId) ?? null : null,
+    })),
     createdAt: university.createdAt.toISOString(),
     updatedAt: university.updatedAt.toISOString(),
     seo: { slug: seo?.slug ?? null },
@@ -148,6 +170,9 @@ const getUniversityDetailsByIdCached = (id: string) =>
         "student-university-detail",
         CACHE_TAGS.public.institutions,
         CACHE_TAGS.public.institution(id),
+        CACHE_TAGS.public.colleges,
+        CACHE_TAGS.public.collegesByUniversity(id),
+        CACHE_TAGS.public.majorsByUniversity(id),
       ],
     },
   )();
@@ -172,6 +197,8 @@ const getUniversityByCodeCached = (input: NormalizedUniversityCode) =>
         "student-universities",
         "student-university-detail",
         CACHE_TAGS.public.institutions,
+        CACHE_TAGS.public.colleges,
+        CACHE_TAGS.public.majors,
       ],
     },
   )();
@@ -185,4 +212,9 @@ export async function getPublicUniversityBySlug(input: NormalizedUniversitySlug)
 export async function getPublicUniversityByCode(input: NormalizedUniversityCode) {
   if (!input.clean) return null;
   return getUniversityByCodeCached(input);
+}
+
+export async function getPublicUniversityById(id: string) {
+  if (!id) return null;
+  return getUniversityDetailsByIdCached(id);
 }

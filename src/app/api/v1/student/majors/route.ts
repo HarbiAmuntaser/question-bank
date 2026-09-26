@@ -23,15 +23,38 @@ const listMajorsCached = (universityId?: string) =>
           name: true,
           code: true,
           universityId: true,
+          collegeId: true,
+          college: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              code: true,
+              isActive: true,
+            },
+          },
           degreeType: true,
         },
-      }),
+      }).then((majors) =>
+        majors.map((major) => ({
+          ...major,
+          college: major.college?.isActive
+            ? {
+                id: major.college.id,
+                name: major.college.name,
+                slug: major.college.slug,
+                code: major.college.code,
+              }
+            : null,
+        })),
+      ),
     ["student-majors-list", universityId ?? "", getPublicVisibilityCacheKey()],
     {
       revalidate: CACHE_TTL.publicStable,
       tags: cacheTags(
         "student-majors",
         CACHE_TAGS.public.majors,
+        CACHE_TAGS.public.colleges,
         universityId ? CACHE_TAGS.public.majorsByUniversity(universityId) : null
       ),
     }

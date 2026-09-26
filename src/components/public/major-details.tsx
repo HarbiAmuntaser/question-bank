@@ -52,6 +52,8 @@ type MajorDto = {
   id: string;
   name: string;
   code: string | null;
+  collegeId: string | null;
+  college: { id: string; name: string; slug: string; code: string | null } | null;
   degreeType: string | null;
   durationYears: number | null;
   university: UniversityLiteForMajor;
@@ -173,13 +175,20 @@ export async function MajorDetails({
   }
 
   const uniLink = universityHref(ccNorm, typeNorm, major.university);
+  const contextualUniversityLink =
+    typeNorm === "university" && major.college
+      ? `${uniLink}?college=${encodeURIComponent(major.college.slug)}#majors-section`
+      : `${uniLink}#majors-section`;
+  const backLabel = typeNorm === "university" && major.college
+    ? major.college.name
+    : major.university.name;
   const subjects = Array.isArray(major.subjects) ? major.subjects : [];
   const academicCatalog = groupSubjectsByAcademicPeriod(subjects);
   const showAcademicLevels = typeNorm === "university" && academicCatalog.groups.length > 0;
 
   return (
     <div className="space-y-6 lg:space-y-8">
-      <ContextBackLink href={uniLink} label={major.university.name} />
+      <ContextBackLink href={contextualUniversityLink} label={backLabel} />
 
       <Card className={surfaceCardClass}>
         <CardHeader className="px-5 text-center sm:px-6">
