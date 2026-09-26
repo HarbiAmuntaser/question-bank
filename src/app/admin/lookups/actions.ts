@@ -4,7 +4,7 @@ import { requireAdminPermission } from "@/lib/admin-auth";
 import { getDegreeTypeLabel } from "@/lib/degree-types";
 import { prisma } from "@/lib/prisma";
 
-export type AdminLookupType = "university" | "major" | "subject" | "chapter";
+export type AdminLookupType = "university" | "college" | "major" | "subject" | "chapter";
 
 export type AdminLookupOption = {
   id: string;
@@ -23,21 +23,24 @@ function normalizeQuery(query?: string) {
   return q && q.length > 0 ? q : undefined;
 }
 
-export async function searchUniversitiesAction(args: { query?: string; limit?: number } = {}) {
+export async function searchUniversitiesAction(
+  args: { query?: string; limit?: number; institutionType?: "university" | "school" | "academy" } = {},
+) {
   await requireAdminPermission("lookups:read");
   const query = normalizeQuery(args.query);
   const take = clampLimit(args.limit);
 
   const rows = await prisma.university.findMany({
-    where: query
-      ? {
+    where: {
+      ...(args.institutionType ? { institutionType: args.institutionType } : {}),
+      ...(query ? {
           OR: [
             { name: { contains: query, mode: "insensitive" } },
             { code: { contains: query, mode: "insensitive" } },
             { city: { contains: query, mode: "insensitive" } },
           ],
-        }
-      : {},
+        } : {}),
+    },
     orderBy: { name: "asc" },
     take,
     select: { id: true, name: true, code: true, city: true },
@@ -48,6 +51,37 @@ export async function searchUniversitiesAction(args: { query?: string; limit?: n
     label: row.name,
     code: row.code,
     subLabel: [row.code, row.city].filter(Boolean).join(" - ") || undefined,
+  }));
+}
+
+export async function searchCollegesAction(args: { universityId?: string; query?: string; limit?: number }) {
+  await requireAdminPermission("lookups:read");
+  if (!args.universityId) return [];
+  const query = normalizeQuery(args.query);
+  const take = clampLimit(args.limit);
+
+  const rows = await prisma.college.findMany({
+    where: {
+      universityId: args.universityId,
+      ...(query
+        ? {
+            OR: [
+              { name: { contains: query, mode: "insensitive" } },
+              { code: { contains: query, mode: "insensitive" } },
+            ],
+          }
+        : {}),
+    },
+    orderBy: [{ isActive: "desc" }, { name: "asc" }],
+    take,
+    select: { id: true, name: true, code: true, isActive: true },
+  });
+
+  return rows.map((row): AdminLookupOption => ({
+    id: row.id,
+    label: row.name,
+    code: row.code,
+    subLabel: [row.code, row.isActive ? null : "غير نشطة"].filter(Boolean).join(" - ") || undefined,
   }));
 }
 
@@ -165,6 +199,21 @@ export async function resolveAdminLookupAction(type: AdminLookupType, id: string
           label: row.name,
           code: row.code,
           subLabel: [row.code, row.city].filter(Boolean).join(" - ") || undefined,
+        }
+      : null;
+  }
+
+  if (type === "college") {
+    const row = await prisma.college.findUnique({
+      where: { id },
+      select: { id: true, name: true, code: true, isActive: true, university: { select: { name: true } } },
+    });
+    return row
+      ? {
+          id: row.id,
+          label: row.name,
+          code: row.code,
+          subLabel: [row.code, row.university.name, row.isActive ? null : "غير نشطة"].filter(Boolean).join(" - ") || undefined,
         }
       : null;
   }

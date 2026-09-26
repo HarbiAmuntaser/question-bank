@@ -17,6 +17,7 @@ export async function createMajorAction(formData: FormData) {
 
   const payload = {
     universityId: (formData.get("universityId") ?? "").toString(),
+    collegeId: normalize(formData.get("collegeId")),
     name: (formData.get("name") ?? "").toString().trim(),
     code: normalize(formData.get("code")),            // "" => null
     degreeType: normalizeDegreeType(formData.get("degreeType")),
@@ -56,6 +57,7 @@ export async function updateMajorAction(id: string, formData: FormData) {
 
   const payload = {
     universityId: normalize(formData.get("universityId")) ?? undefined,
+    collegeId: normalize(formData.get("collegeId")),
     name: normalize(formData.get("name")) ?? undefined,
     code: normalize(formData.get("code")),            // قد تصبح null
     degreeType: normalizeDegreeType(formData.get("degreeType")),

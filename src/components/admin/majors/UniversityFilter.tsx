@@ -26,6 +26,7 @@ export function UniversityFilter({
     const params = new URLSearchParams(sp.toString());
     if (next) params.set("universityId", next);
     else params.delete("universityId");
+    params.delete("collegeId");
     params.delete("page");
     router.push(`${pathname}?${params.toString()}`);
   };

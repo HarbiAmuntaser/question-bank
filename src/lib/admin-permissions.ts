@@ -2,7 +2,7 @@ export const ADMIN_ROLES = ["admin", "editor", "moderator"] as const;
 export type AdminRole = (typeof ADMIN_ROLES)[number];
 
 export const CONTENT_RESOURCES = [
-  "universities", "majors", "subjects", "chapters", "summaries",
+  "universities", "colleges", "majors", "subjects", "chapters", "summaries",
   "questions", "quizzes", "blog", "seo-meta", "attachments", "lookups",
 ] as const;
 

@@ -18,6 +18,7 @@ export type MajorMinimal = {
   createdAt: string | Date;
   updatedAt: string | Date;
   universityId: string | undefined; // قد يكون undefined في بعض الشاشات
+  collegeId: string | null;
   durationYears: number | null; // ليس ضرورياً دائماً
 };
 

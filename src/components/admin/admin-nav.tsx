@@ -16,6 +16,7 @@ import {
   GraduationCap,
   Home,
   KeyRound,
+  Landmark,
   Receipt,
   Newspaper,
   Shuffle,
@@ -40,6 +41,7 @@ function isGroup(item: AdminNavEntry): item is NavGroup {
 export const adminNavigation: AdminNavEntry[] = [
   { name: "لوحة التحكم", href: "/admin", icon: Home },
   { name: "الجامعات", href: "/admin/universities", icon: Building2 },
+  { name: "الكليات", href: "/admin/colleges", icon: Landmark },
   { name: "التخصصات", href: "/admin/majors", icon: GraduationCap },
   { name: "المقررات", href: "/admin/subjects", icon: BookOpen },
   { name: "الفصول", href: "/admin/chapters", icon: FileText },

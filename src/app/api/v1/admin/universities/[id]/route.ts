@@ -7,6 +7,10 @@ import { json, bad, notFound } from "@/lib/server/admin-http";
 import { verifyAdmin, adminAuthResponse } from "@/lib/admin-auth";
 import { CACHE_CONTROL } from "@/lib/cache-tags";
 import { revalidateUniversityCache } from "@/lib/cache-invalidation";
+import {
+  EducationStructureError,
+  updateUniversityWithStructure,
+} from "@/lib/server/education-structure";
 import { updateUniversitySchema } from "@/validations/university";
 import type { Prisma } from "@prisma/client";
 
@@ -28,7 +32,11 @@ export async function GET(req: Request, { params }: RouteContext) {
       majors: {
         select: { id: true, name: true, code: true, isActive: true },
       },
-      _count: { select: { majors: true } },
+      colleges: {
+        select: { id: true, name: true, code: true, isActive: true },
+        orderBy: { name: "asc" },
+      },
+      _count: { select: { majors: true, colleges: true } },
     },
   });
   if (!u) return notFound("الجامعة غير موجودة");
@@ -74,7 +82,13 @@ export async function PUT(req: Request, { params }: RouteContext) {
   if (Object.prototype.hasOwnProperty.call(payload, "region")) data.region = payload.region ?? null;
   if (Object.prototype.hasOwnProperty.call(payload, "logoUrl")) data.logoUrl = payload.logoUrl ?? null;
 
-  const updated = await prisma.university.update({ where: { id }, data });
+  let updated;
+  try {
+    updated = await updateUniversityWithStructure(id, nextInstitutionType, data);
+  } catch (error) {
+    if (error instanceof EducationStructureError) return bad(error.code, undefined, error.status);
+    throw error;
+  }
 
   revalidateUniversityCache({
     id: updated.id,
@@ -98,6 +112,8 @@ export async function DELETE(req: Request, { params }: RouteContext) {
   });
   const hasMajors = await prisma.major.count({ where: { universityId: id } });
   if (hasMajors > 0) return bad("لا يمكن حذف الجامعة لوجود تخصصات مرتبطة بها");
+  const hasColleges = await prisma.college.count({ where: { universityId: id } });
+  if (hasColleges > 0) return bad("لا يمكن حذف الجامعة لوجود كليات مرتبطة بها");
 
   try {
     await prisma.university.delete({ where: { id } });

@@ -24,6 +24,7 @@ export type UpdateUniversityData = CreateUniversityData
 export interface Major {
   id: string
   universityId: string
+  collegeId: string | null
   name: string
   code: string | null
   degreeType: string | null
@@ -36,6 +37,11 @@ export interface Major {
 // Major types
 export interface MajorWithRelations extends Major {
   university: University
+  college?: {
+    id: string
+    name: string
+    code: string | null
+  } | null
   _count: {
     subjects: number
   }
@@ -43,6 +49,7 @@ export interface MajorWithRelations extends Major {
 
 export interface CreateMajorData {
   universityId: string
+  collegeId?: string | null
   name: string
   code?: string
   degreeType?: string

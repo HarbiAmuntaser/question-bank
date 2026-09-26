@@ -34,6 +34,7 @@ export function MajorDialog({ children, major, open, onOpenChange }: MajorDialog
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [selectedUniversity, setSelectedUniversity] = useState(major?.universityId || "");
+  const [selectedCollege, setSelectedCollege] = useState(major?.collegeId || "");
   const { toast } = useToast();
 
   const isControlled = open !== undefined && onOpenChange !== undefined;
@@ -41,8 +42,11 @@ export function MajorDialog({ children, major, open, onOpenChange }: MajorDialog
   const setDialogOpen = isControlled ? onOpenChange! : setIsOpen;
 
   useEffect(() => {
-    if (dialogOpen) setSelectedUniversity(major?.universityId || "");
-  }, [dialogOpen, major?.universityId]);
+    if (dialogOpen) {
+      setSelectedUniversity(major?.universityId || "");
+      setSelectedCollege(major?.collegeId || "");
+    }
+  }, [dialogOpen, major?.collegeId, major?.universityId]);
 
   const handleSubmit = async (formData: FormData) => {
     if (!selectedUniversity) {
@@ -50,6 +54,7 @@ export function MajorDialog({ children, major, open, onOpenChange }: MajorDialog
       return;
     }
     formData.set("universityId", selectedUniversity);
+    formData.set("collegeId", selectedCollege);
 
     startTransition(async () => {
       try {
@@ -58,6 +63,7 @@ export function MajorDialog({ children, major, open, onOpenChange }: MajorDialog
           toast({ title: "نجح", description: result.message });
           setDialogOpen(false);
           setSelectedUniversity("");
+          setSelectedCollege("");
         } else {
           toast({ title: "خطأ", description: result.message, variant: "destructive" });
         }
@@ -86,8 +92,25 @@ export function MajorDialog({ children, major, open, onOpenChange }: MajorDialog
                 <AdminLookupCombobox
                   type="university"
                   value={selectedUniversity}
-                  onValueChange={setSelectedUniversity}
+                  onValueChange={(next) => {
+                    if (next !== selectedUniversity) setSelectedCollege("");
+                    setSelectedUniversity(next);
+                  }}
                   placeholder="ابحث عن جامعة"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label className="text-right">الكلية</Label>
+              <div className="col-span-3">
+                <AdminLookupCombobox
+                  type="college"
+                  value={selectedCollege}
+                  onValueChange={setSelectedCollege}
+                  universityId={selectedUniversity}
+                  disabled={!selectedUniversity}
+                  placeholder={selectedUniversity ? "اختياري: اختر كلية" : "اختر الجامعة أولًا"}
                 />
               </div>
             </div>

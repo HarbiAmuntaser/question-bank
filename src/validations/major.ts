@@ -13,12 +13,16 @@ export const listMajorsQuerySchema = z.object({
   sortBy: z.enum(["name", "createdAt", "code"]).default("createdAt"),
   sortOrder: z.enum(["asc", "desc"]).default("desc"),
   query: z.string().default(""),
-  // اجعلها اختيارية وأي نص غير فارغ مقبول
   universityId: z.string().trim().min(1).optional(),
+  collegeId: z.string().trim().min(1).optional(),
 });
 
 export const createMajorSchema = z.object({
   universityId: z.string().min(1, "universityId required"),
+  collegeId: z.preprocess(
+    (value) => (value === "" || typeof value === "undefined" ? null : value),
+    z.string().min(1).nullable(),
+  ).default(null),
   name: z.string().min(2, "name too short").transform((s) => s.trim()),
   code: emptyToUndefined.optional().nullable().transform((v) => v ?? null),
   degreeType: emptyToUndefined.optional().nullable().transform((v) => normalizeDegreeType(v)),

@@ -8,6 +8,7 @@ import { SearchInput } from "@/components/ui/SearchInput";
 import { Pagination } from "@/components/Pagination";
 import { MajorActions } from "./major-actions";
 import { UniversityFilter } from "./UniversityFilter";
+import { CollegeFilter } from "./CollegeFilter";
 import { AdminTableShell } from "@/components/admin/admin-table-shell";
 import { getDegreeTypeLabel } from "@/lib/degree-types";
 
@@ -21,6 +22,8 @@ export interface MajorRow {
   createdAt: string; // ISO
   updatedAt: string; // ISO
   university: { id: string; name: string; code: string | null };
+  collegeId: string | null;
+  college: { id: string; name: string; code: string | null } | null;
   subjectsCount: number;
 }
 
@@ -55,6 +58,7 @@ async function fetchMajors(args: {
   pageSize: number;
   query: string;
   universityId?: string;
+  collegeId?: string;
 }): Promise<ListResponse> {
   const qs = buildQuery(args);
   const res = await adminApiFetch(`/api/v1/admin/majors?${qs}`, {
@@ -79,6 +83,7 @@ export async function MajorsTable({
     page?: string;
     query?: string;
     universityId?: string;
+    collegeId?: string;
   };
 }) {
   // ---- read current query params from server ----
@@ -89,6 +94,9 @@ export async function MajorsTable({
   const selectedUniversityId = searchParams?.universityId && searchParams.universityId.length > 0
     ? searchParams.universityId
     : undefined;
+  const selectedCollegeId = searchParams?.collegeId && searchParams.collegeId.length > 0
+    ? searchParams.collegeId
+    : undefined;
 
   // ---- fetch data in parallel ----
   const [universities, { data: majors, pagination }] = await Promise.all([
@@ -98,6 +106,7 @@ export async function MajorsTable({
       pageSize: perPage,
       query: searchQuery,
       universityId: selectedUniversityId, // ✅ يرسل الفلتر فعليًا
+      collegeId: selectedCollegeId,
     }),
   ]);
 
@@ -112,6 +121,10 @@ export async function MajorsTable({
             value={selectedUniversityId ?? "__all__"}
             placeholder="تصفية حسب الجامعة"
           />
+          <CollegeFilter
+            value={selectedCollegeId ?? "__all__"}
+            disabled={!selectedUniversityId}
+          />
         </div>
       </div>
 
@@ -121,6 +134,7 @@ export async function MajorsTable({
             <TableRow>
               <TableHead>التخصص</TableHead>
               <TableHead>الجامعة</TableHead>
+              <TableHead>الكلية</TableHead>
               <TableHead>الرمز</TableHead>
               <TableHead>نوع الدرجة</TableHead>
               <TableHead>عدد المقررات</TableHead>
@@ -147,6 +161,10 @@ export async function MajorsTable({
                 <TableCell>
                   <div className="text-sm font-medium">{major.university.name}</div>
                   <div className="text-xs text-muted-foreground">{major.university.code ?? ""}</div>
+                </TableCell>
+                <TableCell>
+                  <div className="text-sm">{major.college?.name ?? "بدون كلية"}</div>
+                  <div className="text-xs text-muted-foreground">{major.college?.code ?? ""}</div>
                 </TableCell>
                 <TableCell>
                   <code className="text-sm bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">
@@ -181,6 +199,7 @@ export async function MajorsTable({
                       createdAt: major.createdAt,
                       updatedAt: major.updatedAt,
                       universityId: major.university.id, // ✅ المكوّن ينتظر universityId فقط
+                      collegeId: major.collegeId,
                     }}
                   />
                 </TableCell>

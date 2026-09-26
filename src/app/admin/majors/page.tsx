@@ -14,12 +14,13 @@ export default async function MajorsPage({
     page?: string;
     query?: string;
     universityId?: string; // ✅ أضفناها هنا
+    collegeId?: string;
   }>;
 }) {
   await requireAdminPage("majors:read");
 
   const resolved = await searchParams;
-  const { page, query, universityId } = resolved; // ✅ نقرأها
+  const { page, query, universityId, collegeId } = resolved; // ✅ نقرأها
 
   return (
     <div className="space-y-6">
@@ -41,13 +42,14 @@ export default async function MajorsPage({
       <Suspense
         fallback={<TableSkeleton columns={8} rows={10} />}
         // ✅ ضفنا universityId للمفتاح كي يُعاد تحميل الجدول عند تغيّره
-        key={`${query}-${page}-${universityId ?? "__all__"}`}
+        key={`${query}-${page}-${universityId ?? "__all__"}-${collegeId ?? "__all__"}`}
       >
         <MajorsTable
           searchParams={{
             query,
             page,
             universityId, // ✅ تمرير الفلتر للجدول
+            collegeId,
           }}
         />
       </Suspense>

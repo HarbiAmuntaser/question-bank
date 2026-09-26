@@ -13,6 +13,7 @@ export interface Major {
   updatedAt: Date
   createdBy: string | null
   universityId: string
+  collegeId: string | null
   // Relations
   university?: University
 }

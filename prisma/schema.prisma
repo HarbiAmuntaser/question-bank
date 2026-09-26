@@ -123,6 +123,7 @@ model User {
   paymentCodeRedemptions   PaymentCodeRedemptionEvent[]
   paymentAccountLock       PaymentAccountLock?
   universitiesCreated      University[]        @relation("UniversityCreatedBy")
+  collegesCreated          College[]           @relation("CollegeCreatedBy")
   majorsCreated            Major[]             @relation("MajorCreatedBy")
   subjectsCreated          Subject[]           @relation("SubjectCreatedBy")
   chaptersCreated          Chapter[]           @relation("ChapterCreatedBy")
@@ -198,6 +199,7 @@ model University {
   visibility      InstitutionVisibility @default(country)
 
   creator User?   @relation("UniversityCreatedBy", fields: [createdBy], references: [id])
+  colleges College[]
   majors  Major[]
 
   @@index([countryCode, institutionType, isActive])
@@ -207,11 +209,36 @@ model University {
 }
 
 // -----------------
+// Colleges (optional university grouping)
+// -----------------
+model College {
+  id           String   @id @default(uuid())
+  universityId String
+  name         String
+  slug         String
+  code         String?
+  isActive     Boolean  @default(true)
+  createdBy    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  university University @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  creator    User?      @relation("CollegeCreatedBy", fields: [createdBy], references: [id])
+  majors     Major[]
+
+  @@unique([universityId, slug])
+  @@unique([universityId, code])
+  @@index([universityId, isActive])
+  @@map("colleges")
+}
+
+// -----------------
 // Majors/Programs
 // -----------------
 model Major {
   id            String   @id @default(uuid())
   universityId  String
+  collegeId     String?
   name          String
   code          String?
   degreeType    String?
@@ -223,11 +250,13 @@ model Major {
 
   // Relations
   university         University          @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  college            College?            @relation(fields: [collegeId], references: [id], onDelete: Restrict)
   creator            User?               @relation("MajorCreatedBy", fields: [createdBy], references: [id])
   subjects           Subject[]
   paidAccessPlans    PaidAccessPlan[]    @relation("MajorPaidAccessPlans")
 
   @@unique([universityId, code])
+  @@index([collegeId])
   @@map("majors")
 }
 

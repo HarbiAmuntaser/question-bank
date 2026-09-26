@@ -3,6 +3,10 @@ import { json, bad } from "@/lib/server/admin-http";
 import { verifyAdmin, adminAuthResponse } from "@/lib/admin-auth";
 import { CACHE_CONTROL } from "@/lib/cache-tags";
 import { revalidateMajorCache } from "@/lib/cache-invalidation";
+import {
+  createMajorWithPlacement,
+  EducationStructureError,
+} from "@/lib/server/education-structure";
 import { listMajorsQuerySchema, createMajorSchema } from "@/validations/major";
 
 import { Prisma } from "@prisma/client";
@@ -21,7 +25,9 @@ type MajorListRow = Prisma.MajorGetPayload<{
     createdAt: true;
     updatedAt: true;
     universityId: true;
+    collegeId: true;
     university: { select: { id: true; name: true; code: true } };
+    college: { select: { id: true; name: true; code: true } };
     _count: { select: { subjects: true } };
   };
 }>;
@@ -34,10 +40,11 @@ const listMajors = async (q: Record<string, string | null | undefined>) => {
       sortOrder: q.sortOrder,
       query: q.query ?? "",
       universityId: q.universityId ?? undefined,
+      collegeId: q.collegeId ?? undefined,
     });
     if (!parsed.success) throw new Error("bad_query");
 
-    const { page, pageSize, sortBy, sortOrder, query, universityId } = parsed.data;
+    const { page, pageSize, sortBy, sortOrder, query, universityId, collegeId } = parsed.data;
 
     const andParts: Prisma.MajorWhereInput[] = [];
     if (query) {
@@ -53,10 +60,19 @@ const listMajors = async (q: Record<string, string | null | undefined>) => {
               ],
             },
           },
+          {
+            college: {
+              OR: [
+                { name: { contains: query, mode: "insensitive" } },
+                { code: { contains: query, mode: "insensitive" } },
+              ],
+            },
+          },
         ],
       });
     }
     if (universityId) andParts.push({ universityId });
+    if (collegeId) andParts.push({ collegeId });
 
     const where: Prisma.MajorWhereInput = andParts.length ? { AND: andParts } : {};
 
@@ -75,7 +91,9 @@ const listMajors = async (q: Record<string, string | null | undefined>) => {
           createdAt: true,
           updatedAt: true,
           universityId: true,
+          collegeId: true,
           university: { select: { id: true, name: true, code: true } },
+          college: { select: { id: true, name: true, code: true } },
           _count: { select: { subjects: true } },
         },
       }) as Promise<MajorListRow[]>,
@@ -92,7 +110,9 @@ const listMajors = async (q: Record<string, string | null | undefined>) => {
         createdAt: m.createdAt,
         updatedAt: m.updatedAt,
         universityId: m.universityId,
+        collegeId: m.collegeId,
         university: m.university,
+        college: m.college,
         subjectsCount: m._count.subjects,
       })),
       pagination: {
@@ -116,6 +136,7 @@ export async function GET(req: Request) {
     sortOrder: url.searchParams.get("sortOrder") ?? undefined,
     query: url.searchParams.get("query"),
     universityId: url.searchParams.get("universityId"),
+    collegeId: url.searchParams.get("collegeId"),
   };
 
   try {
@@ -136,21 +157,21 @@ export async function POST(req: Request) {
   if (!parsed.success) return bad("validation_error", parsed.error.flatten());
 
   try {
-    const created = await prisma.major.create({
-      data: {
-        universityId: parsed.data.universityId,
-        name: parsed.data.name,
-        code: parsed.data.code ?? null,
-        degreeType: parsed.data.degreeType ?? null,
-        durationYears: parsed.data.durationYears ?? null,
-        isActive: parsed.data.isActive,
-        createdBy: auth.userId,
-      },
+    const created = await createMajorWithPlacement({
+      universityId: parsed.data.universityId,
+      collegeId: parsed.data.collegeId,
+      name: parsed.data.name,
+      code: parsed.data.code ?? null,
+      degreeType: parsed.data.degreeType ?? null,
+      durationYears: parsed.data.durationYears ?? null,
+      isActive: parsed.data.isActive,
+      createdBy: auth.userId,
     });
 
-    revalidateMajorCache({ id: created.id, universityId: created.universityId });
+    revalidateMajorCache({ id: created.id, universityId: created.universityId, collegeId: created.collegeId });
     return json({ data: created }, 201);
   } catch (e) {
+    if (e instanceof EducationStructureError) return bad(e.code, undefined, e.status);
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
       return bad("duplicate_code_for_university", { fields: ["code"] }, 409);
     }

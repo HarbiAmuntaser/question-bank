@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import {
   resolveAdminLookupAction,
+  searchCollegesAction,
   searchChaptersAction,
   searchMajorsAction,
   searchSubjectsAction,
@@ -20,6 +21,7 @@ type LookupComboboxProps = {
   placeholder: string;
   disabled?: boolean;
   universityId?: string;
+  universityType?: "university" | "school" | "academy";
   majorId?: string;
   subjectId?: string;
   disablePortal?: boolean;
@@ -41,6 +43,7 @@ export function AdminLookupCombobox({
   placeholder,
   disabled,
   universityId,
+  universityType,
   majorId,
   subjectId,
   disablePortal,
@@ -67,7 +70,10 @@ export function AdminLookupCombobox({
   const fetcher = useCallback(
     async (query: string) => {
       if (type === "university") {
-        return searchUniversitiesAction({ query, limit: 30 });
+        return searchUniversitiesAction({ query, limit: 30, institutionType: universityType });
+      }
+      if (type === "college") {
+        return searchCollegesAction({ universityId, query, limit: 30 });
       }
       if (type === "major") {
         return searchMajorsAction({ universityId, query, limit: 30 });
@@ -77,10 +83,10 @@ export function AdminLookupCombobox({
       }
       return searchChaptersAction({ subjectId, query, limit: 30 });
     },
-    [majorId, subjectId, type, universityId],
+    [majorId, subjectId, type, universityId, universityType],
   );
 
-  const depsKey = `${type}:${universityId ?? ""}:${majorId ?? ""}:${subjectId ?? ""}`;
+  const depsKey = `${type}:${universityId ?? ""}:${universityType ?? ""}:${majorId ?? ""}:${subjectId ?? ""}`;
 
   return (
     <AsyncCombobox
