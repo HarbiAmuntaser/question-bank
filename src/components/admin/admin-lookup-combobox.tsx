@@ -7,6 +7,7 @@ import {
   searchCollegesAction,
   searchChaptersAction,
   searchMajorsAction,
+  searchStudySummariesAction,
   searchSubjectsAction,
   searchUniversitiesAction,
   type AdminLookupOption,
@@ -24,6 +25,7 @@ type LookupComboboxProps = {
   universityType?: "university" | "school" | "academy";
   majorId?: string;
   subjectId?: string;
+  chapterId?: string;
   disablePortal?: boolean;
 };
 
@@ -46,6 +48,7 @@ export function AdminLookupCombobox({
   universityType,
   majorId,
   subjectId,
+  chapterId,
   disablePortal,
 }: LookupComboboxProps) {
   const [selected, setSelected] = useState<ComboOption | null>(null);
@@ -81,12 +84,15 @@ export function AdminLookupCombobox({
       if (type === "subject") {
         return searchSubjectsAction({ majorId, query, limit: 30 });
       }
+      if (type === "summary") {
+        return searchStudySummariesAction({ chapterId, query, limit: 30 });
+      }
       return searchChaptersAction({ subjectId, query, limit: 30 });
     },
-    [majorId, subjectId, type, universityId, universityType],
+    [chapterId, majorId, subjectId, type, universityId, universityType],
   );
 
-  const depsKey = `${type}:${universityId ?? ""}:${universityType ?? ""}:${majorId ?? ""}:${subjectId ?? ""}`;
+  const depsKey = `${type}:${universityId ?? ""}:${universityType ?? ""}:${majorId ?? ""}:${subjectId ?? ""}:${chapterId ?? ""}`;
 
   return (
     <AsyncCombobox

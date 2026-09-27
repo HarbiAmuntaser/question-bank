@@ -4,6 +4,7 @@ import { cache } from "react";
 import { unstable_cache } from "next/cache";
 
 import { CACHE_TAGS, CACHE_TTL, cacheTags } from "@/lib/cache-tags";
+import { readChapterAttachmentPurpose, type ChapterAttachmentPurpose } from "@/lib/chapter-attachments";
 import { prisma } from "@/lib/prisma";
 
 export type PublicSubjectChapter = {
@@ -15,6 +16,19 @@ export type PublicSubjectChapter = {
   chapterNumber: number | null;
   description: string | null;
   learningObjectives: string[];
+  kind: "theory" | "practical";
+};
+
+export type PublicChapterAttachment = {
+  id: string;
+  title: string | null;
+  originalName: string | null;
+  sizeBytes: number | null;
+  purpose: ChapterAttachmentPurpose;
+};
+
+export type PublicChapterDetail = PublicSubjectChapter & {
+  attachments: PublicChapterAttachment[];
 };
 
 export type PublicSubjectQuiz = {
@@ -58,6 +72,7 @@ async function loadSubjectChapterCatalog(subjectId: string): Promise<PublicSubje
         chapterNumber: true,
         description: true,
         learningObjectives: true,
+        kind: true,
       },
     }),
     prisma.quiz.findMany({
@@ -129,7 +144,7 @@ async function loadSubjectChapterCatalog(subjectId: string): Promise<PublicSubje
   };
 }
 
-async function loadPublicChapter(subjectId: string, routeKey: string): Promise<PublicSubjectChapter | null> {
+async function loadPublicChapter(subjectId: string, routeKey: string): Promise<PublicChapterDetail | null> {
   const chapter = await prisma.chapter.findFirst({
     where: {
       subjectId,
@@ -144,10 +159,37 @@ async function loadPublicChapter(subjectId: string, routeKey: string): Promise<P
       chapterNumber: true,
       description: true,
       learningObjectives: true,
+      kind: true,
     },
   });
 
-  return chapter ? { ...chapter, routeKey: chapter.slug?.trim() || chapter.id } : null;
+  if (!chapter) return null;
+
+  const attachmentRows = await prisma.attachment.findMany({
+    where: {
+      ownerType: "chapter",
+      ownerId: chapter.id,
+      kind: "pdf",
+      storageProvider: "r2",
+      visibility: "private",
+      contentType: "application/pdf",
+    },
+    orderBy: [{ createdAt: "desc" }, { id: "asc" }],
+    select: {
+      id: true,
+      title: true,
+      originalName: true,
+      sizeBytes: true,
+      meta: true,
+    },
+  });
+
+  const attachments = attachmentRows.flatMap((attachment) => {
+    const purpose = readChapterAttachmentPurpose(attachment.meta);
+    return purpose ? [{ ...attachment, purpose }] : [];
+  });
+
+  return { ...chapter, routeKey: chapter.slug?.trim() || chapter.id, attachments };
 }
 
 async function loadChapterSeoMeta(chapterId: string): Promise<ChapterSeoMeta | null> {
@@ -168,7 +210,7 @@ async function loadChapterSeoMeta(chapterId: string): Promise<ChapterSeoMeta | n
 export const getSubjectChapterCatalog = cache(async (subjectId: string) => {
   return unstable_cache(
     () => loadSubjectChapterCatalog(subjectId),
-    ["public-subject-chapter-catalog-v1", subjectId],
+    ["public-subject-chapter-catalog-v2", subjectId],
     {
       revalidate: CACHE_TTL.publicLong,
       tags: cacheTags(
@@ -184,7 +226,7 @@ export const getSubjectChapterCatalog = cache(async (subjectId: string) => {
 export const getPublicChapterByRouteKey = cache(async (subjectId: string, routeKey: string) => {
   return unstable_cache(
     () => loadPublicChapter(subjectId, routeKey),
-    ["public-chapter-detail-v1", subjectId, routeKey],
+    ["public-chapter-detail-v2", subjectId, routeKey],
     {
       revalidate: CACHE_TTL.publicLong,
       tags: cacheTags(

@@ -72,7 +72,11 @@ import {
 export const revalidate = 21600;
 
 type PageParams = { cc: string; type: string; slug: string[] };
-type PageSearchParams = { degree?: string | string[]; college?: string | string[] };
+type PageSearchParams = {
+  degree?: string | string[];
+  college?: string | string[];
+  reviewTopic?: string | string[];
+};
 
 function getFirstSearchValue(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
@@ -804,6 +808,7 @@ export default async function UniversitiesCatchAllPage({
             majorSlugPath={majorSlugPath}
             subjectSlugPath={subjectSlugPath}
             summarySlugPath={summarySlugPath}
+            reviewTopic={typeof sp.reviewTopic === "string" ? sp.reviewTopic : undefined}
           />
         </main>
         <PublicFooter cc={cc} />

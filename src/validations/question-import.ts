@@ -8,6 +8,8 @@ const baseQuestion = z.object({
   difficultyLevel: z.enum(["easy", "medium", "hard"]).optional().nullable(),
   imageUrl: z.string().url().optional().nullable(),
   tags: z.array(z.string().min(1)).optional().nullable(),
+  reviewTopic: z.string().trim().max(200).optional().nullable(),
+  reviewPage: z.number().int().min(1).optional().nullable(),
 });
 
 const mcOption = z.object({
@@ -32,6 +34,7 @@ export const importItemSchema = z.union([mcQuestion, tfQuestion]);
 
 export const questionsImportSchema = z.object({
   chapterId: z.string().min(1, "Chapter مطلوب"),
+  reviewSummaryId: z.string().trim().min(1).max(191).optional().nullable(),
   items: z.array(importItemSchema).min(1, "لا توجد أسئلة في الدفعة"),
   duplicateStrategy: z.enum(["allow", "skip", "fail"]).optional().default("allow"),
 });

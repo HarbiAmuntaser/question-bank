@@ -73,6 +73,12 @@ function normalizeImageUrl(value: unknown) {
   }
 }
 
+function normalizeReviewPage(value: unknown) {
+  if (value === null || typeof value === "undefined" || value === "") return null;
+  if (typeof value === "number" && Number.isInteger(value) && value >= 1) return value;
+  return "invalid";
+}
+
 function questionKey(text: string) {
   return text.trim().replace(/\s+/g, " ").toLocaleLowerCase();
 }
@@ -183,15 +189,36 @@ function normalizeItem(raw: unknown, index: number): { item?: NormalizedImportIt
   const points = normalizePoints(raw.points ?? raw.score ?? raw.mark);
   const imageUrl = normalizeImageUrl(raw.imageUrl ?? raw.image);
   const tags = normalizeTags(raw.tags ?? raw.keywords ?? raw.categories);
+  const reviewTopic = getString(raw, ["reviewTopic"]) ?? null;
+  const reviewPage = normalizeReviewPage(raw.reviewPage);
+  const normalizedReviewPage = reviewPage === "invalid" ? null : reviewPage;
   const explanation = getString(raw, ["explanation", "answerExplanation", "rationale", "تفسير"]) ?? null;
   const isActive = getBoolean(raw, ["isActive"]);
   if (imageUrl === "invalid") errors.push({ index, message: "imageUrl غير صالح." });
+  if (reviewTopic && reviewTopic.length > 200) errors.push({ index, message: "reviewTopic يجب ألا يتجاوز 200 حرف." });
+  if (reviewPage === "invalid") errors.push({ index, message: "reviewPage يجب أن يكون عددًا صحيحًا يبدأ من 1." });
 
   if (questionType === "true_false") {
     const tfAnswer = normalizeTrueFalseAnswer(raw);
     if (tfAnswer === undefined) errors.push({ index, message: "سؤال صح/خطأ يحتاج tfAnswer بقيمة true أو false." });
     if (errors.length || tfAnswer === undefined || !questionText) return { errors };
-    return { item: { sourceIndex: index, questionText, questionType, difficultyLevel, points, explanation, imageUrl, tags, isActive, tfAnswer }, errors };
+    return {
+      item: {
+        sourceIndex: index,
+        questionText,
+        questionType,
+        difficultyLevel,
+        points,
+        explanation,
+        imageUrl,
+        tags,
+        reviewTopic,
+        reviewPage: normalizedReviewPage,
+        isActive,
+        tfAnswer,
+      },
+      errors,
+    };
   }
 
   const options = normalizeOptions(raw);
@@ -200,7 +227,23 @@ function normalizeItem(raw: unknown, index: number): { item?: NormalizedImportIt
   if (correctCount !== 1) errors.push({ index, message: "سؤال الاختيار المتعدد يحتاج إجابة صحيحة واحدة فقط." });
   if (errors.length || !questionText) return { errors };
 
-  return { item: { sourceIndex: index, questionText, questionType, difficultyLevel, points, explanation, imageUrl, tags, isActive, options }, errors };
+  return {
+    item: {
+      sourceIndex: index,
+      questionText,
+      questionType,
+      difficultyLevel,
+      points,
+      explanation,
+      imageUrl,
+      tags,
+      reviewTopic,
+      reviewPage: normalizedReviewPage,
+      isActive,
+      options,
+    },
+    errors,
+  };
 }
 
 export function buildPreview(text: string): ImportPreview {

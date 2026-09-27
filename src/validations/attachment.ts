@@ -5,7 +5,15 @@ export const attachmentOwnerTypes = ["question", "quiz", "chapter", "subject", "
 export const attachmentKinds = ["image", "pdf", "solution", "other"] as const
 export const attachmentStorageProviders = ["local", "external_url", "r2"] as const
 export const attachmentVisibilities = ["public", "private"] as const
-export const attachmentPurposes = ["blog-cover", "blog-inline", "summary-pdf", "attachment"] as const
+export const attachmentPurposes = [
+  "blog-cover",
+  "blog-inline",
+  "summary-pdf",
+  "chapter-question-bank",
+  "chapter-practical-file",
+  "chapter-solution",
+  "attachment",
+] as const
 
 export const listAttachmentsQuerySchema = z.object({
   ownerType: z.enum(attachmentOwnerTypes),

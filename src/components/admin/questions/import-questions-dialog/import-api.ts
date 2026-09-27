@@ -20,11 +20,16 @@ function toImportPayloadItems(items: NormalizedImportItem[]) {
   });
 }
 
-export async function importChunk(chapterId: string, items: NormalizedImportItem[], duplicateStrategy: DuplicateStrategy) {
+export async function importChunk(
+  chapterId: string,
+  reviewSummaryId: string | null,
+  items: NormalizedImportItem[],
+  duplicateStrategy: DuplicateStrategy,
+) {
   const res = await fetch("/api/v1/admin/questions/import", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ chapterId, items: toImportPayloadItems(items), duplicateStrategy }),
+    body: JSON.stringify({ chapterId, reviewSummaryId, items: toImportPayloadItems(items), duplicateStrategy }),
   });
   const data = (await res.json().catch(() => ({}))) as unknown;
   if (!res.ok) throw new Error(getApiErrorMessage(data));

@@ -25,6 +25,21 @@ function redirectNoStore(location: string) {
   return new Response(null, { status: 302, headers });
 }
 
+function requestedPage(request: Request) {
+  const raw = new URL(request.url).searchParams.get("page");
+  if (raw === null || raw === "") return { ok: true as const, page: null };
+  if (!/^\d+$/.test(raw)) return { ok: false as const, page: null };
+  const page = Number(raw);
+  return Number.isSafeInteger(page) && page >= 1
+    ? { ok: true as const, page }
+    : { ok: false as const, page: null };
+}
+
+function withPdfPage(target: string, page: number | null) {
+  if (!page) return target;
+  return `${target.replace(/#.*$/, "")}#page=${page}`;
+}
+
 function pdfContentTypeIsValid(contentType: string | null) {
   if (!contentType) return true;
   return contentType.split(";")[0]?.trim().toLowerCase() === "application/pdf";
@@ -50,13 +65,16 @@ function safePublicRedirectTarget(url: string | null, storageProvider: string, v
   return null;
 }
 
-export async function GET(_req: Request, ctx: Ctx) {
+export async function GET(req: Request, ctx: Ctx) {
   const { id } = await ctx.params;
   const summaryId = id?.trim();
 
   if (!summaryId || !uuidPattern.test(summaryId)) {
     return fail("invalid_summary_id", 400);
   }
+
+  const pageTarget = requestedPage(req);
+  if (!pageTarget.ok) return fail("invalid_pdf_page", 400);
 
   if (!(await isPublicStudySummaryId(summaryId))) {
     return fail("summary_not_found", 404);
@@ -131,7 +149,7 @@ export async function GET(_req: Request, ctx: Ctx) {
         bucket: attachment.bucket,
         storageKey: attachment.storageKey,
       });
-      return redirectNoStore(signedUrl);
+      return redirectNoStore(withPdfPage(signedUrl, pageTarget.page));
     } catch {
       return fail("summary_pdf_storage_unavailable", 409);
     }
@@ -139,7 +157,7 @@ export async function GET(_req: Request, ctx: Ctx) {
 
   const publicTarget = safePublicRedirectTarget(attachment.url, attachment.storageProvider, attachment.visibility);
   if (publicTarget) {
-    return redirectNoStore(publicTarget);
+    return redirectNoStore(withPdfPage(publicTarget, pageTarget.page));
   }
 
   return fail("summary_pdf_storage_unavailable", 409);

@@ -5,6 +5,10 @@ import { json } from "@/lib/http";
 import { CACHE_CONTROL } from "@/lib/cache-tags";
 import { checkQuizAccess } from "@/lib/server/access-control";
 import { isPublicQuizId } from "@/lib/server/public-content-visibility";
+import {
+  publicQuestionReviewData,
+  publicQuestionReviewSelect,
+} from "@/lib/server/public-question-review";
 
 export const dynamic = "force-dynamic";
 
@@ -59,6 +63,7 @@ export async function GET(_req: Request, { params }: RouteContext) {
                 imageUrl: true,
                 tags: true,
                 explanation: true,
+                ...publicQuestionReviewSelect,
                 isActive: true,
                 options: {
                   orderBy: { optionOrder: "asc" },
@@ -87,6 +92,7 @@ export async function GET(_req: Request, { params }: RouteContext) {
         explanation: q.explanation,
         imageUrl: q.imageUrl,
         tags: q.tags ?? [],
+        ...publicQuestionReviewData(q),
         options: q.options,
       }));
 

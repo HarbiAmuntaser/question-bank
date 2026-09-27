@@ -16,6 +16,8 @@ export type NormalizedImportItem = {
   explanation?: string | null;
   imageUrl?: string | null;
   tags?: string[];
+  reviewTopic?: string | null;
+  reviewPage?: number | null;
   isActive?: boolean;
   options?: NormalizedOption[];
   tfAnswer?: boolean;

@@ -24,6 +24,7 @@ type SummaryPayload = {
   readingMinutes?: number;
   sortOrder: number;
   isFeatured: boolean;
+  acknowledgeReviewPageImpact?: boolean;
 };
 
 type FieldErrors = Record<string, string[]>;
@@ -32,6 +33,8 @@ type ActionResult = {
   success: boolean;
   message: string;
   fieldErrors?: FieldErrors;
+  code?: string;
+  affectedQuestions?: number;
 };
 
 const ADMIN_SUMMARIES_PATH = "/admin/summaries";
@@ -51,6 +54,8 @@ const errorMessages: Record<string, string> = {
   failed_to_update_study_summary: "فشل تحديث الملخص.",
   invalid_study_summary_relation: "توجد علاقة غير صحيحة في بيانات الملخص.",
   study_summary_not_found: "الملخص غير موجود.",
+  review_summary_has_incompatible_questions: "لا يمكن نقل الملخص لأن أسئلة مرتبطة به ستصبح خارج فصلها.",
+  summary_pdf_review_pages_require_acknowledgement: "استبدال ملف PDF قد يجعل أرقام صفحات المراجعة بحاجة إلى إعادة التحقق.",
 };
 
 function normalize(value: FormDataEntryValue | null) {
@@ -98,6 +103,9 @@ function summaryPayload(formData: FormData): SummaryPayload {
     readingMinutes: optionalNumber(normalize(formData.get("readingMinutes"))),
     sortOrder: optionalNumber(normalize(formData.get("sortOrder"))) ?? 0,
     isFeatured: ["true", "on", "1"].includes(normalize(formData.get("isFeatured")).toLowerCase()),
+    acknowledgeReviewPageImpact: ["true", "on", "1"].includes(
+      normalize(formData.get("acknowledgeReviewPageImpact")).toLowerCase(),
+    ),
   };
 }
 
@@ -121,7 +129,12 @@ function extractFieldErrors(payload: unknown): FieldErrors | undefined {
   return Object.keys(normalized).length > 0 ? normalized : undefined;
 }
 
-async function readError(res: Response, fallback: string): Promise<{ message: string; fieldErrors?: FieldErrors }> {
+async function readError(res: Response, fallback: string): Promise<{
+  message: string;
+  fieldErrors?: FieldErrors;
+  code?: string;
+  affectedQuestions?: number;
+}> {
   const text = await res.text().catch(() => "");
   if (!text) return { message: fallback };
 
@@ -129,9 +142,18 @@ async function readError(res: Response, fallback: string): Promise<{ message: st
     const payload: unknown = JSON.parse(text);
     if (payload && typeof payload === "object" && "error" in payload) {
       const code = String((payload as { error: unknown }).error);
+      const details =
+        "details" in payload && isRecord((payload as { details?: unknown }).details)
+          ? (payload as { details: Record<string, unknown> }).details
+          : null;
       return {
         message: errorMessages[code] ?? code,
         fieldErrors: extractFieldErrors(payload),
+        code,
+        affectedQuestions:
+          details && typeof details.affectedQuestions === "number"
+            ? details.affectedQuestions
+            : undefined,
       };
     }
   } catch {

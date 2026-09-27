@@ -3,6 +3,10 @@ import { json, bad, notFound } from "@/lib/server/admin-http";
 import { verifyAdmin, adminAuthResponse } from "@/lib/admin-auth";
 import { CACHE_CONTROL } from "@/lib/cache-tags";
 import { revalidateQuestionCache, revalidateQuizCache } from "@/lib/cache-invalidation";
+import {
+  QuestionReviewTargetError,
+  validateQuestionReviewTarget,
+} from "@/lib/server/question-review-target";
 import { updateQuestionSchema } from "@/validations/question";
 
 export const dynamic = "force-dynamic";
@@ -34,6 +38,7 @@ export async function GET(req: Request, { params }: RouteContext) {
         },
       },
       options: { orderBy: { optionOrder: "asc" } },
+      reviewSummary: { select: { id: true, title: true, slug: true } },
     },
   });
 
@@ -60,6 +65,25 @@ export async function PUT(req: Request, { params }: RouteContext) {
 
   const d = parsed.data;
 
+  const nextChapterId = d.chapterId ?? exists.chapterId;
+  const nextReviewSummaryId = Object.prototype.hasOwnProperty.call(d, "reviewSummaryId")
+    ? d.reviewSummaryId ?? null
+    : exists.reviewSummaryId;
+  const nextReviewPage = Object.prototype.hasOwnProperty.call(d, "reviewPage")
+    ? d.reviewPage ?? null
+    : exists.reviewPage;
+
+  try {
+    await validateQuestionReviewTarget(prisma, {
+      chapterId: nextChapterId,
+      reviewSummaryId: nextReviewSummaryId,
+      reviewPage: nextReviewPage,
+    });
+  } catch (error) {
+    if (error instanceof QuestionReviewTargetError) return bad(error.code);
+    throw error;
+  }
+
   const incomingType = typeof d.questionType !== "undefined" ? d.questionType : exists.questionType;
 
   const replaceOptions =
@@ -75,6 +99,9 @@ export async function PUT(req: Request, { params }: RouteContext) {
     where: { id },
     data: {
       chapterId: typeof d.chapterId !== "undefined" ? d.chapterId : undefined,
+      reviewSummaryId: Object.prototype.hasOwnProperty.call(d, "reviewSummaryId") ? d.reviewSummaryId ?? null : undefined,
+      reviewTopic: Object.prototype.hasOwnProperty.call(d, "reviewTopic") ? d.reviewTopic ?? null : undefined,
+      reviewPage: Object.prototype.hasOwnProperty.call(d, "reviewPage") ? d.reviewPage ?? null : undefined,
       questionText: typeof d.questionText !== "undefined" ? d.questionText : undefined,
       questionType: typeof d.questionType !== "undefined" ? d.questionType : undefined,
       difficultyLevel: typeof d.difficultyLevel !== "undefined" ? d.difficultyLevel : undefined,
@@ -94,7 +121,10 @@ export async function PUT(req: Request, { params }: RouteContext) {
             }
           : undefined,
     },
-    include: { options: true },
+    include: {
+      options: true,
+      reviewSummary: { select: { id: true, title: true, slug: true } },
+    },
   });
 
   const affectedChapters = await prisma.chapter.findMany({

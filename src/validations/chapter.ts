@@ -28,6 +28,7 @@ export const createChapterSchema = z.object({
   chapterNumber: z.number().int().min(1).nullable().optional(),
   description: z.string().nullable().optional(),
   learningObjectives: z.array(z.string().min(1)).default([]),
+  kind: z.enum(['theory', 'practical']).default('theory'),
   isActive: z.boolean().default(true),
 });
 

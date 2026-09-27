@@ -14,6 +14,7 @@ type ChapterUpdateData = {
   chapterNumber?: number | null;
   description?: string | null;
   learningObjectives?: string[];
+  kind?: "theory" | "practical";
 };
 
 // قراءة فصل واحد (مع العلاقات)
@@ -79,6 +80,7 @@ export async function PUT(req: Request, context: { params: Promise<{ id: string 
   if (Object.prototype.hasOwnProperty.call(p, "description")) data.description = p.description ?? null;
   if (Object.prototype.hasOwnProperty.call(p, "learningObjectives"))
     data.learningObjectives = Array.isArray(p.learningObjectives) ? p.learningObjectives : [];
+  if (typeof p.kind !== "undefined") data.kind = p.kind;
 
   const updated = await prisma.$transaction(async (tx) => {
     const chapter = await tx.chapter.update({ where: { id }, data });
@@ -103,10 +105,17 @@ export async function DELETE(req: Request, context: { params: Promise<{ id: stri
   const auth = await verifyAdmin(req, "chapters:write");
   if (!auth.ok) return adminAuthResponse(auth);
 
-  const target = await prisma.chapter.findUnique({
-    where: { id },
-    select: { subjectId: true },
-  });
+  const [target, attachmentCount] = await Promise.all([
+    prisma.chapter.findUnique({
+      where: { id },
+      select: { subjectId: true },
+    }),
+    prisma.attachment.count({ where: { ownerType: "chapter", ownerId: id } }),
+  ]);
+
+  if (attachmentCount > 0) {
+    return bad("chapter_has_attachments", { attachmentCount }, 409);
+  }
 
   try {
     await prisma.chapter.delete({ where: { id } });

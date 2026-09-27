@@ -26,6 +26,7 @@ export async function createChapterAction(formData: FormData) {
       learningObjectives: learningObjectives
         ? learningObjectives.split("\n").map((t) => t.trim()).filter(Boolean)
         : [],
+      kind: formData.get("kind") === "practical" ? "practical" : "theory",
       isActive: formData.get("isActive") === "on",
     };
 
@@ -68,6 +69,7 @@ export async function updateChapterAction(id: string, formData: FormData) {
       learningObjectives: learningObjectives
         ? learningObjectives.split("\n").map((t) => t.trim()).filter(Boolean)
         : [],
+      kind: formData.get("kind") === "practical" ? "practical" : "theory",
       isActive: formData.get("isActive") === "on",
     };
 

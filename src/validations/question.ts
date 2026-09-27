@@ -32,6 +32,16 @@ const nullableUrl = z.preprocess(
   z.union([z.string().url("invalid_url").max(500), z.null()]).optional()
 );
 
+const nullableId = z.preprocess(
+  trimToNull,
+  z.union([z.string().trim().min(1).max(191), z.null()]).optional(),
+);
+
+const nullableReviewPage = z.preprocess(
+  (value) => (value === "" || value === null || typeof value === "undefined" ? null : value),
+  z.union([z.coerce.number().int().min(1), z.null()]).optional(),
+);
+
 export const questionOptionInputSchema = z.object({
   optionText: z.string().trim().min(1, "option_text_required"),
   isCorrect: z.coerce.boolean().default(false),
@@ -60,6 +70,9 @@ export const createQuestionSchema = z
 
     explanation: nullableText(2000),
     imageUrl: nullableUrl,
+    reviewSummaryId: nullableId,
+    reviewTopic: nullableText(200),
+    reviewPage: nullableReviewPage,
 
     tags: z.array(z.string().trim().min(1)).optional().default([]),
     isActive: z.coerce.boolean().default(true),
@@ -107,6 +120,9 @@ export const updateQuestionSchema = z
 
     explanation: nullableText(2000),
     imageUrl: nullableUrl,
+    reviewSummaryId: nullableId,
+    reviewTopic: nullableText(200),
+    reviewPage: nullableReviewPage,
 
     tags: z.array(z.string().trim().min(1)).optional(),
     isActive: z.coerce.boolean().optional(),

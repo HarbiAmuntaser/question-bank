@@ -109,6 +109,7 @@ export interface CreateChapterData {
   chapterNumber?: number
   description?: string
   learningObjectives?: string[]
+  kind?: "theory" | "practical"
   isActive: boolean
 }
 
@@ -122,6 +123,7 @@ export interface Chapter {
   chapterNumber: number | null
   description: string | null
   learningObjectives: string[] | null
+  kind: "theory" | "practical"
   isActive: boolean
   createdAt: Date
   updatedAt: Date
@@ -139,6 +141,9 @@ export interface QuestionWithOptions extends Question {
 
 export interface CreateQuestionData {
   chapterId: string
+  reviewSummaryId?: string | null
+  reviewTopic?: string | null
+  reviewPage?: number | null
   questionText: string
   questionType: "multiple_choice" | "true_false" | "short_answer" | "essay"
   difficultyLevel: "easy" | "medium" | "hard"
@@ -159,6 +164,16 @@ export type UpdateQuestionData = CreateQuestionData
 export interface Question {
   id: string
   chapterId: string
+  reviewSummaryId: string | null
+  reviewTopic: string | null
+  reviewPage: number | null
+  reviewSummary?: {
+    id: string
+    title: string
+    slug?: string
+    href?: string | null
+    hasPdf?: boolean
+  } | null
   chapter?: {
     id: string
     name: string

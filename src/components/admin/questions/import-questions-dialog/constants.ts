@@ -7,6 +7,8 @@ export const IMPORT_TEMPLATE = `[
     "difficultyLevel": "medium",
     "points": 1,
     "explanation": "التفسير المختصر للإجابة الصحيحة.",
+    "reviewTopic": "عنوان الموضوع داخل الملخص",
+    "reviewPage": 8,
     "options": [
       { "text": "الخيار الصحيح", "isCorrect": true },
       { "text": "خيار غير صحيح", "isCorrect": false },

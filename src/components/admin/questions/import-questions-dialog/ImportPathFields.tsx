@@ -6,11 +6,13 @@ type ImportPathFieldsProps = {
   majorId: string;
   subjectId: string;
   chapterId: string;
+  reviewSummaryId: string;
   isImporting: boolean;
   onUniversityChange: (value: string) => void;
   onMajorChange: (value: string) => void;
   onSubjectChange: (value: string) => void;
   onChapterChange: (value: string) => void;
+  onReviewSummaryChange: (value: string) => void;
 };
 
 export function ImportPathFields({
@@ -18,11 +20,13 @@ export function ImportPathFields({
   majorId,
   subjectId,
   chapterId,
+  reviewSummaryId,
   isImporting,
   onUniversityChange,
   onMajorChange,
   onSubjectChange,
   onChapterChange,
+  onReviewSummaryChange,
 }: ImportPathFieldsProps) {
   return (
     <div className="grid gap-4 md:grid-cols-2">
@@ -75,6 +79,22 @@ export function ImportPathFields({
           placeholder={subjectId ? "ابحث عن فصل" : "اختر المقرر أولًا"}
           disablePortal
         />
+      </div>
+
+      <div className="space-y-2 md:col-span-2">
+        <Label>الملخص المرجعي لهذه الدفعة</Label>
+        <AdminLookupCombobox
+          type="summary"
+          value={reviewSummaryId}
+          onValueChange={onReviewSummaryChange}
+          chapterId={chapterId}
+          disabled={isImporting || !chapterId}
+          placeholder={chapterId ? "اختياري: اختر ملخصًا تابعًا لنفس الفصل" : "اختر الفصل أولًا"}
+          disablePortal
+        />
+        <p className="text-xs text-muted-foreground">
+          سيُطبّق على جميع الأسئلة الجديدة في الدفعة. لا تضع UUID للملخص داخل JSON.
+        </p>
       </div>
     </div>
   );

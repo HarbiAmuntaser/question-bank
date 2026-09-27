@@ -204,6 +204,15 @@ export function SummaryDialog({
       return;
     }
 
+    const affectedQuestions = summary.reviewPageQuestionCount ?? 0;
+    const acknowledgeReviewPageImpact =
+      affectedQuestions > 0
+        ? window.confirm(
+            `هذا الملخص مرتبط بـ ${affectedQuestions} سؤال يحتوي رقم صفحة للمراجعة. بعد استبدال PDF يجب إعادة التحقق من أرقام الصفحات. هل تريد المتابعة؟`,
+          )
+        : true;
+    if (!acknowledgeReviewPageImpact) return;
+
     const uploadForm = new FormData();
     uploadForm.append("file", file);
     uploadForm.append("ownerType", "study_summary");
@@ -234,7 +243,10 @@ export function SummaryDialog({
         method: "PATCH",
         headers: { "content-type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ pdfAttachmentId: attachment.id }),
+        body: JSON.stringify({
+          pdfAttachmentId: attachment.id,
+          acknowledgeReviewPageImpact: affectedQuestions > 0,
+        }),
       });
       const updateBody = await updateRes.json().catch(() => ({}));
       const updatedSummary = updateBody?.data as StudySummaryRow | undefined;
@@ -276,6 +288,19 @@ export function SummaryDialog({
     const contentHtml = String(formData.get("contentHtml") ?? "").trim();
     const contentText = String(formData.get("contentText") ?? "").trim();
     const pdfAttachmentId = String(formData.get("pdfAttachmentId") ?? "").trim();
+
+    if (
+      summary &&
+      pdfAttachmentId !== (summary.pdfAttachmentId ?? "") &&
+      (summary.reviewPageQuestionCount ?? 0) > 0
+    ) {
+      const affectedQuestions = summary.reviewPageQuestionCount;
+      const acknowledged = window.confirm(
+        `تغيير ملف PDF سيؤثر على ${affectedQuestions} سؤال يحتوي رقم صفحة للمراجعة. يجب إعادة التحقق من الأرقام بعد الحفظ. هل تريد المتابعة؟`,
+      );
+      if (!acknowledged) return;
+      formData.set("acknowledgeReviewPageImpact", "true");
+    }
 
     if (!contentHtml && !contentText && !pdfAttachmentId) {
       setFieldErrors({
@@ -531,6 +556,11 @@ export function SummaryDialog({
 
               {pdfAttachment ? (
                 <div className="grid gap-3 rounded-lg border bg-background p-3 text-sm">
+                  {(summary?.reviewPageQuestionCount ?? 0) > 0 ? (
+                    <p className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-100">
+                      يرتبط بهذا الملف {summary?.reviewPageQuestionCount} سؤال يحتوي رقم صفحة. استبدال الملف يتطلب إعادة التحقق من هذه الأرقام.
+                    </p>
+                  ) : null}
                   <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                     <p className="font-medium">
                       {pdfAttachment.originalName || pdfAttachment.title || "ملف PDF مرتبط"}

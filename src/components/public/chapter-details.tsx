@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { SubjectQuizzesSection } from "@/components/public/subject-chapters";
 import type { PublicQuizAccessItem } from "@/components/public/subscription-access";
 import { SubjectStudySummaries } from "@/components/public/study-summaries/subject-study-summaries";
+import { ChapterAttachments } from "@/components/public/chapter-attachments";
 import { ContextBackLink } from "@/components/public/context-back-link";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader } from "@/components/ui/card";
@@ -140,6 +141,9 @@ export async function ChapterDetails({
           {chapter.chapterNumber ? (
             <div><Badge variant="secondary" className="arabic-numbers">الفصل {chapter.chapterNumber}</Badge></div>
           ) : null}
+          {chapter.kind === "practical" ? (
+            <div><Badge variant="outline">محتوى عملي</Badge></div>
+          ) : null}
           <h1 className="text-2xl font-bold leading-tight sm:text-3xl">{chapter.name}</h1>
           {chapter.description ? (
             <p className="mx-auto max-w-3xl text-sm leading-relaxed text-foreground/75 sm:text-base">
@@ -182,7 +186,9 @@ export async function ChapterDetails({
         headingId="chapter-quizzes-heading"
       />
 
-      {!chapterSummaries.length && !chapterQuizzes.length ? (
+      <ChapterAttachments chapterId={chapter.id} attachments={chapter.attachments} />
+
+      {!chapterSummaries.length && !chapterQuizzes.length && !chapter.attachments.length ? (
         <div className="rounded-lg border border-dashed px-4 py-10 text-center text-sm text-muted-foreground">
           لا يوجد محتوى منشور لهذا الفصل بعد.
         </div>

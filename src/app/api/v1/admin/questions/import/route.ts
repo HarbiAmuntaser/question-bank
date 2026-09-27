@@ -4,6 +4,10 @@ import type { Prisma } from "@prisma/client";
 import { verifyAdmin, adminAuthResponse } from "@/lib/admin-auth";
 import { bad, json } from "@/lib/server/admin-http";
 import { prisma } from "@/lib/prisma";
+import {
+  QuestionReviewTargetError,
+  validateQuestionReviewTarget,
+} from "@/lib/server/question-review-target";
 import { questionsImportSchema, type ImportItem } from "@/validations/question-import";
 
 export const dynamic = "force-dynamic";
@@ -48,10 +52,21 @@ export async function POST(req: Request) {
     return bad("validation_error", parsed.error.flatten());
   }
 
-  const { chapterId, items, duplicateStrategy } = parsed.data;
+  const { chapterId, reviewSummaryId, items, duplicateStrategy } = parsed.data;
 
   const exists = await prisma.chapter.findUnique({ where: { id: chapterId }, select: { id: true, subjectId: true } });
   if (!exists) return bad("الفصل غير موجود");
+
+  try {
+    await validateQuestionReviewTarget(prisma, {
+      chapterId,
+      reviewSummaryId,
+      reviewPage: items.some((item) => item.reviewPage) ? 1 : null,
+    });
+  } catch (error) {
+    if (error instanceof QuestionReviewTargetError) return bad(error.code);
+    throw error;
+  }
 
   const existingQuestions = await prisma.question.findMany({
     where: { chapterId },
@@ -68,7 +83,7 @@ export async function POST(req: Request) {
 
   try {
     const result = await prisma.$transaction(async (tx) => {
-      return importQuestions(tx, chapterId, items, duplicateStrategy, existingKeys);
+      return importQuestions(tx, chapterId, reviewSummaryId ?? null, items, duplicateStrategy, existingKeys);
     });
 
     if (result.imported > 0) revalidateQuestionCache({ chapterId: exists.id, subjectId: exists.subjectId });
@@ -81,6 +96,7 @@ export async function POST(req: Request) {
 async function importQuestions(
   tx: Prisma.TransactionClient,
   chapterId: string,
+  reviewSummaryId: string | null,
   items: ImportItem[],
   duplicateStrategy: DuplicateStrategy,
   existingKeys: Set<string>,
@@ -98,7 +114,7 @@ async function importQuestions(
       continue;
     }
 
-    await createOneQuestion(tx, chapterId, item);
+    await createOneQuestion(tx, chapterId, reviewSummaryId, item);
     imported += 1;
     seenInBatch.add(key);
     existingKeys.add(key);
@@ -107,10 +123,18 @@ async function importQuestions(
   return { imported, skipped };
 }
 
-async function createOneQuestion(tx: Prisma.TransactionClient, chapterId: string, item: ImportItem) {
+async function createOneQuestion(
+  tx: Prisma.TransactionClient,
+  chapterId: string,
+  reviewSummaryId: string | null,
+  item: ImportItem,
+) {
   // Keep imported metadata aligned with the manual question form.
   const common = {
     chapterId,
+    reviewSummaryId,
+    reviewTopic: item.reviewTopic ?? null,
+    reviewPage: item.reviewPage ?? null,
     questionText: item.questionText,
     questionType: item.questionType,
     difficultyLevel: item.difficultyLevel ?? "medium",

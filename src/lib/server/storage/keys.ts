@@ -2,7 +2,12 @@ import "server-only";
 
 import { randomUUID } from "crypto";
 
-export type StorageKeyFolder = "blog/covers" | "blog/inline" | "summaries/pdfs" | "attachments";
+export type StorageKeyFolder =
+  | "blog/covers"
+  | "blog/inline"
+  | "summaries/pdfs"
+  | "chapters/attachments"
+  | "attachments";
 
 const EXTENSION_PATTERN = /\.[a-z0-9]{1,12}$/i;
 

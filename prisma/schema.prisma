@@ -56,6 +56,11 @@ enum AttachmentVisibility {
   private
 }
 
+enum ChapterKind {
+  theory
+  practical
+}
+
 // SEO
 // ✅ SEO
 enum SeoOwnerType {
@@ -303,6 +308,7 @@ model Chapter {
   chapterNumber      Int?
   description        String?
   learningObjectives String[]
+  kind               ChapterKind @default(theory)
   isActive           Boolean  @default(true)
   createdBy          String?
   createdAt          DateTime @default(now())
@@ -328,6 +334,9 @@ model Chapter {
 model Question {
   id              String          @id @default(uuid())
   chapterId       String
+  reviewSummaryId String?
+  reviewTopic     String?         @db.VarChar(200)
+  reviewPage      Int?
   questionText    String
   questionType    QuestionType    @default(multiple_choice)
   difficultyLevel DifficultyLevel @default(medium)
@@ -343,11 +352,13 @@ model Question {
 
   // Relations
   chapter       Chapter          @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  reviewSummary StudySummary?    @relation("QuestionReviewSummary", fields: [reviewSummaryId], references: [id], onDelete: SetNull)
   creator       User?            @relation("QuestionCreatedBy", fields: [createdBy], references: [id])
   options       QuestionOption[]
   userAnswers   UserAnswer[]
   quizQuestions QuizQuestion[]
 
+  @@index([reviewSummaryId])
   @@map("questions")
 }
 
@@ -476,6 +487,7 @@ model StudySummary {
   subject       Subject     @relation(fields: [subjectId], references: [id], onDelete: Cascade)
   chapter       Chapter?    @relation(fields: [chapterId], references: [id], onDelete: SetNull)
   pdfAttachment Attachment? @relation("StudySummaryPdf", fields: [pdfAttachmentId], references: [id], onDelete: SetNull)
+  reviewQuestions Question[] @relation("QuestionReviewSummary")
 
   @@unique([subjectId, slug, language])
   @@index([subjectId, status, publishedAt])

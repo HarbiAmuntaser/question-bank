@@ -88,6 +88,7 @@ const summaryShape = z.object({
   readingMinutes: optionalPositiveInt,
   sortOrder: intWithDefault(0),
   isFeatured: coerceBoolean.default(false),
+  acknowledgeReviewPageImpact: coerceBoolean.optional(),
 });
 
 function hasSummaryContent(data: {

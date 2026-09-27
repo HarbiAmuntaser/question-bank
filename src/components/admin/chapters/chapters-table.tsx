@@ -23,6 +23,7 @@ type ChapterRow = {
   chapterNumber: number | null;
   description: string | null;
   learningObjectives: string[];
+  kind: "theory" | "practical";
   isActive: boolean;
   createdAt: string; // ISO
   updatedAt: string; // ISO
@@ -154,6 +155,7 @@ export async function ChaptersTable({
               <TableHead>التخصص</TableHead>
               <TableHead>الجامعة</TableHead>
               <TableHead>رقم الفصل</TableHead>
+              <TableHead>نوع المحتوى</TableHead>
               <TableHead>عدد الأسئلة</TableHead>
               <TableHead>الحالة</TableHead>
               <TableHead>تاريخ الإنشاء</TableHead>
@@ -189,6 +191,9 @@ export async function ChaptersTable({
                 </TableCell>
                 <TableCell>
                   <div className="text-sm arabic-numbers">{c.chapterNumber ?? "غير محدد"}</div>
+                </TableCell>
+                <TableCell>
+                  <Badge variant="outline">{c.kind === "practical" ? "عملي" : "نظري"}</Badge>
                 </TableCell>
                 <TableCell>
                   <div className="text-sm arabic-numbers">{c.questionsCount}</div>

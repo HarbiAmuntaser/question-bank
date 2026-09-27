@@ -3,6 +3,10 @@ import { json, bad } from "@/lib/server/admin-http";
 import { verifyAdmin, adminAuthResponse } from "@/lib/admin-auth";
 import { CACHE_CONTROL } from "@/lib/cache-tags";
 import { revalidateQuestionCache } from "@/lib/cache-invalidation";
+import {
+  QuestionReviewTargetError,
+  validateQuestionReviewTarget,
+} from "@/lib/server/question-review-target";
 
 import type { Prisma } from "@prisma/client";
 import { listQuestionsQuerySchema, createQuestionSchema } from "@/validations/question";
@@ -184,9 +188,23 @@ export async function POST(req: Request) {
 
   const d = parsed.data;
 
+  try {
+    await validateQuestionReviewTarget(prisma, {
+      chapterId: d.chapterId,
+      reviewSummaryId: d.reviewSummaryId,
+      reviewPage: d.reviewPage,
+    });
+  } catch (error) {
+    if (error instanceof QuestionReviewTargetError) return bad(error.code);
+    throw error;
+  }
+
   const created = await prisma.question.create({
     data: {
       chapterId: d.chapterId,
+      reviewSummaryId: d.reviewSummaryId ?? null,
+      reviewTopic: d.reviewTopic ?? null,
+      reviewPage: d.reviewPage ?? null,
       questionText: d.questionText,
       questionType: d.questionType,
       difficultyLevel: d.difficultyLevel,
@@ -219,4 +237,3 @@ export async function POST(req: Request) {
   revalidateQuestionCache({ chapterId: created.chapterId, subjectId: chapter?.subjectId });
   return json({ data: created, message: "question_created" }, 201);
 }
-

@@ -23,6 +23,7 @@ import { QuestionCascader } from "./question-dialog/QuestionCascader";
 import { MultipleChoiceOptions, type MCOption } from "./question-dialog/MultipleChoiceOptions";
 import { TrueFalseAnswer } from "./question-dialog/TrueFalseAnswer";
 import { QuestionMetaFields } from "./question-dialog/QuestionMetaFields";
+import { QuestionReviewFields } from "./question-dialog/QuestionReviewFields";
 
 type QuestionType = "multiple_choice" | "true_false";
 type DifficultyLevel = "easy" | "medium" | "hard";
@@ -93,6 +94,7 @@ export function QuestionDialog({ children, question, open, onOpenChange }: Quest
   const [selectedMajor, setSelectedMajor] = useState("");
   const [selectedSubject, setSelectedSubject] = useState("");
   const [selectedChapter, setSelectedChapter] = useState(question?.chapterId ?? "");
+  const [selectedReviewSummary, setSelectedReviewSummary] = useState(question?.reviewSummaryId ?? "");
 
   // نوع السؤال
   const [questionType, setQuestionType] = useState<QuestionType>(normalizeQuestionType(question?.questionType));
@@ -157,6 +159,7 @@ export function QuestionDialog({ children, question, open, onOpenChange }: Quest
         // defaults
         setDifficultyLevel(normalizeDifficulty(question?.difficultyLevel));
         setIsActive(question?.isActive ?? true);
+        setSelectedReviewSummary(question?.reviewSummaryId ?? "");
 
         const qt: QuestionType = normalizeQuestionType(question?.questionType);
         setQuestionType(qt);
@@ -199,6 +202,7 @@ export function QuestionDialog({ children, question, open, onOpenChange }: Quest
           setSelectedMajor("");
           setSelectedSubject("");
           setSelectedChapter("");
+          setSelectedReviewSummary("");
           setMajors([]);
           setSubjects([]);
           setChapters([]);
@@ -219,6 +223,7 @@ export function QuestionDialog({ children, question, open, onOpenChange }: Quest
       setSelectedMajor("");
       setSelectedSubject("");
       setSelectedChapter("");
+      setSelectedReviewSummary("");
       setMajors([]);
       setSubjects([]);
       setChapters([]);
@@ -235,6 +240,7 @@ export function QuestionDialog({ children, question, open, onOpenChange }: Quest
       setSelectedMajor(mId);
       setSelectedSubject("");
       setSelectedChapter("");
+      setSelectedReviewSummary("");
       setSubjects([]);
       setChapters([]);
 
@@ -249,6 +255,7 @@ export function QuestionDialog({ children, question, open, onOpenChange }: Quest
     async (sId: string) => {
       setSelectedSubject(sId);
       setSelectedChapter("");
+      setSelectedReviewSummary("");
       setChapters([]);
 
       if (!sId) return;
@@ -286,6 +293,7 @@ export function QuestionDialog({ children, question, open, onOpenChange }: Quest
 
     // ثبت حقول الـ Select/Switch
     formData.set("chapterId", selectedChapter);
+    formData.set("reviewSummaryId", selectedReviewSummary);
     formData.set("questionType", questionType);
     formData.set("difficultyLevel", difficultyLevel);
     formData.set("isActive", isActive ? "true" : "false");
@@ -320,6 +328,7 @@ export function QuestionDialog({ children, question, open, onOpenChange }: Quest
           setSelectedMajor("");
           setSelectedSubject("");
           setSelectedChapter("");
+          setSelectedReviewSummary("");
           setQuestionType("multiple_choice");
           setOptions([
             { text: "", isCorrect: false },
@@ -362,7 +371,10 @@ export function QuestionDialog({ children, question, open, onOpenChange }: Quest
               onUniversityChange={onChangeUniversity}
               onMajorChange={onChangeMajor}
               onSubjectChange={onChangeSubject}
-              onChapterChange={setSelectedChapter}
+              onChapterChange={(chapterId) => {
+                setSelectedChapter(chapterId);
+                setSelectedReviewSummary("");
+              }}
             />
 
             <div className="grid grid-cols-4 items-start gap-4">
@@ -400,6 +412,14 @@ export function QuestionDialog({ children, question, open, onOpenChange }: Quest
             ) : (
               <TrueFalseAnswer value={tfAnswer} onChange={setTfAnswer} />
             )}
+
+            <QuestionReviewFields
+              chapterId={selectedChapter}
+              reviewSummaryId={selectedReviewSummary}
+              onReviewSummaryChange={setSelectedReviewSummary}
+              defaultTopic={question?.reviewTopic}
+              defaultPage={question?.reviewPage}
+            />
 
             <QuestionMetaFields
               difficultyLevel={difficultyLevel}

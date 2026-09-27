@@ -74,6 +74,7 @@ export async function StudySummaryDetails({
   majorSlugPath,
   subjectSlugPath,
   summarySlugPath,
+  reviewTopic,
 }: {
   cc: string;
   type: InstitutionType;
@@ -81,6 +82,7 @@ export async function StudySummaryDetails({
   majorSlugPath: string;
   subjectSlugPath: string;
   summarySlugPath: string;
+  reviewTopic?: string;
 }) {
   const ccNorm = (cc || "SA").toUpperCase();
   const summarySlug = stripPrefix(summarySlugPath, "ملخصات");
@@ -101,6 +103,10 @@ export async function StudySummaryDetails({
   const canonicalMajor = stripPrefix(subject.major?.seo?.slug || majorSlugPath, "تخصصات");
   const canonicalSubject = stripPrefix(subject.seo?.slug || subjectSlugPath, "مواد");
   const canonicalSummary = stripPrefix(summary.slug, "ملخصات");
+  const normalizedReviewTopic = reviewTopic?.trim().slice(0, 200) || null;
+  const reviewTopicQuery = normalizedReviewTopic
+    ? `?reviewTopic=${encodeURIComponent(normalizedReviewTopic)}`
+    : "";
 
   const currentUni = stripPrefix(universitySlugPath, "جامعات");
   const currentMajor = stripPrefix(majorSlugPath, "تخصصات");
@@ -115,7 +121,7 @@ export async function StudySummaryDetails({
     redirect(
       `/${isGlobalAcademy ? ccNorm : subjectCountry}/${subjectType}/universities/${encodeSlugPath(canonicalUni)}/majors/${encodeSlugPath(
         canonicalMajor,
-      )}/subjects/${encodeSlugPath(canonicalSubject)}/summaries/${encodeSlugPath(canonicalSummary)}`,
+      )}/subjects/${encodeSlugPath(canonicalSubject)}/summaries/${encodeSlugPath(canonicalSummary)}${reviewTopicQuery}`,
     );
   }
 
@@ -123,7 +129,7 @@ export async function StudySummaryDetails({
     redirect(
       `/${subjectCountry}/${subjectType}/universities/${encodeSlugPath(canonicalUni)}/majors/${encodeSlugPath(
         canonicalMajor,
-      )}/subjects/${encodeSlugPath(canonicalSubject)}/summaries/${encodeSlugPath(canonicalSummary)}`,
+      )}/subjects/${encodeSlugPath(canonicalSubject)}/summaries/${encodeSlugPath(canonicalSummary)}${reviewTopicQuery}`,
     );
   }
 
@@ -136,7 +142,7 @@ export async function StudySummaryDetails({
     redirect(
       `/${ccNorm}/${type}/universities/${encodeSlugPath(canonicalUni)}/majors/${encodeSlugPath(
         canonicalMajor,
-      )}/subjects/${encodeSlugPath(canonicalSubject)}/summaries/${encodeSlugPath(canonicalSummary)}`,
+      )}/subjects/${encodeSlugPath(canonicalSubject)}/summaries/${encodeSlugPath(canonicalSummary)}${reviewTopicQuery}`,
     );
   }
 
@@ -250,7 +256,10 @@ export async function StudySummaryDetails({
             <>
           <div className="mx-auto max-w-3xl rounded-lg border bg-background/70 p-5 sm:p-6">
             {protectedContent?.contentHtml ? (
-              <CopyableSummaryContent html={prepareTrustedSummaryHtml(protectedContent.contentHtml)} />
+              <CopyableSummaryContent
+                html={prepareTrustedSummaryHtml(protectedContent.contentHtml)}
+                reviewTopic={normalizedReviewTopic}
+              />
             ) : protectedContent?.contentText ? (
               <p className="whitespace-pre-line text-sm leading-8 text-muted-foreground sm:text-base">
                 {protectedContent.contentText}

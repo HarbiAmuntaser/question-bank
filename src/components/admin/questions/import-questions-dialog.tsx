@@ -44,6 +44,7 @@ export function ImportQuestionsDialog({ children }: Props) {
   const [majorId, setMajorId] = useState("");
   const [subjectId, setSubjectId] = useState("");
   const [chapterId, setChapterId] = useState("");
+  const [reviewSummaryId, setReviewSummaryId] = useState("");
   const [rawText, setRawText] = useState("");
   const [preview, setPreview] = useState<ImportPreview | null>(null);
   const [showTemplate, setShowTemplate] = useState(false);
@@ -83,6 +84,7 @@ export function ImportQuestionsDialog({ children }: Props) {
     setMajorId("");
     setSubjectId("");
     setChapterId("");
+    setReviewSummaryId("");
     resetImportProgress();
   };
 
@@ -90,12 +92,14 @@ export function ImportQuestionsDialog({ children }: Props) {
     setMajorId(value);
     setSubjectId("");
     setChapterId("");
+    setReviewSummaryId("");
     resetImportProgress();
   };
 
   const handleSubjectChange = (value: string) => {
     setSubjectId(value);
     setChapterId("");
+    setReviewSummaryId("");
     resetImportProgress();
   };
 
@@ -158,7 +162,7 @@ export function ImportQuestionsDialog({ children }: Props) {
           message: `جاري استيراد الدفعة ${currentBatch} من ${chunks.length}...`,
         }));
 
-        const result = await importChunk(chapterId, chunks[index], duplicateStrategy);
+        const result = await importChunk(chapterId, reviewSummaryId || null, chunks[index], duplicateStrategy);
         imported += result.imported;
         skipped += result.skipped;
 
@@ -232,11 +236,20 @@ export function ImportQuestionsDialog({ children }: Props) {
             majorId={majorId}
             subjectId={subjectId}
             chapterId={chapterId}
+            reviewSummaryId={reviewSummaryId}
             isImporting={isImporting}
             onUniversityChange={handleUniversityChange}
             onMajorChange={handleMajorChange}
             onSubjectChange={handleSubjectChange}
-            onChapterChange={setChapterId}
+            onChapterChange={(value) => {
+              setChapterId(value);
+              setReviewSummaryId("");
+              resetImportProgress();
+            }}
+            onReviewSummaryChange={(value) => {
+              setReviewSummaryId(value);
+              resetImportProgress();
+            }}
           />
 
           <Separator />

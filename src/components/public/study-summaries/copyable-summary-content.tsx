@@ -52,7 +52,17 @@ function CodeCopyButton({ pre }: { pre: HTMLPreElement }) {
   );
 }
 
-export function CopyableSummaryContent({ html }: { html: string }) {
+function normalizeHeading(value: string) {
+  return value
+    .normalize("NFKC")
+    .toLocaleLowerCase()
+    .replace(/[\u0640\u064b-\u065f\u0670]/g, "")
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .trim()
+    .replace(/\s+/g, " ");
+}
+
+export function CopyableSummaryContent({ html, reviewTopic }: { html: string; reviewTopic?: string | null }) {
   const contentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -81,13 +91,27 @@ export function CopyableSummaryContent({ html }: { html: string }) {
       nextTargets.push({ pre, wrapper, root });
     });
 
+    let scrollFrame: number | null = null;
+    const targetTopic = normalizeHeading(reviewTopic ?? "");
+    if (targetTopic) {
+      const heading = Array.from(content.querySelectorAll<HTMLElement>("h2, h3, h4")).find(
+        (candidate) => normalizeHeading(candidate.textContent ?? "") === targetTopic,
+      );
+      if (heading) {
+        scrollFrame = window.requestAnimationFrame(() => {
+          heading.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+      }
+    }
+
     return () => {
+      if (scrollFrame !== null) window.cancelAnimationFrame(scrollFrame);
       nextTargets.forEach(({ pre, wrapper, root }) => {
         root.unmount();
         if (wrapper.isConnected) wrapper.replaceWith(pre);
       });
     };
-  }, [html]);
+  }, [html, reviewTopic]);
 
   return <div ref={contentRef} className="summary-content" dangerouslySetInnerHTML={{ __html: html }} />;
 }

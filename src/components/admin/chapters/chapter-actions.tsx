@@ -3,11 +3,12 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { MoreHorizontal, Edit, Trash2, Eye, HelpCircle } from "lucide-react"
+import { MoreHorizontal, Edit, Trash2, Eye, HelpCircle, Paperclip } from "lucide-react"
 import Link from "next/link"
 import type { ChapterWithRelations } from "@/types"
 import { ChapterDialog } from "./chapter-dialog"
 import { DeleteChapterDialog } from "./delete-chapter-dialog"
+import { ChapterAttachmentsDialog } from "./chapter-attachments-dialog"
 
 interface ChapterActionsProps {
   chapter: ChapterWithRelations
@@ -16,6 +17,7 @@ interface ChapterActionsProps {
 export function ChapterActions({ chapter }: ChapterActionsProps) {
   const [showEditDialog, setShowEditDialog] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [showAttachmentsDialog, setShowAttachmentsDialog] = useState(false)
 
   return (
     <>
@@ -41,6 +43,10 @@ export function ChapterActions({ chapter }: ChapterActionsProps) {
             <Edit className="ml-2 h-4 w-4" />
             تعديل
           </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => setShowAttachmentsDialog(true)}>
+            <Paperclip className="ml-2 h-4 w-4" />
+            مرفقات الفصل
+          </DropdownMenuItem>
           <DropdownMenuItem onClick={() => setShowDeleteDialog(true)} className="text-red-600">
             <Trash2 className="ml-2 h-4 w-4" />
             حذف
@@ -51,6 +57,7 @@ export function ChapterActions({ chapter }: ChapterActionsProps) {
       <ChapterDialog chapter={chapter} open={showEditDialog} onOpenChange={setShowEditDialog} />
 
       <DeleteChapterDialog chapter={chapter} open={showDeleteDialog} onOpenChange={setShowDeleteDialog} />
+      <ChapterAttachmentsDialog chapter={chapter} open={showAttachmentsDialog} onOpenChange={setShowAttachmentsDialog} />
     </>
   )
 }

@@ -6,7 +6,12 @@ import { revalidateTag } from "next/cache"
 import path from "path"
 import { promises as fs } from "fs"
 import { CACHE_CONTROL, CACHE_TAGS } from "@/lib/cache-tags"
-import { revalidateBlogCache } from "@/lib/cache-invalidation"
+import {
+  revalidateBlogCache,
+  revalidateChapterCache,
+  revalidateStudySummaryCache,
+  type StudySummaryCacheSnapshot,
+} from "@/lib/cache-invalidation"
 import { deleteObjectFromR2 } from "@/lib/server/storage"
 
 const PUBLIC_PREFIX = "/uploads/attachments"
@@ -49,6 +54,8 @@ export async function DELETE(req: Request, ctx: { params: Promise<{ id: string }
   if (!existing) return json({ error: "not_found" }, { status: 404, headers: privateHeaders() })
 
   let blogCacheInput: Parameters<typeof revalidateBlogCache>[0] | null = null
+  let chapterCacheInput: { id: string; subjectId: string } | null = null
+  let summaryCacheInputs: StudySummaryCacheSnapshot[] = []
   if (existing.ownerType === "blog_post") {
     const post = await prisma.blogPost.findUnique({
       where: { id: existing.ownerId },
@@ -76,6 +83,36 @@ export async function DELETE(req: Request, ctx: { params: Promise<{ id: string }
     }
   }
 
+  if (existing.ownerType === "chapter") {
+    const chapter = await prisma.chapter.findUnique({
+      where: { id: existing.ownerId },
+      select: { id: true, subjectId: true },
+    })
+    if (chapter) chapterCacheInput = chapter
+  }
+
+  const linkedSummaries = await prisma.studySummary.findMany({
+    where: { pdfAttachmentId: existing.id },
+    select: { id: true, slug: true, subjectId: true, chapterId: true },
+  })
+  if (linkedSummaries.length) {
+    const affectedQuestions = await prisma.question.count({
+      where: {
+        reviewSummaryId: { in: linkedSummaries.map((summary) => summary.id) },
+        reviewPage: { not: null },
+      },
+    })
+    const acknowledged = new URL(req.url).searchParams.get("acknowledgeReviewPageImpact") === "true"
+    if (affectedQuestions > 0 && !acknowledged) {
+      return adminBad(
+        "summary_pdf_review_pages_require_acknowledgement",
+        { affectedQuestions },
+        409,
+      )
+    }
+    summaryCacheInputs = linkedSummaries
+  }
+
   if (existing.storageProvider === "r2" && existing.bucket && existing.storageKey) {
     try {
       await deleteObjectFromR2({ bucket: existing.bucket, storageKey: existing.storageKey })
@@ -95,5 +132,9 @@ export async function DELETE(req: Request, ctx: { params: Promise<{ id: string }
 
   revalidateAttachmentCaches()
   safeRevalidateBlogAttachment(blogCacheInput)
+  if (chapterCacheInput) revalidateChapterCache(chapterCacheInput)
+  for (const summary of summaryCacheInputs) {
+    revalidateStudySummaryCache({ previous: summary })
+  }
   return json({ message: "attachment_deleted" }, { status: 200, headers: privateHeaders() })
 }

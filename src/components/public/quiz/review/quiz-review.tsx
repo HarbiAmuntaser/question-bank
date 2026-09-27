@@ -8,6 +8,9 @@ import {
   ChevronLeft,
   ChevronRight,
   Info,
+  BookOpenText,
+  FileText,
+  Tags,
   RotateCcw,
   XCircle,
 } from "lucide-react";
@@ -303,6 +306,8 @@ export default function QuizReview({ quiz, sessionId, onlyWrong }: Props) {
               </div>
             </div>
           ) : null}
+
+          {!current!.isCorrect ? <QuestionReviewGuidance question={q} /> : null}
         </CardContent>
       </Card>
 
@@ -326,6 +331,74 @@ export default function QuizReview({ quiz, sessionId, onlyWrong }: Props) {
         </Button>
       </div>
     </div>
+  );
+}
+
+function summaryTopicHref(href: string | null | undefined, topic: string | null | undefined) {
+  if (!href) return null;
+  const normalizedTopic = topic?.trim();
+  return normalizedTopic ? `${href}?reviewTopic=${encodeURIComponent(normalizedTopic)}` : href;
+}
+
+function QuestionReviewGuidance({ question }: { question: ReviewQuestion }) {
+  const summary = question.reviewSummary;
+  const topic = question.reviewTopic?.trim() || null;
+  const page = question.reviewPage;
+
+  if (summary) {
+    const href = summaryTopicHref(summary.href, topic);
+    const pdfHref =
+      page && summary.hasPdf
+        ? `/api/v1/student/summaries/${encodeURIComponent(summary.id)}/pdf?page=${page}`
+        : null;
+
+    return (
+      <section className="space-y-3 rounded-lg border border-primary/20 bg-primary/5 p-4" aria-label="مرجع المراجعة">
+        <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+          <BookOpenText className="h-4 w-4 text-primary" aria-hidden />
+          راجع
+        </div>
+        <div className="space-y-2 text-sm leading-6">
+          {href ? (
+            <Link href={href} className="block font-semibold text-primary underline-offset-4 hover:underline">
+              {summary.title}
+            </Link>
+          ) : (
+            <p className="font-semibold">{summary.title}</p>
+          )}
+          {topic ? <p className="text-foreground/80">{topic}</p> : null}
+          {page ? <p className="arabic-numbers text-muted-foreground">الصفحة {page}</p> : null}
+        </div>
+        {pdfHref ? (
+          <Button asChild variant="outline" size="sm" className="bg-background">
+            <a href={pdfHref} target="_blank" rel="noopener noreferrer">
+              <FileText className="h-4 w-4" aria-hidden />
+              فتح موضع المراجعة
+            </a>
+          </Button>
+        ) : null}
+      </section>
+    );
+  }
+
+  const chapterLabel = question.chapter?.name?.trim();
+  const tags = (question.tags ?? []).map((tag) => tag.trim()).filter(Boolean).slice(0, 4);
+  if (!chapterLabel && !tags.length) return null;
+
+  return (
+    <section className="space-y-3 rounded-lg border bg-muted/25 p-4" aria-label="اقتراح المراجعة">
+      <div className="flex items-center gap-2 text-sm font-semibold">
+        <BookOpenText className="h-4 w-4 text-primary" aria-hidden />
+        راجع
+      </div>
+      {chapterLabel ? <p className="text-sm font-medium">{chapterLabel}</p> : null}
+      {tags.length ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <Tags className="h-4 w-4 text-muted-foreground" aria-hidden />
+          {tags.map((tag) => <Badge key={tag} variant="secondary">{tag}</Badge>)}
+        </div>
+      ) : null}
+    </section>
   );
 }
 

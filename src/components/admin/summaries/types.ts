@@ -57,6 +57,7 @@ export type StudySummaryRow = {
   subject: SummarySubject;
   chapter: SummaryChapter | null;
   pdfAttachment: SummaryAttachment | null;
+  reviewPageQuestionCount: number;
   createdAt: string;
   updatedAt: string;
 };

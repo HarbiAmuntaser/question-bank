@@ -4,8 +4,13 @@ import { revalidateTag } from "next/cache"
 
 import { verifyAdmin, adminAuthResponse } from "@/lib/admin-auth"
 import { CACHE_CONTROL, CACHE_TAGS } from "@/lib/cache-tags"
-import { revalidateBlogCache } from "@/lib/cache-invalidation"
+import { revalidateBlogCache, revalidateChapterCache } from "@/lib/cache-invalidation"
+import { isChapterAttachmentPurpose } from "@/lib/chapter-attachments"
 import { json } from "@/lib/server/admin-http";
+import {
+  ChapterAttachmentPolicyError,
+  validateChapterAttachmentUpload,
+} from "@/lib/server/chapter-attachments"
 import { prisma } from "@/lib/prisma"
 import {
   buildDatedStorageKey,
@@ -35,10 +40,11 @@ function adminBad(message: string, details?: unknown, status = 400) {
 
 
 
-function folderForPurpose(purpose: "blog-cover" | "blog-inline" | "summary-pdf" | "attachment"): StorageKeyFolder {
+function folderForPurpose(purpose: string): StorageKeyFolder {
   if (purpose === "blog-cover") return "blog/covers"
   if (purpose === "blog-inline") return "blog/inline"
   if (purpose === "summary-pdf") return "summaries/pdfs"
+  if (isChapterAttachmentPurpose(purpose)) return "chapters/attachments"
   return "attachments"
 }
 
@@ -81,6 +87,16 @@ function safeRevalidateBlogCover(input: Parameters<typeof revalidateBlogCache>[0
     revalidateBlogCache(input)
   } catch (error) {
     console.error("failed_to_revalidate_blog_cover_cache", error instanceof Error ? error.message : "unknown_error")
+  }
+}
+
+function safeRevalidateChapterAttachment(input: { id: string; subjectId: string } | null) {
+  if (!input) return
+
+  try {
+    revalidateChapterCache(input)
+  } catch (error) {
+    console.error("failed_to_revalidate_chapter_attachment_cache", error instanceof Error ? error.message : "unknown_error")
   }
 }
 
@@ -180,13 +196,32 @@ export async function POST(req: Request) {
       return adminBad("pdf_attachment_must_be_pdf")
     }
 
+    const buffer = Buffer.from(await file.arrayBuffer())
+    let chapterCacheInput: { id: string; subjectId: string } | null = null
+    if (parsed.data.ownerType === "chapter" || isChapterAttachmentPurpose(parsed.data.purpose)) {
+      try {
+        const chapter = await validateChapterAttachmentUpload(prisma, {
+          ownerType: parsed.data.ownerType,
+          ownerId: parsed.data.ownerId,
+          purpose: parsed.data.purpose,
+          kind: parsed.data.kind,
+          visibility: parsed.data.visibility,
+          contentType: fileCheck.contentType,
+          bytes: buffer,
+        })
+        chapterCacheInput = { id: chapter.id, subjectId: chapter.subjectId }
+      } catch (error) {
+        if (error instanceof ChapterAttachmentPolicyError) return adminBad(error.code)
+        throw error
+      }
+    }
+
     const visibility = parsed.data.visibility as R2BucketVisibility
     const bucket = getR2BucketName(visibility)
     const storageKey = buildDatedStorageKey({
       folder: folderForPurpose(parsed.data.purpose),
       fileName: file.name || "attachment",
     })
-    const buffer = Buffer.from(await file.arrayBuffer())
     const publicUrl = visibility === "public" ? buildPublicR2Url(storageKey) : null
 
     try {
@@ -259,6 +294,7 @@ export async function POST(req: Request) {
 
       safeRevalidateAttachmentCaches()
       safeRevalidateBlogCover(blogCacheInput)
+      safeRevalidateChapterAttachment(chapterCacheInput)
       return json({ data: created, message: "attachment_created" }, { status: 201, headers: privateHeaders() })
     } catch (error) {
       if (bucket && storageKey) {
@@ -275,6 +311,10 @@ export async function POST(req: Request) {
   const parsed = createAttachmentSchema.safeParse(dataToValidate)
   if (!parsed.success) {
     return adminBad("validation_error", parsed.error.flatten())
+  }
+
+  if (parsed.data.ownerType === "chapter" || isChapterAttachmentPurpose(parsed.data.purpose)) {
+    return adminBad("chapter_attachment_requires_private_r2_pdf")
   }
 
   if (!parsed.data.url) {

@@ -79,6 +79,11 @@ export async function createQuestionAction(formData: FormData) {
 
     const payload = {
       chapterId: String(formData.get("chapterId") || ""),
+      reviewSummaryId: String(formData.get("reviewSummaryId") || "").trim() || null,
+      reviewTopic: String(formData.get("reviewTopic") || "").trim() || null,
+      reviewPage: String(formData.get("reviewPage") || "").trim()
+        ? Number(String(formData.get("reviewPage")))
+        : null,
       questionText: String(formData.get("questionText") || ""),
       questionType,
       difficultyLevel: String(formData.get("difficultyLevel") || "medium"),
@@ -131,6 +136,11 @@ export async function updateQuestionAction(id: string, formData: FormData) {
 
     const payload = {
       chapterId: String(formData.get("chapterId") || ""),
+      reviewSummaryId: String(formData.get("reviewSummaryId") || "").trim() || null,
+      reviewTopic: String(formData.get("reviewTopic") || "").trim() || null,
+      reviewPage: String(formData.get("reviewPage") || "").trim()
+        ? Number(String(formData.get("reviewPage")))
+        : null,
       questionText: String(formData.get("questionText") || ""),
       questionType,
       difficultyLevel: String(formData.get("difficultyLevel") || "medium"),

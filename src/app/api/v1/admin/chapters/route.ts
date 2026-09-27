@@ -18,6 +18,7 @@ type ChapterListRow = {
   chapterNumber: number | null;
   description: string | null;
   learningObjectives: string[];
+  kind: "theory" | "practical";
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -99,6 +100,7 @@ const listChapters = async (q: Record<string, string | null | undefined>) => {
           chapterNumber: true,
           description: true,
           learningObjectives: true,
+          kind: true,
           isActive: true,
           createdAt: true,
           updatedAt: true,
@@ -132,6 +134,7 @@ const listChapters = async (q: Record<string, string | null | undefined>) => {
         chapterNumber: c.chapterNumber,
         description: c.description,
         learningObjectives: c.learningObjectives,
+        kind: c.kind,
         isActive: c.isActive,
         createdAt: c.createdAt,
         updatedAt: c.updatedAt,
@@ -200,6 +203,7 @@ export async function POST(req: Request) {
       chapterNumber: parsed.data.chapterNumber ?? null,
       description: parsed.data.description ?? null,
       learningObjectives: parsed.data.learningObjectives ?? [],
+      kind: parsed.data.kind,
       isActive: parsed.data.isActive,
       // createdBy: auth.userId, // إن أحببت
     },

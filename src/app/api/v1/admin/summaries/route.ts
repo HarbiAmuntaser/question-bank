@@ -54,6 +54,11 @@ const summaryInclude = {
       createdAt: true,
     },
   },
+  _count: {
+    select: {
+      reviewQuestions: { where: { reviewPage: { not: null } } },
+    },
+  },
 } satisfies Prisma.StudySummaryInclude;
 
 type SummaryWithRelations = Prisma.StudySummaryGetPayload<{ include: typeof summaryInclude }>;
@@ -139,6 +144,7 @@ function serializeSummary(summary: SummaryWithRelations) {
     subject: summary.subject,
     chapter: summary.chapter,
     pdfAttachment: summary.pdfAttachment,
+    reviewPageQuestionCount: summary._count.reviewQuestions,
     createdAt: summary.createdAt,
     updatedAt: summary.updatedAt,
   };

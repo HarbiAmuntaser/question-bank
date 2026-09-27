@@ -10,6 +10,7 @@ export interface Chapter {
   chapterNumber: number | null;
   description: string | null;
   learningObjectives: string[];
+  kind: "theory" | "practical";
   isActive: boolean;
   createdBy: string | null;
   createdAt: Date;

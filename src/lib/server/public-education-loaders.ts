@@ -5,6 +5,7 @@ import { cache } from "react";
 import { stripPrefix } from "@/lib/public/slug-utils";
 import {
   getPublicUniversityByCode,
+  getPublicUniversityById,
   getPublicUniversityBySlug,
   normalizePublicUniversityCode,
   normalizePublicUniversitySlug,
@@ -53,6 +54,9 @@ async function loadUniversityByRouteKey(routeKeyRaw: string): Promise<PublicUniv
     const normalizedCode = normalizePublicUniversityCode(routeKey);
     const byCode = await getPublicUniversityByCode(normalizedCode).catch(() => null);
     if (byCode) return byCode;
+
+    const byId = await getPublicUniversityById(routeKey).catch(() => null);
+    if (byId) return byId;
   }
 
   return null;

@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
@@ -203,6 +204,23 @@ export function ChapterDialog({ children, chapter, open, onOpenChange }: Chapter
                 className="col-span-3"
                 placeholder="1"
               />
+            </div>
+
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="kind" className="text-right">
+                نوع المحتوى
+              </Label>
+              <div className="col-span-3">
+                <Select name="kind" defaultValue={chapter?.kind ?? "theory"}>
+                  <SelectTrigger id="kind">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="theory">نظري</SelectItem>
+                    <SelectItem value="practical">عملي</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             <div className="grid grid-cols-4 items-start gap-4">

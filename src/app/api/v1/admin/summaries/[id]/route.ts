@@ -7,6 +7,11 @@ import { json } from "@/lib/server/admin-http";
 import { prisma } from "@/lib/prisma";
 import { encodeSlugPath, stripPrefix } from "@/lib/public/slug-utils";
 import { getPaymentSummaryMediaIssue } from "@/lib/server/payment-media";
+import {
+  countSummaryReviewPageQuestions,
+  ensureSummaryChapterMoveIsSafe,
+  QuestionReviewTargetError,
+} from "@/lib/server/question-review-target";
 import { updateStudySummarySchema } from "@/validations/study-summary";
 
 export const dynamic = "force-dynamic";
@@ -58,6 +63,11 @@ const summaryInclude = {
       sizeBytes: true,
       originalName: true,
       createdAt: true,
+    },
+  },
+  _count: {
+    select: {
+      reviewQuestions: { where: { reviewPage: { not: null } } },
     },
   },
 } satisfies Prisma.StudySummaryInclude;
@@ -140,6 +150,7 @@ function serializeSummary(summary: SummaryWithRelations) {
     subject: summary.subject,
     chapter: summary.chapter,
     pdfAttachment: summary.pdfAttachment,
+    reviewPageQuestionCount: summary._count.reviewQuestions,
     createdAt: summary.createdAt,
     updatedAt: summary.updatedAt,
   };
@@ -281,6 +292,29 @@ export async function PATCH(req: Request, ctx: Ctx) {
     const nextContentHtml = typeof input.contentHtml !== "undefined" ? input.contentHtml : existing.contentHtml;
     const nextContentText = typeof input.contentText !== "undefined" ? input.contentText : existing.contentText;
     const nextAccessType = input.accessType ?? existing.accessType;
+
+    if (nextChapterId !== existing.chapterId) {
+      try {
+        await ensureSummaryChapterMoveIsSafe(prisma, { summaryId: id, nextChapterId });
+      } catch (error) {
+        if (error instanceof QuestionReviewTargetError) return adminBad(error.code, undefined, 409);
+        throw error;
+      }
+    }
+
+    if (
+      typeof input.pdfAttachmentId !== "undefined" &&
+      nextPdfAttachmentId !== existing.pdfAttachmentId
+    ) {
+      const affectedQuestions = await countSummaryReviewPageQuestions(prisma, id);
+      if (affectedQuestions > 0 && input.acknowledgeReviewPageImpact !== true) {
+        return adminBad(
+          "summary_pdf_review_pages_require_acknowledgement",
+          { affectedQuestions },
+          409,
+        );
+      }
+    }
 
     if (!(await validateSubject(nextSubjectId))) return adminBad("subject_not_found", undefined, 404);
 

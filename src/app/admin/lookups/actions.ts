@@ -4,7 +4,7 @@ import { requireAdminPermission } from "@/lib/admin-auth";
 import { getDegreeTypeLabel } from "@/lib/degree-types";
 import { prisma } from "@/lib/prisma";
 
-export type AdminLookupType = "university" | "college" | "major" | "subject" | "chapter";
+export type AdminLookupType = "university" | "college" | "major" | "subject" | "chapter" | "summary";
 
 export type AdminLookupOption = {
   id: string;
@@ -184,6 +184,39 @@ export async function searchChaptersAction(args: { subjectId?: string; query?: s
   }));
 }
 
+export async function searchStudySummariesAction(args: { chapterId?: string; query?: string; limit?: number }) {
+  await requireAdminPermission("lookups:read");
+  if (!args.chapterId) return [];
+  const query = normalizeQuery(args.query);
+  const take = clampLimit(args.limit);
+
+  const rows = await prisma.studySummary.findMany({
+    where: {
+      chapterId: args.chapterId,
+      ...(query
+        ? {
+            OR: [
+              { title: { contains: query, mode: "insensitive" } },
+              { slug: { contains: query, mode: "insensitive" } },
+            ],
+          }
+        : {}),
+    },
+    orderBy: [{ status: "asc" }, { title: "asc" }],
+    take,
+    select: { id: true, title: true, slug: true, status: true },
+  });
+
+  return rows.map((row): AdminLookupOption => ({
+    id: row.id,
+    label: row.title,
+    code: row.slug,
+    subLabel: [row.slug, row.status === "published" ? "منشور" : row.status === "draft" ? "مسودة" : "مؤرشف"]
+      .filter(Boolean)
+      .join(" - "),
+  }));
+}
+
 export async function resolveAdminLookupAction(type: AdminLookupType, id: string) {
   await requireAdminPermission("lookups:read");
   if (!id) return null;
@@ -246,6 +279,21 @@ export async function resolveAdminLookupAction(type: AdminLookupType, id: string
           label: row.name,
           code: row.code,
           subLabel: [row.code, row.major?.name].filter(Boolean).join(" - ") || undefined,
+        }
+      : null;
+  }
+
+  if (type === "summary") {
+    const row = await prisma.studySummary.findUnique({
+      where: { id },
+      select: { id: true, title: true, slug: true, status: true, chapter: { select: { name: true } } },
+    });
+    return row
+      ? {
+          id: row.id,
+          label: row.title,
+          code: row.slug,
+          subLabel: [row.slug, row.chapter?.name].filter(Boolean).join(" - ") || undefined,
         }
       : null;
   }
