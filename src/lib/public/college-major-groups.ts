@@ -24,15 +24,3 @@ export function buildCollegeMajorGroups(
 
   return { collegeGroups, universityMajors };
 }
-
-export function selectCollegeMajorGroup(
-  groups: CollegeMajorGroup[],
-  requestedKey?: string | null,
-) {
-  const requested = requestedKey?.trim().toLowerCase();
-  if (requested) {
-    const match = groups.find((group) => group.key.toLowerCase() === requested);
-    if (match) return match;
-  }
-  return groups[0] ?? null;
-}

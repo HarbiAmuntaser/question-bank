@@ -6,6 +6,7 @@ import { revalidateChapterCache, revalidateSeoCache } from "@/lib/cache-invalida
 import { Prisma } from "@prisma/client";
 import { updateSeoMetaSchema } from "@/validations/seo-meta";
 import { prepareChapterSeoSlug, type PreparedChapterSeoSlug } from "@/lib/server/chapter-seo-slug";
+import { getCollegeSeoSlug } from "@/lib/server/college-seo-slug";
 
 function cleanNullable(value: string | null | undefined) {
   if (typeof value === "string") {
@@ -72,6 +73,7 @@ export async function PUT(req: Request, ctx: RouteParams) {
   const rawBody = await req.json().catch(() => null);
   let body = rawBody;
   let chapterSlug: string | null = null;
+  let collegeSlug: string | null = null;
   let chapterSlugSync: PreparedChapterSeoSlug | null = null;
 
   if (existing.ownerType === "chapter") {
@@ -83,6 +85,12 @@ export async function PUT(req: Request, ctx: RouteParams) {
 
     chapterSlugSync = prepared.data;
     chapterSlug = prepared.data.slug;
+    if (isRecord(rawBody)) body = { ...rawBody, slug: undefined };
+  }
+
+  if (existing.ownerType === "college") {
+    collegeSlug = await getCollegeSeoSlug(existing.ownerId);
+    if (!collegeSlug) return bad("seo_owner_not_found", undefined, 404);
     if (isRecord(rawBody)) body = { ...rawBody, slug: undefined };
   }
 
@@ -100,8 +108,8 @@ export async function PUT(req: Request, ctx: RouteParams) {
   if (typeof parsed.data.locale !== "undefined") data.locale = parsed.data.locale;
 
   // ✅ slug normalize + enforce rules by locale
-  if (chapterSlug) {
-    data.slug = chapterSlug;
+  if (chapterSlug || collegeSlug) {
+    data.slug = chapterSlug || collegeSlug!;
   } else if (typeof parsed.data.slug !== "undefined") {
     const raw = parsed.data.slug.trim();
 

@@ -80,7 +80,7 @@ function seoMap(rows: Array<{ ownerId: string; slug: string; noindex: boolean }>
 }
 
 async function seoRows(
-  ownerType: "university" | "major" | "subject" | "chapter" | "exam" | "study_summary",
+  ownerType: "university" | "college" | "major" | "subject" | "chapter" | "exam" | "study_summary",
   ownerIds: string[],
 ) {
   if (!ownerIds.length) return new Map<string, SeoLookup>();
@@ -170,6 +170,46 @@ async function institutionCategoryEntries(): Promise<SitemapEntry[]> {
         ]
       : [],
   );
+}
+
+async function collegeEntries(): Promise<SitemapEntry[]> {
+  const colleges = await prisma.college.findMany({
+    where: {
+      isActive: true,
+      majors: { some: { isActive: true } },
+      university: {
+        isActive: true,
+        institutionType: "university",
+        countryCode: { in: Object.keys(SUPPORTED_COUNTRIES) },
+      },
+    },
+    orderBy: { updatedAt: "desc" },
+    take: DYNAMIC_LIMIT,
+    select: {
+      id: true, slug: true, createdAt: true, updatedAt: true,
+      university: { select: {
+        id: true, code: true, countryCode: true, institutionType: true,
+        visibility: true, createdAt: true, updatedAt: true,
+      } },
+    },
+  });
+  const [collegeSeo, universitySeo] = await Promise.all([
+    seoRows("college", colleges.map((college) => college.id)),
+    seoRows("university", colleges.map((college) => college.university.id)),
+  ]);
+
+  return colleges.flatMap((college) => {
+    const cc = getCanonicalInstitutionCountry(college.university);
+    const type = supportedType(cc, college.university.institutionType);
+    const seo = collegeSeo.get(college.id);
+    const universitySlug = routeSlug(universitySeo.get(college.university.id), "جامعات", { respectNoindex: false });
+    if (type !== "university" || !seo || seo.noindex || !universitySlug || hasUuidSegment(college.slug)) return [];
+    return [entry(`/${cc}/university/universities/${universitySlug}/colleges/${encodeURIComponent(college.slug)}`, {
+      lastModified: latestDate(college.updatedAt, college.createdAt, college.university.updatedAt),
+      changeFrequency: "weekly",
+      priority: 0.65,
+    })];
+  });
 }
 
 async function majorEntries(): Promise<SitemapEntry[]> {
@@ -867,6 +907,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       ? [
           safeDynamicEntries("institution categories", institutionCategoryEntries),
           safeDynamicEntries("institutions", institutionEntries),
+          safeDynamicEntries("colleges", collegeEntries),
           safeDynamicEntries("majors", majorEntries),
           safeDynamicEntries("subjects", subjectEntries),
           safeDynamicEntries("chapters", chapterEntries),

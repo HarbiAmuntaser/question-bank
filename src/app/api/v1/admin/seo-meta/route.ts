@@ -7,6 +7,7 @@ import { revalidateChapterCache, revalidateSeoCache } from "@/lib/cache-invalida
 import { Prisma } from "@prisma/client"; // ✅ ليس type
 import { createSeoMetaSchema, listSeoMetaQuerySchema } from "@/validations/seo-meta";
 import { prepareChapterSeoSlug, type PreparedChapterSeoSlug } from "@/lib/server/chapter-seo-slug";
+import { getCollegeSeoSlug } from "@/lib/server/college-seo-slug";
 
 function cleanNullable(value: string | null | undefined) {
   if (typeof value === "string") {
@@ -124,6 +125,12 @@ export async function POST(req: Request) {
 
     chapterSlugSync = prepared.data;
     body = { ...rawBody, slug: prepared.data.slug };
+  }
+
+  if (isRecord(rawBody) && rawBody.ownerType === "college" && typeof rawBody.ownerId === "string") {
+    const collegeSlug = await getCollegeSeoSlug(rawBody.ownerId);
+    if (!collegeSlug) return bad("seo_owner_not_found", undefined, 404);
+    body = { ...rawBody, slug: collegeSlug };
   }
 
   const parsed = createSeoMetaSchema.safeParse(body);

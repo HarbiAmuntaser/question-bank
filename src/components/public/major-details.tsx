@@ -177,7 +177,7 @@ export async function MajorDetails({
   const uniLink = universityHref(ccNorm, typeNorm, major.university);
   const contextualUniversityLink =
     typeNorm === "university" && major.college
-      ? `${uniLink}?college=${encodeURIComponent(major.college.slug)}#majors-section`
+      ? `${uniLink}/colleges/${encodeURIComponent(major.college.slug)}#majors-section`
       : `${uniLink}#majors-section`;
   const backLabel = typeNorm === "university" && major.college
     ? major.college.name

@@ -9,7 +9,8 @@ import { ContextBackLink } from "@/components/public/context-back-link";
 import { UniversityHero } from "@/components/public/university-hero";
 import { MajorsList } from "@/components/public/majors-list";
 import { UniversityDegreeSelector } from "@/components/public/university-degree-selector";
-import { UniversityCollegeSelector } from "@/components/public/university-college-selector";
+import { UniversityCollegeGrid } from "@/components/public/university-college-grid";
+import { CollegeDetails } from "@/components/public/college-details";
 import { MajorDetails } from "@/components/public/major-details";
 import { MajorAcademicPeriodDetails } from "@/components/public/major-academic-period-details";
 import { SubjectDetails } from "@/components/public/subject-details";
@@ -39,6 +40,7 @@ import {
   getPublicSubjectByRouteKey,
   getPublicUniversityByRouteKey,
 } from "@/lib/server/public-education-loaders";
+import { getPublicCollegeByRouteKeys } from "@/lib/server/public-colleges";
 import {
   getPublicMajorSeoBySlug,
   getPublicQuizSeoBySlug,
@@ -64,10 +66,7 @@ import {
   getAcademicPeriodRouteKey,
   parseAcademicPeriodRouteKey,
 } from "@/lib/academic-periods";
-import {
-  buildCollegeMajorGroups,
-  selectCollegeMajorGroup,
-} from "@/lib/public/college-major-groups";
+import { buildCollegeMajorGroups } from "@/lib/public/college-major-groups";
 
 export const revalidate = 21600;
 
@@ -194,12 +193,24 @@ async function getSeoForQuizSlug(quizSlugPathRaw: string): Promise<PublicSeoMeta
 // -------------------------
 
 function parseUniversitiesCatchAll(segs: string[]) {
+  const collegesIdx = findIndexCI(segs, "colleges");
   const majorsIdx = findIndexCI(segs, "majors");
   const subjectsIdx = findIndexCI(segs, "subjects");
   const quizzesIdx = findIndexCI(segs, "quizzes");
   const summariesIdx = findIndexCI(segs, "summaries");
   const chaptersIdx = findIndexCI(segs, "chapters");
   const levelsIdx = findIndexCI(segs, "levels");
+
+  if (collegesIdx >= 0) {
+    return {
+      kind: "college" as const,
+      universitySlugPath: joinSlug(segs.slice(0, collegesIdx)),
+      collegeSlugPath: joinSlug(segs.slice(collegesIdx + 1)),
+      majorSlugPath: "",
+      subjectSlugPath: "",
+      quizSlugPath: "",
+    };
+  }
 
   if (majorsIdx < 0) {
     return {
@@ -599,6 +610,56 @@ export async function generateMetadata({ params }: { params: Promise<PageParams>
     };
   }
 
+  // ---- College metadata ----
+  if (parsed.kind === "college") {
+    const { universitySlugPath, collegeSlugPath } = parsed;
+    if (type !== "university" || !universitySlugPath || !collegeSlugPath) {
+      notFound();
+    }
+
+    const college = await getPublicCollegeByRouteKeys(universitySlugPath, collegeSlugPath);
+    if (!college) notFound();
+
+    const canonicalCountry = getCanonicalInstitutionCountry(college.university, cc);
+    const canonicalType = getCanonicalInstitutionType(college.university, type);
+    const canonicalUniversity = stripPrefix(
+      college.university.seo.slug || college.university.code || universitySlugPath,
+      "جامعات",
+    );
+    const canonicalCollege = college.slug;
+    const canonicalPath = `/${canonicalCountry}/university/universities/${encodeSlugPath(
+      canonicalUniversity,
+    )}/colleges/${encodeURIComponent(canonicalCollege)}`;
+    const canonical = `${SITE_URL}${canonicalPath}`;
+    const hasCanonicalRoute = hasCanonicalRouteKeys([
+      [universitySlugPath, canonicalUniversity],
+      [collegeSlugPath, canonicalCollege],
+    ]);
+    const hasCanonicalContext = canonicalCountry === cc && canonicalType === "university";
+    const seo = college.seo;
+    const title = stripSiteNameFromTitle(seo?.metaTitle) || college.name;
+    const description = seo?.metaDescription || `استكشف تخصصات ${college.name} في ${college.university.name}.`;
+
+    return {
+      title,
+      description,
+      alternates: { canonical },
+      openGraph: {
+        title: seo?.ogTitle || withSiteName(title),
+        description: seo?.ogDescription || description,
+        images: seo?.ogImageUrl || college.university.logoUrl
+          ? [{ url: seo?.ogImageUrl || college.university.logoUrl! }]
+          : undefined,
+        type: "website",
+        url: canonical,
+      },
+      robots: educationPageRobots(seo, {
+        requireSeo: true,
+        indexable: college.majors.length > 0 && hasCanonicalRoute && hasCanonicalContext,
+      }),
+    };
+  }
+
   // ---- Major metadata ----
   if (parsed.kind === "major") {
     const { universitySlugPath, majorSlugPath } = parsed;
@@ -721,6 +782,61 @@ export default async function UniversitiesCatchAllPage({
 
   const segs = normalizeSegments(p.slug);
   const parsed = parseUniversitiesCatchAll(segs);
+
+  if (parsed.kind === "college") {
+    const { universitySlugPath, collegeSlugPath } = parsed;
+    if (type !== "university" || !universitySlugPath || !collegeSlugPath) notFound();
+
+    const college = await getPublicCollegeByRouteKeys(universitySlugPath, collegeSlugPath);
+    if (!college) notFound();
+
+    const canonicalCountry = getCanonicalInstitutionCountry(college.university, cc);
+    const canonicalUniversity = stripPrefix(
+      college.university.seo.slug || college.university.code || universitySlugPath,
+      "جامعات",
+    );
+    const canonicalCollege = college.slug;
+    const degree = getFirstSearchValue(sp.degree);
+    const degreeQuery = degree ? `?degree=${encodeURIComponent(degree)}` : "";
+    const collegePath = `/${canonicalCountry}/university/universities/${encodeSlugPath(
+      canonicalUniversity,
+    )}/colleges/${encodeURIComponent(canonicalCollege)}`;
+
+    if (
+      !hasCanonicalRouteKeys([
+        [universitySlugPath, canonicalUniversity],
+        [collegeSlugPath, canonicalCollege],
+      ]) || canonicalCountry !== cc
+    ) {
+      redirect(`${collegePath}${degreeQuery}`);
+    }
+
+    const visibleMajors = degree
+      ? college.majors.filter(
+          (major) => normalizeDegreeType(major.degreeType) === normalizeDegreeType(degree),
+        )
+      : college.majors;
+    const universityPath = `/${cc}/university/universities/${encodeSlugPath(canonicalUniversity)}`;
+
+    return (
+      <div className="flex min-h-screen flex-col">
+        <PublicHeader />
+        <main
+          id="main-content"
+          tabIndex={-1}
+          className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 lg:px-8"
+        >
+          <CollegeDetails
+            college={{ ...college, majors: visibleMajors }}
+            cc={cc}
+            universitySlug={canonicalUniversity}
+            universityHref={`${universityPath}${degreeQuery}`}
+          />
+        </main>
+        <PublicFooter cc={cc} />
+      </div>
+    );
+  }
 
   if (parsed.kind === "academicPeriod") {
     const { universitySlugPath, majorSlugPath, periodRouteKey } = parsed;
@@ -909,14 +1025,18 @@ export default async function UniversitiesCatchAllPage({
       ? allMajors.filter((major) => normalizeDegreeType(major.degreeType) === selectedDegree)
       : allMajors;
   const activeColleges = isUniversityType ? uniTyped.colleges ?? [] : [];
-  const { collegeGroups, universityMajors } = buildCollegeMajorGroups(
+  const { universityMajors } = buildCollegeMajorGroups(
     activeColleges,
     visibleMajors,
   );
-  const selectedCollegeGroup = selectCollegeMajorGroup(
-    collegeGroups,
-    getFirstSearchValue(sp.college),
-  );
+  const requestedCollege = getFirstSearchValue(sp.college)?.trim().toLowerCase();
+  const legacyCollege = requestedCollege
+    ? activeColleges.find((college) => college.slug.toLowerCase() === requestedCollege)
+    : null;
+  if (legacyCollege) {
+    const degreeQuery = selectedDegree ? `?degree=${encodeURIComponent(selectedDegree)}` : "";
+    redirect(`${universityBasePath}/colleges/${encodeURIComponent(legacyCollege.slug)}${degreeQuery}`);
+  }
   const majorsSectionCopy =
     type === "academy"
       ? {
@@ -965,34 +1085,22 @@ export default async function UniversitiesCatchAllPage({
           <div className="mx-auto max-w-7xl">
             <div className="mb-6 space-y-2 sm:mb-8">
               <h2 className="text-2xl font-bold leading-tight text-gray-900 dark:text-white sm:text-3xl">
-                {majorsSectionCopy.title}
+                {isUniversityType && activeColleges.length > 0 ? "الكليات" : majorsSectionCopy.title}
               </h2>
-              <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-                {majorsSectionCopy.description}
-              </p>
+              {isUniversityType && activeColleges.length > 0 ? null : (
+                <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
+                  {majorsSectionCopy.description}
+                </p>
+              )}
             </div>
 
-            {isUniversityType && activeColleges.length > 0 && selectedCollegeGroup ? (
+            {isUniversityType && activeColleges.length > 0 ? (
               <div className="space-y-8">
-                <div>
-                  <UniversityCollegeSelector
-                    basePath={universityBasePath}
-                    degree={selectedDegree}
-                    groups={collegeGroups}
-                    selectedKey={selectedCollegeGroup.key}
-                  />
-                  <div className="mb-5">
-                    <h3 className="text-xl font-bold leading-tight text-foreground sm:text-2xl">
-                      {selectedCollegeGroup.label}
-                    </h3>
-                  </div>
-                  <MajorsList
-                    cc={cc}
-                    type={type}
-                    universitySlug={universitySlugForLinks}
-                    majors={selectedCollegeGroup.majors}
-                  />
-                </div>
+                <UniversityCollegeGrid
+                  basePath={universityBasePath}
+                  degree={selectedDegree}
+                  colleges={activeColleges}
+                />
 
                 {universityMajors.length > 0 ? (
                   <section id="university-majors-section" className="border-t border-border/70 pt-8">

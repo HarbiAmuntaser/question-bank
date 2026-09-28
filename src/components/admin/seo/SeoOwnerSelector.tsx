@@ -13,6 +13,7 @@ type OwnerType = SeoOwnerType
 
 const ownerTypeOptions: Array<{ value: OwnerType; label: string }> = [
   { value: "university", label: "جامعة" },
+  { value: "college", label: "كلية" },
   { value: "major", label: "تخصص" },
   { value: "subject", label: "مقرر" },
   { value: "chapter", label: "وحدة" },
@@ -43,6 +44,7 @@ async function resolveOwner(type: OwnerType, id: string) {
     ownerType: OwnerType
     chain: {
       university?: ComboOption | null
+      college?: ComboOption | null
       major?: ComboOption | null
       subject?: ComboOption | null
       chapter?: ComboOption | null
@@ -79,6 +81,7 @@ export function SeoOwnerSelector({
   }, [onOwnerOptionChange])
 
   const [uni, setUni] = React.useState<ComboOption | null>(null)
+  const [college, setCollege] = React.useState<ComboOption | null>(null)
   const [major, setMajor] = React.useState<ComboOption | null>(null)
   const [subject, setSubject] = React.useState<ComboOption | null>(null)
   const [chapter, setChapter] = React.useState<ComboOption | null>(null)
@@ -98,6 +101,7 @@ export function SeoOwnerSelector({
 
       const chain = resolved.chain
       setUni(chain.university ?? null)
+      setCollege(chain.college ?? null)
       setMajor(chain.major ?? null)
       setSubject(chain.subject ?? null)
       setChapter(chain.chapter ?? null)
@@ -117,6 +121,7 @@ export function SeoOwnerSelector({
     onOwnerTypeChange(next)
     onOwnerIdChange("")
     setUni(null)
+    setCollege(null)
     setMajor(null)
     setSubject(null)
     setChapter(null)
@@ -164,6 +169,40 @@ export function SeoOwnerSelector({
             fetcher={(q) => fetchOwners({ type: "university", query: q })}
             depsKey="university"
           />
+        </div>
+      ) : null}
+
+      {type === "college" ? (
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-2">
+            <Label>الجامعة</Label>
+            <AsyncCombobox
+              value={uni}
+              onChange={(value) => {
+                setUni(value)
+                setCollege(null)
+                setFinal(null)
+              }}
+              placeholder="اختر جامعة"
+              disabled={lockOwnerId}
+              fetcher={(query) => fetchOwners({ type: "university", query })}
+              depsKey="uni-for-college"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>الكلية</Label>
+            <AsyncCombobox
+              value={college}
+              onChange={(value) => {
+                setCollege(value)
+                setFinal(value)
+              }}
+              placeholder="اختر كلية"
+              disabled={lockOwnerId || !uni}
+              fetcher={(query) => fetchOwners({ type: "college", query, universityId: uni?.id })}
+              depsKey={`college::${uni?.id ?? ""}`}
+            />
+          </div>
         </div>
       ) : null}
 

@@ -110,6 +110,7 @@ export async function deleteSeoMetaAction(id: string) {
 // ✅ NEW
 export type SeoOwnerType =
   | "university"
+  | "college"
   | "major"
   | "subject"
   | "chapter"

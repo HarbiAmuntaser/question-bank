@@ -161,7 +161,14 @@ export async function updateCollege(id: string, input: UpdateCollegeInput): Prom
     const data = Object.prototype.hasOwnProperty.call(input, "slug")
       ? { ...input, slug: requireValidCollegeSlug(input.slug) }
       : input;
-    return tx.college.update({ where: { id }, data });
+    const updated = await tx.college.update({ where: { id }, data });
+    if (Object.prototype.hasOwnProperty.call(data, "slug")) {
+      await tx.seoMeta.updateMany({
+        where: { ownerType: "college", ownerId: id },
+        data: { slug: updated.slug },
+      });
+    }
+    return updated;
   });
 }
 
@@ -173,6 +180,7 @@ export async function deleteCollege(id: string): Promise<College> {
     });
     if (!college) throw new EducationStructureError("college_not_found", 404);
     if (college._count.majors > 0) throw new EducationStructureError("college_has_majors");
+    await tx.seoMeta.deleteMany({ where: { ownerType: "college", ownerId: college.id } });
     return tx.college.delete({ where: { id } });
   });
 }

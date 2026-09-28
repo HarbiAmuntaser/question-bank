@@ -65,6 +65,7 @@ enum ChapterKind {
 // ✅ SEO
 enum SeoOwnerType {
   university
+  college
   major
   subject
   chapter

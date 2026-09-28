@@ -16,6 +16,13 @@ export function publicMajorWhere(): Prisma.MajorWhereInput {
   return { university: publicUniversityWhere() };
 }
 
+export function publicCollegeWhere(): Prisma.CollegeWhereInput {
+  return {
+    isActive: true,
+    university: { isActive: true, institutionType: "university", AND: [publicUniversityWhere()] },
+  };
+}
+
 export function publicSubjectWhere(): Prisma.SubjectWhereInput {
   return { major: publicMajorWhere() };
 }
@@ -59,6 +66,14 @@ export function isPublicInstitutionRecord(record: { institutionType?: unknown } 
 export async function isPublicUniversityId(id: string) {
   const row = await prisma.university.findFirst({
     where: { id, ...publicUniversityWhere() },
+    select: { id: true },
+  });
+  return Boolean(row);
+}
+
+export async function isPublicCollegeId(id: string) {
+  const row = await prisma.college.findFirst({
+    where: { id, ...publicCollegeWhere() },
     select: { id: true },
   });
   return Boolean(row);

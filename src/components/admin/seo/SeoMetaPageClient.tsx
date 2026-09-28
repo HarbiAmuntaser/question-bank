@@ -38,6 +38,7 @@ type InitialData = {
 const ownerTypeOptions = [
   { value: "all", label: "كل الأنواع" },
   { value: "university", label: "جامعة" },
+  { value: "college", label: "كلية" },
   { value: "major", label: "تخصص" },
   { value: "subject", label: "مقرر" },
   { value: "chapter", label: "وحدة" },

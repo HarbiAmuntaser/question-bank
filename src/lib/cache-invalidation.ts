@@ -149,16 +149,21 @@ export function revalidateCollegeCache(
 
   revalidateTags([
     "colleges",
+    "student-college-detail",
     "student-university-detail",
     CACHE_TAGS.admin.colleges,
     CACHE_TAGS.public.colleges,
     input.id ? CACHE_TAGS.public.college(input.id) : null,
+    input.id ? CACHE_TAGS.public.seoOwner("college", input.id) : null,
     ...universityIds.map((id) => CACHE_TAGS.public.collegesByUniversity(id)),
     ...universityIds.map((id) => CACHE_TAGS.public.majorsByUniversity(id)),
     ...universityIds.map((id) => CACHE_TAGS.public.institution(id)),
     CACHE_TAGS.public.institutions,
     CACHE_TAGS.public.majors,
+    CACHE_TAGS.public.seo,
   ]);
+
+  revalidateSitemapCache();
 }
 
 export function revalidateMajorCache(
@@ -367,6 +372,9 @@ export function revalidateSeoCache(input: { ownerType?: string | null; ownerId?:
     ownerType === "university" ? "student-university-detail" : null,
     ownerType === "university" ? CACHE_TAGS.public.institutions : null,
     ownerType === "university" && ownerId ? CACHE_TAGS.public.institution(ownerId) : null,
+    ownerType === "college" ? "student-college-detail" : null,
+    ownerType === "college" ? CACHE_TAGS.public.colleges : null,
+    ownerType === "college" && ownerId ? CACHE_TAGS.public.college(ownerId) : null,
     ownerType === "major" ? "student-majors" : null,
     ownerType === "major" ? "student-major-detail" : null,
     ownerType === "major" ? CACHE_TAGS.public.majors : null,

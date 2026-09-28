@@ -177,13 +177,72 @@ test("deleting a College with Majors is rejected before delete", async () => {
   assert.equal(deletes, 0);
 });
 
-test("College is absent from payment scope, SEO owners and public route markers", () => {
+test("College slug changes synchronize its SEO rows in the same transaction", async () => {
+  let seoUpdate;
+  const tx = {
+    university: {
+      findUnique: async () => ({ institutionType: "university" }),
+    },
+    college: {
+      findUnique: async () => ({ universityId: "university-a", _count: { majors: 0 } }),
+      update: async ({ data }) => ({ id: "college-a", universityId: "university-a", ...data }),
+    },
+    seoMeta: {
+      updateMany: async (query) => {
+        seoUpdate = query;
+      },
+    },
+  };
+  const service = loadService({ $transaction: async (callback) => callback(tx) });
+
+  await service.updateCollege("college-a", { slug: "  Engineering College  " });
+
+  assert.deepEqual(seoUpdate, {
+    where: { ownerType: "college", ownerId: "college-a" },
+    data: { slug: "engineering-college" },
+  });
+});
+
+test("deleting an unlinked College removes polymorphic SEO before the College row", async () => {
+  const calls = [];
+  const tx = {
+    college: {
+      findUnique: async () => ({
+        id: "college-a",
+        universityId: "university-a",
+        _count: { majors: 0 },
+      }),
+      delete: async () => {
+        calls.push("college");
+        return { id: "college-a" };
+      },
+    },
+    seoMeta: {
+      deleteMany: async (query) => {
+        calls.push("seo");
+        assert.deepEqual(query, { where: { ownerType: "college", ownerId: "college-a" } });
+      },
+    },
+  };
+  const service = loadService({ $transaction: async (callback) => callback(tx) });
+
+  await service.deleteCollege("college-a");
+  assert.deepEqual(calls, ["seo", "college"]);
+});
+
+test("College gains public SEO ownership and routing but remains outside payment scope", () => {
   const payment = readFileSync("src/lib/server/payment-scope.ts", "utf8");
   const schema = readFileSync("prisma/schema.prisma", "utf8");
   const route = readFileSync("src/app/[cc]/[type]/universities/[...slug]/page.tsx", "utf8");
+  const migration = readFileSync(
+    "prisma/migrations/20260928090000_public_college_pages/migration.sql",
+    "utf8",
+  );
   const seoOwners = schema.match(/enum SeoOwnerType \{([\s\S]*?)\}/)?.[1] ?? "";
 
   assert.doesNotMatch(payment, /college/i);
-  assert.doesNotMatch(seoOwners, /college/i);
-  assert.doesNotMatch(route, /collegesIdx|findIndexCI\(segs, "colleges"\)/);
+  assert.match(seoOwners, /\bcollege\b/);
+  assert.match(route, /collegesIdx|findIndexCI\(segs, "colleges"\)/);
+  assert.match(migration, /ALTER TYPE "SeoOwnerType" ADD VALUE 'college'/);
+  assert.doesNotMatch(migration, /payment|entitlement|order/i);
 });

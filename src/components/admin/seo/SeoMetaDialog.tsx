@@ -156,13 +156,15 @@ export function SeoMetaDialog({
   const metaTitleLength = (state.metaTitle ?? "").trim().length;
   const metaDescriptionLength = (state.metaDescription ?? "").trim().length;
   const isChapterOwner = state.ownerType === "chapter";
+  const isCollegeOwner = state.ownerType === "college";
+  const usesStoredOwnerSlug = isChapterOwner || isCollegeOwner;
 
   function handleOwnerOptionChange(option: ComboOption | null) {
-    if (!isChapterOwner) return;
+    if (!usesStoredOwnerSlug) return;
 
-    const chapterSlug = option?.slug?.trim() ?? "";
+    const ownerSlug = option?.slug?.trim() ?? "";
     setChapterSlugMissing(Boolean(option?.slugMissing));
-    setState((prev) => (prev.slug === chapterSlug ? prev : { ...prev, slug: chapterSlug }));
+    setState((prev) => (prev.slug === ownerSlug ? prev : { ...prev, slug: ownerSlug }));
     setErrors((prev) => {
       if (!prev.slug) return prev;
       const next = { ...prev };
@@ -182,7 +184,7 @@ export function SeoMetaDialog({
     if (!rawSlug) e.slug = "حقل Slug مطلوب";
     else if (rawSlug.length > 190) e.slug = "Slug طويل جدًا";
     else {
-      if (state.locale === "en" && !isChapterOwner) {
+      if (state.locale === "en" && !usesStoredOwnerSlug) {
         const s = rawSlug.toLowerCase();
         if (!asciiSlugRegex.test(s)) {
           e.slug = "Slug للإنجليزية يجب أن يكون a-z/0-9 واستخدام (-) فقط";
@@ -279,7 +281,7 @@ export function SeoMetaDialog({
     text ? <p className="text-xs text-destructive mt-1">{text}</p> : null;
 
   const slugPlaceholder = state.locale === "en" ? "مثال: ksu-math-101" : "مثال: اختبار-رياضيات-101";
-  const isChapterSlugReadOnly = isChapterOwner && !chapterSlugMissing;
+  const isOwnerSlugReadOnly = usesStoredOwnerSlug && !chapterSlugMissing;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -334,15 +336,20 @@ export function SeoMetaDialog({
               value={state.slug}
               onChange={(e) => updateField("slug", e.target.value)}
               placeholder={slugPlaceholder}
-              readOnly={isChapterSlugReadOnly}
-              aria-readonly={isChapterSlugReadOnly}
-              className={isChapterSlugReadOnly ? "bg-muted/50" : undefined}
+              readOnly={isOwnerSlugReadOnly}
+              aria-readonly={isOwnerSlugReadOnly}
+              className={isOwnerSlugReadOnly ? "bg-muted/50" : undefined}
             />
             {isChapterOwner ? (
               <p className="text-xs leading-relaxed text-muted-foreground">
                 {chapterSlugMissing
                   ? "هذا فصل قديم بلا رابط محفوظ. راجع الرابط المقترح أو عدّله؛ وسيُحفظ للفصل وبيانات SEO معًا."
                   : "رابط الفصل يُدار من صفحة الفصول ويُستخدم هنا تلقائيًا لمنع اختلاف رابط الصفحة عن بيانات SEO."}
+              </p>
+            ) : null}
+            {isCollegeOwner ? (
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                رابط الكلية يُدار من صفحة الكليات ويُستخدم هنا تلقائيًا لمنع اختلاف رابط الصفحة عن بيانات SEO.
               </p>
             ) : null}
             <ErrorText text={errors.slug} />

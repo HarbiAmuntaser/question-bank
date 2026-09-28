@@ -1,4 +1,5 @@
 // src/app/api/v1/admin/seo-meta/owners/route.ts
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { json, bad } from "@/lib/server/admin-http";
 import { verifyAdmin, adminAuthResponse } from "@/lib/admin-auth";
@@ -6,7 +7,7 @@ import { buildChapterSlug } from "@/lib/chapter-slugs";
 
 export const dynamic = "force-dynamic";
 
-type OwnerType = "university" | "major" | "subject" | "chapter" | "exam" | "blog_post" | "blog_topic" | "study_summary";
+type OwnerType = "university" | "college" | "major" | "subject" | "chapter" | "exam" | "blog_post" | "blog_topic" | "study_summary";
 
 function pick(v: string | null) {
   const t = (v ?? "").trim();
@@ -51,6 +52,28 @@ export async function GET(req: Request) {
           },
         },
       });
+    }
+
+    if (type === "college") {
+      const college = await prisma.college.findUnique({
+        where: { id },
+        select: {
+          id: true, name: true, slug: true, code: true,
+          university: { select: { id: true, name: true, code: true, countryCode: true } },
+        },
+      });
+      if (!college) return bad("not_found", 404);
+      return json({ data: { ownerType: type, chain: {
+        university: {
+          id: college.university.id,
+          label: college.university.name,
+          subLabel: `${college.university.countryCode}${college.university.code ? ` • ${college.university.code}` : ""}`,
+        },
+        college: {
+          id: college.id, label: college.name, slug: college.slug,
+          subLabel: college.code ? `• ${college.code}` : college.slug,
+        },
+      } } });
     }
 
     if (type === "major") {
@@ -352,6 +375,22 @@ export async function GET(req: Request) {
         subLabel: `${u.countryCode}${u.code ? ` • ${u.code}` : ""}`,
       })),
     });
+  }
+
+  if (type === "college") {
+    const where: Prisma.CollegeWhereInput = { isActive: true };
+    if (universityId) where.universityId = universityId;
+    if (query) where.name = { contains: query, mode: "insensitive" };
+    const rows = await prisma.college.findMany({
+      where, orderBy: { name: "asc" }, take,
+      select: { id: true, name: true, slug: true, code: true, university: { select: { name: true } } },
+    });
+    return json({ data: rows.map((college) => ({
+      id: college.id,
+      label: college.name,
+      slug: college.slug,
+      subLabel: `${college.university.name}${college.code ? ` • ${college.code}` : ""}`,
+    })) });
   }
 
   if (type === "major") {

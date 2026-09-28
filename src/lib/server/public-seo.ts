@@ -8,6 +8,7 @@ import { CACHE_TAGS, CACHE_TTL } from "@/lib/cache-tags";
 import { prisma } from "@/lib/prisma";
 import { stripPrefix } from "@/lib/public/slug-utils";
 import {
+  isPublicCollegeId,
   isPublicMajorId,
   isPublicQuizId,
   isPublicSubjectId,
@@ -34,7 +35,7 @@ export type PublicSeoMeta = Prisma.SeoMetaGetPayload<{
   select: typeof publicSeoMetaSelect;
 }>;
 
-type PublicSeoOwnerType = Extract<SeoOwnerType, "university" | "major" | "subject" | "exam">;
+type PublicSeoOwnerType = Extract<SeoOwnerType, "university" | "college" | "major" | "subject" | "exam">;
 
 type NormalizedSeoSlug = {
   slugPath: string;
@@ -68,6 +69,7 @@ function normalizeSeoSlug(raw: string | string[], prefix?: string): NormalizedSe
 
 async function isPublicSeoOwner(ownerType: PublicSeoOwnerType, ownerId: string) {
   if (ownerType === "university") return isPublicUniversityId(ownerId);
+  if (ownerType === "college") return isPublicCollegeId(ownerId);
   if (ownerType === "major") return isPublicMajorId(ownerId);
   if (ownerType === "subject") return isPublicSubjectId(ownerId);
   return isPublicQuizId(ownerId);
@@ -76,6 +78,9 @@ async function isPublicSeoOwner(ownerType: PublicSeoOwnerType, ownerId: string) 
 function ownerCacheTags(ownerType: PublicSeoOwnerType) {
   if (ownerType === "university") {
     return ["student-university-detail", CACHE_TAGS.public.institutions];
+  }
+  if (ownerType === "college") {
+    return ["student-college-detail", CACHE_TAGS.public.colleges];
   }
   if (ownerType === "major") {
     return ["student-major-detail", CACHE_TAGS.public.majors];

@@ -18,7 +18,7 @@ export type MajorPublicLite = {
   degreeType: string | null;
   durationYears: number | null;
   seo?: SeoLite | null;
-  _count: { subjects: number };
+  _count?: { subjects: number };
 };
 
 export type UniversityPublicLite = {

@@ -3,6 +3,7 @@ import { z } from "zod";
 
 export const seoOwnerTypes = [
   "university",
+  "college",
   "major",
   "subject",
   "chapter",
@@ -84,7 +85,7 @@ export const createSeoMetaSchema = z
   })
   .superRefine((data, ctx) => {
     // ✅ en => ASCII only
-    if (data.locale === "en" && data.ownerType !== "chapter") {
+    if (data.locale === "en" && !["chapter", "college"].includes(data.ownerType)) {
       const s = data.slug.trim().toLowerCase();
       if (!asciiSlugRegex.test(s)) {
         ctx.addIssue({
