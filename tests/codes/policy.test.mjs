@@ -9,12 +9,13 @@ const id = "90000000-0000-4000-8000-000000000301";
 test("code allowlist is independent from sales and fails closed", () => {
   const load = (env) => moduleLoader({ "@/lib/prisma": { prisma: {} }, "@/lib/auth-helpers": {} }, { process: { env } })("src/lib/server/payment-scope.ts");
   const codes = load({ PAYMENT_CODES_ENABLED: "true", PAYMENT_CODE_PLAN_IDS: JSON.stringify([id]), PAYMENT_LAUNCH_PLAN_IDS: "[]" });
-  assert.equal(codes.paymentCodePlanEnabled(id), true);
+  assert.equal(codes.paymentCodePlanEnabled(id, true), true);
+  assert.equal(codes.paymentCodePlanEnabled(id, false), false);
   assert.equal(codes.paymentSalesEnabled(), false);
   for (const value of [undefined, "not-json", "*", JSON.stringify([id, null])]) {
     const closed = load({ PAYMENT_CODES_ENABLED: "true", PAYMENT_CODE_PLAN_IDS: value });
-    assert.equal(closed.paymentCodePlanEnabled(id), false);
-    assert.throws(() => closed.requirePaymentCodePlan(id), /code_plan_not_enabled/);
+    assert.equal(closed.paymentCodePlanEnabled(id, true), false);
+    assert.throws(() => closed.requirePaymentCodePlan(id, true), /code_plan_not_enabled/);
   }
 });
 
@@ -55,4 +56,12 @@ test("hardening is additive and leaves prior migrations unchanged", () => {
   assert.match(sql, /payment_code_redemption_audit_required/);
   assert.match(sql, /access_entitlements_code_expiry_required/);
   assert.match(sql, /payment_code_redemption_audit_immutable/);
+});
+
+test("code access expand migration is additive and enforces immutable finite audited grants", () => {
+  const sql = readFileSync("prisma/migrations/20260930090000_activation_code_access_expand/migration.sql", "utf8");
+  for (const marker of ["code_access_grants", "guest_access_sessions", "code_access_session_bindings", "code_access_events",
+    "code_access_activation_audit_required", "code_access_browser_limit_exceeded", "code_access_event_immutable",
+    "activationCodesEnabled", "supportReference", "maxBrowserSessions"]) assert.match(sql, new RegExp(marker));
+  assert.doesNotMatch(sql, /DROP TABLE\s+(subscription_codes|access_entitlements)/i);
 });

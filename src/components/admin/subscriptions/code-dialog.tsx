@@ -96,10 +96,6 @@ export function CodeDialog({ children, plans }: { children: React.ReactNode; pla
                 <Input id="durationDays" name="durationDays" type="number" min="1" />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="maxUses">عدد الاستخدامات</Label>
-                <Input id="maxUses" name="maxUses" type="number" min="1" />
-              </div>
-              <div className="space-y-2">
                 <Label htmlFor="startsAt">يبدأ في (توقيت الرياض)</Label>
                 <Input id="startsAt" name="startsAt" type="datetime-local" />
               </div>

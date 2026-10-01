@@ -21,13 +21,14 @@ test("code plan list is independent, bounded and fail-closed", () => {
   for (const value of [undefined, "", "*", '"p1"', '["p1",null]', '[" p1"]', JSON.stringify(Array(201).fill("p"))]) {
     const config = release({ PAYMENT_CODES_ENABLED: "true", PAYMENT_CODE_PLAN_IDS: value });
     assert.deepEqual(Array.from(config.paymentCodePlanIds()), []);
-    assert.equal(config.paymentCodePlanEnabled("p1"), false);
-    assert.throws(() => config.requirePaymentCodePlan("p1"), /code_plan_not_enabled/);
+    assert.equal(config.paymentCodePlanEnabled("p1", true), false);
+    assert.throws(() => config.requirePaymentCodePlan("p1", true), /code_plan_not_enabled/);
   }
   const config = release({ PAYMENT_CODES_ENABLED: "true", PAYMENT_CODE_PLAN_IDS: '["p1","p1"]', PAYMENT_LAUNCH_PLAN_IDS: '["sale-only"]' });
   assert.deepEqual(Array.from(config.paymentCodePlanIds()), ["p1"]);
-  assert.equal(config.paymentCodePlanEnabled("p1"), true);
-  assert.equal(config.paymentCodePlanEnabled("sale-only"), false);
+  assert.equal(config.paymentCodePlanEnabled("p1", true), true);
+  assert.equal(config.paymentCodePlanEnabled("p1", false), false);
+  assert.equal(config.paymentCodePlanEnabled("sale-only", true), false);
 });
 test("sales, reviews and codes are independent explicit switches; old sales flag alone opens nothing", () => {
   const old = release({ PAYMENT_V1_ENABLED: "true" });
@@ -46,8 +47,16 @@ function accessHarness({ sales = false, codes = false, user = true, grant = fals
   const subject = { id: "s1", majorId: "m1", isActive: true, major: { isActive: true, university: { isActive: true, countryCode: outside ? "YE" : "SA", institutionType: "university" } } };
   const prisma = {
     quiz: { findFirst: async () => ({ accessType: type, isFreePreview: false, subject, questions: [] }) },
-    paidAccessPlan: { findFirst: async ({ where }) => { counts.plans++; const id = plans.find((p) => !where.id || where.id.in.includes(p)); return id ? { id, scopeType: "subject", subjectId: "s1", majorId: null, price: { toString: () => "100" } } : null; } },
+    paidAccessPlan: {
+      findMany: async () => { counts.plans++; return plans.map((id) => ({ id, scopeType: "subject", subjectId: "s1", majorId: null,
+        title: id, description: null, price: { toString: () => "100" }, currency: "SAR", whatsappNumber: null,
+        telegramUsername: null, contactMessage: null, isActive: true, activationCodesEnabled: true })); },
+      findFirst: async ({ where }) => { counts.plans++; const id = plans.find((p) => where.id.in.includes(p));
+        return id ? { id } : null; },
+    },
     accessEntitlement: { findFirst: async () => { counts.grants++; return grant ? { id: "grant" } : null; } },
+    codeAccessGrant: { findFirst: async () => null },
+    codeAccessSessionBinding: { findFirst: async () => null },
   };
   const load = moduleLoader({ "@/lib/prisma": { prisma }, "@/lib/auth-helpers": { getCurrentUser: async () => {
     counts.auth++; return user ? { id: "student", role: "student", isActive: true, emailVerified: new Date() } : null;

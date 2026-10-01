@@ -1,4 +1,4 @@
-import { createHash, randomInt } from "crypto";
+import { createHash, randomBytes, randomInt } from "crypto";
 
 const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
@@ -23,4 +23,22 @@ export function codePreviewFromPlainCode(code: string) {
   const normalized = normalizeSubscriptionCode(code);
   if (normalized.length <= 6) return normalized;
   return `${normalized.slice(0, 3)}...${normalized.slice(-4)}`;
+}
+
+export function generateCodeSupportReference() {
+  const chars = Array.from({ length: 12 }, () => CODE_ALPHABET[randomInt(0, CODE_ALPHABET.length)]);
+  return `AC-${chars.join("")}`;
+}
+
+export function generateGuestAccessToken() {
+  return randomBytes(32).toString("base64url");
+}
+
+export function isGuestAccessToken(value: string) {
+  return /^[A-Za-z0-9_-]{43}$/.test(value);
+}
+
+export function hashGuestAccessToken(value: string) {
+  if (!isGuestAccessToken(value)) throw new Error("invalid_guest_session");
+  return createHash("sha256").update(value, "utf8").digest("hex");
 }

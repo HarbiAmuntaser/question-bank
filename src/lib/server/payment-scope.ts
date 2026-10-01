@@ -38,10 +38,16 @@ export function requirePaymentCodes() {
   if (!paymentCodesEnabled()) throw new PaymentError("payment_codes_unavailable", 503);
 }
 export function paymentCodePlanIds(): string[] { return paymentPlanIdsFromEnvironment("PAYMENT_CODE_PLAN_IDS"); }
-export function paymentCodePlanEnabled(id: string) { return paymentCodesEnabled() && paymentCodePlanIds().includes(id); }
-export function requirePaymentCodePlan(id: string) {
+export function paymentCodePlanEnabled(id: string, activationCodesEnabled = false) {
+  return paymentCodesEnabled() && activationCodesEnabled && paymentCodePlanIds().includes(id);
+}
+export function paymentCodePlanEligibilityWhere(): Prisma.PaidAccessPlanWhereInput {
+  const ids = paymentCodePlanIds();
+  return { activationCodesEnabled: true, id: { in: ids } };
+}
+export function requirePaymentCodePlan(id: string, activationCodesEnabled = false) {
   requirePaymentCodes();
-  if (!paymentCodePlanEnabled(id)) throw new PaymentError("code_plan_not_enabled", 409);
+  if (!paymentCodePlanEnabled(id, activationCodesEnabled)) throw new PaymentError("code_plan_not_enabled", 409);
 }
 
 export const paymentSubjectSelect = {

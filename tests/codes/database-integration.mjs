@@ -6,8 +6,9 @@ import { moduleLoader } from "../admin/load-module.mjs";
 import { f } from "../payments/fixtures.mjs";
 
 const url = new URL(process.env.P2_TEST_DATABASE_URL);
-assert.equal(url.hostname, "127.0.0.1");
-assert.equal(url.pathname, "/p2_test");
+const localDatabase = url.hostname === "127.0.0.1" && url.pathname === "/p2_test";
+const isolatedNeon = url.hostname.endsWith(".neon.tech") && process.env.CODE_ACCESS_TEST_ISOLATED === "true";
+assert.ok(localDatabase || isolatedNeon, "An explicitly isolated PostgreSQL database is required");
 const prisma = new PrismaClient({ datasourceUrl: url.href });
 const second = new PrismaClient({ datasourceUrl: url.href });
 const adminId = "legacy-admin";
@@ -47,7 +48,7 @@ try {
   process.env.PAYMENT_CODES_ENABLED = "true";
   process.env.PAYMENT_CODE_PLAN_IDS = JSON.stringify([f.plan]);
   process.env.PAYMENT_LAUNCH_PLAN_IDS = "[]";
-  await prisma.paidAccessPlan.update({ where: { id: f.plan }, data: { defaultDurationDays: 5, defaultMaxUses: 1 } });
+  await prisma.paidAccessPlan.update({ where: { id: f.plan }, data: { activationCodesEnabled: true, defaultDurationDays: 5, defaultMaxUses: 1 } });
 
   await check("issuance stores only a hash and one audited idempotent result", async () => {
     const request = input();
@@ -108,7 +109,7 @@ try {
   });
 
   await check("code allowlist is enforced independently for issuance and redemption", async () => {
-    const secondPlan = await prisma.paidAccessPlan.create({ data: { scopeType: "subject", subjectId: f.sa, title: "Codes second plan", price: "1", currency: "SAR", isActive: true, defaultDurationDays: 2, defaultMaxUses: 1 } });
+    const secondPlan = await prisma.paidAccessPlan.create({ data: { scopeType: "subject", subjectId: f.sa, title: "Codes second plan", price: "1", currency: "SAR", isActive: true, activationCodesEnabled: true, defaultDurationDays: 2, defaultMaxUses: 1 } });
     await assert.rejects(issue({ planId: secondPlan.id }), /code_plan_not_enabled/);
     process.env.PAYMENT_CODE_PLAN_IDS = JSON.stringify([f.plan, secondPlan.id]);
     const issued = await issue({ planId: secondPlan.id });

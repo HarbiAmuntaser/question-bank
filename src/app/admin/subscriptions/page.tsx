@@ -117,7 +117,7 @@ async function getSubscriptionAdminData(params: SearchParams) {
       },
     }),
     prisma.paidAccessPlan.findMany({
-      where: { id: { in: codePlanIds }, isActive: true, ...paymentPlanWhere() },
+      where: { id: { in: codePlanIds }, activationCodesEnabled: true, isActive: true, ...paymentPlanWhere() },
       orderBy: { createdAt: "desc" },
       include: {
         major: {
@@ -180,6 +180,7 @@ async function getSubscriptionAdminData(params: SearchParams) {
     price: plan.price ? plan.price.toString() : null,
     currency: plan.currency,
     isActive: plan.isActive,
+    activationCodesEnabled: plan.activationCodesEnabled,
     whatsappNumber: plan.whatsappNumber,
     telegramUsername: plan.telegramUsername,
     contactMessage: plan.contactMessage,
@@ -218,6 +219,7 @@ async function getSubscriptionAdminData(params: SearchParams) {
     price: plan.price ? plan.price.toString() : null,
     currency: plan.currency,
     isActive: plan.isActive,
+    activationCodesEnabled: plan.activationCodesEnabled,
     whatsappNumber: plan.whatsappNumber,
     telegramUsername: plan.telegramUsername,
     contactMessage: plan.contactMessage,

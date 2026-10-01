@@ -7,7 +7,8 @@ const id = "90000000-0000-4000-8000-000000000001";
 const origin = "https://example.test";
 const change = { reason: "Security incident reviewed", expectedUpdatedAt: "2026-09-14T00:00:00.000Z" };
 const plan = { scopeType: "subject", subjectId: id, title: "Test plan", description: null, price: "100", currency: "SAR",
-  isActive: false, whatsappNumber: "966500000000", telegramUsername: null, contactMessage: null, defaultDurationDays: 30, defaultMaxUses: 1 };
+  isActive: false, activationCodesEnabled: false, whatsappNumber: "966500000000", telegramUsername: null,
+  contactMessage: null, defaultDurationDays: 30, defaultMaxUses: 1 };
 
 test("R2 strict metadata rejects missing/blank/oversized reasons and client actor/audit fields", () => {
   const { paymentAdminChangeSchema: schema } = moduleLoader()("src/validations/payment-admin.ts");

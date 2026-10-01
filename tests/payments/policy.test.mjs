@@ -6,15 +6,21 @@ import { f } from "./fixtures.mjs";
 function subject(countryCode = "SA", institutionType = "university") {
   return { id: f.sa, majorId: "real-major", isActive: true, major: { isActive: true, university: { isActive: true, countryCode, institutionType } } };
 }
-function harness({ country = "SA", type = "university", enabled = "true", accessType = "paid", preview = false, identity = null } = {}) {
-  const counts = { auth: 0, plan: 0, entitlement: 0 };
+function harness({ country = "SA", type = "university", enabled = "true", accessType = "paid", preview = false,
+  identity = null, policyPlan = null, entitlement = null, accountGrant = null, guestGrant = null } = {}) {
+  const counts = { auth: 0, plan: 0, entitlement: 0, accountGrant: 0, guestGrant: 0 };
   const data = subject(country, type);
   const prisma = {
     subject: { findFirst: async () => data },
     major: { findFirst: async () => ({ id: "real-major" }) },
     quiz: { findFirst: async () => ({ accessType, isFreePreview: preview, subject: data, questions: [] }) },
-    paidAccessPlan: { findFirst: async () => { counts.plan++; return null; } },
-    accessEntitlement: { findFirst: async (query) => { counts.entitlement++; assert.equal(query.where.userId, identity.id); return null; } },
+    paidAccessPlan: {
+      findMany: async () => { counts.plan++; return policyPlan ? [policyPlan] : []; },
+      findFirst: async () => null,
+    },
+    accessEntitlement: { findFirst: async (query) => { counts.entitlement++; assert.equal(query.where.userId, identity.id); return entitlement; } },
+    codeAccessGrant: { findFirst: async () => { counts.accountGrant++; return accountGrant; } },
+    codeAccessSessionBinding: { findFirst: async () => { counts.guestGrant++; return guestGrant ? { grant: guestGrant } : null; } },
   };
   const load = moduleLoader({ "@/lib/prisma": { prisma }, "@/lib/auth-helpers": { getCurrentUser: async () => { counts.auth++; return identity; } } },
     { process: { env: { PAYMENT_V1_ENABLED: enabled } } });
@@ -26,7 +32,7 @@ test("YE and academies never consult accounts, plans, entitlements or anonymous 
     const h = harness({ country, type });
     assert.equal((await h.access.checkQuizAccess({ quizId: "q" })).reason, "out_of_scope");
     assert.equal((await h.access.checkScopeAccess({ subjectId: "s", majorId: "forged-major" })).reason, "out_of_scope");
-    assert.deepEqual(h.counts, { auth: 0, plan: 0, entitlement: 0 });
+    assert.deepEqual(h.counts, { auth: 0, plan: 0, entitlement: 0, accountGrant: 0, guestGrant: 0 });
   }
 });
 test("free and preview SA material stays public while paid material fails closed before launch", async () => {
@@ -35,7 +41,9 @@ test("free and preview SA material stays public while paid material fails closed
     const result = await h.access.checkQuizAccess({ quizId: "q" });
     assert.equal(result.reason, reason === "payments_unavailable" ? "student_signin_required" : reason);
     assert.equal(result.canPurchase, false); assert.equal(result.canRedeemCode, false);
-    assert.deepEqual(h.counts, reason === "payments_unavailable" ? { auth: 1, plan: 1, entitlement: 0 } : { auth: 0, plan: 0, entitlement: 0 });
+    assert.deepEqual(h.counts, reason === "payments_unavailable"
+      ? { auth: 1, plan: 1, entitlement: 0, accountGrant: 0, guestGrant: 0 }
+      : { auth: 0, plan: 0, entitlement: 0, accountGrant: 0, guestGrant: 0 });
   }
 });
 test("student identity is required and major-level legacy plans cannot grant access", async () => {
@@ -47,7 +55,7 @@ test("student identity is required and major-level legacy plans cannot grant acc
   const user = { id: "student", role: "student", isActive: true, emailVerified: new Date(), sessionVersion: 0 };
   const student = harness({ identity: user });
   assert.equal((await student.access.checkQuizAccess({ quizId: "q" })).reason, "payments_unavailable");
-  assert.equal(student.counts.entitlement, 1);
+  assert.equal(student.counts.entitlement, 1); assert.equal(student.counts.accountGrant, 1);
 });
 test("missing/mixed quiz ownership and unpublished records never fail open", async () => {
   const h = harness();
@@ -58,6 +66,26 @@ test("missing/mixed quiz ownership and unpublished records never fail open", asy
   h.prisma.quiz.findFirst = async () => ({ accessType: "paid", isFreePreview: false, subject: { ...subject("YE"), id: "ye" }, questions: [{ question: { chapter: { subject: subject() } } }] });
   assert.equal((await h.access.checkQuizAccess({ quizId: "mixed" })).reason, "missing_context");
   assert.equal(h.counts.entitlement, 0);
+});
+
+test("plan existence defines inherit policy while inactive commerce never removes existing access", async () => {
+  const plan = { id: "plan", scopeType: "subject", title: "Policy", description: null, price: "1", currency: "SAR",
+    whatsappNumber: null, telegramUsername: null, contactMessage: null, majorId: null, subjectId: f.sa, isActive: false };
+  const user = { id: "student", role: "student", isActive: true, emailVerified: new Date(), sessionVersion: 0 };
+  assert.equal((await harness({ accessType: "inherit" }).access.checkQuizAccess({ quizId: "q" })).reason, "no_paid_plan");
+  assert.equal((await harness({ accessType: "inherit", identity: user, policyPlan: plan }).access.checkQuizAccess({ quizId: "q" })).reason, "payments_unavailable");
+  const manual = harness({ accessType: "inherit", identity: user, policyPlan: plan,
+    entitlement: { id: "entitlement", expiresAt: new Date(Date.now() + 60_000) } });
+  const manualAccess = await manual.access.checkQuizAccess({ quizId: "q" });
+  assert.equal(manualAccess.allowed, true); assert.equal(manualAccess.accessSource, "manual");
+  const account = harness({ accessType: "inherit", identity: user, policyPlan: plan,
+    accountGrant: { id: "grant", expiresAt: new Date(Date.now() + 60_000) } });
+  const accountAccess = await account.access.checkQuizAccess({ quizId: "q" });
+  assert.equal(accountAccess.allowed, true); assert.equal(accountAccess.accessSource, "account_code");
+  const guest = harness({ accessType: "inherit", policyPlan: plan,
+    guestGrant: { id: "guest-grant", expiresAt: new Date(Date.now() + 60_000) } });
+  const guestAccess = await guest.access.checkQuizAccess({ quizId: "q", guestSessionToken: "A".repeat(43) });
+  assert.equal(guestAccess.allowed, true); assert.equal(guestAccess.accessSource, "guest_code");
 });
 test("payment schemas reject client authority and the retired manual-request schema is absent", () => {
   const schemas = moduleLoader()("src/validations/payment.ts");
@@ -74,7 +102,7 @@ test("release flag closes code redemption before any database or authentication 
     const post = h.load("src/lib/server/payment-http.ts").paymentPost;
     const response = await post(new Request("https://mustawak.com/api/v1/student/access/redeem", { method: "POST", body: "{}" }));
     assert.equal(response.status, 503); assert.match(response.headers.get("cache-control"), /no-store/);
-    assert.deepEqual(h.counts, { auth: 0, plan: 0, entitlement: 0 });
+    assert.deepEqual(h.counts, { auth: 0, plan: 0, entitlement: 0, accountGrant: 0, guestGrant: 0 });
   }
 });
 

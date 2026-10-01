@@ -116,13 +116,18 @@ export function PlanDialog({ children, plan, paymentsEnabled = false }: { childr
             <Label htmlFor="isActive">الخطة نشطة</Label>
           </div>
 
+          <div className="flex items-center gap-3">
+            <Switch id="activationCodesEnabled" name="activationCodesEnabled" defaultChecked={plan?.activationCodesEnabled ?? false} />
+            <Label htmlFor="activationCodesEnabled">الخطة مؤهلة لأكواد التفعيل</Label>
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="plan-reason">سبب الإنشاء أو التعديل (داخلي)</Label>
             <Textarea id="plan-reason" name="reason" required minLength={5} maxLength={1000} rows={2} />
           </div>
           {plan?.isActive && <label className="flex items-start gap-2 text-sm">
             <input type="checkbox" name="confirmContentChange" className="mt-1" />
-            <span>عند تعطيل الخطة، أقر بأن المحتوى الذي يرثها قد يصبح مجانيًا.</span>
+            <span>أقر بأن تعطيل الخطة يوقف عمليات الشراء الجديدة، ولا يجعل المحتوى الموروث مجانيًا.</span>
           </label>}
           <DialogFooter>
             <Button type="submit" disabled={pending}>{pending ? "جار الحفظ..." : "حفظ"}</Button>

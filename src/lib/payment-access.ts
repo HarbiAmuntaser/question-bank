@@ -17,4 +17,7 @@ export type AccessStatus = {
   subjectId: string | null;
   plan: AccessPlan | null;
   entitlementId: string | null;
+  codeGrantId: string | null;
+  accessSource: "manual" | "account_code" | "guest_code" | null;
+  expiresAt: string | null;
 };

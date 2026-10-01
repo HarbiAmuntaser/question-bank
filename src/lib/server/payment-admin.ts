@@ -4,17 +4,18 @@ import type { AccessEntitlement, PaidAccessPlan, Prisma, SubscriptionCode } from
 import { issuePaymentCodeSchema, paymentPlanSchema } from "@/validations/payment";
 import { paymentAdminChangeSchema, paymentAdminReasonSchema, paymentAdminTargetSchema } from "@/validations/payment-admin";
 import { PaymentError, paymentPlanWhere, requirePaymentCodePlan, requirePaymentSubject, requirePaymentV1, requirePaymentCodes } from "@/lib/server/payment-scope";
-import { paymentTransaction } from "@/lib/server/payment-mutations";
+import { paymentTransaction } from "@/lib/server/payment-transaction";
 import { requirePaymentAdmin, recheckPaymentAdmin } from "@/lib/server/payment-admin-auth";
 import { lockPaymentUsers } from "@/lib/server/payment-order-access";
-import { codePreviewFromPlainCode, generateSubscriptionCode, hashSubscriptionCode } from "@/lib/server/subscription-code";
+import { codePreviewFromPlainCode, generateCodeSupportReference, generateSubscriptionCode, hashSubscriptionCode } from "@/lib/server/subscription-code";
 import { assertPaymentPlanPrivateSummaryMedia } from "@/lib/server/payment-media";
 
 function snapshot(value: object): Prisma.InputJsonObject { return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonObject; }
 function codeSnapshot(row: SubscriptionCode) {
   return snapshot({ id: row.id, planId: row.planId, isActive: row.isActive,
     maxUses: row.maxUses, usedCount: row.usedCount, durationDays: row.durationDays, startsAt: row.startsAt,
-    expiresAt: row.expiresAt, updatedAt: row.updatedAt });
+    expiresAt: row.expiresAt, supportReference: row.supportReference,
+    maxBrowserSessions: row.maxBrowserSessions, updatedAt: row.updatedAt });
 }
 function grantSnapshot(row: AccessEntitlement) {
   return snapshot({ id: row.id, userId: row.userId, subjectId: row.subjectId, scopeType: row.scopeType,
@@ -28,7 +29,7 @@ function nextUpdate(row: { updatedAt: Date }) { return new Date(Math.max(Date.no
 function codeIssuanceRequestHash(input: ReturnType<typeof issuePaymentCodeSchema.parse>, reason: string) {
   return createHash("sha256").update(JSON.stringify({
     planId: input.planId,
-    maxUses: input.maxUses,
+    maxUses: 1,
     durationDays: input.durationDays,
     startsAt: input.startsAt?.toISOString() ?? null,
     expiresAt: input.expiresAt?.toISOString() ?? null,
@@ -87,18 +88,19 @@ export async function issuePaymentCode(raw: unknown, reason: unknown) {
       if (existing.issuanceRequestHash !== requestHash) throw new PaymentError("payment_idempotency_conflict", 409);
       return { alreadyIssued: true, codeId: existing.id, plainCode: null };
     }
-    requirePaymentCodePlan(input.planId);
     await tx.$queryRaw`SELECT id FROM paid_access_plans WHERE id = ${input.planId} FOR SHARE`;
     const plan = await tx.paidAccessPlan.findFirst({ where: { id: input.planId, isActive: true, ...paymentPlanWhere() },
-      select: { id: true, defaultMaxUses: true, defaultDurationDays: true } });
+      select: { id: true, activationCodesEnabled: true, defaultDurationDays: true } });
     if (!plan) throw new PaymentError("payment_scope_not_allowed", 409);
+    requirePaymentCodePlan(plan.id, plan.activationCodesEnabled);
     const durationDays = input.durationDays ?? plan.defaultDurationDays;
     if (!Number.isInteger(durationDays) || durationDays! < 1 || durationDays! > 36500) throw new PaymentError("invalid_code_window", 409);
     const plainCode = generateSubscriptionCode();
     const code = await tx.subscriptionCode.create({ data: {
       planId: plan.id, codeHash: hashSubscriptionCode(plainCode), codePreview: codePreviewFromPlainCode(plainCode),
+      supportReference: generateCodeSupportReference(), maxBrowserSessions: 1,
       durationDays: input.durationDays, startsAt: input.startsAt, expiresAt: input.expiresAt,
-      maxUses: input.maxUses ?? plan.defaultMaxUses, usedCount: 0, isActive: true, note: input.note, createdBy: actor.id,
+      maxUses: 1, usedCount: 0, isActive: true, note: input.note, createdBy: actor.id,
       issuanceIdempotencyKey: input.idempotencyKey, issuanceRequestHash: requestHash,
     } });
     await tx.paymentAdminEvent.create({ data: { actorId: actor.id, actorSessionVersion: actor.sessionVersion,

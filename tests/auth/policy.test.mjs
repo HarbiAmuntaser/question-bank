@@ -55,7 +55,12 @@ test("R3 preserves pricing plans while removing only the retired request relatio
     const pattern = new RegExp("model " + model + " \\{[\\s\\S]*?\\n\\}");
     // Later payment stages may add relations without restoring R3's retired manual-request model.
     const normalize = (value) => value.replaceAll("\r", "").replace(/^\s*orderItems\s+PaymentOrderItem\[\]\n/m, "").replace(/^\s*adminEvents\s+PaymentAdminEvent\[\]\n/m, "").replace(/^\s*codeRedemptions\s+PaymentCodeRedemptionEvent\[\]\n/m, "").replace(/^\s*paymentRequests\s+ManualPaymentRequest\[\]\n/m, "");
-    assert.equal(normalize(current.match(pattern)[0]), normalize(old.match(pattern)[0]));
+    const stripCodeAccess = (value) => value
+      .replace(/^\s*isActive\s+Boolean @default\(true\)\n/m, `  isActive Boolean @default(true)\n`)
+      .replace(/^\s*activationCodesEnabled\s+Boolean.*\n/m, String())
+      .replace(/^\s*codes\s+SubscriptionCode\[\]\n/m, String())
+      .replace(/^\s*codeAccessGrants\s+CodeAccessGrant\[\]\n/m, String());
+    assert.equal(normalize(stripCodeAccess(current.match(pattern)[0])), normalize(stripCodeAccess(old.match(pattern)[0])));
   }
 });
 

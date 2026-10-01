@@ -27,7 +27,8 @@ function changeInput(form: FormData) {
 function planInput(form: FormData) {
   return { scopeType: text(form, "scopeType"), subjectId: text(form, "subjectId"), title: text(form, "title"),
     description: nullableText(form, "description"), price: nullableText(form, "price"), currency: text(form, "currency") || "SAR",
-    isActive: form.get("isActive") === "on", whatsappNumber: nullableText(form, "whatsappNumber"),
+    isActive: form.get("isActive") === "on", activationCodesEnabled: form.get("activationCodesEnabled") === "on",
+    whatsappNumber: nullableText(form, "whatsappNumber"),
     telegramUsername: nullableText(form, "telegramUsername"), contactMessage: nullableText(form, "contactMessage"),
     defaultDurationDays: number(form, "defaultDurationDays"), defaultMaxUses: number(form, "defaultMaxUses") ?? 1 };
 }

@@ -1,25 +1,12 @@
 import "server-only";
-import { Prisma } from "@prisma/client";
-import { prisma } from "@/lib/prisma";
 import { accessPlanSelect, checkQuizAccess, serializeAccessPlan } from "@/lib/server/access-control";
 import { hashSubscriptionCode, normalizeSubscriptionCode } from "@/lib/server/subscription-code";
 import { redeemPaymentCodeSchema } from "@/validations/payment";
 import { PaymentError, recheckPaymentStudent, requirePaymentCodePlan, requirePaymentStudent, requirePaymentSubject, requirePaymentCodes } from "@/lib/server/payment-scope";
 import { lockPaymentUsers, refreshPaymentAccount } from "@/lib/server/payment-order-access";
+import { paymentTransaction } from "@/lib/server/payment-transaction";
 
-export async function paymentTransaction<T>(work: (tx: Prisma.TransactionClient) => Promise<T>): Promise<T> {
-  for (let attempt = 0; attempt < 3; attempt++) {
-    try { return await prisma.$transaction(work, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }); }
-    catch (error) {
-      if (!(error instanceof Prisma.PrismaClientKnownRequestError)) throw error;
-      // PostgreSQL serialization/deadlock errors from explicit row locks are wrapped as P2010.
-      const retryable = ["P2034", "P2002"].includes(error.code) ||
-        (error.code === "P2010" && ["40001", "40P01"].includes(String(error.meta?.code)));
-      if (!retryable) throw error;
-    }
-  }
-  throw new PaymentError("payment_conflict_retry", 409);
-}
+export { paymentTransaction } from "@/lib/server/payment-transaction";
 
 export async function redeemSubscriptionCode(raw: unknown) {
   requirePaymentCodes();
@@ -38,10 +25,10 @@ export async function redeemSubscriptionCode(raw: unknown) {
     await recheckPaymentStudent(tx, user);
     await requirePaymentSubject(subject.id, tx);
     const code = await tx.subscriptionCode.findUnique({ where: { codeHash: hashSubscriptionCode(normalized) },
-      include: { plan: { select: { ...accessPlanSelect, isActive: true, defaultDurationDays: true } } } });
+      include: { plan: { select: { ...accessPlanSelect, isActive: true, activationCodesEnabled: true, defaultDurationDays: true } } } });
     if (!code) throw new PaymentError("invalid_code");
     if (code.plan.scopeType !== "subject" || code.plan.majorId !== null || code.plan.subjectId !== subject.id) throw new PaymentError("payment_target_mismatch", 409);
-    requirePaymentCodePlan(code.planId);
+    requirePaymentCodePlan(code.planId, code.plan.activationCodesEnabled);
     if (!code.plan.isActive) throw new PaymentError("inactive_plan");
     const now = new Date();
     // A repeat by the same account is idempotent, never a renewal of an expired grant.

@@ -105,41 +105,43 @@ enum Locale {
 // Users (NextAuth)
 // -----------------
 model User {
-  id            String    @id @default(uuid())
-  name          String?
-  email         String    @unique
-  normalizedEmail String  @unique
-  password      String?
-  emailVerified DateTime?
-  image         String?
-  role          UserRole  @default(student)
-  isActive      Boolean   @default(true)
-  sessionVersion Int      @default(0)
-  createdAt     DateTime  @default(now())
+  id              String    @id @default(uuid())
+  name            String?
+  email           String    @unique
+  normalizedEmail String    @unique
+  password        String?
+  emailVerified   DateTime?
+  image           String?
+  role            UserRole  @default(student)
+  isActive        Boolean   @default(true)
+  sessionVersion  Int       @default(0)
+  createdAt       DateTime  @default(now())
 
   // Relations
   accounts                 Account[]
   sessions                 Session[]
   authTokens               UserAuthToken[]
-  accessEntitlements       AccessEntitlement[] @relation("UserAccessEntitlements")
+  accessEntitlements       AccessEntitlement[]          @relation("UserAccessEntitlements")
   paymentOrders            PaymentOrder[]
   paymentOrderEvents       PaymentOrderEvent[]
   paymentReviewEvents      PaymentReviewEvent[]
   paymentAdminEvents       PaymentAdminEvent[]
   paymentCodeRedemptions   PaymentCodeRedemptionEvent[]
   paymentAccountLock       PaymentAccountLock?
-  universitiesCreated      University[]        @relation("UniversityCreatedBy")
-  collegesCreated          College[]           @relation("CollegeCreatedBy")
-  majorsCreated            Major[]             @relation("MajorCreatedBy")
-  subjectsCreated          Subject[]           @relation("SubjectCreatedBy")
-  chaptersCreated          Chapter[]           @relation("ChapterCreatedBy")
-  questionsCreated         Question[]          @relation("QuestionCreatedBy")
-  quizzesCreated           Quiz[]              @relation("QuizCreatedBy")
+  universitiesCreated      University[]                 @relation("UniversityCreatedBy")
+  collegesCreated          College[]                    @relation("CollegeCreatedBy")
+  majorsCreated            Major[]                      @relation("MajorCreatedBy")
+  subjectsCreated          Subject[]                    @relation("SubjectCreatedBy")
+  chaptersCreated          Chapter[]                    @relation("ChapterCreatedBy")
+  questionsCreated         Question[]                   @relation("QuestionCreatedBy")
+  quizzesCreated           Quiz[]                       @relation("QuizCreatedBy")
   quizAttempts             QuizAttempt[]
-  blogPostsCreated         BlogPost[]          @relation("BlogPostCreatedBy")
-  blogPostsUpdated         BlogPost[]          @relation("BlogPostUpdatedBy")
-  blogPostViewEvents       BlogPostViewEvent[] @relation("BlogPostViewUser")
-  subscriptionCodesCreated SubscriptionCode[]  @relation("SubscriptionCodeCreatedBy")
+  blogPostsCreated         BlogPost[]                   @relation("BlogPostCreatedBy")
+  blogPostsUpdated         BlogPost[]                   @relation("BlogPostUpdatedBy")
+  blogPostViewEvents       BlogPostViewEvent[]          @relation("BlogPostViewUser")
+  subscriptionCodesCreated SubscriptionCode[]           @relation("SubscriptionCodeCreatedBy")
+  codeAccessGrants         CodeAccessGrant[]            @relation("UserCodeAccessGrants")
+  codeAccessEvents         CodeAccessEvent[]            @relation("CodeAccessEventActor")
 
   @@map("users")
 }
@@ -150,15 +152,15 @@ enum UserAuthTokenPurpose {
 }
 
 model UserAuthToken {
-  id             String   @id @default(uuid())
+  id             String               @id @default(uuid())
   userId         String
   purpose        UserAuthTokenPurpose
-  tokenHash      String   @unique
+  tokenHash      String               @unique
   sessionVersion Int
   callbackPath   String
   expiresAt      DateTime
-  createdAt      DateTime @default(now())
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt      DateTime             @default(now())
+  user           User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, purpose])
   @@index([expiresAt])
@@ -204,9 +206,9 @@ model University {
   institutionType InstitutionType       @default(university)
   visibility      InstitutionVisibility @default(country)
 
-  creator User?   @relation("UniversityCreatedBy", fields: [createdBy], references: [id])
+  creator  User?     @relation("UniversityCreatedBy", fields: [createdBy], references: [id])
   colleges College[]
-  majors  Major[]
+  majors   Major[]
 
   @@index([countryCode, institutionType, isActive])
   @@index([institutionType, visibility, isActive])
@@ -255,11 +257,11 @@ model Major {
   updatedAt     DateTime @updatedAt
 
   // Relations
-  university         University          @relation(fields: [universityId], references: [id], onDelete: Cascade)
-  college            College?            @relation(fields: [collegeId], references: [id], onDelete: Restrict)
-  creator            User?               @relation("MajorCreatedBy", fields: [createdBy], references: [id])
-  subjects           Subject[]
-  paidAccessPlans    PaidAccessPlan[]    @relation("MajorPaidAccessPlans")
+  university      University       @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  college         College?         @relation(fields: [collegeId], references: [id], onDelete: Restrict)
+  creator         User?            @relation("MajorCreatedBy", fields: [createdBy], references: [id])
+  subjects        Subject[]
+  paidAccessPlans PaidAccessPlan[] @relation("MajorPaidAccessPlans")
 
   @@unique([universityId, code])
   @@index([collegeId])
@@ -284,15 +286,16 @@ model Subject {
   updatedAt   DateTime @updatedAt
 
   // Relations
-  major              Major               @relation(fields: [majorId], references: [id], onDelete: Cascade)
-  creator            User?               @relation("SubjectCreatedBy", fields: [createdBy], references: [id])
+  major              Major                        @relation(fields: [majorId], references: [id], onDelete: Cascade)
+  creator            User?                        @relation("SubjectCreatedBy", fields: [createdBy], references: [id])
   chapters           Chapter[]
   Quiz               Quiz[]
   studySummaries     StudySummary[]
-  paidAccessPlans    PaidAccessPlan[]    @relation("SubjectPaidAccessPlans")
-  accessEntitlements AccessEntitlement[] @relation("SubjectAccessEntitlements")
+  paidAccessPlans    PaidAccessPlan[]             @relation("SubjectPaidAccessPlans")
+  accessEntitlements AccessEntitlement[]          @relation("SubjectAccessEntitlements")
   paymentOrderItems  PaymentOrderItem[]
   codeRedemptions    PaymentCodeRedemptionEvent[]
+  codeAccessGrants   CodeAccessGrant[]
 
   @@unique([majorId, code])
   @@map("subjects")
@@ -302,7 +305,7 @@ model Subject {
 // Chapters/Topics
 // -----------------
 model Chapter {
-  id                 String   @id @default(uuid())
+  id                 String      @id @default(uuid())
   subjectId          String
   name               String
   slug               String?
@@ -310,10 +313,10 @@ model Chapter {
   description        String?
   learningObjectives String[]
   kind               ChapterKind @default(theory)
-  isActive           Boolean  @default(true)
+  isActive           Boolean     @default(true)
   createdBy          String?
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
 
   // Relations
   subject           Subject             @relation(fields: [subjectId], references: [id], onDelete: Cascade)
@@ -485,10 +488,10 @@ model StudySummary {
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
 
-  subject       Subject     @relation(fields: [subjectId], references: [id], onDelete: Cascade)
-  chapter       Chapter?    @relation(fields: [chapterId], references: [id], onDelete: SetNull)
-  pdfAttachment Attachment? @relation("StudySummaryPdf", fields: [pdfAttachmentId], references: [id], onDelete: SetNull)
-  reviewQuestions Question[] @relation("QuestionReviewSummary")
+  subject         Subject     @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  chapter         Chapter?    @relation(fields: [chapterId], references: [id], onDelete: SetNull)
+  pdfAttachment   Attachment? @relation("StudySummaryPdf", fields: [pdfAttachmentId], references: [id], onDelete: SetNull)
+  reviewQuestions Question[]  @relation("QuestionReviewSummary")
 
   @@unique([subjectId, slug, language])
   @@index([subjectId, status, publishedAt])
@@ -513,8 +516,8 @@ model AnonymousSession {
   blogPostViewEvents BlogPostViewEvent[] @relation("BlogPostViewSession")
 
   // Relations
-  quizAttempts       QuizAttempt[]
-  sessionProgress    SessionProgress[]
+  quizAttempts    QuizAttempt[]
+  sessionProgress SessionProgress[]
 
   @@map("anonymous_sessions")
 }
@@ -709,6 +712,27 @@ enum QuizAccessType {
   paid
 }
 
+enum CodeAccessPrincipalType {
+  account
+  guest
+}
+
+enum CodeAccessEventType {
+  activated
+  session_recovered
+  session_transferred
+  session_revoked
+  browser_limit_changed
+  grant_revoked
+}
+
+enum CodeAccessActorType {
+  account
+  guest
+  admin
+  system
+}
+
 model PaidAccessPlan {
   id String @id @default(uuid())
 
@@ -722,7 +746,8 @@ model PaidAccessPlan {
   price    Decimal? @db.Decimal(10, 2)
   currency String?  @default("SAR")
 
-  isActive Boolean @default(true)
+  isActive               Boolean @default(true)
+  activationCodesEnabled Boolean @default(false)
 
   whatsappNumber   String?
   telegramUsername String?
@@ -737,10 +762,11 @@ model PaidAccessPlan {
   major   Major?   @relation("MajorPaidAccessPlans", fields: [majorId], references: [id], onDelete: Cascade)
   subject Subject? @relation("SubjectPaidAccessPlans", fields: [subjectId], references: [id], onDelete: Cascade)
 
-  codes           SubscriptionCode[]
-  orderItems      PaymentOrderItem[]
-  adminEvents     PaymentAdminEvent[]
-  codeRedemptions PaymentCodeRedemptionEvent[]
+  codes            SubscriptionCode[]
+  orderItems       PaymentOrderItem[]
+  adminEvents      PaymentAdminEvent[]
+  codeRedemptions  PaymentCodeRedemptionEvent[]
+  codeAccessGrants CodeAccessGrant[]
 
   @@index([scopeType])
   @@index([majorId])
@@ -767,30 +793,30 @@ enum PaymentOrderEventType {
 }
 
 model PaymentOrder {
-  id                 String @id @default(uuid())
-  reference          String @unique
+  id                 String               @id @default(uuid())
+  reference          String               @unique
   userId             String
-  user               User @relation(fields: [userId], references: [id], onDelete: NoAction)
+  user               User                 @relation(fields: [userId], references: [id], onDelete: NoAction)
   idempotencyKey     String
   requestHash        String
   cartKey            String
   activeCartKey      String?
-  status             PaymentOrderStatus @default(pending_payment)
-  currency           String @default("SAR")
-  total              Decimal @db.Decimal(12, 2)
+  status             PaymentOrderStatus   @default(pending_payment)
+  currency           String               @default("SAR")
+  total              Decimal              @db.Decimal(12, 2)
   itemCount          Int
   contactMethod      ContactMethod
   contactValue       String
-  expiresAt          DateTime @db.Timestamptz(3)
-    contactRequestedAt DateTime? @db.Timestamptz(3)
-    reviewStartedAt    DateTime? @db.Timestamptz(3)
-    reviewVersion      Int @default(0)
-  createdAt          DateTime @default(now()) @db.Timestamptz(3)
-  updatedAt          DateTime @updatedAt @db.Timestamptz(3)
+  expiresAt          DateTime             @db.Timestamptz(3)
+  contactRequestedAt DateTime?            @db.Timestamptz(3)
+  reviewStartedAt    DateTime?            @db.Timestamptz(3)
+  reviewVersion      Int                  @default(0)
+  createdAt          DateTime             @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime             @updatedAt @db.Timestamptz(3)
   items              PaymentOrderItem[]
-    events             PaymentOrderEvent[]
-    reviews            PaymentReviewEvent[]
-    ledger             PaymentLedgerEntry[]
+  events             PaymentOrderEvent[]
+  reviews            PaymentReviewEvent[]
+  ledger             PaymentLedgerEntry[]
 
   @@unique([userId, idempotencyKey])
   @@unique([userId, activeCartKey])
@@ -800,19 +826,19 @@ model PaymentOrder {
 }
 
 model PaymentOrderItem {
-  id             String @id @default(uuid())
+  id             String             @id @default(uuid())
   orderId        String
-  order          PaymentOrder @relation(fields: [orderId], references: [id], onDelete: NoAction)
+  order          PaymentOrder       @relation(fields: [orderId], references: [id], onDelete: NoAction)
   subjectId      String
-  subject        Subject @relation(fields: [subjectId], references: [id], onDelete: NoAction)
+  subject        Subject            @relation(fields: [subjectId], references: [id], onDelete: NoAction)
   planId         String
-  plan           PaidAccessPlan @relation(fields: [planId], references: [id], onDelete: NoAction)
+  plan           PaidAccessPlan     @relation(fields: [planId], references: [id], onDelete: NoAction)
   subjectName    String
   universityName String
   planTitle      String
-  price          Decimal @db.Decimal(10, 2)
-    durationDays   Int?
-    entitlement    AccessEntitlement?
+  price          Decimal            @db.Decimal(10, 2)
+  durationDays   Int?
+  entitlement    AccessEntitlement?
 
   @@unique([orderId, subjectId])
   @@index([subjectId])
@@ -821,13 +847,13 @@ model PaymentOrderItem {
 }
 
 model PaymentOrderEvent {
-  id        String @id @default(uuid())
+  id        String                @id @default(uuid())
   orderId   String
-  order     PaymentOrder @relation(fields: [orderId], references: [id], onDelete: NoAction)
+  order     PaymentOrder          @relation(fields: [orderId], references: [id], onDelete: NoAction)
   actorId   String?
-  actor     User? @relation(fields: [actorId], references: [id], onDelete: NoAction)
+  actor     User?                 @relation(fields: [actorId], references: [id], onDelete: NoAction)
   type      PaymentOrderEventType
-  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  createdAt DateTime              @default(now()) @db.Timestamptz(3)
 
   @@unique([orderId, type])
   @@index([actorId])
@@ -848,7 +874,7 @@ enum PaymentReviewAction {
 
 model PaymentAccountLock {
   userId  String @id
-  user    User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   version BigInt @default(0)
 
   @@map("payment_account_locks")
@@ -862,11 +888,11 @@ enum PaymentLedgerKind {
 }
 
 model PaymentReviewEvent {
-  id                  String @id @default(uuid())
+  id                  String               @id @default(uuid())
   orderId             String
-  order               PaymentOrder @relation(fields: [orderId], references: [id], onDelete: NoAction)
+  order               PaymentOrder         @relation(fields: [orderId], references: [id], onDelete: NoAction)
   actorId             String
-  actor               User @relation(fields: [actorId], references: [id], onDelete: NoAction)
+  actor               User                 @relation(fields: [actorId], references: [id], onDelete: NoAction)
   actorSessionVersion Int
   action              PaymentReviewAction
   version             Int
@@ -874,10 +900,10 @@ model PaymentReviewEvent {
   toStatus            PaymentOrderStatus
   idempotencyKey      String
   requestHash         String
-  internalNote        String @default("")
+  internalNote        String               @default("")
   studentMessage      String?
   conflictCode        String?
-  createdAt           DateTime @default(now()) @db.Timestamptz(3)
+  createdAt           DateTime             @default(now()) @db.Timestamptz(3)
   ledger              PaymentLedgerEntry[]
 
   @@unique([orderId, idempotencyKey])
@@ -887,18 +913,18 @@ model PaymentReviewEvent {
 }
 
 model PaymentLedgerEntry {
-  id          String @id @default(uuid())
+  id          String               @id @default(uuid())
   orderId     String
-  order       PaymentOrder @relation(fields: [orderId], references: [id], onDelete: NoAction)
+  order       PaymentOrder         @relation(fields: [orderId], references: [id], onDelete: NoAction)
   eventId     String
-  event       PaymentReviewEvent @relation(fields: [eventId], references: [id], onDelete: NoAction)
+  event       PaymentReviewEvent   @relation(fields: [eventId], references: [id], onDelete: NoAction)
   kind        PaymentLedgerKind
-  amount      Decimal @db.Decimal(12, 2)
-  reference   String? @unique
+  amount      Decimal              @db.Decimal(12, 2)
+  reference   String?              @unique
   sourceId    String?
-  source      PaymentLedgerEntry? @relation("LedgerCorrections", fields: [sourceId], references: [id], onDelete: NoAction)
+  source      PaymentLedgerEntry?  @relation("LedgerCorrections", fields: [sourceId], references: [id], onDelete: NoAction)
   adjustments PaymentLedgerEntry[] @relation("LedgerCorrections")
-  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+  createdAt   DateTime             @default(now()) @db.Timestamptz(3)
 
   @@unique([sourceId, kind])
   @@index([orderId, createdAt, id])
@@ -909,8 +935,9 @@ model PaymentLedgerEntry {
 model SubscriptionCode {
   id String @id @default(uuid())
 
-  codeHash    String  @unique
-  codePreview String?
+  codeHash         String  @unique
+  codePreview      String?
+  supportReference String? @unique @db.VarChar(32)
 
   planId String
   plan   PaidAccessPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
@@ -919,23 +946,26 @@ model SubscriptionCode {
   startsAt     DateTime?
   expiresAt    DateTime?
 
-  maxUses   Int @default(1)
-  usedCount Int @default(0)
+  maxUses            Int @default(1)
+  usedCount          Int @default(0)
+  maxBrowserSessions Int @default(1)
 
   isActive Boolean @default(true)
   note     String?
 
-  createdBy String?
+  createdBy              String?
   issuanceIdempotencyKey String?
   issuanceRequestHash    String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
 
   creator User? @relation("SubscriptionCodeCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
 
   entitlements AccessEntitlement[]
   adminEvents  PaymentAdminEvent[]
   redemptions  PaymentCodeRedemptionEvent[]
+  accessGrant  CodeAccessGrant?
+  accessEvents CodeAccessEvent[]
 
   @@unique([createdBy, issuanceIdempotencyKey])
   @@index([planId])
@@ -945,9 +975,100 @@ model SubscriptionCode {
   @@map("subscription_codes")
 }
 
+model CodeAccessGrant {
+  id            String                  @id @default(uuid())
+  codeId        String                  @unique
+  planId        String
+  subjectId     String
+  principalType CodeAccessPrincipalType
+  userId        String?
+  startsAt      DateTime                @db.Timestamptz(3)
+  expiresAt     DateTime                @db.Timestamptz(3)
+  isActive      Boolean                 @default(true)
+  revokedAt     DateTime?               @db.Timestamptz(3)
+  createdAt     DateTime                @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime                @updatedAt @db.Timestamptz(3)
+
+  code     SubscriptionCode           @relation(fields: [codeId], references: [id], onDelete: NoAction)
+  plan     PaidAccessPlan             @relation(fields: [planId], references: [id], onDelete: NoAction)
+  subject  Subject                    @relation(fields: [subjectId], references: [id], onDelete: NoAction)
+  user     User?                      @relation("UserCodeAccessGrants", fields: [userId], references: [id], onDelete: NoAction)
+  sessions CodeAccessSessionBinding[]
+  events   CodeAccessEvent[]
+
+  @@index([userId, subjectId, isActive, expiresAt])
+  @@index([subjectId, isActive, expiresAt])
+  @@index([planId])
+  @@map("code_access_grants")
+}
+
+model GuestAccessSession {
+  id         String    @id @default(uuid())
+  tokenHash  String    @unique @db.VarChar(64)
+  expiresAt  DateTime  @db.Timestamptz(3)
+  lastSeenAt DateTime  @default(now()) @db.Timestamptz(3)
+  revokedAt  DateTime? @db.Timestamptz(3)
+  createdAt  DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt  DateTime  @updatedAt @db.Timestamptz(3)
+
+  bindings       CodeAccessSessionBinding[]
+  actorEvents    CodeAccessEvent[]          @relation("CodeAccessEventSession")
+  replacedEvents CodeAccessEvent[]          @relation("CodeAccessEventReplacedSession")
+
+  @@index([expiresAt])
+  @@index([revokedAt])
+  @@map("guest_access_sessions")
+}
+
+model CodeAccessSessionBinding {
+  id         String    @id @default(uuid())
+  grantId    String
+  sessionId  String
+  boundAt    DateTime  @default(now()) @db.Timestamptz(3)
+  lastUsedAt DateTime  @default(now()) @db.Timestamptz(3)
+  revokedAt  DateTime? @db.Timestamptz(3)
+  updatedAt  DateTime  @updatedAt @db.Timestamptz(3)
+
+  grant   CodeAccessGrant    @relation(fields: [grantId], references: [id], onDelete: NoAction)
+  session GuestAccessSession @relation(fields: [sessionId], references: [id], onDelete: NoAction)
+
+  @@unique([grantId, sessionId])
+  @@index([grantId, revokedAt, lastUsedAt])
+  @@index([sessionId, revokedAt])
+  @@map("code_access_session_bindings")
+}
+
+model CodeAccessEvent {
+  id                  String              @id @default(uuid())
+  grantId             String
+  codeId              String
+  type                CodeAccessEventType
+  actorType           CodeAccessActorType
+  actorUserId         String?
+  actorSessionVersion Int?
+  sessionId           String?
+  replacedSessionId   String?
+  idempotencyKey      String              @db.VarChar(100)
+  requestHash         String              @db.VarChar(64)
+  metadata            Json
+  createdAt           DateTime            @default(now()) @db.Timestamptz(3)
+
+  grant           CodeAccessGrant     @relation(fields: [grantId], references: [id], onDelete: NoAction)
+  code            SubscriptionCode    @relation(fields: [codeId], references: [id], onDelete: NoAction)
+  actorUser       User?               @relation("CodeAccessEventActor", fields: [actorUserId], references: [id], onDelete: NoAction)
+  session         GuestAccessSession? @relation("CodeAccessEventSession", fields: [sessionId], references: [id], onDelete: NoAction)
+  replacedSession GuestAccessSession? @relation("CodeAccessEventReplacedSession", fields: [replacedSessionId], references: [id], onDelete: NoAction)
+
+  @@unique([grantId, idempotencyKey])
+  @@index([codeId, createdAt, id])
+  @@index([grantId, type, createdAt])
+  @@index([actorUserId])
+  @@map("code_access_events")
+}
+
 model AccessEntitlement {
-  id String @id @default(uuid())
-  orderItemId String? @unique
+  id          String            @id @default(uuid())
+  orderItemId String?           @unique
   orderItem   PaymentOrderItem? @relation(fields: [orderItemId], references: [id], onDelete: NoAction)
 
   userId String
@@ -971,8 +1092,8 @@ model AccessEntitlement {
 
   subject Subject @relation("SubjectAccessEntitlements", fields: [subjectId], references: [id], onDelete: NoAction)
 
-  @@index([userId, subjectId, isActive, expiresAt])
   @@unique([userId, codeId])
+  @@index([userId, subjectId, isActive, expiresAt])
   @@index([scopeType])
   @@index([subjectId])
   @@index([expiresAt])
@@ -981,12 +1102,12 @@ model AccessEntitlement {
 }
 
 model PaymentCodeRedemptionEvent {
-  id            String @id @default(uuid())
+  id            String   @id @default(uuid())
   userId        String
   codeId        String
   planId        String
   subjectId     String
-  entitlementId String @unique
+  entitlementId String   @unique
   usageNumber   Int
   createdAt     DateTime @default(now()) @db.Timestamptz(3)
 
@@ -1014,21 +1135,21 @@ enum PaymentAdminAction {
 }
 
 model PaymentAdminEvent {
-  id                  String @id @default(uuid())
+  id                  String             @id @default(uuid())
   actorId             String
-  actor               User @relation(fields: [actorId], references: [id], onDelete: NoAction)
+  actor               User               @relation(fields: [actorId], references: [id], onDelete: NoAction)
   actorSessionVersion Int
   action              PaymentAdminAction
   planId              String?
-  plan                PaidAccessPlan? @relation(fields: [planId], references: [id], onDelete: NoAction)
+  plan                PaidAccessPlan?    @relation(fields: [planId], references: [id], onDelete: NoAction)
   codeId              String?
-  code                SubscriptionCode? @relation(fields: [codeId], references: [id], onDelete: NoAction)
-  entitlementId       String? @unique
+  code                SubscriptionCode?  @relation(fields: [codeId], references: [id], onDelete: NoAction)
+  entitlementId       String?            @unique
   entitlement         AccessEntitlement? @relation(fields: [entitlementId], references: [id], onDelete: NoAction)
   reason              String
   before              Json
   after               Json
-  createdAt           DateTime @default(now()) @db.Timestamptz(3)
+  createdAt           DateTime           @default(now()) @db.Timestamptz(3)
 
   @@index([createdAt, id])
   @@index([actorId])

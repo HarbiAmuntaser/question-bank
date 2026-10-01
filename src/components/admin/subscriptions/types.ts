@@ -26,6 +26,7 @@ export type PlanRow = {
   price: string | null;
   currency: string | null;
   isActive: boolean;
+  activationCodesEnabled: boolean;
   whatsappNumber: string | null;
   telegramUsername: string | null;
   contactMessage: string | null;
