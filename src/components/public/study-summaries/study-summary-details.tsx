@@ -10,6 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import type { InstitutionType } from "@/config/regions";
 import { encodeSlugPath, stripPrefix } from "@/lib/public/slug-utils";
 import { checkStudySummaryAccess } from "@/lib/server/access-control";
+import { guestAccessTokenFromServerCookies } from "@/lib/server/code-access-cookie";
 import { getPublicSubjectByRouteKey } from "@/lib/server/public-education-loaders";
 import {
   getPublishedStudySummaryContent,
@@ -93,11 +94,15 @@ export async function StudySummaryDetails({
   const summary = await getPublishedSubjectSummaryBySlug(subject.id, summarySlug);
   if (!summary) notFound();
 
+  const guestSessionToken = await guestAccessTokenFromServerCookies();
   const access = await checkStudySummaryAccess({
     summaryId: summary.id,
+    guestSessionToken,
   });
   if (access.reason === "not_found") notFound();
-  const protectedContent = access.allowed ? await getPublishedStudySummaryContent(summary.id) : null;
+  const protectedContent = access.allowed
+    ? await getPublishedStudySummaryContent(summary.id, guestSessionToken)
+    : null;
 
   const canonicalUni = stripPrefix(subject.major.university?.seo?.slug || universitySlugPath, "جامعات");
   const canonicalMajor = stripPrefix(subject.major?.seo?.slug || majorSlugPath, "تخصصات");

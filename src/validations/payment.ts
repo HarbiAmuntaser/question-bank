@@ -4,6 +4,14 @@ export const redeemPaymentCodeSchema = z.object({
   code: z.string().trim().min(1).max(80), subjectId: id, quizId: id.optional(),
 }).strict();
 
+export const activateCodeAccessSchema = z.object({
+  code: z.string().trim().min(1).max(80),
+  subjectId: id,
+  idempotencyKey: z.string().uuid(),
+  operation: z.enum(["activate", "recover", "transfer"]).default("activate"),
+  quizId: id.optional(),
+}).strict();
+
 const days = z.number().int().min(1).max(36500).nullable();
 export const paymentPlanSchema = z.object({
   scopeType: z.literal("subject"), subjectId: id, title: z.string().trim().min(1).max(200),

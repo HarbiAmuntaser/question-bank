@@ -2,9 +2,16 @@ import "server-only";
 import { ZodError } from "zod";
 import { authOrigin } from "@/lib/server/auth-config";
 import { AuthRateLimitError, consumeAuthLimit, requestIdentity } from "@/lib/server/auth-rate-limit";
-import { PaymentError, requirePaymentStudent, requirePaymentCodes } from "@/lib/server/payment-scope";
-import { redeemSubscriptionCode } from "@/lib/server/payment-mutations";
-import { checkScopeAccess } from "@/lib/server/access-control";
+import { activateCodeAccess } from "@/lib/server/code-access";
+import {
+  activeGuestAccessTokenFromRequest,
+  deriveGuestAccessToken,
+  guestAccessCookieHeader,
+} from "@/lib/server/code-access-cookie";
+import { checkQuizAccess, checkScopeAccess } from "@/lib/server/access-control";
+import { PaymentError, getPaymentStudent, requirePaymentCodes } from "@/lib/server/payment-scope";
+import { hashSubscriptionCode } from "@/lib/server/subscription-code";
+import { activateCodeAccessSchema } from "@/validations/payment";
 
 export function paymentJson(body: unknown, status = 200, extra: Record<string, string> = {}) {
   return Response.json(body, { status, headers: { "Cache-Control": "private, no-store", "Referrer-Policy": "no-referrer", "X-Content-Type-Options": "nosniff", ...extra } });
@@ -32,18 +39,60 @@ export async function paymentPost(req: Request) {
   try {
     requirePaymentCodes();
     requirePaymentOrigin(req);
-    await consumeAuthLimit("payment-ip:redeem", requestIdentity(req.headers), 30, 900);
-    const user = await requirePaymentStudent();
-    await consumeAuthLimit("payment-user:redeem", user.id, 10, 900);
-    const body = await readPaymentBody(req);
-    const redeemed = await redeemSubscriptionCode(body);
-    const access = await checkScopeAccess({ subjectId: redeemed.entitlement.subjectId });
-    return paymentJson({ data: { ...redeemed, redeemed: true, access } });
+    const identity = requestIdentity(req.headers);
+    await consumeAuthLimit("code-access-ip", identity, 30, 900);
+    const input = activateCodeAccessSchema.parse(await readPaymentBody(req));
+    await consumeAuthLimit("code-access-code", hashSubscriptionCode(input.code), 10, 900);
+
+    const user = await getPaymentStudent();
+    if (user) await consumeAuthLimit("code-access-user", user.id, 10, 900);
+    if (user && input.operation !== "activate") throw new PaymentError("invalid_code_access_operation", 409);
+
+    const existingGuestToken = user ? null : await activeGuestAccessTokenFromRequest(req);
+    if (input.quizId) {
+      const target = await checkQuizAccess({ quizId: input.quizId, guestSessionToken: existingGuestToken });
+      if (target.subjectId !== input.subjectId || ["not_found", "missing_context", "out_of_scope"].includes(target.reason)) {
+        throw new PaymentError("payment_target_mismatch", 409);
+      }
+    }
+
+    const guestToken = user
+      ? null
+      : existingGuestToken ?? deriveGuestAccessToken(input);
+    const activated = await activateCodeAccess({
+      code: input.code,
+      subjectId: input.subjectId,
+      idempotencyKey: input.idempotencyKey,
+      operation: input.operation,
+      principal: user
+        ? { type: "account", user: { id: user.id, sessionVersion: user.sessionVersion } }
+        : { type: "guest", sessionToken: guestToken },
+    });
+    const access = await checkScopeAccess({
+      subjectId: activated.grant.subjectId,
+      guestSessionToken: user ? null : activated.guestSessionToken,
+    });
+    const response = paymentJson({ data: {
+      activated: !activated.alreadyActive,
+      alreadyRedeemed: activated.alreadyActive,
+      grant: activated.grant,
+      plan: activated.plan,
+      codePreview: activated.codePreview,
+      supportReference: activated.supportReference,
+      access,
+    } });
+    if (activated.guestSessionToken && activated.guestSessionExpiresAt) {
+      response.headers.append("Set-Cookie", guestAccessCookieHeader(
+        activated.guestSessionToken,
+        activated.guestSessionExpiresAt,
+      ));
+    }
+    return response;
   } catch (error) {
     if (error instanceof PaymentError) return paymentJson({ error: error.code, code: error.code }, error.status);
     if (error instanceof ZodError) return paymentJson({ error: "invalid_payload" }, 400);
     if (error instanceof AuthRateLimitError) return paymentJson({ error: "too_many_requests" }, 429, { "Retry-After": String(error.retryAfter) });
-    console.error("payment_redeem_failed");
+    console.error("code_access_http_failed");
     return paymentJson({ error: "payment_temporarily_unavailable" }, 503);
   }
 }

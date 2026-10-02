@@ -2,6 +2,7 @@ import { CACHE_CONTROL } from "@/lib/cache-tags";
 import { json } from "@/lib/http";
 import { prisma } from "@/lib/prisma";
 import { checkStudySummaryAccess } from "@/lib/server/access-control";
+import { guestAccessTokenFromRequest } from "@/lib/server/code-access-cookie";
 import { createPresignedGetUrl } from "@/lib/server/storage";
 import { isPublicStudySummaryId } from "@/lib/server/public-content-visibility";
 
@@ -129,6 +130,7 @@ export async function GET(req: Request, ctx: Ctx) {
 
   const access = await checkStudySummaryAccess({
     summaryId: summary.id,
+    guestSessionToken: guestAccessTokenFromRequest(req),
   });
 
   if (!access.allowed) {

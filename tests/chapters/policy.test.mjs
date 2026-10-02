@@ -104,7 +104,7 @@ test("Public chapter metadata excludes storage details and download is access ch
   assert.ok(!attachmentSelect.includes("storageKey: true"));
   assert.ok(!attachmentSelect.includes("bucket: true"));
   assert.ok(!attachmentSelect.includes("url: true"));
-  assert.ok(download.includes("checkScopeAccess({ subjectId: chapter.subjectId })"));
+  assert.match(download, /checkScopeAccess\([\s\S]*subjectId: chapter\.subjectId[\s\S]*guestSessionToken:/);
   assert.ok(download.includes("createPresignedGetUrl"));
   assert.ok(download.includes(`visibility: "private"`));
   assert.ok(download.includes(`storageProvider: "r2"`));
@@ -112,7 +112,7 @@ test("Public chapter metadata excludes storage details and download is access ch
 });
 
 function downloadRouteHarness({ allowed }) {
-  const state = { signedCalls: 0 };
+  const state = { signedCalls: 0, accessTokens: [] };
   const prisma = {
     chapter: {
       findFirst: async () => ({ id: "11111111-1111-4111-8111-111111111111", subjectId: "subject-a" }),
@@ -129,8 +129,9 @@ function downloadRouteHarness({ allowed }) {
     "@/lib/prisma": { prisma },
     "@/lib/server/payment-scope": { publishedSubjectWhere: () => ({ isActive: true }) },
     "@/lib/server/access-control": {
-      checkScopeAccess: async () => ({ allowed }),
+      checkScopeAccess: async (input) => { state.accessTokens.push(input.guestSessionToken); return { allowed }; },
     },
+    "@/lib/server/code-access-cookie": { guestAccessTokenFromRequest: () => "A".repeat(43) },
     "@/lib/server/storage": {
       createPresignedGetUrl: async () => {
         state.signedCalls += 1;
@@ -159,6 +160,7 @@ test("Protected Chapter PDF redirects only after access is allowed", async () =>
   assert.equal(allowedResponse.headers.get("location"), "https://signed.example/file.pdf");
   assert.match(allowedResponse.headers.get("cache-control"), /no-store/);
   assert.equal(allowed.state.signedCalls, 1);
+  assert.deepEqual(allowed.state.accessTokens, ["A".repeat(43)]);
 
   const denied = downloadRouteHarness({ allowed: false });
   const deniedResponse = await denied.route.GET(new Request("https://example.test"), {
@@ -166,6 +168,7 @@ test("Protected Chapter PDF redirects only after access is allowed", async () =>
   });
   assert.equal(deniedResponse.status, 403);
   assert.equal(denied.state.signedCalls, 0);
+  assert.deepEqual(denied.state.accessTokens, ["A".repeat(43)]);
 });
 
 test("Chapter extensions remain outside Payment Scope, SEO ownership and public routes", () => {

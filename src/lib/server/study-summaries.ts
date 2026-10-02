@@ -180,8 +180,11 @@ async function loadPublishedSubjectSummaryBySlug(subjectId: string, slug: string
   return row ? serializeSummaryDetail({ ...row, accessType: isPaymentSubject(subject) ? row.accessType : "free" }) : null;
 }
 
-export async function getPublishedStudySummaryContent(summaryId: string): Promise<ProtectedStudySummaryContent | null> {
-  if (!(await checkStudySummaryAccess({ summaryId })).allowed) return null;
+export async function getPublishedStudySummaryContent(
+  summaryId: string,
+  guestSessionToken?: string | null,
+): Promise<ProtectedStudySummaryContent | null> {
+  if (!(await checkStudySummaryAccess({ summaryId, guestSessionToken })).allowed) return null;
   const now = new Date();
   return prisma.studySummary.findFirst({
     where: {

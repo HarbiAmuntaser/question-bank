@@ -4,6 +4,7 @@ import { json } from "@/lib/http";
 import { CACHE_CONTROL } from "@/lib/cache-tags";
 import { getOrCreateAnonymousSession } from "@/lib/server/anonymous-session";
 import { checkQuizAccess } from "@/lib/server/access-control";
+import { guestAccessTokenFromRequest } from "@/lib/server/code-access-cookie";
 import { isPublicQuizId } from "@/lib/server/public-content-visibility";
 
 export const dynamic = "force-dynamic";
@@ -85,7 +86,7 @@ export async function POST(req: Request) {
       return json({ error: "not_found" }, { status: 404, headers: privateHeaders });
     }
 
-    const access = await checkQuizAccess({ quizId });
+    const access = await checkQuizAccess({ quizId, guestSessionToken: guestAccessTokenFromRequest(req) });
     if (access.reason === "not_found") return json({ error: "not_found" }, { status: 404, headers: privateHeaders });
     if (!access.allowed) {
       return json({ error: "paid_access_required", details: access }, { status: 403, headers: privateHeaders });

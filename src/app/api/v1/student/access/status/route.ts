@@ -7,6 +7,7 @@ import {
   getStudySummaryAccessMap,
   getQuizAccessMap,
 } from "@/lib/server/access-control";
+import { guestAccessTokenFromRequest } from "@/lib/server/code-access-cookie";
 import {
   getPublicQuizIdSet,
   getPublicStudySummaryIdSet,
@@ -23,6 +24,7 @@ export async function GET(req: Request) {
 
   try {
     const url = new URL(req.url);
+    const guestSessionToken = guestAccessTokenFromRequest(req);
     const quizId = url.searchParams.get("quizId")?.trim();
     const quizIds =
       url.searchParams
@@ -48,7 +50,7 @@ export async function GET(req: Request) {
 
     if (quizIds.length > 0) {
       const publicIds = await getPublicQuizIdSet(Array.from(new Set(quizIds)));
-      const items = await getQuizAccessMap(Array.from(publicIds));
+      const items = await getQuizAccessMap(Array.from(publicIds), guestSessionToken);
       return json({ data: { items } }, { status: 200, headers });
     }
 
@@ -56,6 +58,7 @@ export async function GET(req: Request) {
       const publicIds = await getPublicStudySummaryIdSet(Array.from(new Set(summaryIds)));
       const items = await getStudySummaryAccessMap({
         summaryIds: Array.from(publicIds),
+        guestSessionToken,
       });
       return json({ data: { items } }, { status: 200, headers });
     }
@@ -75,10 +78,10 @@ export async function GET(req: Request) {
     }
 
     const access = quizId
-      ? await checkQuizAccess({ quizId })
+      ? await checkQuizAccess({ quizId, guestSessionToken })
       : summaryId
-        ? await checkStudySummaryAccess({ summaryId })
-      : await checkScopeAccess({ subjectId, majorId });
+        ? await checkStudySummaryAccess({ summaryId, guestSessionToken })
+      : await checkScopeAccess({ subjectId, majorId, guestSessionToken });
 
     if (access.reason === "not_found") return json({ error: "not_found" }, { status: 404, headers });
 

@@ -108,7 +108,7 @@ async function sessionForToken(tx: Prisma.TransactionClient, tokenHash: string, 
 function result(grant: {
   id: string; subjectId: string; startsAt: Date; expiresAt: Date; principalType: "account" | "guest";
 }, plan: Parameters<typeof serializeAccessPlan>[0], code: { codePreview: string | null; supportReference: string | null },
-guestSessionToken: string | null, alreadyActive: boolean) {
+guestSessionToken: string | null, guestSessionExpiresAt: Date | null, alreadyActive: boolean) {
   return {
     alreadyActive,
     grant,
@@ -116,6 +116,7 @@ guestSessionToken: string | null, alreadyActive: boolean) {
     codePreview: code.codePreview,
     supportReference: code.supportReference,
     guestSessionToken,
+    guestSessionExpiresAt,
   };
 }
 
@@ -165,7 +166,7 @@ export async function activateCodeAccess(input: CodeAccessActivationInput) {
       if (replay && replay.requestHash !== requestHash) throw new PaymentError("payment_idempotency_conflict", 409);
       if (input.principal.type === "account") {
         if (existing.principalType !== "account" || existing.userId !== input.principal.user.id) throw new PaymentError("code_used");
-        return result(existing, code.plan, code, null, true);
+        return result(existing, code.plan, code, null, null, true);
       }
       if (existing.principalType !== "guest" || !guestToken || !sessionHash) throw new PaymentError("code_used");
       const knownSession = await tx.guestAccessSession.findUnique({ where: { tokenHash: sessionHash } });
@@ -176,7 +177,7 @@ export async function activateCodeAccess(input: CodeAccessActivationInput) {
         if (binding && !binding.revokedAt && !knownSession.revokedAt && knownSession.expiresAt > now) {
           await tx.guestAccessSession.update({ where: { id: knownSession.id }, data: { lastSeenAt: now } });
           await tx.codeAccessSessionBinding.update({ where: { id: binding.id }, data: { lastUsedAt: now } });
-          return result(existing, code.plan, code, guestToken, true);
+          return result(existing, code.plan, code, guestToken, knownSession.expiresAt, true);
         }
         if (binding?.revokedAt) throw new PaymentError("session_revoked", 409);
       }
@@ -192,7 +193,7 @@ export async function activateCodeAccess(input: CodeAccessActivationInput) {
           grantId: existing.id, codeId: code.id, type: "session_recovered", ...eventActor(input, session.id),
           idempotencyKey: input.idempotencyKey, requestHash, metadata: { activeSessions: activeBindings.length + 1 },
         } });
-        return result(existing, code.plan, code, guestToken, true);
+        return result(existing, code.plan, code, guestToken, session.expiresAt, true);
       }
       if (input.operation !== "transfer") throw new PaymentError("browser_limit_reached", 409);
 
@@ -217,7 +218,7 @@ export async function activateCodeAccess(input: CodeAccessActivationInput) {
         replacedSessionId: replaced.sessionId, idempotencyKey: input.idempotencyKey, requestHash,
         metadata: { adminOverride: Boolean(input.adminOverride) },
       } });
-      return result(existing, code.plan, code, guestToken, true);
+      return result(existing, code.plan, code, guestToken, session.expiresAt, true);
     }
 
     requirePaymentCodePlan(code.planId, code.plan.activationCodesEnabled);
@@ -248,7 +249,7 @@ export async function activateCodeAccess(input: CodeAccessActivationInput) {
         grantId: grant.id, codeId: code.id, type: "activated", ...eventActor(input, null),
         idempotencyKey: input.idempotencyKey, requestHash, metadata: { durationDays: days! },
       } });
-      return result(grant, code.plan, code, null, false);
+      return result(grant, code.plan, code, null, null, false);
     }
 
     if (!guestToken || !sessionHash) throw new PaymentError("invalid_guest_session");
@@ -270,7 +271,7 @@ export async function activateCodeAccess(input: CodeAccessActivationInput) {
       grantId: grant.id, codeId: code.id, type: "activated", ...eventActor(input, session.id),
       idempotencyKey: input.idempotencyKey, requestHash, metadata: { durationDays: days! },
     } });
-    return result(grant, code.plan, code, guestToken, false);
+    return result(grant, code.plan, code, guestToken, session.expiresAt, false);
   }, CODE_ACCESS_TRANSACTION);
 }
 

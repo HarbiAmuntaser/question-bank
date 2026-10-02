@@ -3,6 +3,7 @@ import { readChapterAttachmentPurpose } from "@/lib/chapter-attachments";
 import { json } from "@/lib/http";
 import { prisma } from "@/lib/prisma";
 import { checkScopeAccess } from "@/lib/server/access-control";
+import { guestAccessTokenFromRequest } from "@/lib/server/code-access-cookie";
 import { publishedSubjectWhere } from "@/lib/server/payment-scope";
 import { createPresignedGetUrl } from "@/lib/server/storage";
 
@@ -26,7 +27,7 @@ function redirectNoStore(location: string) {
   return new Response(null, { status: 302, headers });
 }
 
-export async function GET(_request: Request, context: Ctx) {
+export async function GET(request: Request, context: Ctx) {
   const { chapterId, attachmentId } = await context.params;
   if (!uuidPattern.test(chapterId) || !uuidPattern.test(attachmentId)) {
     return fail("invalid_chapter_attachment_id", 400);
@@ -66,7 +67,10 @@ export async function GET(_request: Request, context: Ctx) {
     return fail("chapter_attachment_storage_unavailable", 409);
   }
 
-  const access = await checkScopeAccess({ subjectId: chapter.subjectId });
+  const access = await checkScopeAccess({
+    subjectId: chapter.subjectId,
+    guestSessionToken: guestAccessTokenFromRequest(request),
+  });
   if (!access.allowed) {
     return fail("chapter_attachment_access_denied", 403);
   }

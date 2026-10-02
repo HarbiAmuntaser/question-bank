@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { json } from "@/lib/http";
 import { CACHE_CONTROL } from "@/lib/cache-tags";
 import { checkQuizAccess } from "@/lib/server/access-control";
+import { guestAccessTokenFromRequest } from "@/lib/server/code-access-cookie";
 import { isPublicQuizId } from "@/lib/server/public-content-visibility";
 import {
   publicQuestionReviewData,
@@ -17,7 +18,7 @@ type RouteContext = {
   params: Promise<RouteParams>;
 };
 
-export async function GET(_req: Request, { params }: RouteContext) {
+export async function GET(req: Request, { params }: RouteContext) {
   const { id: rawId } = await params;
   const id = rawId?.trim();
   const privateHeaders = new Headers({
@@ -31,7 +32,7 @@ export async function GET(_req: Request, { params }: RouteContext) {
       return json({ error: "not_found" }, { status: 404, headers: privateHeaders });
     }
 
-    const access = await checkQuizAccess({ quizId: id });
+    const access = await checkQuizAccess({ quizId: id, guestSessionToken: guestAccessTokenFromRequest(req) });
     if (access.reason === "not_found") return json({ error: "not_found" }, { status: 404, headers: privateHeaders });
     if (!access.allowed) {
       return json({ error: "paid_access_required", details: access }, { status: 403, headers: privateHeaders });
