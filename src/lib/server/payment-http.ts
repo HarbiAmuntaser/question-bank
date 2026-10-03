@@ -16,6 +16,33 @@ import { activateCodeAccessSchema } from "@/validations/payment";
 export function paymentJson(body: unknown, status = 200, extra: Record<string, string> = {}) {
   return Response.json(body, { status, headers: { "Cache-Control": "private, no-store", "Referrer-Policy": "no-referrer", "X-Content-Type-Options": "nosniff", ...extra } });
 }
+
+type PublicCodeAccessSupport = {
+  supportReference: string | null;
+  whatsappNumber: string | null;
+  maxBrowserSessions: number;
+  retryAfterSeconds: number | null;
+};
+
+function publicCodeAccessSupport(error: PaymentError): PublicCodeAccessSupport | null {
+  if (!["browser_limit_reached", "transfer_support_required", "transfer_too_soon"].includes(error.code)) return null;
+  const raw = (error as PaymentError & { publicDetails?: unknown }).publicDetails;
+  if (!raw || typeof raw !== "object") return null;
+  const details = raw as Record<string, unknown>;
+  const supportReference = typeof details.supportReference === "string" && /^AC-[A-Z2-9]{12}$/.test(details.supportReference)
+    ? details.supportReference
+    : null;
+  const whatsappNumber = typeof details.whatsappNumber === "string" && /^\+?\d{6,20}$/.test(details.whatsappNumber)
+    ? details.whatsappNumber
+    : null;
+  const maxBrowserSessions = typeof details.maxBrowserSessions === "number" && Number.isInteger(details.maxBrowserSessions) && details.maxBrowserSessions >= 1 && details.maxBrowserSessions <= 100
+    ? details.maxBrowserSessions
+    : 1;
+  const retryAfterSeconds = typeof details.retryAfterSeconds === "number" && Number.isInteger(details.retryAfterSeconds) && details.retryAfterSeconds >= 1 && details.retryAfterSeconds <= 600
+    ? details.retryAfterSeconds
+    : null;
+  return { supportReference, whatsappNumber, maxBrowserSessions, retryAfterSeconds };
+}
 export async function readPaymentBody(req: Request) {
   if (!req.body) throw new PaymentError("invalid_payload");
   const reader = req.body.getReader();
@@ -75,6 +102,7 @@ export async function paymentPost(req: Request) {
     const response = paymentJson({ data: {
       activated: !activated.alreadyActive,
       alreadyRedeemed: activated.alreadyActive,
+      outcome: activated.outcome,
       grant: activated.grant,
       plan: activated.plan,
       codePreview: activated.codePreview,
@@ -89,7 +117,14 @@ export async function paymentPost(req: Request) {
     }
     return response;
   } catch (error) {
-    if (error instanceof PaymentError) return paymentJson({ error: error.code, code: error.code }, error.status);
+    if (error instanceof PaymentError) {
+      const support = publicCodeAccessSupport(error);
+      return paymentJson(
+        { error: error.code, code: error.code, ...(support ? { support } : {}) },
+        error.status,
+        support?.retryAfterSeconds ? { "Retry-After": String(support.retryAfterSeconds) } : {},
+      );
+    }
     if (error instanceof ZodError) return paymentJson({ error: "invalid_payload" }, 400);
     if (error instanceof AuthRateLimitError) return paymentJson({ error: "too_many_requests" }, 429, { "Retry-After": String(error.retryAfter) });
     console.error("code_access_http_failed");

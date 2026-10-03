@@ -154,7 +154,11 @@ export function QuizAccessAction({
         disabled={loading}
       >
         <Lock className="h-4 w-4" aria-hidden />
-        {loading ? "جار التحقق..." : access?.reason === "student_signin_required" ? "تسجيل دخول الطالب" : "عرض خيارات الاشتراك"}
+        {loading
+          ? "جار التحقق..."
+          : access?.reason === "student_signin_required" && !access.canRedeemCode
+            ? "تسجيل دخول الطالب"
+            : "عرض خيارات الوصول"}
       </Button>
       {open ? (
         <LazySubscriptionGateDialog

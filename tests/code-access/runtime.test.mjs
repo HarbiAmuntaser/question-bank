@@ -53,13 +53,18 @@ test("guest cookie parsing, validation and production attributes fail closed", a
 });
 
 class TestPaymentError extends Error {
-  constructor(code, status = 400) { super(code); this.code = code; this.status = status; }
+  constructor(code, status = 400, publicDetails) {
+    super(code);
+    this.code = code;
+    this.status = status;
+    this.publicDetails = publicDetails;
+  }
 }
 class TestRateLimitError extends Error {
   constructor(retryAfter) { super("too_many_requests"); this.retryAfter = retryAfter; }
 }
 
-function httpHarness({ user = null, existingToken = null, failLimit = false } = {}) {
+function httpHarness({ user = null, existingToken = null, failLimit = false, activationError = null } = {}) {
   const calls = { limits: [], activations: [], access: [], quiz: [], activeCookie: 0 };
   const resultToken = user ? null : token;
   const mocks = {
@@ -82,7 +87,9 @@ function httpHarness({ user = null, existingToken = null, failLimit = false } = 
     "@/lib/server/code-access": {
       activateCodeAccess: async (input) => {
         calls.activations.push(input);
+        if (activationError) throw activationError;
         return {
+          outcome: "activated",
           alreadyActive: false,
           grant: { id: "grant", subjectId, startsAt: new Date(), expiresAt, principalType: user ? "account" : "guest" },
           plan: { id: "plan" },
@@ -170,6 +177,51 @@ test("HTTP security rejects cross-origin, unknown authority fields and limiter f
   assert.equal(response.status, 429);
   assert.equal(response.headers.get("retry-after"), "60");
   assert.equal(limited.calls.activations.length, 0);
+});
+
+test("HTTP exposes only allowlisted support metadata for recover and transfer states", async () => {
+  const publicDetails = {
+    supportReference: "AC-ABCDEFGHJKLM",
+    whatsappNumber: "+966531297661",
+    maxBrowserSessions: 2,
+    retryAfterSeconds: 175,
+    rawCode,
+    token,
+  };
+  const cooldown = httpHarness({
+    activationError: new TestPaymentError("transfer_too_soon", 429, publicDetails),
+  });
+  const cooldownResponse = await cooldown.post(activationRequest({ ...validBody, operation: "transfer" }));
+  assert.equal(cooldownResponse.status, 429);
+  assert.equal(cooldownResponse.headers.get("retry-after"), "175");
+  assert.deepEqual(await cooldownResponse.json(), {
+    error: "transfer_too_soon",
+    code: "transfer_too_soon",
+    support: {
+      supportReference: "AC-ABCDEFGHJKLM",
+      whatsappNumber: "+966531297661",
+      maxBrowserSessions: 2,
+      retryAfterSeconds: 175,
+    },
+  });
+
+  const malformed = httpHarness({
+    activationError: new TestPaymentError("browser_limit_reached", 409, {
+      supportReference: rawCode,
+      whatsappNumber: "javascript:alert(1)",
+      maxBrowserSessions: 500,
+      token,
+    }),
+  });
+  const malformedBody = await (await malformed.post(activationRequest(validBody))).json();
+  assert.deepEqual(malformedBody.support, {
+    supportReference: null,
+    whatsappNumber: null,
+    maxBrowserSessions: 1,
+    retryAfterSeconds: null,
+  });
+  assert.equal(JSON.stringify(malformedBody).includes(rawCode), false);
+  assert.equal(JSON.stringify(malformedBody).includes(token), false);
 });
 
 test("all protected runtime entry points forward the guest token and keep signed URLs behind authorization", () => {

@@ -39,7 +39,7 @@ test("datetime-local values are interpreted explicitly in Asia/Riyadh", () => {
 });
 
 test("student and Admin interfaces expose the hardened code states without extra authority fields", () => {
-  const student = readFileSync("src/components/public/subscription-gate-dialog.tsx", "utf8");
+  const student = readFileSync("src/lib/code-access-public.ts", "utf8");
   for (const code of ["invalid_code", "code_not_started", "code_expired", "code_used", "code_plan_not_enabled", "active_entitlement_exists", "invalid_code_window"]) {
     assert.ok(student.includes(`case "${code}"`), code);
   }

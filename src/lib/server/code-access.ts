@@ -31,6 +31,25 @@ type GuestPrincipal = { type: "guest"; sessionToken?: string | null };
 type AccountPrincipal = { type: "account"; user: AccountIdentity };
 type AdminOverride = { user: AccountIdentity };
 
+type CodeAccessOutcome = "activated" | "already_active" | "recovered" | "transferred";
+
+type CodeAccessPublicDetails = {
+  supportReference: string | null;
+  whatsappNumber: string | null;
+  maxBrowserSessions: number;
+  retryAfterSeconds?: number;
+};
+
+class CodeAccessOperationError extends PaymentError {
+  constructor(
+    code: string,
+    status: number,
+    public readonly publicDetails: CodeAccessPublicDetails,
+  ) {
+    super(code, status);
+  }
+}
+
 export type CodeAccessActivationInput = {
   code: string;
   subjectId: string;
@@ -108,9 +127,10 @@ async function sessionForToken(tx: Prisma.TransactionClient, tokenHash: string, 
 function result(grant: {
   id: string; subjectId: string; startsAt: Date; expiresAt: Date; principalType: "account" | "guest";
 }, plan: Parameters<typeof serializeAccessPlan>[0], code: { codePreview: string | null; supportReference: string | null },
-guestSessionToken: string | null, guestSessionExpiresAt: Date | null, alreadyActive: boolean) {
+guestSessionToken: string | null, guestSessionExpiresAt: Date | null, outcome: CodeAccessOutcome) {
   return {
-    alreadyActive,
+    outcome,
+    alreadyActive: outcome !== "activated",
     grant,
     plan: serializeAccessPlan(plan),
     codePreview: code.codePreview,
@@ -118,6 +138,24 @@ guestSessionToken: string | null, guestSessionExpiresAt: Date | null, alreadyAct
     guestSessionToken,
     guestSessionExpiresAt,
   };
+}
+
+function operationError(
+  code: "browser_limit_reached" | "transfer_support_required" | "transfer_too_soon",
+  status: number,
+  accessCode: {
+    supportReference: string | null;
+    maxBrowserSessions: number;
+    plan: { whatsappNumber: string | null };
+  },
+  retryAfterSeconds?: number,
+) {
+  return new CodeAccessOperationError(code, status, {
+    supportReference: accessCode.supportReference,
+    whatsappNumber: accessCode.plan.whatsappNumber,
+    maxBrowserSessions: accessCode.maxBrowserSessions,
+    ...(retryAfterSeconds ? { retryAfterSeconds } : {}),
+  });
 }
 
 export async function activateCodeAccess(input: CodeAccessActivationInput) {
@@ -166,7 +204,7 @@ export async function activateCodeAccess(input: CodeAccessActivationInput) {
       if (replay && replay.requestHash !== requestHash) throw new PaymentError("payment_idempotency_conflict", 409);
       if (input.principal.type === "account") {
         if (existing.principalType !== "account" || existing.userId !== input.principal.user.id) throw new PaymentError("code_used");
-        return result(existing, code.plan, code, null, null, true);
+        return result(existing, code.plan, code, null, null, "already_active");
       }
       if (existing.principalType !== "guest" || !guestToken || !sessionHash) throw new PaymentError("code_used");
       const knownSession = await tx.guestAccessSession.findUnique({ where: { tokenHash: sessionHash } });
@@ -177,7 +215,7 @@ export async function activateCodeAccess(input: CodeAccessActivationInput) {
         if (binding && !binding.revokedAt && !knownSession.revokedAt && knownSession.expiresAt > now) {
           await tx.guestAccessSession.update({ where: { id: knownSession.id }, data: { lastSeenAt: now } });
           await tx.codeAccessSessionBinding.update({ where: { id: binding.id }, data: { lastUsedAt: now } });
-          return result(existing, code.plan, code, guestToken, knownSession.expiresAt, true);
+          return result(existing, code.plan, code, guestToken, knownSession.expiresAt, "already_active");
         }
         if (binding?.revokedAt) throw new PaymentError("session_revoked", 409);
       }
@@ -193,9 +231,9 @@ export async function activateCodeAccess(input: CodeAccessActivationInput) {
           grantId: existing.id, codeId: code.id, type: "session_recovered", ...eventActor(input, session.id),
           idempotencyKey: input.idempotencyKey, requestHash, metadata: { activeSessions: activeBindings.length + 1 },
         } });
-        return result(existing, code.plan, code, guestToken, session.expiresAt, true);
+        return result(existing, code.plan, code, guestToken, session.expiresAt, "recovered");
       }
-      if (input.operation !== "transfer") throw new PaymentError("browser_limit_reached", 409);
+      if (input.operation !== "transfer") throw operationError("browser_limit_reached", 409, code);
 
       const since = new Date(now.getTime() - TRANSFER_WINDOW_MS);
       const transfers = await tx.codeAccessEvent.findMany({
@@ -203,9 +241,14 @@ export async function activateCodeAccess(input: CodeAccessActivationInput) {
         orderBy: { createdAt: "desc" }, select: { createdAt: true },
       });
       if (!input.adminOverride) {
-        if (transfers.length >= MAX_TRANSFERS_PER_WINDOW) throw new PaymentError("transfer_support_required", 429);
+        if (transfers.length >= MAX_TRANSFERS_PER_WINDOW) {
+          throw operationError("transfer_support_required", 429, code);
+        }
         if (transfers[0] && now.getTime() - transfers[0].createdAt.getTime() < TRANSFER_INTERVAL_MS) {
-          throw new PaymentError("transfer_too_soon", 429);
+          const retryAfterSeconds = Math.ceil(
+            (TRANSFER_INTERVAL_MS - (now.getTime() - transfers[0].createdAt.getTime())) / 1000,
+          );
+          throw operationError("transfer_too_soon", 429, code, retryAfterSeconds);
         }
       }
       const replaced = activeBindings[0];
@@ -218,7 +261,7 @@ export async function activateCodeAccess(input: CodeAccessActivationInput) {
         replacedSessionId: replaced.sessionId, idempotencyKey: input.idempotencyKey, requestHash,
         metadata: { adminOverride: Boolean(input.adminOverride) },
       } });
-      return result(existing, code.plan, code, guestToken, session.expiresAt, true);
+      return result(existing, code.plan, code, guestToken, session.expiresAt, "transferred");
     }
 
     requirePaymentCodePlan(code.planId, code.plan.activationCodesEnabled);
@@ -249,7 +292,7 @@ export async function activateCodeAccess(input: CodeAccessActivationInput) {
         grantId: grant.id, codeId: code.id, type: "activated", ...eventActor(input, null),
         idempotencyKey: input.idempotencyKey, requestHash, metadata: { durationDays: days! },
       } });
-      return result(grant, code.plan, code, null, null, false);
+      return result(grant, code.plan, code, null, null, "activated");
     }
 
     if (!guestToken || !sessionHash) throw new PaymentError("invalid_guest_session");
@@ -271,7 +314,7 @@ export async function activateCodeAccess(input: CodeAccessActivationInput) {
       grantId: grant.id, codeId: code.id, type: "activated", ...eventActor(input, session.id),
       idempotencyKey: input.idempotencyKey, requestHash, metadata: { durationDays: days! },
     } });
-    return result(grant, code.plan, code, guestToken, session.expiresAt, false);
+    return result(grant, code.plan, code, guestToken, session.expiresAt, "activated");
   }, CODE_ACCESS_TRANSACTION);
 }
 

@@ -58,7 +58,13 @@ export function StudySummarySubscribeButton({
         disabled={disabled || Boolean(unavailable)}
       >
         <Lock className="h-4 w-4" aria-hidden />
-        {disabled ? "جاري التحقق..." : unavailable ? "غير متاح حاليًا" : access?.reason === "student_signin_required" ? "تسجيل الدخول" : "عرض خيارات الاشتراك"}
+        {disabled
+          ? "جاري التحقق..."
+          : unavailable
+            ? "غير متاح حاليًا"
+            : access?.reason === "student_signin_required" && !access.canRedeemCode
+              ? "تسجيل الدخول"
+              : "عرض خيارات الوصول"}
       </Button>
       {open ? (
         <LazySubscriptionGateDialog
