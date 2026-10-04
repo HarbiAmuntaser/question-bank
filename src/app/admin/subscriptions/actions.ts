@@ -6,7 +6,9 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { CACHE_TAGS } from "@/lib/cache-tags";
 import { prisma } from "@/lib/prisma";
 import { PaymentError, paymentSubjectWhere } from "@/lib/server/payment-scope";
-import { disablePaymentPlan, disablePaymentCode, revokePaymentEntitlement, issuePaymentCode, savePaymentPlan } from "@/lib/server/payment-admin";
+import { disablePaymentPlan, disablePaymentCode, enablePaymentCode, revokePaymentEntitlement, issuePaymentCode, savePaymentPlan } from "@/lib/server/payment-admin";
+import { changeCodeBrowserLimit, revokeCodeAccessGrant, revokeCodeAccessSession } from "@/lib/server/code-access";
+import { requirePaymentAdmin } from "@/lib/server/payment-admin-auth";
 import { protectPaymentAdminAction } from "@/lib/server/payment-admin-action";
 import { AuthRateLimitError } from "@/lib/server/auth-rate-limit";
 import { parsePaymentDateTimeLocal } from "@/lib/payment-time";
@@ -38,11 +40,16 @@ function failure(error: unknown) {
   if (error instanceof PaymentError) {
     const messages: Record<string, string> = { payments_unavailable: "تفعيل خطط البيع متوقف حاليًا.",
       payment_codes_unavailable: "إصدار الأكواد متوقف حاليًا.",
-      code_plan_not_enabled: "الخطة غير مضافة إلى قائمة الخطط المعتمدة للأكواد.",
+      code_plan_not_enabled: "أكواد التفعيل غير مفعلة لهذه الخطة.",
       invalid_code_window: "يجب تحديد مدة استحقاق صالحة، ومراجعة وقت بداية الكود ونهايته بتوقيت الرياض.",
       payment_idempotency_conflict: "تعذر إعادة الطلب لأن بياناته تغيرت. أغلق النافذة وأنشئ طلب إصدار جديدًا.",
       payment_target_changed: "تغيّر السجل. حدّث الصفحة وراجع بياناته قبل إعادة المحاولة.",
       payment_content_confirmation_required: "تأكيد أثر تعطيل الخطة على إتاحة المحتوى مطلوب.",
+      payment_code_confirmation_required: "التأكيد الصريح لإعادة تفعيل الكود مطلوب.",
+      code_grant_not_reactivatable: "لا يمكن إعادة تفعيل كود منحة ملغاة أو منتهية.",
+      code_not_activated: "لم يتم تفعيل هذا الكود بعد.",
+      invalid_browser_limit: "حد المتصفحات يجب أن يكون عددًا صحيحًا بين 1 و100.",
+      browser_limit_below_active_sessions: "يجب إلغاء الجلسات الزائدة صراحة قبل خفض حد المتصفحات.",
       not_found: "السجل غير موجود.",
       payment_scope_not_allowed: "المتاح فقط مواد الجامعات السعودية النشطة.", payment_target_immutable: "لا يمكن تغيير المادة المرتبطة بالخطة. أنشئ خطة مستقلة.",
       forbidden: "لا تملك صلاحية تنفيذ العملية." };
@@ -87,6 +94,38 @@ export async function disableSubscriptionCodeAction(id: string, input: unknown) 
   const admin = await requireAdminPermission("subscriptions:manage");
   try { await protectPaymentAdminAction(admin.userId); await disablePaymentCode(id, input); revalidateSubscriptions(); return { success: true, message: "تم تعطيل الكود" }; }
   catch (error) { return failure(error); }
+}
+export async function enableSubscriptionCodeAction(id: string, input: unknown) {
+  const admin = await requireAdminPermission("subscriptions:manage");
+  try { await protectPaymentAdminAction(admin.userId); await enablePaymentCode(id, input); revalidateSubscriptions(); return { success: true, message: "تمت إعادة تفعيل الكود" }; }
+  catch (error) { return failure(error); }
+}
+export async function changeCodeBrowserLimitAction(id: string, maxBrowserSessions: number, idempotencyKey: string, reason: string) {
+  const admin = await requireAdminPermission("subscriptions:manage");
+  try {
+    await protectPaymentAdminAction(admin.userId);
+    const actor = await requirePaymentAdmin();
+    await changeCodeBrowserLimit({ codeId: id, maxBrowserSessions, idempotencyKey, reason, actor });
+    revalidateSubscriptions(); return { success: true, message: "تم تحديث حد المتصفحات" };
+  } catch (error) { return failure(error); }
+}
+export async function revokeCodeAccessSessionAction(id: string, idempotencyKey: string, reason: string) {
+  const admin = await requireAdminPermission("subscriptions:manage");
+  try {
+    await protectPaymentAdminAction(admin.userId);
+    const actor = await requirePaymentAdmin();
+    await revokeCodeAccessSession({ bindingId: id, idempotencyKey, reason, actor });
+    revalidateSubscriptions(); return { success: true, message: "تم إلغاء جلسة الوصول المحددة" };
+  } catch (error) { return failure(error); }
+}
+export async function revokeCodeAccessGrantAction(id: string, idempotencyKey: string, reason: string) {
+  const admin = await requireAdminPermission("subscriptions:manage");
+  try {
+    await protectPaymentAdminAction(admin.userId);
+    const actor = await requirePaymentAdmin();
+    await revokeCodeAccessGrant({ grantId: id, idempotencyKey, reason, actor });
+    revalidateSubscriptions(); return { success: true, message: "تم إلغاء منحة الوصول" };
+  } catch (error) { return failure(error); }
 }
 export async function disableAccessEntitlementAction(id: string, input: unknown) {
   const admin = await requireAdminPermission("subscriptions:manage");

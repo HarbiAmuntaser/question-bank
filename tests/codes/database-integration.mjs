@@ -46,7 +46,6 @@ async function check(name, work) { await work(); console.log(`PASS codes ${++cou
 
 try {
   process.env.PAYMENT_CODES_ENABLED = "true";
-  process.env.PAYMENT_CODE_PLAN_IDS = JSON.stringify([f.plan]);
   process.env.PAYMENT_LAUNCH_PLAN_IDS = "[]";
   await prisma.paidAccessPlan.update({ where: { id: f.plan }, data: { activationCodesEnabled: true, defaultDurationDays: 5, defaultMaxUses: 1 } });
 
@@ -108,16 +107,20 @@ try {
     assert.equal(await prisma.paymentCodeRedemptionEvent.count({ where: { codeId: { in: [future.codeId, expired.codeId, disabled.codeId] } } }), 0);
   });
 
-  await check("code allowlist is enforced independently for issuance and redemption", async () => {
-    const secondPlan = await prisma.paidAccessPlan.create({ data: { scopeType: "subject", subjectId: f.sa, title: "Codes second plan", price: "1", currency: "SAR", isActive: true, activationCodesEnabled: true, defaultDurationDays: 2, defaultMaxUses: 1 } });
+  await check("the persisted plan flag controls issuance and redemption without an environment allowlist", async () => {
+    const secondPlan = await prisma.paidAccessPlan.create({ data: { scopeType: "subject", subjectId: f.sa, title: "Codes second plan", price: "1", currency: "SAR", isActive: true, activationCodesEnabled: false, defaultDurationDays: 2, defaultMaxUses: 1 } });
     await assert.rejects(issue({ planId: secondPlan.id }), /code_plan_not_enabled/);
-    process.env.PAYMENT_CODE_PLAN_IDS = JSON.stringify([f.plan, secondPlan.id]);
+    await prisma.paidAccessPlan.update({ where: { id: secondPlan.id }, data: { activationCodesEnabled: true } });
     const issued = await issue({ planId: secondPlan.id });
-    process.env.PAYMENT_CODE_PLAN_IDS = JSON.stringify([f.plan]);
-    const userId = await student("removed-plan");
-    await assert.rejects(redeemAs(userId, issued.plainCode), /code_plan_not_enabled/);
-    assert.equal((await prisma.subscriptionCode.findUniqueOrThrow({ where: { id: issued.codeId } })).usedCount, 0);
-    assert.equal(await prisma.paymentCodeRedemptionEvent.count({ where: { codeId: issued.codeId } }), 0);
+    process.env.PAYMENT_CODE_PLAN_IDS = "retired-and-ignored";
+    const redeemed = await redeemAs(await student("enabled-plan"), issued.plainCode);
+    assert.equal(redeemed.alreadyRedeemed, false);
+
+    const blocked = await issue({ planId: secondPlan.id });
+    await prisma.paidAccessPlan.update({ where: { id: secondPlan.id }, data: { activationCodesEnabled: false } });
+    await assert.rejects(redeemAs(await student("disabled-plan"), blocked.plainCode), /code_plan_not_enabled/);
+    assert.equal((await prisma.subscriptionCode.findUniqueOrThrow({ where: { id: blocked.codeId } })).usedCount, 0);
+    assert.equal(await prisma.paymentCodeRedemptionEvent.count({ where: { codeId: blocked.codeId } }), 0);
   });
 
   await check("closed global switch blocks issuance and redemption but leaves existing access active", async () => {

@@ -29,7 +29,7 @@ const url = `postgresql://postgres:${password}@127.0.0.1:${dbPort}/p2_test`;
 const env = { ...process.env, DATABASE_URL: url, DIRECT_URL: url, P2_TEST_DATABASE_URL: url,
   NEXTAUTH_SECRET: randomBytes(32).toString("hex"), NEXTAUTH_URL: `http://localhost:${webPort}`, NODE_ENV: "development",
   STUDENT_REGISTRATION_ENABLED: "true", GOOGLE_AUTH_ENABLED: "true", GOOGLE_CLIENT_ID: "local.apps.googleusercontent.com", GOOGLE_CLIENT_SECRET: "local-google-secret",
-  PAYMENT_V1_ENABLED: "false", PAYMENT_LAUNCH_PLAN_IDS: "[]", PAYMENT_REVIEW_ENABLED: "false", PAYMENT_CODES_ENABLED: "false", PAYMENT_CODE_PLAN_IDS: "[]",
+  PAYMENT_V1_ENABLED: "false", PAYMENT_LAUNCH_PLAN_IDS: "[]", PAYMENT_REVIEW_ENABLED: "false", PAYMENT_CODES_ENABLED: "false",
   SMTP_HOST: "localhost", SMTP_PORT: String(mailPort), SMTP_USER: "local-test", SMTP_PASSWORD: password,
   AUTH_EMAIL_FROM: "Mustawak Test <no-reply@example.test>", AUTH_TRUSTED_IP_HEADER: "", P2_TEST_WORK: work, NEXT_TELEMETRY_DISABLED: "1" };
 const pg = new EmbeddedPostgres({ databaseDir: join(work, "postgres"), user: "postgres", password,

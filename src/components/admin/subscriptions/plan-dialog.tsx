@@ -118,7 +118,12 @@ export function PlanDialog({ children, plan, paymentsEnabled = false }: { childr
 
           <div className="flex items-center gap-3">
             <Switch id="activationCodesEnabled" name="activationCodesEnabled" defaultChecked={plan?.activationCodesEnabled ?? false} />
-            <Label htmlFor="activationCodesEnabled">الخطة مؤهلة لأكواد التفعيل</Label>
+            <div>
+              <Label htmlFor="activationCodesEnabled">السماح بأكواد التفعيل لهذه الخطة</Label>
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                التعطيل يمنع إصدار الأكواد وFirst Activation، ولا يلغي Grants قائمة.
+              </p>
+            </div>
           </div>
 
           <div className="space-y-2">

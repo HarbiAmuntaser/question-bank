@@ -25,7 +25,6 @@ async function start(enabled) {
   process.env.PAYMENT_V1_ENABLED = String(enabled);
   process.env.PAYMENT_CODES_ENABLED = String(enabled);
   process.env.PAYMENT_LAUNCH_PLAN_IDS = JSON.stringify([f.plan]);
-  process.env.PAYMENT_CODE_PLAN_IDS = JSON.stringify([f.plan]);
   log = createWriteStream(join(work, `next-payments-${enabled}.log`));
   server = spawn(process.execPath, ["node_modules/next/dist/bin/next", "dev", "--turbo", "--hostname", "127.0.0.1", "--port", new URL(origin).port], {
     env: { ...process.env, STUDENT_REGISTRATION_ENABLED: "false" }, windowsHide: true, stdio: ["ignore", "pipe", "pipe"],

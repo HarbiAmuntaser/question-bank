@@ -52,6 +52,8 @@ export type CodeRow = {
   planTitle: string;
   planScopeType: AccessScopeType;
   codePreview: string | null;
+  supportReference: string | null;
+  maxBrowserSessions: number;
   durationDays: number | null;
   startsAt: string | null;
   expiresAt: string | null;
@@ -60,6 +62,33 @@ export type CodeRow = {
   isActive: boolean;
   note: string | null;
   createdAt: string;
+  accessGrant: {
+    id: string;
+    principalType: "account" | "guest";
+    userId: string | null;
+    userEmail: string | null;
+    startsAt: string;
+    expiresAt: string;
+    isActive: boolean;
+    revokedAt: string | null;
+    sessions: Array<{
+      id: string;
+      sessionId: string;
+      boundAt: string;
+      lastUsedAt: string;
+      revokedAt: string | null;
+    }>;
+    events: Array<{
+      id: string;
+      type: "activated" | "session_recovered" | "session_transferred" | "session_revoked" | "browser_limit_changed" | "grant_revoked";
+      actorType: "account" | "guest" | "admin" | "system";
+      actorEmail: string | null;
+      sessionId: string | null;
+      replacedSessionId: string | null;
+      metadata: unknown;
+      createdAt: string;
+    }>;
+  } | null;
 };
 
 export type EntitlementRow = {

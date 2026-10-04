@@ -1,9 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Edit, Plus, Ticket } from "lucide-react";
+import { Edit, Plus, Search, Ticket } from "lucide-react";
 
 import { DisableSubscriptionDialog } from "@/components/admin/subscriptions/disable-dialog";
+import { CodeAccessAdminDialog } from "@/components/admin/subscriptions/code-access-admin-dialog";
 import { AdminTableShell } from "@/components/admin/admin-table-shell";
 import { CodeDialog } from "@/components/admin/subscriptions/code-dialog";
 import { PlanDialog } from "@/components/admin/subscriptions/plan-dialog";
@@ -17,6 +19,7 @@ import type {
 } from "@/components/admin/subscriptions/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -141,7 +144,7 @@ export function SubscriptionsAdmin({
   paymentsEnabled,
   codesEnabled,
   launchPlanIds,
-  codePlanIds,
+  codesQuery,
   plans,
   codePlanOptions,
   codes,
@@ -154,7 +157,7 @@ export function SubscriptionsAdmin({
   paymentsEnabled: boolean;
   codesEnabled: boolean;
   launchPlanIds: string[];
-  codePlanIds: string[];
+  codesQuery: string;
   plans: PlanRow[];
   codePlanOptions: PlanRow[];
   codes: CodeRow[];
@@ -165,6 +168,7 @@ export function SubscriptionsAdmin({
   entitlementsPagination: PaginationMeta;
 }) {
   const { tab, setParams } = useAdminTableParams();
+  const [codeSearch, setCodeSearch] = useState(codesQuery);
 
   return (
     <Tabs value={tab} onValueChange={(value) => setParams({ tab: value })} className="space-y-4" dir="rtl">
@@ -228,7 +232,7 @@ export function SubscriptionsAdmin({
                     <div className="font-medium">{plan.title}</div>
                     <div dir="ltr" className="break-all font-mono text-xs text-muted-foreground">{plan.id}</div>
                     {launchPlanIds.includes(plan.id) && <Badge variant="outline">ضمن قائمة الإطلاق</Badge>}
-                    {codePlanIds.includes(plan.id) && <Badge variant="outline">معتمدة للأكواد</Badge>}
+                    {plan.activationCodesEnabled && <Badge variant="outline">أكواد التفعيل مفعلة</Badge>}
                     {plan.description ? <div className="line-clamp-1 text-xs text-muted-foreground">{plan.description}</div> : null}
                   </TableCell>
                   <TableCell>{scopeLabel(plan.scopeType)}</TableCell>
@@ -261,24 +265,48 @@ export function SubscriptionsAdmin({
       </TabsContent>
 
       <TabsContent value="codes" className="space-y-3">
-        <StatusSelect
-          label="حالة الأكواد"
-          value={filters.codesStatus}
-          param="codesStatus"
-          pageParam="codesPage"
-          tab="codes"
-          options={[
-            { value: "all", label: "كل الأكواد" },
-            { value: "active", label: "الأكواد النشطة" },
-            { value: "disabled", label: "الأكواد المعطلة" },
-          ]}
-        />
-        <AdminTableShell minWidth="min-w-[1050px]">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <StatusSelect
+            label="حالة الأكواد"
+            value={filters.codesStatus}
+            param="codesStatus"
+            pageParam="codesPage"
+            tab="codes"
+            options={[
+              { value: "all", label: "كل الأكواد" },
+              { value: "active", label: "الأكواد النشطة" },
+              { value: "disabled", label: "الأكواد المعطلة" },
+            ]}
+          />
+          <form
+            className="flex w-full gap-2 sm:max-w-md"
+            onSubmit={(event) => {
+              event.preventDefault();
+              setParams({ codesQuery: codeSearch.trim(), codesPage: 1, tab: "codes" });
+            }}
+          >
+            <Input
+              value={codeSearch}
+              onChange={(event) => setCodeSearch(event.target.value)}
+              maxLength={100}
+              dir="ltr"
+              placeholder="supportReference أو codePreview"
+              aria-label="البحث في الأكواد"
+            />
+            <Button type="submit" variant="outline" size="icon" aria-label="بحث" title="بحث">
+              <Search className="h-4 w-4" aria-hidden />
+            </Button>
+          </form>
+        </div>
+        <AdminTableShell minWidth="min-w-[1250px]">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>الكود</TableHead>
+                <TableHead>مرجع الدعم</TableHead>
                 <TableHead>الخطة</TableHead>
+                <TableHead>المنحة</TableHead>
+                <TableHead>المتصفحات</TableHead>
                 <TableHead>الاستخدام</TableHead>
                 <TableHead>المدة</TableHead>
                 <TableHead>الصلاحية</TableHead>
@@ -289,14 +317,26 @@ export function SubscriptionsAdmin({
             </TableHeader>
             <TableBody>
               {codes.length === 0 ? (
-                <TableRow><TableCell colSpan={8} className="py-8 text-center text-muted-foreground">لا توجد أكواد مطابقة</TableCell></TableRow>
+                <TableRow><TableCell colSpan={11} className="py-8 text-center text-muted-foreground">لا توجد أكواد مطابقة</TableCell></TableRow>
               ) : codes.map((code) => (
                 <TableRow key={code.id}>
                   <TableCell dir="ltr" className="font-mono">{code.codePreview ?? "-"}</TableCell>
+                  <TableCell dir="ltr" className="font-mono text-xs">{code.supportReference ?? "-"}</TableCell>
                   <TableCell>
                     <div>{code.planTitle}</div>
                     <div className="text-xs text-muted-foreground">{scopeLabel(code.planScopeType)}</div>
                   </TableCell>
+                  <TableCell>
+                    {code.accessGrant ? (
+                      <div className="space-y-1 text-xs">
+                        <Badge variant={code.accessGrant.isActive ? "default" : "secondary"}>
+                          {code.accessGrant.principalType === "account" ? "حساب" : "ضيف"}
+                        </Badge>
+                        <div>{code.accessGrant.isActive ? "فعالة" : "ملغاة"}</div>
+                      </div>
+                    ) : <span className="text-xs text-muted-foreground">غير مفعّل</span>}
+                  </TableCell>
+                  <TableCell>{code.accessGrant?.sessions.filter((session) => !session.revokedAt).length ?? 0} / {code.maxBrowserSessions}</TableCell>
                   <TableCell>{code.usedCount} / {code.maxUses}</TableCell>
                   <TableCell>{code.durationDays ? `${code.durationDays} يوم` : "افتراضي"}</TableCell>
                   <TableCell>
@@ -306,7 +346,7 @@ export function SubscriptionsAdmin({
                   <TableCell>{statusBadge(code.isActive)}</TableCell>
                   <TableCell className="max-w-[220px] truncate">{code.note ?? "-"}</TableCell>
                   <TableCell className="text-left">
-                    <DisableSubscriptionDialog kind="code" id={code.id} updatedAt={code.updatedAt} label={`${code.planTitle} / ${code.codePreview ?? code.id}`} disabled={!code.isActive} />
+                    <CodeAccessAdminDialog code={code} />
                   </TableCell>
                 </TableRow>
               ))}

@@ -49,9 +49,9 @@ try {
       prisma.$queryRaw`SELECT count(*)::int AS count FROM _prisma_migrations WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL`,
       prisma.codeAccessGrant.count(), prisma.guestAccessSession.count(), prisma.codeAccessSessionBinding.count(), prisma.codeAccessEvent.count(),
     ]);
-    assert.equal(migrations[0].count, 35);
+    assert.equal(migrations[0].count, 36);
     assert.deepEqual([grants, sessions, bindings, events], [0, 0, 0, 0]);
-    console.log(JSON.stringify({ verified: true, migrations: 35, newTablesEmpty: true }));
+    console.log(JSON.stringify({ verified: true, migrations: 36, newTablesEmpty: true }));
   }
 } finally {
   await prisma.$disconnect();

@@ -61,7 +61,7 @@ async function check(name, work) {
 try {
   process.env.PAYMENT_CODES_ENABLED = "true";
   process.env.PAYMENT_LAUNCH_PLAN_IDS = "[]";
-  process.env.PAYMENT_CODE_PLAN_IDS = JSON.stringify([ids.plan]);
+  process.env.PAYMENT_CODE_PLAN_IDS = "retired-and-ignored";
 
   await prisma.user.createMany({ data: [
     { id: ids.admin, email: `admin-${suffix}@example.test`, normalizedEmail: `admin-${suffix}@example.test`, password: "isolated-test-password-hash", role: "admin", isActive: true },
@@ -119,14 +119,28 @@ try {
     const stored = await prisma.guestAccessSession.findFirstOrThrow({ where: { bindings: { some: { grantId: first.grant.id } } } });
     assert.notEqual(stored.tokenHash, first.guestSessionToken);
     await assert.rejects(activation(firstService, issued.plainCode, { type: "guest" }, { operation: "recover" }), /browser_limit_reached/);
+    const limitKey = randomUUID();
     await firstService.changeCodeBrowserLimit({ codeId: issued.code.id, maxBrowserSessions: 2,
-      idempotencyKey: randomUUID(), reason: "Increase isolated test browser limit", actor: adminIdentity });
+      idempotencyKey: limitKey, reason: "Increase isolated test browser limit", actor: adminIdentity });
+    assert.equal((await firstService.changeCodeBrowserLimit({ codeId: issued.code.id, maxBrowserSessions: 2,
+      idempotencyKey: limitKey, reason: "Increase isolated test browser limit", actor: adminIdentity })).alreadyChanged, true);
     const recovered = await activation(firstService, issued.plainCode, { type: "guest" }, { operation: "recover" });
     assert.ok(recovered.guestSessionToken);
     assert.equal(await prisma.codeAccessSessionBinding.count({ where: { grantId: first.grant.id, revokedAt: null } }), 2);
     assert.equal(await prisma.codeAccessEvent.count({ where: { grantId: first.grant.id, type: "browser_limit_changed" } }), 1);
     await assert.rejects(firstService.changeCodeBrowserLimit({ codeId: issued.code.id, maxBrowserSessions: 1,
-      idempotencyKey: randomUUID(), reason: "Invalid isolated test reduction", actor: adminIdentity }));
+      idempotencyKey: randomUUID(), reason: "Invalid isolated test reduction", actor: adminIdentity }), /browser_limit_below_active_sessions/);
+    const bindings = await prisma.codeAccessSessionBinding.findMany({ where: { grantId: first.grant.id, revokedAt: null }, orderBy: { boundAt: "asc" } });
+    const revokeKey = randomUUID();
+    await firstService.revokeCodeAccessSession({ bindingId: bindings[0].id, idempotencyKey: revokeKey,
+      reason: "Revoke one isolated browser binding", actor: adminIdentity });
+    assert.equal((await firstService.revokeCodeAccessSession({ bindingId: bindings[0].id, idempotencyKey: revokeKey,
+      reason: "Revoke one isolated browser binding", actor: adminIdentity })).alreadyRevoked, true);
+    assert.equal((await prisma.guestAccessSession.findUniqueOrThrow({ where: { id: bindings[0].sessionId } })).revokedAt, null);
+    assert.equal(await prisma.codeAccessSessionBinding.count({ where: { grantId: first.grant.id, revokedAt: null } }), 1);
+    assert.equal(await prisma.codeAccessEvent.count({ where: { grantId: first.grant.id, type: "session_revoked" } }), 1);
+    await firstService.changeCodeBrowserLimit({ codeId: issued.code.id, maxBrowserSessions: 1,
+      idempotencyKey: randomUUID(), reason: "Reduce limit after explicit session revocation", actor: adminIdentity });
   });
 
   await check("concurrent self-service transfer permits one winner and enforces the cooldown", async () => {
@@ -149,15 +163,65 @@ try {
     const issued = await createCode();
     await assert.rejects(firstService.activateCodeAccess({ code: issued.plainCode, subjectId: ids.otherSubject,
       idempotencyKey: randomUUID(), principal: { type: "account", user: studentIdentity } }), /payment_target_mismatch/);
-    await prisma.accessEntitlement.create({ data: { userId: ids.otherStudent, subjectId: ids.subject, scopeType: "subject", expiresAt: new Date(Date.now() + 86_400_000) } });
+    await prisma.accessEntitlement.create({ data: { userId: ids.otherStudent, subjectId: ids.subject, scopeType: "subject",
+      startsAt: new Date(Date.now() - 60_000), expiresAt: new Date(Date.now() + 86_400_000) } });
     await assert.rejects(activation(firstService, issued.plainCode, { type: "account", user: { id: ids.otherStudent, sessionVersion: 0 } }), /active_entitlement_exists/);
     assert.equal(await prisma.codeAccessGrant.count({ where: { codeId: issued.code.id } }), 0);
     await prisma.paidAccessPlan.update({ where: { id: ids.plan }, data: { activationCodesEnabled: false } });
     await assert.rejects(activation(firstService, issued.plainCode, { type: "guest" }), /code_plan_not_enabled/);
     await prisma.paidAccessPlan.update({ where: { id: ids.plan }, data: { activationCodesEnabled: true } });
     process.env.PAYMENT_CODE_PLAN_IDS = "[]";
-    await assert.rejects(activation(firstService, issued.plainCode, { type: "guest" }), /code_plan_not_enabled/);
-    process.env.PAYMENT_CODE_PLAN_IDS = JSON.stringify([ids.plan]);
+    const noAllowlist = await activation(firstService, issued.plainCode, { type: "guest" });
+    assert.equal(noAllowlist.outcome, "activated");
+    await firstService.revokeCodeAccessGrant({ grantId: noAllowlist.grant.id, idempotencyKey: randomUUID(),
+      reason: "Prove retired allowlist has no runtime effect", actor: adminIdentity });
+  });
+
+  await check("disable preserves access while audited enable restores operations without changing the grant", async () => {
+    const issued = await createCode({ maxBrowserSessions: 2 });
+    const activated = await activation(firstService, issued.plainCode, { type: "guest" });
+    const beforeGrant = await prisma.codeAccessGrant.findUniqueOrThrow({ where: { id: activated.grant.id } });
+    const adminUser = await prisma.user.findUniqueOrThrow({ where: { id: ids.admin } });
+    const firstAdmin = load(prisma, adminUser)("src/lib/server/payment-admin.ts");
+    const secondAdmin = load(second, adminUser)("src/lib/server/payment-admin.ts");
+    const activeCode = await prisma.subscriptionCode.findUniqueOrThrow({ where: { id: issued.code.id } });
+    await firstAdmin.disablePaymentCode(issued.code.id, {
+      reason: "Temporarily disable isolated code", expectedUpdatedAt: activeCode.updatedAt.toISOString(), confirmContentChange: false,
+    });
+    const guestAccess = load(prisma)("src/lib/server/access-control.ts");
+    assert.equal((await guestAccess.checkScopeAccess({ subjectId: ids.subject, guestSessionToken: activated.guestSessionToken })).allowed, true);
+    await assert.rejects(activation(firstService, issued.plainCode, { type: "guest" }, { operation: "recover" }), /inactive_code/);
+
+    const disabled = await prisma.subscriptionCode.findUniqueOrThrow({ where: { id: issued.code.id } });
+    const enableInput = {
+      reason: "Restore the temporarily disabled isolated code",
+      expectedUpdatedAt: disabled.updatedAt.toISOString(),
+      confirmContentChange: true,
+    };
+    const enabled = await Promise.all([
+      firstAdmin.enablePaymentCode(issued.code.id, enableInput),
+      secondAdmin.enablePaymentCode(issued.code.id, enableInput),
+    ]);
+    assert.equal(enabled.filter((row) => !row.alreadyEnabled).length, 1);
+    assert.equal(await prisma.paymentAdminEvent.count({ where: { codeId: issued.code.id, action: "code_enabled" } }), 1);
+    const afterGrant = await prisma.codeAccessGrant.findUniqueOrThrow({ where: { id: activated.grant.id } });
+    assert.equal(afterGrant.startsAt.getTime(), beforeGrant.startsAt.getTime());
+    assert.equal(afterGrant.expiresAt.getTime(), beforeGrant.expiresAt.getTime());
+    assert.equal(await prisma.codeAccessGrant.count({ where: { codeId: issued.code.id } }), 1);
+    assert.equal((await activation(firstService, issued.plainCode, { type: "guest" }, { operation: "recover" })).outcome, "recovered");
+
+    const reenabled = await prisma.subscriptionCode.findUniqueOrThrow({ where: { id: issued.code.id } });
+    await firstAdmin.disablePaymentCode(issued.code.id, {
+      reason: "Disable before revoking isolated grant", expectedUpdatedAt: reenabled.updatedAt.toISOString(), confirmContentChange: false,
+    });
+    await firstService.revokeCodeAccessGrant({ grantId: activated.grant.id, idempotencyKey: randomUUID(),
+      reason: "Revoke isolated grant before rejected enable", actor: adminIdentity });
+    const disabledAfterRevoke = await prisma.subscriptionCode.findUniqueOrThrow({ where: { id: issued.code.id } });
+    await assert.rejects(firstAdmin.enablePaymentCode(issued.code.id, {
+      reason: "This enable must be rejected after grant revocation",
+      expectedUpdatedAt: disabledAfterRevoke.updatedAt.toISOString(), confirmContentChange: true,
+    }), /code_grant_not_reactivatable/);
+    await assert.rejects(prisma.subscriptionCode.update({ where: { id: issued.code.id }, data: { isActive: true } }));
   });
 
   await check("disabled commerce and global code closure preserve existing grants while new activation stays closed", async () => {

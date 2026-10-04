@@ -358,6 +358,12 @@ export async function changeCodeBrowserLimit(input: {
       return { alreadyChanged: true, maxBrowserSessions: code.maxBrowserSessions };
     }
     if (code.maxBrowserSessions === input.maxBrowserSessions) return { alreadyChanged: true, maxBrowserSessions: code.maxBrowserSessions };
+    const activeSessions = await tx.codeAccessSessionBinding.count({
+      where: { grantId: code.accessGrant.id, revokedAt: null },
+    });
+    if (input.maxBrowserSessions < activeSessions) {
+      throw new PaymentError("browser_limit_below_active_sessions", 409);
+    }
     const updated = await tx.subscriptionCode.update({ where: { id: code.id }, data: { maxBrowserSessions: input.maxBrowserSessions } });
     await tx.codeAccessEvent.create({ data: {
       grantId: code.accessGrant.id, codeId: code.id, type: "browser_limit_changed", actorType: "admin",
@@ -366,6 +372,41 @@ export async function changeCodeBrowserLimit(input: {
       metadata: { before: code.maxBrowserSessions, after: updated.maxBrowserSessions, reason: input.reason.trim() },
     } });
     return { alreadyChanged: false, maxBrowserSessions: updated.maxBrowserSessions };
+  }, CODE_ACCESS_TRANSACTION);
+}
+
+export async function revokeCodeAccessSession(input: {
+  bindingId: string; idempotencyKey: string; reason: string; actor: AccountIdentity;
+}) {
+  validateAdminMutation(input.actor, input.idempotencyKey, input.reason);
+  if (!UUID.test(input.bindingId)) throw new PaymentError("invalid_code_access_request");
+  const requestHash = adminMutationHash({ bindingId: input.bindingId, reason: input.reason.trim() });
+  return paymentTransaction(async (tx) => {
+    await lockPaymentUsers(tx, [input.actor.id]);
+    await recheckAdminOverride(tx, input.actor);
+    await tx.$queryRaw`SELECT id FROM code_access_session_bindings WHERE id = ${input.bindingId} FOR UPDATE`;
+    const binding = await tx.codeAccessSessionBinding.findUnique({
+      where: { id: input.bindingId },
+      include: { grant: { select: { id: true, codeId: true } } },
+    });
+    if (!binding) throw new PaymentError("not_found", 404);
+    const replay = await tx.codeAccessEvent.findUnique({
+      where: { grantId_idempotencyKey: { grantId: binding.grantId, idempotencyKey: input.idempotencyKey } },
+    });
+    if (replay) {
+      if (replay.requestHash !== requestHash) throw new PaymentError("payment_idempotency_conflict", 409);
+      return { alreadyRevoked: true };
+    }
+    if (binding.revokedAt) return { alreadyRevoked: true };
+    const now = await databaseNow(tx);
+    await tx.codeAccessSessionBinding.update({ where: { id: binding.id }, data: { revokedAt: now } });
+    await tx.codeAccessEvent.create({ data: {
+      grantId: binding.grant.id, codeId: binding.grant.codeId, type: "session_revoked", actorType: "admin",
+      actorUserId: input.actor.id, actorSessionVersion: input.actor.sessionVersion,
+      sessionId: binding.sessionId, idempotencyKey: input.idempotencyKey, requestHash,
+      metadata: { bindingId: binding.id, reason: input.reason.trim() },
+    } });
+    return { alreadyRevoked: false };
   }, CODE_ACCESS_TRANSACTION);
 }
 

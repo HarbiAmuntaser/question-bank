@@ -25,6 +25,7 @@
     "test:code-access:integration": "node tests/code-access/database-integration.mjs",
     "test:code-access:migration": "node tests/code-access/migration-check.mjs",
     "test:code-access:runtime": "node --test tests/code-access/runtime.test.mjs tests/code-access/public-ux.test.mjs",
+    "test:code-access:admin": "node --test tests/code-access/admin-management.test.mjs",
     "test:colleges": "node --test tests/colleges/policy.test.mjs tests/colleges/public-integration.test.mjs",
     "test:colleges:migration": "node tests/colleges/migration-check.mjs",
     "test:chapters": "node --test tests/chapters/policy.test.mjs",

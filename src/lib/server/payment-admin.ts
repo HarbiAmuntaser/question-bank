@@ -142,6 +142,36 @@ export async function disablePaymentCode(id: string, raw: unknown) {
   });
 }
 
+export async function enablePaymentCode(id: string, raw: unknown) {
+  paymentAdminTargetSchema.parse(id); const input = paymentAdminChangeSchema.parse(raw); const actor = await requirePaymentAdmin();
+  return paymentTransaction(async (tx) => {
+    await lockPaymentUsers(tx, [actor.id]); await recheckPaymentAdmin(tx, actor);
+    await tx.$queryRaw`SELECT id FROM subscription_codes WHERE id = ${id} FOR UPDATE`;
+    const old = await tx.subscriptionCode.findUnique({
+      where: { id },
+      include: { accessGrant: { select: { id: true, isActive: true, revokedAt: true, expiresAt: true } } },
+    });
+    if (!old) throw new PaymentError("not_found", 404);
+    if (old.isActive) return { alreadyEnabled: true };
+    assertUnchanged(old, input.expectedUpdatedAt);
+    if (!input.confirmContentChange) throw new PaymentError("payment_code_confirmation_required", 409);
+    const [clock] = await tx.$queryRaw<Array<{ now: Date }>>`SELECT clock_timestamp() AS now`;
+    if (old.accessGrant && (!old.accessGrant.isActive || old.accessGrant.revokedAt || old.accessGrant.expiresAt <= clock.now)) {
+      throw new PaymentError("code_grant_not_reactivatable", 409);
+    }
+    const code = await tx.subscriptionCode.update({
+      where: { id },
+      data: { isActive: true, updatedAt: nextUpdate(old) },
+    });
+    await tx.paymentAdminEvent.create({ data: {
+      actorId: actor.id, actorSessionVersion: actor.sessionVersion,
+      action: "code_enabled", codeId: id, reason: input.reason,
+      before: codeSnapshot(old), after: codeSnapshot(code),
+    } });
+    return { alreadyEnabled: false };
+  });
+}
+
 export async function revokePaymentEntitlement(id: string, raw: unknown) {
   paymentAdminTargetSchema.parse(id); const input = paymentAdminChangeSchema.parse(raw); const actor = await requirePaymentAdmin();
   return paymentTransaction(async (tx) => {

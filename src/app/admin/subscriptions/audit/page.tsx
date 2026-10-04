@@ -10,7 +10,7 @@ import type { PaymentAdminAction } from "@prisma/client";
 export const dynamic = "force-dynamic";
 const labels: Record<PaymentAdminAction, string> = {
   plan_created: "إنشاء خطة", plan_updated: "تعديل خطة", plan_disabled: "تعطيل خطة",
-  code_issued: "إصدار كود", code_disabled: "تعطيل كود", entitlement_revoked: "تعطيل استحقاق",
+  code_issued: "إصدار كود", code_disabled: "تعطيل كود", code_enabled: "إعادة تفعيل كود", entitlement_revoked: "تعطيل استحقاق",
 };
 
 export default async function PaymentAuditPage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {

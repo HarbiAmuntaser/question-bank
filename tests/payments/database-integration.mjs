@@ -42,7 +42,6 @@ try {
   process.env.PAYMENT_V1_ENABLED = "true";
   process.env.PAYMENT_CODES_ENABLED = "true";
   process.env.PAYMENT_LAUNCH_PLAN_IDS = JSON.stringify([f.plan]);
-  process.env.PAYMENT_CODE_PLAN_IDS = JSON.stringify([f.plan, f.yePlan, f.academyPlan, f.majorPlan]);
   await check("outside scope skips every account/plan/entitlement query and metadata advertises free access", async () => {
     queries.length = 0;
     for (const quizId of [f.yeQuiz, f.academyQuiz]) assert.equal((await access.checkQuizAccess({ quizId })).reason, "out_of_scope");

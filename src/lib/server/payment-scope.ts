@@ -13,7 +13,7 @@ export function paymentV1Enabled() { return process.env.PAYMENT_V1_ENABLED === "
 export function requirePaymentV1() {
   if (!paymentV1Enabled()) throw new PaymentError("payments_unavailable", 503);
 }
-function paymentPlanIdsFromEnvironment(name: "PAYMENT_LAUNCH_PLAN_IDS" | "PAYMENT_CODE_PLAN_IDS"): string[] {
+function paymentPlanIdsFromEnvironment(name: "PAYMENT_LAUNCH_PLAN_IDS"): string[] {
   const raw = process.env[name] ?? "[]";
   if (raw.length > 20000) return [];
   try {
@@ -37,17 +37,15 @@ export function paymentCodesEnabled() { return process.env.PAYMENT_CODES_ENABLED
 export function requirePaymentCodes() {
   if (!paymentCodesEnabled()) throw new PaymentError("payment_codes_unavailable", 503);
 }
-export function paymentCodePlanIds(): string[] { return paymentPlanIdsFromEnvironment("PAYMENT_CODE_PLAN_IDS"); }
-export function paymentCodePlanEnabled(id: string, activationCodesEnabled = false) {
-  return paymentCodesEnabled() && activationCodesEnabled && paymentCodePlanIds().includes(id);
+export function paymentCodePlanEnabled(_id: string, activationCodesEnabled = false) {
+  return paymentCodesEnabled() && activationCodesEnabled;
 }
 export function paymentCodePlanEligibilityWhere(): Prisma.PaidAccessPlanWhereInput {
-  const ids = paymentCodePlanIds();
-  return { activationCodesEnabled: true, id: { in: ids } };
+  return { activationCodesEnabled: true };
 }
-export function requirePaymentCodePlan(id: string, activationCodesEnabled = false) {
+export function requirePaymentCodePlan(_id: string, activationCodesEnabled = false) {
   requirePaymentCodes();
-  if (!paymentCodePlanEnabled(id, activationCodesEnabled)) throw new PaymentError("code_plan_not_enabled", 409);
+  if (!activationCodesEnabled) throw new PaymentError("code_plan_not_enabled", 409);
 }
 
 export const paymentSubjectSelect = {

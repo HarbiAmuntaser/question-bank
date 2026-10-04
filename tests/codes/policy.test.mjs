@@ -6,17 +6,19 @@ import { moduleLoader } from "../admin/load-module.mjs";
 
 const id = "90000000-0000-4000-8000-000000000301";
 
-test("code allowlist is independent from sales and fails closed", () => {
+test("code availability uses the global switch and plan flag, not the retired allowlist", () => {
   const load = (env) => moduleLoader({ "@/lib/prisma": { prisma: {} }, "@/lib/auth-helpers": {} }, { process: { env } })("src/lib/server/payment-scope.ts");
-  const codes = load({ PAYMENT_CODES_ENABLED: "true", PAYMENT_CODE_PLAN_IDS: JSON.stringify([id]), PAYMENT_LAUNCH_PLAN_IDS: "[]" });
-  assert.equal(codes.paymentCodePlanEnabled(id, true), true);
-  assert.equal(codes.paymentCodePlanEnabled(id, false), false);
-  assert.equal(codes.paymentSalesEnabled(), false);
-  for (const value of [undefined, "not-json", "*", JSON.stringify([id, null])]) {
-    const closed = load({ PAYMENT_CODES_ENABLED: "true", PAYMENT_CODE_PLAN_IDS: value });
-    assert.equal(closed.paymentCodePlanEnabled(id, true), false);
-    assert.throws(() => closed.requirePaymentCodePlan(id, true), /code_plan_not_enabled/);
+  for (const value of [undefined, "not-json", "*", "[]", JSON.stringify([id])]) {
+    const codes = load({ PAYMENT_CODES_ENABLED: "true", PAYMENT_CODE_PLAN_IDS: value, PAYMENT_LAUNCH_PLAN_IDS: "[]" });
+    assert.equal(codes.paymentCodePlanEnabled(id, true), true);
+    assert.equal(codes.paymentCodePlanEnabled(id, false), false);
+    assert.doesNotThrow(() => codes.requirePaymentCodePlan(id, true));
+    assert.throws(() => codes.requirePaymentCodePlan(id, false), /code_plan_not_enabled/);
+    assert.equal(codes.paymentSalesEnabled(), false);
   }
+  const closed = load({ PAYMENT_CODES_ENABLED: "false", PAYMENT_CODE_PLAN_IDS: JSON.stringify([id]) });
+  assert.equal(closed.paymentCodePlanEnabled(id, true), false);
+  assert.throws(() => closed.requirePaymentCodePlan(id, true), /payment_codes_unavailable/);
 });
 
 test("issuance requires a UUID idempotency key and rejects client authority", () => {

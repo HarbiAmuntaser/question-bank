@@ -105,7 +105,6 @@ try {
   await check("codes stay closed by default; enabled test issuance/disable are audited without storing code or hash in audit", async () => {
     await assert.rejects(admin.issuePaymentCode(codeInput(plan.id), "R2 test issuance"), /payment_codes_unavailable/);
     process.env.PAYMENT_CODES_ENABLED = "true";
-    process.env.PAYMENT_CODE_PLAN_IDS = JSON.stringify([plan.id]);
     const plainCode = (await admin.issuePaymentCode(codeInput(plan.id), "R2 test issuance")).plainCode;
     const code = await prisma.subscriptionCode.findFirstOrThrow({ where: { createdBy: adminId } });
     const redemption = await buyer("src/lib/server/payment-mutations.ts").redeemSubscriptionCode({ code: plainCode, subjectId: f.sa });

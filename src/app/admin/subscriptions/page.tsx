@@ -16,7 +16,7 @@ import type {
 } from "@/components/admin/subscriptions/types";
 import { TableSkeleton } from "@/components/ui/table-skeleton";
 import { prisma } from "@/lib/prisma";
-import { paymentCodePlanIds, paymentPlanWhere, paymentV1Enabled, paymentSalesEnabled, paymentCodesEnabled, paymentReviewEnabled, paymentLaunchPlanIds } from "@/lib/server/payment-scope";
+import { paymentPlanWhere, paymentV1Enabled, paymentSalesEnabled, paymentCodesEnabled, paymentReviewEnabled, paymentLaunchPlanIds } from "@/lib/server/payment-scope";
 
 export const dynamic = "force-dynamic";
 
@@ -49,7 +49,7 @@ function pagination(page: number, total: number): PaginationMeta {
 
 async function getSubscriptionAdminData(params: SearchParams) {
   const now = new Date();
-  const codePlanIds = paymentCodePlanIds();
+  const codesQuery = (one(params, "codesQuery") ?? "").trim().slice(0, 100);
   const plansPage = pageParam(params, "plansPage");
   const codesPage = pageParam(params, "codesPage");
   const entitlementsPage = pageParam(params, "entitlementsPage");
@@ -66,12 +66,23 @@ async function getSubscriptionAdminData(params: SearchParams) {
         ? { isActive: false }
         : {};
 
-  const codesWhere: Prisma.SubscriptionCodeWhereInput =
+  const codesStatusWhere: Prisma.SubscriptionCodeWhereInput =
     filters.codesStatus === "active"
       ? { isActive: true }
       : filters.codesStatus === "disabled"
         ? { isActive: false }
         : {};
+  const codesWhere: Prisma.SubscriptionCodeWhereInput = {
+    AND: [
+      codesStatusWhere,
+      ...(codesQuery ? [{
+        OR: [
+          { supportReference: { contains: codesQuery, mode: "insensitive" as const } },
+          { codePreview: { contains: codesQuery, mode: "insensitive" as const } },
+        ],
+      }] : []),
+    ],
+  };
 
   const entitlementsWhere: Prisma.AccessEntitlementWhereInput =
     filters.entitlementsStatus === "active"
@@ -117,7 +128,7 @@ async function getSubscriptionAdminData(params: SearchParams) {
       },
     }),
     prisma.paidAccessPlan.findMany({
-      where: { id: { in: codePlanIds }, activationCodesEnabled: true, isActive: true, ...paymentPlanWhere() },
+      where: { activationCodesEnabled: true, isActive: true, ...paymentPlanWhere() },
       orderBy: { createdAt: "desc" },
       include: {
         major: {
@@ -151,6 +162,21 @@ async function getSubscriptionAdminData(params: SearchParams) {
       take: PAGE_SIZE,
       include: {
         plan: { select: { id: true, title: true, scopeType: true } },
+        accessGrant: {
+          include: {
+            user: { select: { email: true } },
+            sessions: {
+              orderBy: [{ boundAt: "desc" }, { id: "desc" }],
+              take: 100,
+              select: { id: true, sessionId: true, boundAt: true, lastUsedAt: true, revokedAt: true },
+            },
+            events: {
+              orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+              take: 50,
+              include: { actorUser: { select: { email: true } } },
+            },
+          },
+        },
       },
     }),
     prisma.accessEntitlement.findMany({
@@ -253,6 +279,8 @@ async function getSubscriptionAdminData(params: SearchParams) {
     planTitle: code.plan.title,
     planScopeType: code.plan.scopeType,
     codePreview: code.codePreview,
+    supportReference: code.supportReference,
+    maxBrowserSessions: code.maxBrowserSessions,
     durationDays: code.durationDays,
     startsAt: code.startsAt?.toISOString() ?? null,
     expiresAt: code.expiresAt?.toISOString() ?? null,
@@ -262,6 +290,33 @@ async function getSubscriptionAdminData(params: SearchParams) {
     note: code.note,
     createdAt: code.createdAt.toISOString(),
     updatedAt: code.updatedAt.toISOString(),
+    accessGrant: code.accessGrant ? {
+      id: code.accessGrant.id,
+      principalType: code.accessGrant.principalType,
+      userId: code.accessGrant.userId,
+      userEmail: code.accessGrant.user?.email ?? null,
+      startsAt: code.accessGrant.startsAt.toISOString(),
+      expiresAt: code.accessGrant.expiresAt.toISOString(),
+      isActive: code.accessGrant.isActive,
+      revokedAt: code.accessGrant.revokedAt?.toISOString() ?? null,
+      sessions: code.accessGrant.sessions.map((session) => ({
+        id: session.id,
+        sessionId: session.sessionId,
+        boundAt: session.boundAt.toISOString(),
+        lastUsedAt: session.lastUsedAt.toISOString(),
+        revokedAt: session.revokedAt?.toISOString() ?? null,
+      })),
+      events: code.accessGrant.events.map((event) => ({
+        id: event.id,
+        type: event.type,
+        actorType: event.actorType,
+        actorEmail: event.actorUser?.email ?? null,
+        sessionId: event.sessionId,
+        replacedSessionId: event.replacedSessionId,
+        metadata: event.metadata,
+        createdAt: event.createdAt.toISOString(),
+      })),
+    } : null,
   }));
 
   const entitlementRows: EntitlementRow[] = entitlements.map((entitlement) => ({
@@ -285,7 +340,7 @@ async function getSubscriptionAdminData(params: SearchParams) {
     codesEnabled: paymentCodesEnabled(),
     reviewEnabled: paymentReviewEnabled(),
     launchPlanIds: paymentLaunchPlanIds(),
-    codePlanIds,
+    codesQuery,
     plans: planRows,
     codePlanOptions: codePlanRows,
     codes: codeRows,
@@ -317,7 +372,7 @@ export default async function SubscriptionsPage({
           <div><dt className="text-muted-foreground">المبيعات الجديدة</dt><dd>{data.salesEnabled ? "مفتوحة" : "مغلقة"}</dd></div>
           <div><dt className="text-muted-foreground">مراجعة الطلبات</dt><dd>{data.reviewEnabled ? "متاحة" : "متوقفة"}</dd></div>
           <div><dt className="text-muted-foreground">إصدار وتفعيل الأكواد</dt><dd>{data.codesEnabled ? "متاح" : "متوقف"}</dd></div>
-          <div><dt className="text-muted-foreground">خطط قائمة الإطلاق / الأكواد</dt><dd>{data.launchPlanIds.length} / {data.codePlanIds.length}</dd></div>
+          <div><dt className="text-muted-foreground">خطط الإطلاق / المؤهلة للأكواد</dt><dd>{data.launchPlanIds.length} / {data.codePlanOptions.length}</dd></div>
         </dl>
       </div>
 

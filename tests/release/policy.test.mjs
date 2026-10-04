@@ -17,18 +17,18 @@ test("launch list is explicit, bounded, structured and fails closed as a whole",
   config.requirePaymentSales(["p1"]);
   assert.throws(() => config.requirePaymentSales(["p3"]), /plan_not_in_launch/);
 });
-test("code plan list is independent, bounded and fail-closed", () => {
-  for (const value of [undefined, "", "*", '"p1"', '["p1",null]', '[" p1"]', JSON.stringify(Array(201).fill("p"))]) {
-    const config = release({ PAYMENT_CODES_ENABLED: "true", PAYMENT_CODE_PLAN_IDS: value });
-    assert.deepEqual(Array.from(config.paymentCodePlanIds()), []);
-    assert.equal(config.paymentCodePlanEnabled("p1", true), false);
-    assert.throws(() => config.requirePaymentCodePlan("p1", true), /code_plan_not_enabled/);
+test("code availability is controlled by the global switch and persisted plan flag", () => {
+  for (const value of [undefined, "", "*", '"p1"', '["p1"]', '["other"]']) {
+    const config = release({ PAYMENT_CODES_ENABLED: "true", PAYMENT_CODE_PLAN_IDS: value, PAYMENT_LAUNCH_PLAN_IDS: '["sale-only"]' });
+    assert.equal(config.paymentCodePlanEnabled("p1", true), true);
+    assert.equal(config.paymentCodePlanEnabled("p1", false), false);
+    assert.equal(config.paymentCodePlanEnabled("sale-only", true), true);
+    assert.doesNotThrow(() => config.requirePaymentCodePlan("p1", true));
+    assert.throws(() => config.requirePaymentCodePlan("p1", false), /code_plan_not_enabled/);
   }
-  const config = release({ PAYMENT_CODES_ENABLED: "true", PAYMENT_CODE_PLAN_IDS: '["p1","p1"]', PAYMENT_LAUNCH_PLAN_IDS: '["sale-only"]' });
-  assert.deepEqual(Array.from(config.paymentCodePlanIds()), ["p1"]);
-  assert.equal(config.paymentCodePlanEnabled("p1", true), true);
-  assert.equal(config.paymentCodePlanEnabled("p1", false), false);
-  assert.equal(config.paymentCodePlanEnabled("sale-only", true), false);
+  const closed = release({ PAYMENT_CODES_ENABLED: "false", PAYMENT_CODE_PLAN_IDS: '["p1"]' });
+  assert.equal(closed.paymentCodePlanEnabled("p1", true), false);
+  assert.throws(() => closed.requirePaymentCodePlan("p1", true), /payment_codes_unavailable/);
 });
 test("sales, reviews and codes are independent explicit switches; old sales flag alone opens nothing", () => {
   const old = release({ PAYMENT_V1_ENABLED: "true" });
@@ -51,7 +51,7 @@ function accessHarness({ sales = false, codes = false, user = true, grant = fals
       findMany: async () => { counts.plans++; return plans.map((id) => ({ id, scopeType: "subject", subjectId: "s1", majorId: null,
         title: id, description: null, price: { toString: () => "100" }, currency: "SAR", whatsappNumber: null,
         telegramUsername: null, contactMessage: null, isActive: true, activationCodesEnabled: true })); },
-      findFirst: async ({ where }) => { counts.plans++; const id = plans.find((p) => where.id.in.includes(p));
+      findFirst: async ({ where }) => { counts.plans++; const id = where.activationCodesEnabled === true ? plans[0] : null;
         return id ? { id } : null; },
     },
     accessEntitlement: { findFirst: async () => { counts.grants++; return grant ? { id: "grant" } : null; } },
@@ -78,7 +78,7 @@ test("sale options prefer an approved plan; codes do not inherit sales availabil
   assert.equal(sale.plan.id, "p1"); assert.equal(sale.canPurchase, true); assert.equal(sale.canRedeemCode, false);
   const codeOnly = await accessHarness({ codes: true }).read();
   assert.equal(codeOnly.canPurchase, false); assert.equal(codeOnly.canRedeemCode, true);
-  assert.equal((await accessHarness({ codes: true, codeListed: [], listed: ["p1"] }).read()).canRedeemCode, false);
+  assert.equal((await accessHarness({ codes: true, codeListed: [], listed: ["p1"] }).read()).canRedeemCode, true);
   for (const options of [{ outside: true }, { type: "free" }, { type: "inherit", plans: [] }]) {
     const h = accessHarness({ sales: true, codes: true, ...options }); const result = await h.read();
     assert.equal(result.allowed, true); assert.equal(result.canPurchase, false); assert.equal(result.canRedeemCode, false);

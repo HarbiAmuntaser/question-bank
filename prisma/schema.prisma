@@ -1131,6 +1131,7 @@ enum PaymentAdminAction {
   plan_disabled
   code_issued
   code_disabled
+  code_enabled
   entitlement_revoked
 }
 

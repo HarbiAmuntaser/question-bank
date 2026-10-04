@@ -252,11 +252,11 @@ test("all protected runtime entry points forward the guest token and keep signed
   }
 });
 
-test("runtime keeps the compatibility allowlist and exposes neither guest tokens nor raw errors", () => {
+test("runtime ignores the retired code-plan allowlist and exposes neither guest tokens nor raw errors", () => {
   const scope = readFileSync("src/lib/server/payment-scope.ts", "utf8");
   const service = readFileSync("src/lib/server/code-access.ts", "utf8");
   const http = readFileSync("src/lib/server/payment-http.ts", "utf8");
-  assert.match(scope, /PAYMENT_CODE_PLAN_IDS/);
+  assert.doesNotMatch(scope, /PAYMENT_CODE_PLAN_IDS/);
   assert.match(service, /requirePaymentCodePlan/);
   assert.doesNotMatch(http, /guestSessionToken:\s*activated\.guestSessionToken/);
   assert.match(http, /console\.error\("code_access_http_failed"\)/);
