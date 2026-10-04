@@ -1,3 +1,5 @@
+BEGIN;
+
 ALTER TABLE payment_admin_events
   DROP CONSTRAINT payment_admin_event_target;
 
@@ -108,3 +110,5 @@ BEGIN
   RETURN NEW;
 END;
 $$;
+
+COMMIT;

@@ -1,3 +1,5 @@
+BEGIN;
+
 CREATE TYPE "CodeAccessPrincipalType" AS ENUM ('account', 'guest');
 CREATE TYPE "CodeAccessEventType" AS ENUM ('activated', 'session_recovered', 'session_transferred', 'session_revoked', 'browser_limit_changed', 'grant_revoked');
 CREATE TYPE "CodeAccessActorType" AS ENUM ('account', 'guest', 'admin', 'system');
@@ -330,3 +332,5 @@ $$;
 CREATE CONSTRAINT TRIGGER code_browser_limit_audit
   AFTER UPDATE ON subscription_codes DEFERRABLE INITIALLY DEFERRED
   FOR EACH ROW EXECUTE FUNCTION require_code_browser_limit_audit();
+
+COMMIT;
