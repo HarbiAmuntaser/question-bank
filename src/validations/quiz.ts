@@ -16,12 +16,12 @@ const QuizAccessTypeEnum = z.enum(["inherit", "free", "paid"]);
 
 export const quizGenerationSettingsSchema = z.object({
   title: z.string().min(1, "title_required"),
-  questionCount: z.coerce.number().int().min(0).default(0),
+  questionCount: z.coerce.number().int().min(0).max(100).default(20),
   timeLimit: z.coerce.number().int().min(1).max(180).default(30),
   difficulty: z.enum(["mixed", "easy", "medium", "hard"]).default("mixed"),
   questionTypes: z.array(QuestionTypeEnum).optional().default([]),
   randomize: z.boolean().default(true),
-  selectedChapters: z.array(z.string().min(1)).min(1, "select_at_least_one_chapter"),
+  selectedChapters: z.array(z.string().min(1)).min(1, "select_at_least_one_chapter").max(50),
   accessType: QuizAccessTypeEnum.default("inherit"),
   isFreePreview: z.boolean().default(false),
 });

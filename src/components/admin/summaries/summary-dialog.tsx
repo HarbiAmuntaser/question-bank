@@ -113,7 +113,9 @@ export function SummaryDialog({
   const [internalOpen, setInternalOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [selectedUniversityId, setSelectedUniversityId] = useState("");
+  const [selectedCollegeId, setSelectedCollegeId] = useState("");
   const [selectedMajorId, setSelectedMajorId] = useState("");
+  const [institutionType, setInstitutionType] = useState<"university" | "school" | "academy" | null>(null);
   const [selectedSubjectId, setSelectedSubjectId] = useState("");
   const [selectedChapterId, setSelectedChapterId] = useState("");
   const [title, setTitle] = useState("");
@@ -137,6 +139,7 @@ export function SummaryDialog({
   useEffect(() => {
     if (!dialogOpen) return;
     setSelectedUniversityId(summary?.subject.major.university.id ?? "");
+    setSelectedCollegeId(summary?.subject.major.collegeId ?? "");
     setSelectedMajorId(summary?.subject.major.id ?? "");
     setSelectedSubjectId(summary?.subjectId ?? "");
     setSelectedChapterId(summary?.chapterId ?? "");
@@ -161,6 +164,7 @@ export function SummaryDialog({
 
   const handleUniversityChange = (value: string) => {
     setSelectedUniversityId(value);
+    setSelectedCollegeId("");
     setSelectedMajorId("");
     setSelectedSubjectId("");
     setSelectedChapterId("");
@@ -367,11 +371,32 @@ export function SummaryDialog({
                 type="university"
                 value={selectedUniversityId}
                 onValueChange={handleUniversityChange}
+                onOptionChange={(option) => setInstitutionType(option?.institutionType ?? null)}
                 placeholder="ابحث عن جامعة"
                 disablePortal
               />
               <FieldError message={fieldError("universityId")} />
             </div>
+
+            {institutionType === "university" ? (
+              <div className="grid gap-2">
+                <Label>الكلية اختيارية</Label>
+                <AdminLookupCombobox
+                  type="college"
+                  value={selectedCollegeId}
+                  onValueChange={(value) => {
+                    setSelectedCollegeId(value);
+                    setSelectedMajorId("");
+                    setSelectedSubjectId("");
+                    setSelectedChapterId("");
+                  }}
+                  universityId={selectedUniversityId}
+                  disabled={!selectedUniversityId}
+                  placeholder="كل تخصصات الجامعة أو اختر كلية"
+                  disablePortal
+                />
+              </div>
+            ) : null}
 
             <div className="grid gap-2">
               <Label>التخصص</Label>
@@ -380,6 +405,7 @@ export function SummaryDialog({
                 value={selectedMajorId}
                 onValueChange={handleMajorChange}
                 universityId={selectedUniversityId}
+                collegeId={institutionType === "university" ? selectedCollegeId : undefined}
                 disabled={!selectedUniversityId}
                 placeholder={selectedUniversityId ? "ابحث عن تخصص" : "اختر الجامعة أولًا"}
                 disablePortal

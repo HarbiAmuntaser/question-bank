@@ -10,6 +10,8 @@ export type SummarySubject = {
     id: string;
     name: string;
     code: string | null;
+    collegeId: string | null;
+    college: { id: string; name: string; code: string | null } | null;
     university: { id: string; name: string; code: string | null };
   };
 };

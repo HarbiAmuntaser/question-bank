@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   resolveAdminLookupAction,
@@ -22,11 +22,13 @@ type LookupComboboxProps = {
   placeholder: string;
   disabled?: boolean;
   universityId?: string;
+  collegeId?: string;
   universityType?: "university" | "school" | "academy";
   majorId?: string;
   subjectId?: string;
   chapterId?: string;
   disablePortal?: boolean;
+  onOptionChange?: (option: AdminLookupOption | null) => void;
   "data-admin-field"?: string;
   "aria-invalid"?: boolean;
   "aria-describedby"?: string;
@@ -38,6 +40,7 @@ function toComboOption(option: AdminLookupOption | null): ComboOption | null {
     id: option.id,
     label: option.label,
     subLabel: option.subLabel ?? option.code ?? undefined,
+    institutionType: option.institutionType,
   };
 }
 
@@ -48,27 +51,35 @@ export function AdminLookupCombobox({
   placeholder,
   disabled,
   universityId,
+  collegeId,
   universityType,
   majorId,
   subjectId,
   chapterId,
   disablePortal,
+  onOptionChange,
   "data-admin-field": adminField,
   "aria-invalid": ariaInvalid,
   "aria-describedby": ariaDescribedBy,
 }: LookupComboboxProps) {
   const [selected, setSelected] = useState<ComboOption | null>(null);
+  const optionChangeRef = useRef(onOptionChange);
+  optionChangeRef.current = onOptionChange;
 
   useEffect(() => {
     let alive = true;
 
     if (!value) {
       setSelected(null);
+      optionChangeRef.current?.(null);
       return;
     }
 
     void resolveAdminLookupAction(type, value).then((option) => {
-      if (alive) setSelected(toComboOption(option));
+      if (alive) {
+        setSelected(toComboOption(option));
+        optionChangeRef.current?.(option);
+      }
     });
 
     return () => {
@@ -85,7 +96,7 @@ export function AdminLookupCombobox({
         return searchCollegesAction({ universityId, query, limit: 30 });
       }
       if (type === "major") {
-        return searchMajorsAction({ universityId, query, limit: 30 });
+        return searchMajorsAction({ universityId, collegeId, query, limit: 30 });
       }
       if (type === "subject") {
         return searchSubjectsAction({ majorId, query, limit: 30 });
@@ -95,16 +106,17 @@ export function AdminLookupCombobox({
       }
       return searchChaptersAction({ subjectId, query, limit: 30 });
     },
-    [chapterId, majorId, subjectId, type, universityId, universityType],
+    [chapterId, collegeId, majorId, subjectId, type, universityId, universityType],
   );
 
-  const depsKey = `${type}:${universityId ?? ""}:${universityType ?? ""}:${majorId ?? ""}:${subjectId ?? ""}:${chapterId ?? ""}`;
+  const depsKey = `${type}:${universityId ?? ""}:${collegeId ?? ""}:${universityType ?? ""}:${majorId ?? ""}:${subjectId ?? ""}:${chapterId ?? ""}`;
 
   return (
     <AsyncCombobox
       value={selected}
       onChange={(next) => {
         setSelected(next);
+        onOptionChange?.(next);
         onValueChange(next?.id ?? "");
       }}
       placeholder={placeholder}

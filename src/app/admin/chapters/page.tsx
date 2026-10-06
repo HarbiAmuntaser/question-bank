@@ -14,6 +14,7 @@ export default async function ChaptersPage({
     page?: string;
     query?: string;
     universityId?: string;
+    collegeId?: string;
     majorId?: string;
     subjectId?: string;
   }>;
@@ -21,7 +22,7 @@ export default async function ChaptersPage({
   await requireAdminPage("chapters:read");
 
   const sp = await searchParams;
-  const { page, query, universityId, majorId, subjectId } = sp;
+  const { page, query, universityId, collegeId, majorId, subjectId } = sp;
 
   return (
     <div className="space-y-6">
@@ -40,9 +41,9 @@ export default async function ChaptersPage({
 
       <Suspense
         fallback={<TableSkeleton rows={10} columns={10} />}
-        key={`${page ?? 1}-${query ?? ""}-${universityId ?? ""}-${majorId ?? ""}-${subjectId ?? ""}`}
+        key={`${page ?? 1}-${query ?? ""}-${universityId ?? ""}-${collegeId ?? ""}-${majorId ?? ""}-${subjectId ?? ""}`}
       >
-        <ChaptersTable searchParams={{ page, query, universityId, majorId, subjectId }} />
+        <ChaptersTable searchParams={{ page, query, universityId, collegeId, majorId, subjectId }} />
       </Suspense>
     </div>
   );

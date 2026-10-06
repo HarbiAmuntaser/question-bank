@@ -9,7 +9,7 @@ const emptyToUndefined = z
   
 export const listMajorsQuerySchema = z.object({
   page: z.coerce.number().min(1).default(1),
-  pageSize: z.coerce.number().min(1).max(5000).default(10),
+  pageSize: z.coerce.number().int().min(1).max(100).default(10),
   sortBy: z.enum(["name", "createdAt", "code"]).default("createdAt"),
   sortOrder: z.enum(["asc", "desc"]).default("desc"),
   query: z.string().default(""),

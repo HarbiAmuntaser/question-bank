@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { HelpCircle, CheckCircle, FileText, PenTool } from "lucide-react";
 import { Pagination } from "@/components/Pagination";
+import { SearchInput } from "@/components/ui/SearchInput";
 import { QuestionsFilters } from "./QuestionsFilters";
 import { QuestionActions } from "./question-actions";
 import { AdminTableShell } from "@/components/admin/admin-table-shell";
@@ -50,7 +51,9 @@ function buildQuery(params: Record<string, string | number | undefined>) {
 async function fetchQuestions(args: {
   page: number;
   pageSize: number;
+  query?: string;
   universityId?: string;
+  collegeId?: string;
   majorId?: string;
   subjectId?: string;
   chapterId?: string;
@@ -94,7 +97,9 @@ export async function QuestionsTable({
 }: {
   searchParams?: {
     page?: string;
+    query?: string;
     universityId?: string;
+    collegeId?: string;
     majorId?: string;
     subjectId?: string;
     chapterId?: string;
@@ -107,7 +112,9 @@ export async function QuestionsTable({
   const args = {
     page: currentPage,
     pageSize: perPage,
+    query: searchParams?.query || undefined,
     universityId: searchParams?.universityId || undefined,
+    collegeId: searchParams?.collegeId || undefined,
     majorId: searchParams?.majorId || undefined,
     subjectId: searchParams?.subjectId || undefined,
     chapterId: searchParams?.chapterId || undefined,
@@ -118,7 +125,10 @@ export async function QuestionsTable({
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <QuestionsFilters />
+        <SearchInput placeholder="ابحث في نص السؤال أو الفصل أو المقرر..." />
+        <div className="w-full sm:max-w-5xl">
+          <QuestionsFilters />
+        </div>
       </div>
 
       <AdminTableShell minWidth="min-w-[1200px]">

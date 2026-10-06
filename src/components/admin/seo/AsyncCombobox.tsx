@@ -14,6 +14,7 @@ export type ComboOption = {
   subLabel?: string;
   slug?: string | null;
   slugMissing?: boolean;
+  institutionType?: "university" | "school" | "academy";
 };
 
 export function AsyncCombobox({

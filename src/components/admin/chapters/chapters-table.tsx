@@ -6,14 +6,8 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { Pagination } from "@/components/Pagination";
 import { ChapterActions } from "./chapter-actions";
-import { UniversityFilter } from "./UniversityFilter";
-import { MajorFilter } from "./MajorFilter";
-import { SubjectFilter } from "./SubjectFilter";
 import { AdminTableShell } from "@/components/admin/admin-table-shell";
-
-type UniOpt = { id: string; name: string; code: string | null };
-type MajorOpt = { id: string; name: string; code: string | null };
-type SubjectOpt = { id: string; name: string; code: string | null };
+import { AdminContentPathFilters } from "@/components/admin/admin-content-path-filters";
 
 type ChapterRow = {
   id: string;
@@ -35,6 +29,8 @@ type ChapterRow = {
       id: string;
       name: string;
       code: string | null;
+      collegeId: string | null;
+      college: { id: string; name: string; code: string | null } | null;
       university: { id: string; name: string; code: string | null };
     };
   };
@@ -57,6 +53,7 @@ async function fetchChapters(args: {
   pageSize: number;
   query: string;
   universityId?: string;
+  collegeId?: string;
   majorId?: string;
   subjectId?: string;
 }): Promise<ListResponse> {
@@ -71,23 +68,6 @@ async function fetchChapters(args: {
   return (await res.json()) as ListResponse;
 }
 
-async function fetchUniversities(): Promise<UniOpt[]> {
-  // Filters now search lazily via AdminLookupCombobox, so the server table should not prefetch large lists.
-  return [];
-}
-
-async function fetchMajors(universityId?: string): Promise<MajorOpt[]> {
-  void universityId;
-  // Cascading filter options are fetched on demand by the client combobox.
-  return [];
-}
-
-async function fetchSubjects(filters: { universityId?: string; majorId?: string }): Promise<SubjectOpt[]> {
-  void filters;
-  // Subjects are resolved lazily after the parent major is selected.
-  return [];
-}
-
 export async function ChaptersTable({
   searchParams,
 }: {
@@ -95,6 +75,7 @@ export async function ChaptersTable({
     page?: string;
     query?: string;
     universityId?: string;
+    collegeId?: string;
     majorId?: string;
     subjectId?: string;
   };
@@ -104,45 +85,26 @@ export async function ChaptersTable({
   const searchQuery = searchParams?.query ?? "";
 
   const selectedUniversityId = searchParams?.universityId || undefined;
+  const selectedCollegeId = searchParams?.collegeId || undefined;
   const selectedMajorId = searchParams?.majorId || undefined;
   const selectedSubjectId = searchParams?.subjectId || undefined;
 
-  const [universities, majors, subjects, { data: chapters, pagination }] = await Promise.all([
-    fetchUniversities(),
-    fetchMajors(selectedUniversityId),
-    fetchSubjects({ universityId: selectedUniversityId, majorId: selectedMajorId }),
-    fetchChapters({
+  const { data: chapters, pagination } = await fetchChapters({
       page: currentPage,
       pageSize: perPage,
       query: searchQuery,
       universityId: selectedUniversityId,
+      collegeId: selectedCollegeId,
       majorId: selectedMajorId,
       subjectId: selectedSubjectId,
-    }),
-  ]);
+    });
 
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <SearchInput placeholder="ابحث عن فصل أو مقرر أو تخصص..." />
-        <div className="flex flex-wrap items-center gap-2">
-          <UniversityFilter
-            options={universities}
-            value={selectedUniversityId ?? "__all__"}
-            placeholder="الجامعة"
-          />
-          <MajorFilter
-            options={majors}
-            value={selectedMajorId ?? "__all__"}
-            placeholder="التخصص"
-            disabled={!selectedUniversityId}
-          />
-          <SubjectFilter
-            options={subjects}
-            value={selectedSubjectId ?? "__all__"}
-            placeholder="المقرر"
-            disabled={!selectedMajorId}
-          />
+        <div className="w-full md:max-w-4xl">
+          <AdminContentPathFilters through="subject" />
         </div>
       </div>
 

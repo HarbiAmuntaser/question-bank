@@ -32,6 +32,8 @@ const summaryInclude = {
           id: true,
           name: true,
           code: true,
+          collegeId: true,
+          college: { select: { id: true, name: true, code: true } },
           university: { select: { id: true, name: true, code: true } },
         },
       },
@@ -245,6 +247,9 @@ export async function GET(req: Request) {
     pageSize: url.searchParams.get("pageSize"),
     query: url.searchParams.get("query"),
     status: url.searchParams.get("status") ?? "all",
+    universityId: url.searchParams.get("universityId"),
+    collegeId: url.searchParams.get("collegeId"),
+    majorId: url.searchParams.get("majorId"),
     subjectId: url.searchParams.get("subjectId"),
     chapterId: url.searchParams.get("chapterId"),
     sortBy: url.searchParams.get("sortBy"),
@@ -253,7 +258,7 @@ export async function GET(req: Request) {
 
   if (!parsed.success) return adminBad("bad_query_params", parsed.error.flatten());
 
-  const { page, pageSize, query, status, subjectId, chapterId, sortBy, sortOrder } = parsed.data;
+  const { page, pageSize, query, status, universityId, collegeId, majorId, subjectId, chapterId, sortBy, sortOrder } = parsed.data;
   const andParts: Prisma.StudySummaryWhereInput[] = [];
 
   if (query) {
@@ -271,6 +276,9 @@ export async function GET(req: Request) {
   }
 
   if (status !== "all") andParts.push({ status: status as StudySummaryStatus });
+  if (universityId) andParts.push({ subject: { major: { universityId } } });
+  if (collegeId) andParts.push({ subject: { major: { collegeId } } });
+  if (majorId) andParts.push({ subject: { majorId } });
   if (subjectId) andParts.push({ subjectId });
   if (chapterId) andParts.push({ chapterId });
 

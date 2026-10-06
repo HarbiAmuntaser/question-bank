@@ -37,7 +37,9 @@ export function ChapterDialog({ children, chapter, open, onOpenChange }: Chapter
   const { toast } = useToast();
 
   const [selectedUniversity, setSelectedUniversity] = useState("");
+  const [selectedCollege, setSelectedCollege] = useState("");
   const [selectedMajor, setSelectedMajor] = useState("");
+  const [institutionType, setInstitutionType] = useState<"university" | "school" | "academy" | null>(null);
   const [selectedSubject, setSelectedSubject] = useState(chapter?.subjectId || "");
   const [chapterName, setChapterName] = useState(chapter?.name ?? "");
   const [chapterSlug, setChapterSlug] = useState(chapter?.slug ?? buildChapterSlug(chapter?.name ?? ""));
@@ -50,6 +52,7 @@ export function ChapterDialog({ children, chapter, open, onOpenChange }: Chapter
   useEffect(() => {
     if (!dialogOpen) return;
     setSelectedUniversity(chapter?.subject?.major?.university?.id ?? "");
+    setSelectedCollege(chapter?.subject?.major?.collegeId ?? "");
     setSelectedMajor(chapter?.subject?.majorId ?? "");
     setSelectedSubject(chapter?.subjectId ?? "");
     setChapterName(chapter?.name ?? "");
@@ -69,6 +72,7 @@ export function ChapterDialog({ children, chapter, open, onOpenChange }: Chapter
 
   const handleSelectUniversity = (value: string) => {
     setSelectedUniversity(value);
+    setSelectedCollege("");
     setSelectedMajor("");
     setSelectedSubject("");
   };
@@ -94,6 +98,7 @@ export function ChapterDialog({ children, chapter, open, onOpenChange }: Chapter
           toast({ title: "نجح", description: result.message });
           setDialogOpen(false);
           setSelectedUniversity("");
+          setSelectedCollege("");
           setSelectedMajor("");
           setSelectedSubject("");
         } else {
@@ -125,10 +130,31 @@ export function ChapterDialog({ children, chapter, open, onOpenChange }: Chapter
                   type="university"
                   value={selectedUniversity}
                   onValueChange={handleSelectUniversity}
+                  onOptionChange={(option) => setInstitutionType(option?.institutionType ?? null)}
                   placeholder="ابحث عن جامعة"
                 />
               </div>
             </div>
+
+            {institutionType === "university" ? (
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right">الكلية اختيارية</Label>
+                <div className="col-span-3">
+                  <AdminLookupCombobox
+                    type="college"
+                    value={selectedCollege}
+                    onValueChange={(value) => {
+                      setSelectedCollege(value);
+                      setSelectedMajor("");
+                      setSelectedSubject("");
+                    }}
+                    universityId={selectedUniversity}
+                    disabled={!selectedUniversity}
+                    placeholder="كل تخصصات الجامعة أو اختر كلية"
+                  />
+                </div>
+              </div>
+            ) : null}
 
             <div className="grid grid-cols-4 items-center gap-4">
               <Label className="text-right">التخصص</Label>
@@ -138,6 +164,7 @@ export function ChapterDialog({ children, chapter, open, onOpenChange }: Chapter
                   value={selectedMajor}
                   onValueChange={handleSelectMajor}
                   universityId={selectedUniversity}
+                  collegeId={institutionType === "university" ? selectedCollege : undefined}
                   disabled={!selectedUniversity}
                   placeholder={selectedUniversity ? "ابحث عن تخصص" : "اختر الجامعة أولاً"}
                 />

@@ -7,9 +7,8 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { Pagination } from "@/components/Pagination";
 import { MajorActions } from "./major-actions";
-import { UniversityFilter } from "./UniversityFilter";
-import { CollegeFilter } from "./CollegeFilter";
 import { AdminTableShell } from "@/components/admin/admin-table-shell";
+import { AdminContentPathFilters } from "@/components/admin/admin-content-path-filters";
 import { getDegreeTypeLabel } from "@/lib/degree-types";
 
 // ------- Types matching API -------
@@ -36,12 +35,6 @@ interface PaginationMeta {
 interface ListResponse {
   data: MajorRow[];
   pagination: PaginationMeta;
-}
-
-export interface UniversityOption {
-  id: string;
-  name: string;
-  code: string | null;
 }
 
 function buildQuery(params: Record<string, string | number | undefined>): string {
@@ -72,10 +65,6 @@ async function fetchMajors(args: {
   return (await res.json()) as ListResponse;
 }
 
-async function fetchUniversitiesForFilter(): Promise<UniversityOption[]> {
-  return [];
-}
-
 export async function MajorsTable({
   searchParams,
 }: {
@@ -98,33 +87,20 @@ export async function MajorsTable({
     ? searchParams.collegeId
     : undefined;
 
-  // ---- fetch data in parallel ----
-  const [universities, { data: majors, pagination }] = await Promise.all([
-    fetchUniversitiesForFilter(),
-    fetchMajors({
+  const { data: majors, pagination } = await fetchMajors({
       page: currentPage,
       pageSize: perPage,
       query: searchQuery,
-      universityId: selectedUniversityId, // ✅ يرسل الفلتر فعليًا
+      universityId: selectedUniversityId,
       collegeId: selectedCollegeId,
-    }),
-  ]);
+    });
 
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <SearchInput placeholder="ابحث عن تخصص..." />
-        <div className="flex flex-wrap items-center gap-2">
-          <UniversityFilter
-            options={universities}
-            // ✅ نجعل القيمة مُتحكّم بها دومًا
-            value={selectedUniversityId ?? "__all__"}
-            placeholder="تصفية حسب الجامعة"
-          />
-          <CollegeFilter
-            value={selectedCollegeId ?? "__all__"}
-            disabled={!selectedUniversityId}
-          />
+        <div className="w-full sm:max-w-3xl">
+          <AdminContentPathFilters through="college" />
         </div>
       </div>
 

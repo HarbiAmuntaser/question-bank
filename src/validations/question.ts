@@ -9,7 +9,9 @@ export const listQuestionsQuerySchema = z.object({
     .default("createdAt"),
   sortOrder: z.enum(["asc", "desc"]).default("desc"),
 
+  query: z.preprocess((value) => (typeof value === "string" ? value.trim() : ""), z.string().max(200).default("")),
   universityId: z.string().min(1).optional(),
+  collegeId: z.string().min(1).optional(),
   majorId: z.string().min(1).optional(),
   subjectId: z.string().min(1).optional(),
   chapterId: z.string().min(1).optional(),

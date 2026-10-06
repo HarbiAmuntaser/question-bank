@@ -41,6 +41,7 @@ export function ImportQuestionsDialog({ children }: Props) {
   const [open, setOpen] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [universityId, setUniversityId] = useState("");
+  const [collegeId, setCollegeId] = useState("");
   const [majorId, setMajorId] = useState("");
   const [subjectId, setSubjectId] = useState("");
   const [chapterId, setChapterId] = useState("");
@@ -81,6 +82,16 @@ export function ImportQuestionsDialog({ children }: Props) {
 
   const handleUniversityChange = (value: string) => {
     setUniversityId(value);
+    setCollegeId("");
+    setMajorId("");
+    setSubjectId("");
+    setChapterId("");
+    setReviewSummaryId("");
+    resetImportProgress();
+  };
+
+  const handleCollegeChange = (value: string) => {
+    setCollegeId(value);
     setMajorId("");
     setSubjectId("");
     setChapterId("");
@@ -233,12 +244,14 @@ export function ImportQuestionsDialog({ children }: Props) {
         <div className="grid gap-5 py-4">
           <ImportPathFields
             universityId={universityId}
+            collegeId={collegeId}
             majorId={majorId}
             subjectId={subjectId}
             chapterId={chapterId}
             reviewSummaryId={reviewSummaryId}
             isImporting={isImporting}
             onUniversityChange={handleUniversityChange}
+            onCollegeChange={handleCollegeChange}
             onMajorChange={handleMajorChange}
             onSubjectChange={handleSubjectChange}
             onChapterChange={(value) => {

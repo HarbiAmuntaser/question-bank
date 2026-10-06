@@ -34,6 +34,7 @@ export default async function AdminSummariesPage({
           resolvedSearchParams.query ?? "",
           resolvedSearchParams.status ?? "all",
           resolvedSearchParams.universityId ?? "",
+          resolvedSearchParams.collegeId ?? "",
           resolvedSearchParams.majorId ?? "",
           resolvedSearchParams.subjectId ?? "",
           resolvedSearchParams.chapterId ?? "",

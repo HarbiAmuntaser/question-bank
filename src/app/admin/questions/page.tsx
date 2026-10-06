@@ -13,7 +13,9 @@ export default async function QuestionsPage({
 }: {
   searchParams: Promise<{
     page?: string;
+    query?: string;
     universityId?: string;
+    collegeId?: string;
     majorId?: string;
     subjectId?: string;
     chapterId?: string;
@@ -43,12 +45,17 @@ export default async function QuestionsPage({
         
       </div>
 
-      <Suspense fallback={<TableSkeleton />}>
+      <Suspense
+        fallback={<TableSkeleton />}
+        key={[sp.page ?? "1", sp.query ?? "", sp.universityId ?? "", sp.collegeId ?? "", sp.majorId ?? "", sp.subjectId ?? "", sp.chapterId ?? ""].join("-")}
+      >
         {/* ✅ نمرر كائنًا عادياً بدلاً من API ديناميكي */}
         <QuestionsTable
           searchParams={{
             page: sp.page,
+            query: sp.query,
             universityId: sp.universityId,
+            collegeId: sp.collegeId,
             majorId: sp.majorId,
             subjectId: sp.subjectId,
             chapterId: sp.chapterId,

@@ -91,6 +91,7 @@ export function QuestionDialog({ children, question, open, onOpenChange }: Quest
 
   // السلسلة
   const [selectedUniversity, setSelectedUniversity] = useState("");
+  const [selectedCollege, setSelectedCollege] = useState("");
   const [selectedMajor, setSelectedMajor] = useState("");
   const [selectedSubject, setSelectedSubject] = useState("");
   const [selectedChapter, setSelectedChapter] = useState(question?.chapterId ?? "");
@@ -115,11 +116,12 @@ export function QuestionDialog({ children, question, open, onOpenChange }: Quest
 
   const initialIds = useMemo(() => {
     const u = question?.chapter?.subject?.major?.university?.id;
+    const college = question?.chapter?.subject?.major?.collegeId ?? "";
     const m = question?.chapter?.subject?.major?.id;
     const s = question?.chapter?.subject?.id;
     const c = question?.chapter?.id;
     if (!u || !m || !s || !c) return null;
-    return { u, m, s, c };
+    return { u, college, m, s, c };
   }, [question]);
 
   const loadUniversities = useCallback(async (signal?: AbortSignal): Promise<UnivOption[]> => {
@@ -185,6 +187,7 @@ export function QuestionDialog({ children, question, open, onOpenChange }: Quest
 
         if (initialIds) {
           setSelectedUniversity(initialIds.u);
+          setSelectedCollege(initialIds.college);
           const ms = await loadMajors(initialIds.u, controller.signal);
           setMajors(ms);
 
@@ -199,6 +202,7 @@ export function QuestionDialog({ children, question, open, onOpenChange }: Quest
           setSelectedChapter(initialIds.c);
         } else {
           setSelectedUniversity("");
+          setSelectedCollege("");
           setSelectedMajor("");
           setSelectedSubject("");
           setSelectedChapter("");
@@ -220,6 +224,7 @@ export function QuestionDialog({ children, question, open, onOpenChange }: Quest
   const onChangeUniversity = useCallback(
     async (uId: string) => {
       setSelectedUniversity(uId);
+      setSelectedCollege("");
       setSelectedMajor("");
       setSelectedSubject("");
       setSelectedChapter("");
@@ -325,6 +330,7 @@ export function QuestionDialog({ children, question, open, onOpenChange }: Quest
         // reset فقط عند الإنشاء
         if (!question) {
           setSelectedUniversity("");
+          setSelectedCollege("");
           setSelectedMajor("");
           setSelectedSubject("");
           setSelectedChapter("");
@@ -365,10 +371,18 @@ export function QuestionDialog({ children, question, open, onOpenChange }: Quest
               subjects={subjects}
               chapters={chapters}
               selectedUniversity={selectedUniversity}
+              selectedCollege={selectedCollege}
               selectedMajor={selectedMajor}
               selectedSubject={selectedSubject}
               selectedChapter={selectedChapter}
               onUniversityChange={onChangeUniversity}
+              onCollegeChange={(collegeId) => {
+                setSelectedCollege(collegeId);
+                setSelectedMajor("");
+                setSelectedSubject("");
+                setSelectedChapter("");
+                setSelectedReviewSummary("");
+              }}
               onMajorChange={onChangeMajor}
               onSubjectChange={onChangeSubject}
               onChapterChange={(chapterId) => {

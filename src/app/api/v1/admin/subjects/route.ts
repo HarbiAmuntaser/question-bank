@@ -36,6 +36,8 @@ type SubjectListRow = Prisma.SubjectGetPayload<{
         id: true;
         name: true;
         code: true;
+        collegeId: true;
+        college: { select: { id: true; name: true; code: true } };
         university: { select: { id: true; name: true; code: true } };
       };
     };
@@ -52,10 +54,11 @@ const listSubjects = async (q: Record<string, string | null>) => {
       sortOrder: q.sortOrder,
       query: q.query ?? "",
       universityId: q.universityId ?? undefined,
+      collegeId: q.collegeId ?? undefined,
       majorId: q.majorId ?? undefined,
     });
     if (!parsed.success) throw new Error("bad_query");
-    const { page, pageSize, sortBy, sortOrder, query, universityId, majorId } = parsed.data;
+    const { page, pageSize, sortBy, sortOrder, query, universityId, collegeId, majorId } = parsed.data;
 
     // بناء where بشكل آمن
     const andParts: Prisma.SubjectWhereInput[] = [];
@@ -85,6 +88,7 @@ const listSubjects = async (q: Record<string, string | null>) => {
       });
     }
     if (universityId) andParts.push({ major: { universityId } });
+    if (collegeId) andParts.push({ major: { collegeId } });
     if (majorId) andParts.push({ majorId });
 
     const where: Prisma.SubjectWhereInput = andParts.length ? { AND: andParts } : {};
@@ -112,6 +116,8 @@ const listSubjects = async (q: Record<string, string | null>) => {
               id: true,
               name: true,
               code: true,
+              collegeId: true,
+              college: { select: { id: true, name: true, code: true } },
               university: { select: { id: true, name: true, code: true } },
             },
           },
@@ -158,6 +164,7 @@ export async function GET(req: Request) {
     sortOrder: url.searchParams.get("sortOrder"),
     query: url.searchParams.get("query"),
     universityId: url.searchParams.get("universityId"),
+    collegeId: url.searchParams.get("collegeId"),
     majorId: url.searchParams.get("majorId"),
   };
 

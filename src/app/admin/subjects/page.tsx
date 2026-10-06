@@ -14,13 +14,14 @@ export default async function SubjectsPage({
     page?: string;
     query?: string;
     universityId?: string;
+    collegeId?: string;
     majorId?: string;
   }>;
 }) {
   await requireAdminPage("subjects:read");
 
   const sp = await searchParams;
-  const { page, query, universityId, majorId } = sp;
+  const { page, query, universityId, collegeId, majorId } = sp;
 
   return (
     <div className="space-y-6">
@@ -38,7 +39,7 @@ export default async function SubjectsPage({
       </div>
 
       <Suspense
-        key={`${page ?? 1}-${query ?? ""}-${universityId ?? ""}-${majorId ?? ""}`}
+        key={`${page ?? 1}-${query ?? ""}-${universityId ?? ""}-${collegeId ?? ""}-${majorId ?? ""}`}
         fallback={<TableSkeleton columns={8} rows={10} />}
       >
         <SubjectsTable
@@ -46,6 +47,7 @@ export default async function SubjectsPage({
             page,
             query,
             universityId,
+            collegeId,
             majorId,
           }}
         />

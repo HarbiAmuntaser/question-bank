@@ -44,7 +44,7 @@ const coerceBoolean = z.preprocess((v) => {
 
 export const listSubjectsQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
-  pageSize: z.coerce.number().int().min(1).max(5000).default(10),
+  pageSize: z.coerce.number().int().min(1).max(100).default(10),
   sortBy: z
     .enum(["name", "createdAt", "code"])
     .catch("createdAt") // أي قيمة غير صالحة تُحوّل لافتراضي
@@ -52,6 +52,7 @@ export const listSubjectsQuerySchema = z.object({
   sortOrder: z.enum(["asc", "desc"]).catch("desc").default("desc"),
   query: z.preprocess((v) => (typeof v === "string" ? v : ""), z.string().default("")),
   universityId: emptyToUndefined(z.string().min(1)).optional(),
+  collegeId: emptyToUndefined(z.string().min(1)).optional(),
   majorId: emptyToUndefined(z.string().min(1)).optional(),
 });
 

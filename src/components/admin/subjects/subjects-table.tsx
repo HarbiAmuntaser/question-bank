@@ -6,9 +6,8 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { Pagination } from "@/components/Pagination";
 import { SubjectActions } from "./subject-actions";
-import { UniversityFilter } from "../majors/UniversityFilter";
-import { MajorFilter } from "./MajorFilter";
 import { AdminTableShell } from "@/components/admin/admin-table-shell";
+import { AdminContentPathFilters } from "@/components/admin/admin-content-path-filters";
 
 // ------- API rows -------
 export interface SubjectRow {
@@ -26,6 +25,8 @@ export interface SubjectRow {
     id: string;
     name: string;
     code: string | null;
+    collegeId: string | null;
+    college: { id: string; name: string; code: string | null } | null;
     university: { id: string; name: string; code: string | null };
   };
   chaptersCount: number;
@@ -33,9 +34,6 @@ export interface SubjectRow {
 
 interface PaginationMeta { page: number; pageSize: number; total: number; totalPages: number }
 interface ListResponse { data: SubjectRow[]; pagination: PaginationMeta }
-
-type UniversityOption = { id: string; name: string; code: string | null };
-type MajorOption = { id: string; name: string; code: string | null };
 
 function buildQuery(params: Record<string, string | number | undefined>): string {
   const usp = new URLSearchParams();
@@ -45,7 +43,7 @@ function buildQuery(params: Record<string, string | number | undefined>): string
 
 async function fetchSubjects(args: {
   page: number; pageSize: number;
-  query: string; universityId?: string; majorId?: string;
+  query: string; universityId?: string; collegeId?: string; majorId?: string;
 }): Promise<ListResponse> {
   const qs = buildQuery(args);
   const res = await adminApiFetch(`/api/v1/admin/subjects?${qs}`, {
@@ -59,15 +57,6 @@ async function fetchSubjects(args: {
   return (await res.json()) as ListResponse;
 }
 
-async function fetchUniversitiesForFilter(): Promise<UniversityOption[]> {
-  return [];
-}
-
-async function fetchMajorsForFilter(universityId?: string): Promise<MajorOption[]> {
-  void universityId;
-  return [];
-}
-
 export async function SubjectsTable({
   searchParams,
 }: {
@@ -75,6 +64,7 @@ export async function SubjectsTable({
     page?: string;
     query?: string;
     universityId?: string;
+    collegeId?: string;
     majorId?: string;
   };
 }) {
@@ -82,36 +72,24 @@ export async function SubjectsTable({
   const perPage = 10;
   const searchQuery = searchParams?.query ?? "";
   const selectedUniversityId = searchParams?.universityId || undefined;
+  const selectedCollegeId = searchParams?.collegeId || undefined;
   const selectedMajorId = searchParams?.majorId || undefined;
 
-  const [universities, majors, { data: subjects, pagination }] = await Promise.all([
-    fetchUniversitiesForFilter(),
-    fetchMajorsForFilter(selectedUniversityId),
-    fetchSubjects({
+  const { data: subjects, pagination } = await fetchSubjects({
       page: currentPage,
       pageSize: perPage,
       query: searchQuery,
       universityId: selectedUniversityId,
+      collegeId: selectedCollegeId,
       majorId: selectedMajorId,
-    }),
-  ]);
+    });
 
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <SearchInput placeholder="ابحث عن مقرر..." />
-        <div className="flex flex-wrap items-center gap-2">
-          <UniversityFilter
-            options={universities}
-            value={selectedUniversityId ?? "__all__"}
-            placeholder="تصفية حسب الجامعة"
-          />
-          <MajorFilter
-            options={majors}
-            value={selectedMajorId ?? "__all__"}
-            placeholder="تصفية حسب التخصص"
-            disabled={!selectedUniversityId} // لا تظهر إلا بعد اختيار جامعة
-          />
+        <div className="w-full sm:max-w-3xl">
+          <AdminContentPathFilters through="major" />
         </div>
       </div>
 

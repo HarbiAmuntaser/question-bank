@@ -57,22 +57,38 @@ const listQuestions = async (q: Record<string, string | null | undefined>) => {
       pageSize: q.pageSize,
       sortBy: q.sortBy,
       sortOrder: q.sortOrder,
+      query: q.query ?? "",
 
       universityId: q.universityId ?? undefined,
+      collegeId: q.collegeId ?? undefined,
       majorId: q.majorId ?? undefined,
       subjectId: q.subjectId ?? undefined,
       chapterId: q.chapterId ?? undefined,
     });
     if (!parsed.success) throw new Error("bad_query");
 
-    const { page, pageSize, sortBy, sortOrder, universityId, majorId, subjectId, chapterId } =
+    const { page, pageSize, sortBy, sortOrder, query, universityId, collegeId, majorId, subjectId, chapterId } =
       parsed.data;
 
     const andParts: Prisma.QuestionWhereInput[] = [];
 
+    if (query) {
+      andParts.push({
+        OR: [
+          { questionText: { contains: query, mode: "insensitive" } },
+          { explanation: { contains: query, mode: "insensitive" } },
+          { chapter: { name: { contains: query, mode: "insensitive" } } },
+          { chapter: { subject: { name: { contains: query, mode: "insensitive" } } } },
+        ],
+      });
+    }
+
     // فلاتر متسلسلة
     if (universityId) {
       andParts.push({ chapter: { subject: { major: { universityId } } } });
+    }
+    if (collegeId) {
+      andParts.push({ chapter: { subject: { major: { collegeId } } } });
     }
     if (majorId) {
       andParts.push({ chapter: { subject: { majorId } } });
@@ -156,7 +172,9 @@ export async function GET(req: Request) {
     pageSize: url.searchParams.get("pageSize"),
     sortBy: url.searchParams.get("sortBy") ?? undefined,
     sortOrder: url.searchParams.get("sortOrder") ?? undefined,
+    query: url.searchParams.get("query"),
     universityId: url.searchParams.get("universityId"),
+    collegeId: url.searchParams.get("collegeId"),
     majorId: url.searchParams.get("majorId"),
     subjectId: url.searchParams.get("subjectId"),
     chapterId: url.searchParams.get("chapterId"),

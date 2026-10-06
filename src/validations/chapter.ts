@@ -3,11 +3,12 @@ import { z } from "zod";
 
 export const listChaptersQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
-  pageSize: z.coerce.number().int().min(1).max(1000).default(10),
+  pageSize: z.coerce.number().int().min(1).max(100).default(10),
   sortBy: z.enum(["name", "createdAt", "chapterNumber"]).default("createdAt"),
   sortOrder: z.enum(["asc", "desc"]).default("desc"),
   query: z.string().trim().default(""),
   universityId: z.string().min(1).optional(),
+  collegeId: z.string().min(1).optional(),
   majorId: z.string().min(1).optional(),
   subjectId: z.string().min(1).optional(),
 });

@@ -132,25 +132,32 @@ export async function POST(req: Request) {
   if (!parsed.success) return bad("validation_error", parsed.error.flatten());
 
   const s = parsed.data;
+  const selectedChapterIds = Array.from(new Set(s.selectedChapters));
+  if (selectedChapterIds.length !== s.selectedChapters.length) return bad("duplicate_chapter_ids");
 
   // اجلب subjectId من الفصول المختارة (لو كلها نفس المقرر)
   const chapters = await prisma.chapter.findMany({
-    where: { id: { in: s.selectedChapters } },
-    select: { subjectId: true },
+    where: { id: { in: selectedChapterIds } },
+    select: { id: true, subjectId: true },
   });
+  if (chapters.length !== selectedChapterIds.length) return bad("invalid_chapter_selection");
   const distinctSubjectIds = Array.from(new Set(chapters.map((c) => c.subjectId).filter(Boolean))) as string[];
   const quizSubjectId = distinctSubjectIds.length === 1 ? distinctSubjectIds[0] : null;
 
   // فلترة الأسئلة
   const where: any = {
-    chapterId: { in: s.selectedChapters },
+    chapterId: { in: selectedChapterIds },
     isActive: true,
   };
   if (s.difficulty !== "mixed") where.difficultyLevel = s.difficulty;
   if (s.questionTypes?.length) where.questionType = { in: s.questionTypes };
 
+  const requestedCount = s.questionCount > 0 ? s.questionCount : 100;
+  const candidateCount = Math.min(Math.max(requestedCount * 3, 100), 500);
   const all = await prisma.question.findMany({
     where,
+    take: candidateCount,
+    orderBy: [{ createdAt: "desc" }, { id: "asc" }],
     select: { id: true, points: true },
   });
 
@@ -161,8 +168,7 @@ export async function POST(req: Request) {
   let picked = [...all];
   if (s.randomize) shuffleInPlace(picked);
 
-  // ✅ questionCount=0 يعني خذ كل المتاح
-  if (s.questionCount > 0) picked = picked.slice(0, Math.min(s.questionCount, picked.length));
+  picked = picked.slice(0, Math.min(requestedCount, picked.length));
 
   const totalPoints = picked.reduce((sum, q) => sum + (q.points ?? 0), 0);
 

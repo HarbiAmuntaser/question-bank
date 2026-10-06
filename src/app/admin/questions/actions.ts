@@ -36,28 +36,6 @@ function extractOptions(formData: FormData) {
   }));
 }
 
-export async function getChaptersAction() {
-  await requireAdminPermission("questions:read");
-
-  try {
-    const qs = new URLSearchParams({
-      page: "1",
-      pageSize: "1000",
-      sortBy: "createdAt",
-      sortOrder: "desc",
-    });
-
-    const res = await apiFetch(`/api/v1/admin/chapters?${qs.toString()}`, { method: "GET" });
-    if (!res.ok) return { data: [] };
-
-    const payload = await res.json().catch(() => ({}));
-    return payload ?? { data: [] };
-  } catch (e) {
-    console.error("Error fetching chapters:", e);
-    return { data: [] };
-  }
-}
-
 export async function createQuestionAction(formData: FormData) {
   await requireAdminPermission("questions:write");
 

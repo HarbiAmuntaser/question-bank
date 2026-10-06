@@ -40,6 +40,7 @@ export function MajorDialog({ children, major, open, onOpenChange }: MajorDialog
   const [isPending, startTransition] = useTransition();
   const [selectedUniversity, setSelectedUniversity] = useState(major?.universityId || "");
   const [selectedCollege, setSelectedCollege] = useState(major?.collegeId || "");
+  const [institutionType, setInstitutionType] = useState<"university" | "school" | "academy" | null>(null);
   const { toast } = useToast();
   const validation = useAdminFormValidation("major-form");
   const resetValidationErrors = validation.resetErrors;
@@ -63,7 +64,7 @@ export function MajorDialog({ children, major, open, onOpenChange }: MajorDialog
       return;
     }
     formData.set("universityId", selectedUniversity);
-    formData.set("collegeId", selectedCollege);
+    formData.set("collegeId", institutionType === "university" ? selectedCollege : "");
 
     startTransition(async () => {
       try {
@@ -73,6 +74,7 @@ export function MajorDialog({ children, major, open, onOpenChange }: MajorDialog
           setDialogOpen(false);
           setSelectedUniversity("");
           setSelectedCollege("");
+          setInstitutionType(null);
         } else {
           validation.reportErrors({ formError: result.message });
           toast({ title: "خطأ", description: result.message, variant: "destructive" });
@@ -104,6 +106,7 @@ export function MajorDialog({ children, major, open, onOpenChange }: MajorDialog
                 <AdminLookupCombobox
                   type="university"
                   value={selectedUniversity}
+                  onOptionChange={(option) => setInstitutionType(option?.institutionType ?? null)}
                   onValueChange={(next) => {
                     if (next !== selectedUniversity) setSelectedCollege("");
                     setSelectedUniversity(next);
@@ -119,19 +122,21 @@ export function MajorDialog({ children, major, open, onOpenChange }: MajorDialog
               </div>
             </div>
 
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">الكلية</Label>
-              <div className="col-span-3">
-                <AdminLookupCombobox
-                  type="college"
-                  value={selectedCollege}
-                  onValueChange={setSelectedCollege}
-                  universityId={selectedUniversity}
-                  disabled={!selectedUniversity}
-                  placeholder={selectedUniversity ? "اختياري: اختر كلية" : "اختر الجامعة أولًا"}
-                />
+            {institutionType === "university" ? (
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right">الكلية</Label>
+                <div className="col-span-3">
+                  <AdminLookupCombobox
+                    type="college"
+                    value={selectedCollege}
+                    onValueChange={setSelectedCollege}
+                    universityId={selectedUniversity}
+                    disabled={!selectedUniversity}
+                    placeholder={selectedUniversity ? "اختياري: اختر كلية" : "اختر الجامعة أولًا"}
+                  />
+                </div>
               </div>
-            </div>
+            ) : null}
 
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="name" className="text-right">
@@ -190,7 +195,7 @@ export function MajorDialog({ children, major, open, onOpenChange }: MajorDialog
           </div>
 
           <DialogFooter>
-            <Button type="submit" disabled={isPending || !selectedUniversity}>
+            <Button type="submit" disabled={isPending || !selectedUniversity || institutionType === null}>
               {isPending ? "جاري الحفظ..." : major ? "تحديث" : "إنشاء"}
             </Button>
           </DialogFooter>

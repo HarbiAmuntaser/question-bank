@@ -30,6 +30,8 @@ type ChapterListRow = {
       id: string;
       name: string;
       code: string | null;
+      collegeId: string | null;
+      college: { id: string; name: string; code: string | null } | null;
       university: { id: string; name: string; code: string | null };
     };
   };
@@ -44,12 +46,13 @@ const listChapters = async (q: Record<string, string | null | undefined>) => {
       sortOrder: q.sortOrder,
       query: q.query ?? "",
       universityId: q.universityId ?? undefined,
+      collegeId: q.collegeId ?? undefined,
       majorId: q.majorId ?? undefined,
       subjectId: q.subjectId ?? undefined,
     });
     if (!parsed.success) throw new Error("bad_query");
 
-    const { page, pageSize, sortBy, sortOrder, query, universityId, majorId, subjectId } = parsed.data;
+    const { page, pageSize, sortBy, sortOrder, query, universityId, collegeId, majorId, subjectId } = parsed.data;
 
     const andParts: Record<string, unknown>[] = [];
 
@@ -73,6 +76,9 @@ const listChapters = async (q: Record<string, string | null | undefined>) => {
     // فلاتر متسلسلة
     if (universityId) {
       andParts.push({ subject: { major: { universityId } } });
+    }
+    if (collegeId) {
+      andParts.push({ subject: { major: { collegeId } } });
     }
     if (majorId) {
       andParts.push({ subject: { majorId } });
@@ -114,6 +120,8 @@ const listChapters = async (q: Record<string, string | null | undefined>) => {
                   id: true,
                   name: true,
                   code: true,
+                  collegeId: true,
+                  college: { select: { id: true, name: true, code: true } },
                   university: { select: { id: true, name: true, code: true } },
                 },
               },
@@ -162,6 +170,7 @@ export async function GET(req: Request) {
     sortOrder: url.searchParams.get("sortOrder") ?? undefined,
     query: url.searchParams.get("query"),
     universityId: url.searchParams.get("universityId"),
+    collegeId: url.searchParams.get("collegeId"),
     majorId: url.searchParams.get("majorId"),
     subjectId: url.searchParams.get("subjectId"),
   };

@@ -11,6 +11,7 @@ export type AdminLookupOption = {
   label: string;
   subLabel?: string;
   code?: string | null;
+  institutionType?: "university" | "school" | "academy";
 };
 
 function clampLimit(limit?: number) {
@@ -43,13 +44,14 @@ export async function searchUniversitiesAction(
     },
     orderBy: { name: "asc" },
     take,
-    select: { id: true, name: true, code: true, city: true },
+    select: { id: true, name: true, code: true, city: true, institutionType: true },
   });
 
   return rows.map((row): AdminLookupOption => ({
     id: row.id,
     label: row.name,
     code: row.code,
+    institutionType: row.institutionType,
     subLabel: [row.code, row.city].filter(Boolean).join(" - ") || undefined,
   }));
 }
@@ -85,7 +87,12 @@ export async function searchCollegesAction(args: { universityId?: string; query?
   }));
 }
 
-export async function searchMajorsAction(args: { universityId?: string; query?: string; limit?: number }) {
+export async function searchMajorsAction(args: {
+  universityId?: string;
+  collegeId?: string;
+  query?: string;
+  limit?: number;
+}) {
   await requireAdminPermission("lookups:read");
   if (!args.universityId) return [];
   const query = normalizeQuery(args.query);
@@ -94,6 +101,7 @@ export async function searchMajorsAction(args: { universityId?: string; query?: 
   const rows = await prisma.major.findMany({
     where: {
       universityId: args.universityId,
+      ...(args.collegeId ? { collegeId: args.collegeId } : {}),
       ...(query
         ? {
             OR: [
@@ -224,13 +232,14 @@ export async function resolveAdminLookupAction(type: AdminLookupType, id: string
   if (type === "university") {
     const row = await prisma.university.findUnique({
       where: { id },
-      select: { id: true, name: true, code: true, city: true },
+      select: { id: true, name: true, code: true, city: true, institutionType: true },
     });
     return row
       ? {
           id: row.id,
           label: row.name,
           code: row.code,
+          institutionType: row.institutionType,
           subLabel: [row.code, row.city].filter(Boolean).join(" - ") || undefined,
         }
       : null;

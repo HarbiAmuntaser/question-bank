@@ -43,6 +43,8 @@ type SubjectDialogSubject = {
   isActive: boolean;
   major?: {
     id?: string;
+    collegeId?: string | null;
+    college?: { id: string } | null;
     university?: { id: string } | null;
   } | null;
 };
@@ -58,6 +60,7 @@ export function SubjectDialog({ children, subject, open, onOpenChange }: Subject
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [selectedUniversityId, setSelectedUniversityId] = useState("");
+  const [selectedCollegeId, setSelectedCollegeId] = useState("");
   const [selectedMajorId, setSelectedMajorId] = useState("");
   const [institutionContext, setInstitutionContext] = useState<SubjectInstitutionContext | null>(null);
   const { toast } = useToast();
@@ -71,6 +74,7 @@ export function SubjectDialog({ children, subject, open, onOpenChange }: Subject
   useEffect(() => {
     if (!dialogOpen) return;
     setSelectedUniversityId(subject?.major?.university?.id ?? "");
+    setSelectedCollegeId(subject?.major?.collegeId ?? subject?.major?.college?.id ?? "");
     setSelectedMajorId(subject?.majorId ?? subject?.major?.id ?? "");
     resetValidationErrors();
   }, [dialogOpen, subject, resetValidationErrors]);
@@ -98,6 +102,7 @@ export function SubjectDialog({ children, subject, open, onOpenChange }: Subject
 
   const handleUniversityChange = (value: string) => {
     setSelectedUniversityId(value);
+    setSelectedCollegeId("");
     setSelectedMajorId("");
     setInstitutionContext(null);
     validation.clearFieldError("universityId");
@@ -129,6 +134,7 @@ export function SubjectDialog({ children, subject, open, onOpenChange }: Subject
           toast({ title: "نجح", description: result.message });
           setDialogOpen(false);
           setSelectedUniversityId("");
+          setSelectedCollegeId("");
           setSelectedMajorId("");
         } else {
           validation.reportErrors({ formError: result.message });
@@ -172,6 +178,25 @@ export function SubjectDialog({ children, subject, open, onOpenChange }: Subject
               </div>
             </div>
 
+            {isUniversity ? (
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right">الكلية اختيارية</Label>
+                <div className="col-span-3">
+                  <AdminLookupCombobox
+                    type="college"
+                    value={selectedCollegeId}
+                    onValueChange={(value) => {
+                      setSelectedCollegeId(value);
+                      setSelectedMajorId("");
+                    }}
+                    universityId={selectedUniversityId}
+                    disabled={!selectedUniversityId}
+                    placeholder="كل تخصصات الجامعة أو اختر كلية"
+                  />
+                </div>
+              </div>
+            ) : null}
+
             <div className="grid grid-cols-4 items-center gap-4">
               <Label className="text-right">التخصص</Label>
               <div className="col-span-3">
@@ -183,6 +208,7 @@ export function SubjectDialog({ children, subject, open, onOpenChange }: Subject
                     validation.clearFieldError("majorId");
                   }}
                   universityId={selectedUniversityId}
+                  collegeId={isUniversity ? selectedCollegeId : undefined}
                   disabled={!selectedUniversityId}
                   placeholder={selectedUniversityId ? "ابحث عن تخصص" : "اختر الجامعة أولاً"}
                   {...validation.getFieldProps("majorId")}

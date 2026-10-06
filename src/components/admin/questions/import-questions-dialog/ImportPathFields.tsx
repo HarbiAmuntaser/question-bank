@@ -1,14 +1,19 @@
+"use client";
+
+import { useState } from "react";
 import { AdminLookupCombobox } from "@/components/admin/admin-lookup-combobox";
 import { Label } from "@/components/ui/label";
 
 type ImportPathFieldsProps = {
   universityId: string;
+  collegeId: string;
   majorId: string;
   subjectId: string;
   chapterId: string;
   reviewSummaryId: string;
   isImporting: boolean;
   onUniversityChange: (value: string) => void;
+  onCollegeChange: (value: string) => void;
   onMajorChange: (value: string) => void;
   onSubjectChange: (value: string) => void;
   onChapterChange: (value: string) => void;
@@ -17,17 +22,21 @@ type ImportPathFieldsProps = {
 
 export function ImportPathFields({
   universityId,
+  collegeId,
   majorId,
   subjectId,
   chapterId,
   reviewSummaryId,
   isImporting,
   onUniversityChange,
+  onCollegeChange,
   onMajorChange,
   onSubjectChange,
   onChapterChange,
   onReviewSummaryChange,
 }: ImportPathFieldsProps) {
+  const [institutionType, setInstitutionType] = useState<"university" | "school" | "academy" | null>(null);
+
   return (
     <div className="grid gap-4 md:grid-cols-2">
       <div className="space-y-2">
@@ -36,11 +45,27 @@ export function ImportPathFields({
           type="university"
           value={universityId}
           onValueChange={onUniversityChange}
+          onOptionChange={(option) => setInstitutionType(option?.institutionType ?? null)}
           placeholder="ابحث عن جامعة"
           disabled={isImporting}
           disablePortal
         />
       </div>
+
+      {institutionType === "university" ? (
+        <div className="space-y-2">
+          <Label>الكلية</Label>
+          <AdminLookupCombobox
+            type="college"
+            value={collegeId}
+            onValueChange={onCollegeChange}
+            universityId={universityId}
+            disabled={isImporting || !universityId}
+            placeholder="اختياري: اختر كلية"
+            disablePortal
+          />
+        </div>
+      ) : null}
 
       <div className="space-y-2">
         <Label>التخصص</Label>
@@ -49,6 +74,7 @@ export function ImportPathFields({
           value={majorId}
           onValueChange={onMajorChange}
           universityId={universityId}
+          collegeId={institutionType === "university" ? collegeId : undefined}
           disabled={isImporting || !universityId}
           placeholder={universityId ? "ابحث عن تخصص" : "اختر الجامعة أولًا"}
           disablePortal

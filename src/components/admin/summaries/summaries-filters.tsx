@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
-import { AdminLookupCombobox } from "@/components/admin/admin-lookup-combobox";
+import { AdminContentPathFilters } from "@/components/admin/admin-content-path-filters";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -55,11 +55,6 @@ export function SummariesFilters() {
   const sortParam = searchParams.get("sortBy") ?? "updatedAt";
   const sortBy = isSort(sortParam) ? sortParam : "updatedAt";
   const sortOrder = searchParams.get("sortOrder") === "asc" ? "asc" : "desc";
-  const universityId = searchParams.get("universityId") ?? "";
-  const majorId = searchParams.get("majorId") ?? "";
-  const subjectId = searchParams.get("subjectId") ?? "";
-  const chapterId = searchParams.get("chapterId") ?? "";
-
   useEffect(() => {
     const timer = window.setTimeout(() => {
       const params = new URLSearchParams(searchParams.toString());
@@ -74,15 +69,6 @@ export function SummariesFilters() {
 
     return () => window.clearTimeout(timer);
   }, [pathname, query, router, searchParams]);
-
-  const updateFilter = (key: string, value: string, clearKeys: string[] = []) => {
-    const params = new URLSearchParams(searchParams.toString());
-    if (value) params.set(key, value);
-    else params.delete(key);
-    clearKeys.forEach((item) => params.delete(item));
-    params.delete("page");
-    pushParams(router, pathname, params);
-  };
 
   const handleStatusChange = (value: string) => {
     const next = isStatus(value) ? value : "all";
@@ -155,38 +141,7 @@ export function SummariesFilters() {
         </div>
       </div>
 
-      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-        <AdminLookupCombobox
-          type="university"
-          value={universityId}
-          onValueChange={(next) => updateFilter("universityId", next, ["majorId", "subjectId", "chapterId"])}
-          placeholder="الجامعة"
-        />
-        <AdminLookupCombobox
-          type="major"
-          value={majorId}
-          onValueChange={(next) => updateFilter("majorId", next, ["subjectId", "chapterId"])}
-          universityId={universityId}
-          disabled={!universityId && !majorId}
-          placeholder={universityId ? "التخصص" : "اختر الجامعة أولًا"}
-        />
-        <AdminLookupCombobox
-          type="subject"
-          value={subjectId}
-          onValueChange={(next) => updateFilter("subjectId", next, ["chapterId"])}
-          majorId={majorId}
-          disabled={!majorId && !subjectId}
-          placeholder={majorId ? "المادة" : "اختر التخصص أولًا"}
-        />
-        <AdminLookupCombobox
-          type="chapter"
-          value={chapterId}
-          onValueChange={(next) => updateFilter("chapterId", next)}
-          subjectId={subjectId}
-          disabled={!subjectId && !chapterId}
-          placeholder={subjectId ? "الفصل" : "اختر المادة أولًا"}
-        />
-      </div>
+      <AdminContentPathFilters through="chapter" />
     </div>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { AdminLookupCombobox } from "@/components/admin/admin-lookup-combobox";
 import { Label } from "@/components/ui/label";
 
@@ -14,24 +15,29 @@ export function QuestionCascader(props: {
   subjects?: SubjectOption[];
   chapters?: ChapterOption[];
   selectedUniversity: string;
+  selectedCollege: string;
   selectedMajor: string;
   selectedSubject: string;
   selectedChapter: string;
   onUniversityChange: (id: string) => void;
+  onCollegeChange: (id: string) => void;
   onMajorChange: (id: string) => void;
   onSubjectChange: (id: string) => void;
   onChapterChange: (id: string) => void;
 }) {
   const {
     selectedUniversity,
+    selectedCollege,
     selectedMajor,
     selectedSubject,
     selectedChapter,
     onUniversityChange,
+    onCollegeChange,
     onMajorChange,
     onSubjectChange,
     onChapterChange,
   } = props;
+  const [institutionType, setInstitutionType] = useState<"university" | "school" | "academy" | null>(null);
 
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -42,11 +48,29 @@ export function QuestionCascader(props: {
             type="university"
             value={selectedUniversity}
             onValueChange={onUniversityChange}
+            onOptionChange={(option) => setInstitutionType(option?.institutionType ?? null)}
             disablePortal
             placeholder="ابحث عن جامعة"
           />
         </div>
       </div>
+
+      {institutionType === "university" ? (
+        <div className="grid grid-cols-4 items-center gap-3">
+          <Label className="col-span-1 text-right">الكلية</Label>
+          <div className="col-span-3">
+            <AdminLookupCombobox
+              type="college"
+              value={selectedCollege}
+              onValueChange={onCollegeChange}
+              disablePortal
+              universityId={selectedUniversity}
+              disabled={!selectedUniversity}
+              placeholder="اختياري: اختر كلية"
+            />
+          </div>
+        </div>
+      ) : null}
 
       <div className="grid grid-cols-4 items-center gap-3">
         <Label className="col-span-1 text-right">التخصص</Label>
@@ -57,6 +81,7 @@ export function QuestionCascader(props: {
             onValueChange={onMajorChange}
             disablePortal
             universityId={selectedUniversity}
+            collegeId={institutionType === "university" ? selectedCollege : undefined}
             disabled={!selectedUniversity}
             placeholder={selectedUniversity ? "ابحث عن تخصص" : "اختر الجامعة أولاً"}
           />

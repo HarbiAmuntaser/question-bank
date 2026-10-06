@@ -17,6 +17,7 @@ export type SummariesSearchParams = {
   query?: string;
   status?: string;
   universityId?: string;
+  collegeId?: string;
   majorId?: string;
   subjectId?: string;
   chapterId?: string;
@@ -52,6 +53,9 @@ function buildQuery(searchParams?: SummariesSearchParams) {
   const page = readParam(searchParams, "page");
   const query = readParam(searchParams, "query");
   const status = readParam(searchParams, "status");
+  const universityId = readParam(searchParams, "universityId");
+  const collegeId = readParam(searchParams, "collegeId");
+  const majorId = readParam(searchParams, "majorId");
   const subjectId = readParam(searchParams, "subjectId");
   const chapterId = readParam(searchParams, "chapterId");
   const sortBy = readParam(searchParams, "sortBy");
@@ -61,6 +65,9 @@ function buildQuery(searchParams?: SummariesSearchParams) {
   params.set("pageSize", "10");
   if (query?.trim()) params.set("query", query.trim());
   if (status === "draft" || status === "published" || status === "archived") params.set("status", status);
+  if (universityId) params.set("universityId", universityId);
+  if (collegeId) params.set("collegeId", collegeId);
+  if (majorId) params.set("majorId", majorId);
   if (subjectId) params.set("subjectId", subjectId);
   if (chapterId) params.set("chapterId", chapterId);
   params.set("sortBy", ["createdAt", "updatedAt", "publishedAt", "title", "sortOrder"].includes(sortBy ?? "") ? sortBy! : "updatedAt");

@@ -1,178 +1,201 @@
-// src/components/admin/quizzes/generator/ChapterCascader.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Loader2, Search } from "lucide-react";
+
+import {
+  searchQuizGeneratorChaptersAction,
+  type QuizGeneratorChapter,
+} from "@/app/admin/quiz-generator/actions";
+import { AdminLookupCombobox } from "@/components/admin/admin-lookup-combobox";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import type { ChapterWithRelations } from "@/types";
-import { getChaptersAction } from "@/app/admin/questions/actions";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+
+type InstitutionType = "university" | "school" | "academy";
 
 export function ChapterCascader({
   selectedChapters,
   onChange,
+  onAvailableCountChange,
 }: {
   selectedChapters: string[];
   onChange: (ids: string[]) => void;
+  onAvailableCountChange: (count: number) => void;
 }) {
-  const [allChapters, setAllChapters] = useState<ChapterWithRelations[]>([]);
-  const [universityId, setUniversityId] = useState<string>("");
-  const [majorId, setMajorId] = useState<string>("");
-  const [subjectId, setSubjectId] = useState<string>("");
+  const [universityId, setUniversityId] = useState("");
+  const [collegeId, setCollegeId] = useState("");
+  const [majorId, setMajorId] = useState("");
+  const [subjectId, setSubjectId] = useState("");
+  const [institutionType, setInstitutionType] = useState<InstitutionType | null>(null);
+  const [query, setQuery] = useState("");
+  const [chapters, setChapters] = useState<QuizGeneratorChapter[]>([]);
+  const [selectedDetails, setSelectedDetails] = useState<Record<string, QuizGeneratorChapter>>({});
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    (async () => {
-      const data = await getChaptersAction(); // { data, pagination }
-      // لو كانت الدالة ترجع {data: [...]} استخرجها
-      const list = Array.isArray((data as any)?.data) ? (data as any).data : (data as any) || [];
-      setAllChapters(list as ChapterWithRelations[]);
-    })();
-  }, []);
-
-  const universities = useMemo(() => {
-    const map = new Map<string, { id: string; name: string }>();
-    for (const ch of allChapters) {
-      const u = ch.subject.major.university;
-      map.set(u.id, { id: u.id, name: u.name });
+    if (!subjectId) {
+      setChapters([]);
+      setLoading(false);
+      return;
     }
-    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name, "ar"));
-  }, [allChapters]);
 
-  const majors = useMemo(() => {
-    const map = new Map<string, { id: string; name: string }>();
-    for (const ch of allChapters) {
-      const u = ch.subject.major.university;
-      if (!universityId || u.id === universityId) {
-        const m = ch.subject.major;
-        map.set(m.id, { id: m.id, name: m.name });
-      }
-    }
-    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name, "ar"));
-  }, [allChapters, universityId]);
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      setLoading(true);
+      void searchQuizGeneratorChaptersAction({ subjectId, query })
+        .then((rows) => {
+          if (!cancelled) setChapters(rows);
+        })
+        .finally(() => {
+          if (!cancelled) setLoading(false);
+        });
+    }, 250);
 
-  const subjects = useMemo(() => {
-    const map = new Map<string, { id: string; name: string }>();
-    for (const ch of allChapters) {
-      const m = ch.subject.major;
-      const u = ch.subject.major.university;
-      if ((!universityId || u.id === universityId) && (!majorId || m.id === majorId)) {
-        const s = ch.subject;
-        map.set(s.id, { id: s.id, name: s.name });
-      }
-    }
-    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name, "ar"));
-  }, [allChapters, universityId, majorId]);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [query, subjectId]);
 
-  const filteredChapters = useMemo(() => {
-    return allChapters
-      .filter((c) => {
-        const u = c.subject.major.university.id;
-        const m = c.subject.major.id;
-        const s = c.subject.id;
-        return (!universityId || u === universityId) && (!majorId || m === majorId) && (!subjectId || s === subjectId);
-      })
-      .sort((a, b) => a.name.localeCompare(b.name, "ar"));
-  }, [allChapters, universityId, majorId, subjectId]);
+  useEffect(() => {
+    setSelectedDetails((current) =>
+      Object.fromEntries(Object.entries(current).filter(([id]) => selectedChapters.includes(id))),
+    );
+  }, [selectedChapters]);
 
-  const toggleChapter = (id: string) => {
-    const next = new Set<string>(selectedChapters);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
-    onChange(Array.from(next));
+  const totalSelectedQuestions = useMemo(
+    () => selectedChapters.reduce((sum, id) => sum + (selectedDetails[id]?.activeQuestionCount ?? 0), 0),
+    [selectedChapters, selectedDetails],
+  );
+
+  useEffect(() => {
+    onAvailableCountChange(totalSelectedQuestions);
+  }, [onAvailableCountChange, totalSelectedQuestions]);
+
+  const toggleChapter = (chapter: QuizGeneratorChapter) => {
+    const selected = selectedChapters.includes(chapter.id);
+    onChange(selected ? selectedChapters.filter((id) => id !== chapter.id) : [...selectedChapters, chapter.id]);
+    setSelectedDetails((current) => {
+      if (!selected) return { ...current, [chapter.id]: chapter };
+      const next = { ...current };
+      delete next[chapter.id];
+      return next;
+    });
   };
 
-  useEffect(() => {
+  const handleUniversityChange = (value: string) => {
+    setUniversityId(value);
+    setCollegeId("");
     setMajorId("");
     setSubjectId("");
-  }, [universityId]);
+    setQuery("");
+    setChapters([]);
+  };
 
-  useEffect(() => {
+  const handleCollegeChange = (value: string) => {
+    setCollegeId(value);
+    setMajorId("");
     setSubjectId("");
-  }, [majorId]);
+    setQuery("");
+    setChapters([]);
+  };
 
-  // مجموع الأسئلة للفصول المختارة
-  const totalSelectedQuestions = useMemo(
-    () =>
-      allChapters
-        .filter((c) => selectedChapters.includes(c.id))
-        .reduce((sum, c: any) => sum + (c.questionsCount ?? c._count?.questions ?? 0), 0),
-    [allChapters, selectedChapters]
-  );
+  const handleMajorChange = (value: string) => {
+    setMajorId(value);
+    setSubjectId("");
+    setQuery("");
+    setChapters([]);
+  };
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>اختيار الفصول</CardTitle>
-        <CardDescription>اختر الجامعة ثم التخصص ثم المقرر لتظهر لك الفصول</CardDescription>
+        <CardDescription>
+          تُحمّل الفصول بعد اختيار المقرر فقط. يمكنك الاحتفاظ بفصول من أكثر من مقرر لاختبار تجميعي.
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
           <div className="space-y-2">
-            <Label>الجامعة</Label>
-            <Select value={universityId} onValueChange={setUniversityId}>
-              <SelectTrigger>
-                <SelectValue placeholder="اختر الجامعة" />
-              </SelectTrigger>
-              <SelectContent>
-                {universities.map((u) => (
-                  <SelectItem key={u.id} value={u.id}>
-                    {u.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label>الجهة التعليمية</Label>
+            <AdminLookupCombobox
+              type="university"
+              value={universityId}
+              onValueChange={handleUniversityChange}
+              onOptionChange={(option) => setInstitutionType(option?.institutionType ?? null)}
+              placeholder="ابحث عن جامعة أو أكاديمية"
+            />
           </div>
+
+          {institutionType === "university" ? (
+            <div className="space-y-2">
+              <Label>الكلية</Label>
+              <AdminLookupCombobox
+                type="college"
+                value={collegeId}
+                onValueChange={handleCollegeChange}
+                universityId={universityId}
+                disabled={!universityId}
+                placeholder="اختياري: اختر كلية"
+              />
+            </div>
+          ) : null}
 
           <div className="space-y-2">
             <Label>التخصص</Label>
-            <Select value={majorId} onValueChange={setMajorId} disabled={!universityId}>
-              <SelectTrigger>
-                <SelectValue placeholder={universityId ? "اختر التخصص" : "اختر الجامعة أولاً"} />
-              </SelectTrigger>
-              <SelectContent>
-                {majors.map((m) => (
-                  <SelectItem key={m.id} value={m.id}>
-                    {m.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <AdminLookupCombobox
+              type="major"
+              value={majorId}
+              onValueChange={handleMajorChange}
+              universityId={universityId}
+              collegeId={institutionType === "university" ? collegeId : undefined}
+              disabled={!universityId}
+              placeholder={universityId ? "ابحث عن تخصص" : "اختر الجهة أولًا"}
+            />
           </div>
 
           <div className="space-y-2">
             <Label>المقرر</Label>
-            <Select value={subjectId} onValueChange={setSubjectId} disabled={!majorId}>
-              <SelectTrigger>
-                <SelectValue placeholder={majorId ? "اختر المقرر" : "اختر التخصص أولاً"} />
-              </SelectTrigger>
-              <SelectContent>
-                {subjects.map((s) => (
-                  <SelectItem key={s.id} value={s.id}>
-                    {s.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <AdminLookupCombobox
+              type="subject"
+              value={subjectId}
+              onValueChange={(value) => {
+                setSubjectId(value);
+                setQuery("");
+                setChapters([]);
+              }}
+              majorId={majorId}
+              disabled={!majorId}
+              placeholder={majorId ? "ابحث عن مقرر" : "اختر التخصص أولًا"}
+            />
           </div>
         </div>
 
-        {/* المختار */}
-        {selectedChapters.length > 0 && (
-          <div className="space-y-2">
-            <Label>الفصول المختارة ({selectedChapters.length})</Label>
+        {selectedChapters.length > 0 ? (
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <Label>الفصول المختارة ({selectedChapters.length})</Label>
+              <span className="text-sm text-muted-foreground">
+                {totalSelectedQuestions} سؤال نشط متاح
+              </span>
+            </div>
             <div className="flex flex-wrap gap-2">
               {selectedChapters.map((id) => {
-                const c: any = allChapters.find((x) => x.id === id);
+                const chapter = selectedDetails[id];
                 return (
-                  <Badge key={id} variant="secondary" className="gap-1">
-                    {c?.name ?? id}
+                  <Badge key={id} variant="secondary" className="gap-2 py-1.5">
+                    {chapter?.name ?? "فصل مختار"}
                     <button
                       type="button"
-                      onClick={() => toggleChapter(id)}
-                      className="ml-1 hover:bg-destructive hover:text-destructive-foreground rounded-full"
+                      aria-label="إزالة الفصل"
+                      onClick={() => chapter && toggleChapter(chapter)}
+                      className="rounded-sm px-1 hover:bg-destructive hover:text-destructive-foreground"
                     >
                       ×
                     </button>
@@ -180,36 +203,72 @@ export function ChapterCascader({
                 );
               })}
             </div>
-            <div className="text-sm text-muted-foreground">
-              عدد الأسئلة المتاحة من الفصول المختارة:{" "}
-              <span className="font-semibold arabic-numbers">{totalSelectedQuestions}</span>
-            </div>
             <Separator />
+          </div>
+        ) : null}
+
+        {subjectId ? (
+          <div className="space-y-3">
+            <div className="relative max-w-md">
+              <Search className="pointer-events-none absolute end-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="ابحث داخل فصول المقرر"
+                className="pe-9"
+              />
+            </div>
+
+            <div className="max-h-80 space-y-2 overflow-y-auto rounded-md border p-3">
+              {loading ? (
+                <div className="flex min-h-24 items-center justify-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  جار تحميل الفصول...
+                </div>
+              ) : chapters.length ? (
+                chapters.map((chapter) => (
+                  <label
+                    key={chapter.id}
+                    htmlFor={"generator-chapter-" + chapter.id}
+                    className="flex cursor-pointer items-center gap-3 rounded-md border p-3 hover:bg-muted/50"
+                  >
+                    <Checkbox
+                      id={"generator-chapter-" + chapter.id}
+                      checked={selectedChapters.includes(chapter.id)}
+                      onCheckedChange={() => toggleChapter(chapter)}
+                    />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-medium">{chapter.name}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {chapter.activeQuestionCount} سؤال نشط
+                      </span>
+                    </span>
+                  </label>
+                ))
+              ) : (
+                <div className="flex min-h-24 items-center justify-center text-sm text-muted-foreground">
+                  لا توجد فصول مطابقة.
+                </div>
+              )}
+            </div>
+
+            {chapters.length === 50 ? (
+              <p className="text-xs text-muted-foreground">
+                تظهر أول 50 نتيجة فقط. استخدم البحث للوصول إلى فصل آخر.
+              </p>
+            ) : null}
+          </div>
+        ) : (
+          <div className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
+            اختر الجهة والتخصص والمقرر لعرض الفصول.
           </div>
         )}
 
-        {/* قائمة الفصول */}
-        <div className="space-y-3 max-h-96 overflow-y-auto">
-          {filteredChapters.map((c: any) => (
-            <div key={c.id} className="flex items-center space-x-2 space-x-reverse">
-              <Checkbox
-                id={c.id}
-                checked={selectedChapters.includes(c.id)}
-                onCheckedChange={() => toggleChapter(c.id)}
-              />
-              <Label htmlFor={c.id} className="text-sm flex-1">
-                {c.name}
-               <span className="text-muted-foreground mr-2">
-  ({(c as any).questionsCount ?? c._count?.questions ?? 0} سؤال)
-</span>
-
-              </Label>
-            </div>
-          ))}
-          {universityId && majorId && subjectId && filteredChapters.length === 0 && (
-            <div className="text-sm text-muted-foreground">لا توجد فصول مطابقة.</div>
-          )}
-        </div>
+        {selectedChapters.length > 0 ? (
+          <Button type="button" variant="ghost" size="sm" onClick={() => onChange([])}>
+            مسح كل الفصول المختارة
+          </Button>
+        ) : null}
       </CardContent>
     </Card>
   );
