@@ -4,6 +4,11 @@ import type React from "react";
 import { useEffect, useState, useTransition } from "react";
 
 import { createMajorAction, updateMajorAction } from "@/app/admin/majors/actions";
+import {
+  AdminFieldError,
+  AdminFormErrorSummary,
+  useAdminFormValidation,
+} from "@/components/admin/admin-form-validation";
 import { AdminLookupCombobox } from "@/components/admin/admin-lookup-combobox";
 import { Button } from "@/components/ui/button";
 import {
@@ -36,6 +41,8 @@ export function MajorDialog({ children, major, open, onOpenChange }: MajorDialog
   const [selectedUniversity, setSelectedUniversity] = useState(major?.universityId || "");
   const [selectedCollege, setSelectedCollege] = useState(major?.collegeId || "");
   const { toast } = useToast();
+  const validation = useAdminFormValidation("major-form");
+  const resetValidationErrors = validation.resetErrors;
 
   const isControlled = open !== undefined && onOpenChange !== undefined;
   const dialogOpen = isControlled ? open : isOpen;
@@ -45,12 +52,14 @@ export function MajorDialog({ children, major, open, onOpenChange }: MajorDialog
     if (dialogOpen) {
       setSelectedUniversity(major?.universityId || "");
       setSelectedCollege(major?.collegeId || "");
+      resetValidationErrors();
     }
-  }, [dialogOpen, major?.collegeId, major?.universityId]);
+  }, [dialogOpen, major?.collegeId, major?.universityId, resetValidationErrors]);
 
   const handleSubmit = async (formData: FormData) => {
+    validation.resetErrors();
     if (!selectedUniversity) {
-      toast({ title: "خطأ", description: "يرجى اختيار الجامعة", variant: "destructive" });
+      validation.reportErrors({ fieldErrors: { universityId: "يرجى اختيار الجامعة." } });
       return;
     }
     formData.set("universityId", selectedUniversity);
@@ -65,9 +74,11 @@ export function MajorDialog({ children, major, open, onOpenChange }: MajorDialog
           setSelectedUniversity("");
           setSelectedCollege("");
         } else {
+          validation.reportErrors({ formError: result.message });
           toast({ title: "خطأ", description: result.message, variant: "destructive" });
         }
       } catch {
+        validation.reportErrors({ formError: "حدث خطأ غير متوقع. أعد المحاولة." });
         toast({ title: "خطأ", description: "حدث خطأ غير متوقع", variant: "destructive" });
       }
     });
@@ -84,7 +95,8 @@ export function MajorDialog({ children, major, open, onOpenChange }: MajorDialog
           </DialogDescription>
         </DialogHeader>
 
-        <form action={handleSubmit}>
+        <form ref={validation.formRef} action={handleSubmit}>
+          <AdminFormErrorSummary message={validation.formError} className="mt-4" />
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label className="text-right">الجامعة</Label>
@@ -95,8 +107,14 @@ export function MajorDialog({ children, major, open, onOpenChange }: MajorDialog
                   onValueChange={(next) => {
                     if (next !== selectedUniversity) setSelectedCollege("");
                     setSelectedUniversity(next);
+                    validation.clearFieldError("universityId");
                   }}
                   placeholder="ابحث عن جامعة"
+                  {...validation.getFieldProps("universityId")}
+                />
+                <AdminFieldError
+                  id={validation.errorId("universityId")}
+                  message={validation.fieldErrors.universityId}
                 />
               </div>
             </div>

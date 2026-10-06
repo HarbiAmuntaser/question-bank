@@ -27,6 +27,9 @@ type LookupComboboxProps = {
   subjectId?: string;
   chapterId?: string;
   disablePortal?: boolean;
+  "data-admin-field"?: string;
+  "aria-invalid"?: boolean;
+  "aria-describedby"?: string;
 };
 
 function toComboOption(option: AdminLookupOption | null): ComboOption | null {
@@ -50,6 +53,9 @@ export function AdminLookupCombobox({
   subjectId,
   chapterId,
   disablePortal,
+  "data-admin-field": adminField,
+  "aria-invalid": ariaInvalid,
+  "aria-describedby": ariaDescribedBy,
 }: LookupComboboxProps) {
   const [selected, setSelected] = useState<ComboOption | null>(null);
 
@@ -103,6 +109,9 @@ export function AdminLookupCombobox({
       }}
       placeholder={placeholder}
       disabled={disabled}
+      data-admin-field={adminField}
+      aria-invalid={ariaInvalid}
+      aria-describedby={ariaDescribedBy}
       fetcher={fetcher}
       depsKey={depsKey}
       disablePortal={disablePortal}

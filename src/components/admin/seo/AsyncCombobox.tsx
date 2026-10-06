@@ -24,6 +24,9 @@ export function AsyncCombobox({
   fetcher,
   depsKey,
   disablePortal,
+  "data-admin-field": adminField,
+  "aria-invalid": ariaInvalid,
+  "aria-describedby": ariaDescribedBy,
 }: {
   value: ComboOption | null;
   onChange: (next: ComboOption | null) => void;
@@ -32,6 +35,9 @@ export function AsyncCombobox({
   fetcher: (q: string) => Promise<ComboOption[]>;
   depsKey?: string; // Clears cached options when a parent lookup changes.
   disablePortal?: boolean;
+  "data-admin-field"?: string;
+  "aria-invalid"?: boolean;
+  "aria-describedby"?: string;
 }) {
   const [open, setOpen] = React.useState(false);
   const [query, setQuery] = React.useState("");
@@ -47,7 +53,6 @@ export function AsyncCombobox({
     cacheRef.current.clear();
     setItems([]);
     setQuery("");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [depsKey]);
 
   React.useEffect(() => {
@@ -96,7 +101,13 @@ export function AsyncCombobox({
           variant="outline"
           disabled={disabled}
           aria-label={placeholder}
-          className={cn("h-10 w-full justify-between focus-visible:ring-2 focus-visible:ring-ring", !value && "text-muted-foreground")}
+          aria-invalid={ariaInvalid}
+          aria-describedby={ariaDescribedBy}
+          data-admin-field={adminField}
+          className={cn(
+            "h-10 w-full justify-between focus-visible:ring-2 focus-visible:ring-ring aria-[invalid=true]:border-destructive aria-[invalid=true]:ring-destructive/30",
+            !value && "text-muted-foreground",
+          )}
         >
           <span className="truncate">{value ? label : placeholder}</span>
           <ChevronsUpDown className="h-4 w-4 opacity-50 ms-2" />

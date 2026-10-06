@@ -9,6 +9,11 @@ import {
   updateSubjectAction,
   type SubjectInstitutionContext,
 } from "@/app/admin/subjects/actions";
+import {
+  AdminFieldError,
+  AdminFormErrorSummary,
+  useAdminFormValidation,
+} from "@/components/admin/admin-form-validation";
 import { AdminLookupCombobox } from "@/components/admin/admin-lookup-combobox";
 import { Button } from "@/components/ui/button";
 import {
@@ -56,6 +61,8 @@ export function SubjectDialog({ children, subject, open, onOpenChange }: Subject
   const [selectedMajorId, setSelectedMajorId] = useState("");
   const [institutionContext, setInstitutionContext] = useState<SubjectInstitutionContext | null>(null);
   const { toast } = useToast();
+  const validation = useAdminFormValidation("subject-form");
+  const resetValidationErrors = validation.resetErrors;
 
   const isControlled = open !== undefined && onOpenChange !== undefined;
   const dialogOpen = isControlled ? open : isOpen;
@@ -65,7 +72,8 @@ export function SubjectDialog({ children, subject, open, onOpenChange }: Subject
     if (!dialogOpen) return;
     setSelectedUniversityId(subject?.major?.university?.id ?? "");
     setSelectedMajorId(subject?.majorId ?? subject?.major?.id ?? "");
-  }, [dialogOpen, subject]);
+    resetValidationErrors();
+  }, [dialogOpen, subject, resetValidationErrors]);
 
   useEffect(() => {
     let active = true;
@@ -92,6 +100,8 @@ export function SubjectDialog({ children, subject, open, onOpenChange }: Subject
     setSelectedUniversityId(value);
     setSelectedMajorId("");
     setInstitutionContext(null);
+    validation.clearFieldError("universityId");
+    validation.clearFieldError("majorId");
   };
 
   const isUniversity = institutionContext?.institutionType === "university";
@@ -99,12 +109,13 @@ export function SubjectDialog({ children, subject, open, onOpenChange }: Subject
   const showAcademicPeriodFields = Boolean(selectedUniversityId) && !isAcademy;
 
   const handleSubmit = async (formData: FormData) => {
+    validation.resetErrors();
     if (!selectedUniversityId) {
-      toast({ title: "خطأ", description: "يرجى اختيار الجامعة", variant: "destructive" });
+      validation.reportErrors({ fieldErrors: { universityId: "يرجى اختيار الجامعة." } });
       return;
     }
     if (!selectedMajorId) {
-      toast({ title: "خطأ", description: "يرجى اختيار التخصص", variant: "destructive" });
+      validation.reportErrors({ fieldErrors: { majorId: "يرجى اختيار التخصص." } });
       return;
     }
 
@@ -120,9 +131,11 @@ export function SubjectDialog({ children, subject, open, onOpenChange }: Subject
           setSelectedUniversityId("");
           setSelectedMajorId("");
         } else {
+          validation.reportErrors({ formError: result.message });
           toast({ title: "خطأ", description: result.message, variant: "destructive" });
         }
       } catch {
+        validation.reportErrors({ formError: "حدث خطأ غير متوقع. أعد المحاولة." });
         toast({ title: "خطأ", description: "حدث خطأ غير متوقع", variant: "destructive" });
       }
     });
@@ -139,7 +152,8 @@ export function SubjectDialog({ children, subject, open, onOpenChange }: Subject
           </DialogDescription>
         </DialogHeader>
 
-        <form action={handleSubmit}>
+        <form ref={validation.formRef} action={handleSubmit}>
+          <AdminFormErrorSummary message={validation.formError} className="mt-4" />
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label className="text-right">الجامعة</Label>
@@ -149,6 +163,11 @@ export function SubjectDialog({ children, subject, open, onOpenChange }: Subject
                   value={selectedUniversityId}
                   onValueChange={handleUniversityChange}
                   placeholder="ابحث عن جامعة"
+                  {...validation.getFieldProps("universityId")}
+                />
+                <AdminFieldError
+                  id={validation.errorId("universityId")}
+                  message={validation.fieldErrors.universityId}
                 />
               </div>
             </div>
@@ -159,10 +178,18 @@ export function SubjectDialog({ children, subject, open, onOpenChange }: Subject
                 <AdminLookupCombobox
                   type="major"
                   value={selectedMajorId}
-                  onValueChange={setSelectedMajorId}
+                  onValueChange={(value) => {
+                    setSelectedMajorId(value);
+                    validation.clearFieldError("majorId");
+                  }}
                   universityId={selectedUniversityId}
                   disabled={!selectedUniversityId}
                   placeholder={selectedUniversityId ? "ابحث عن تخصص" : "اختر الجامعة أولاً"}
+                  {...validation.getFieldProps("majorId")}
+                />
+                <AdminFieldError
+                  id={validation.errorId("majorId")}
+                  message={validation.fieldErrors.majorId}
                 />
               </div>
             </div>

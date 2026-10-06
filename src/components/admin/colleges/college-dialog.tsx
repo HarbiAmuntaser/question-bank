@@ -7,6 +7,11 @@ import {
   createCollegeAction,
   updateCollegeAction,
 } from "@/app/admin/colleges/actions";
+import {
+  AdminFieldError,
+  AdminFormErrorSummary,
+  useAdminFormValidation,
+} from "@/components/admin/admin-form-validation";
 import { AdminLookupCombobox } from "@/components/admin/admin-lookup-combobox";
 import { Button } from "@/components/ui/button";
 import {
@@ -51,6 +56,8 @@ export function CollegeDialog({
   const [slugEdited, setSlugEdited] = useState(Boolean(college));
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
+  const validation = useAdminFormValidation("college-form");
+  const resetValidationErrors = validation.resetErrors;
   const controlled = open !== undefined && onOpenChange !== undefined;
   const dialogOpen = controlled ? open : localOpen;
   const setDialogOpen = controlled ? onOpenChange! : setLocalOpen;
@@ -61,7 +68,8 @@ export function CollegeDialog({
     setName(college?.name ?? "");
     setSlug(college?.slug ?? "");
     setSlugEdited(Boolean(college));
-  }, [college, dialogOpen]);
+    resetValidationErrors();
+  }, [college, dialogOpen, resetValidationErrors]);
 
   const handleNameChange = (value: string) => {
     setName(value);
@@ -74,8 +82,9 @@ export function CollegeDialog({
   };
 
   const submit = (formData: FormData) => {
+    validation.resetErrors();
     if (!universityId) {
-      toast({ title: "خطأ", description: "اختر الجامعة أولًا", variant: "destructive" });
+      validation.reportErrors({ fieldErrors: { universityId: "اختر الجامعة أولًا." } });
       return;
     }
     formData.set("universityId", universityId);
@@ -88,6 +97,7 @@ export function CollegeDialog({
         description: result.message,
         variant: result.success ? "default" : "destructive",
       });
+      if (!result.success) validation.reportErrors({ formError: result.message });
       if (result.success) {
         setDialogOpen(false);
         window.location.href = "/admin/colleges";
@@ -105,7 +115,8 @@ export function CollegeDialog({
             الكليات متاحة للجامعات فقط، وربط التخصص بها اختياري.
           </DialogDescription>
         </DialogHeader>
-        <form action={submit}>
+        <form ref={validation.formRef} action={submit}>
+          <AdminFormErrorSummary message={validation.formError} className="mt-4" />
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label className="text-right">الجامعة</Label>
@@ -114,8 +125,16 @@ export function CollegeDialog({
                   type="university"
                   universityType="university"
                   value={universityId}
-                  onValueChange={setUniversityId}
+                  onValueChange={(value) => {
+                    setUniversityId(value);
+                    validation.clearFieldError("universityId");
+                  }}
                   placeholder="ابحث عن جامعة"
+                  {...validation.getFieldProps("universityId")}
+                />
+                <AdminFieldError
+                  id={validation.errorId("universityId")}
+                  message={validation.fieldErrors.universityId}
                 />
               </div>
             </div>

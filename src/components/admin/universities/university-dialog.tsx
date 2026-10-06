@@ -2,6 +2,10 @@
 
 import type React from "react";
 import { useEffect, useState, useTransition } from "react";
+import {
+  AdminFormErrorSummary,
+  useAdminFormValidation,
+} from "@/components/admin/admin-form-validation";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -54,16 +58,22 @@ export function UniversityDialog({
   );
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
+  const validation = useAdminFormValidation("university-form");
+  const resetValidationErrors = validation.resetErrors;
 
   const isControlled = open !== undefined && onOpenChange !== undefined;
   const dialogOpen = isControlled ? open : isOpen;
   const setDialogOpen = isControlled ? onOpenChange! : setIsOpen;
 
   useEffect(() => {
-    if (dialogOpen) setSelectedInstitutionType(university?.institutionType ?? "university");
-  }, [dialogOpen, university?.institutionType]);
+    if (dialogOpen) {
+      setSelectedInstitutionType(university?.institutionType ?? "university");
+      resetValidationErrors();
+    }
+  }, [dialogOpen, university?.institutionType, resetValidationErrors]);
 
   const handleSubmit = async (formData: FormData) => {
+    validation.resetErrors();
     startTransition(async () => {
       try {
         const result = university
@@ -76,6 +86,7 @@ export function UniversityDialog({
           // تحديث الجدول فورًا
           window.location.href = "/admin/universities";
         } else {
+          validation.reportErrors({ formError: result.message });
           toast({
             title: "خطأ",
             description: result.message,
@@ -83,6 +94,7 @@ export function UniversityDialog({
           });
         }
       } catch {
+        validation.reportErrors({ formError: "حدث خطأ غير متوقع. أعد المحاولة." });
         toast({
           title: "خطأ",
           description: "حدث خطأ غير متوقع",
@@ -107,7 +119,8 @@ export function UniversityDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <form action={handleSubmit}>
+        <form ref={validation.formRef} action={handleSubmit}>
+          <AdminFormErrorSummary message={validation.formError} className="mt-4" />
           <div className="grid gap-4 py-4">
             {/* 👇 جديد — رمز الدولة */}
             <div className="grid grid-cols-4 items-center gap-4">

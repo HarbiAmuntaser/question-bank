@@ -3,6 +3,7 @@
 import * as React from "react"
 import * as PopoverPrimitive from "@radix-ui/react-popover"
 
+import { useDialogLayer } from "@/components/ui/dialog-layer-context"
 import { cn } from "@/lib/utils"
 
 const Popover = PopoverPrimitive.Root
@@ -15,6 +16,7 @@ const PopoverContent = React.forwardRef<
     disablePortal?: boolean
   }
 >(({ className, align = "center", sideOffset = 4, disablePortal = false, ...props }, ref) => {
+  const insideDialog = useDialogLayer()
   const content = (
     <PopoverPrimitive.Content
       ref={ref}
@@ -28,8 +30,9 @@ const PopoverContent = React.forwardRef<
     />
   )
 
-  // Dialog-contained comboboxes need pointer events inside the dialog layer.
-  return disablePortal ? content : <PopoverPrimitive.Portal>{content}</PopoverPrimitive.Portal>
+  // Nested overlays stay in the dialog's pointer/focus layer. Outside dialogs,
+  // portals retain their normal clipping and stacking behavior.
+  return disablePortal || insideDialog ? content : <PopoverPrimitive.Portal>{content}</PopoverPrimitive.Portal>
 })
 PopoverContent.displayName = PopoverPrimitive.Content.displayName
 
