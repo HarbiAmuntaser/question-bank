@@ -142,6 +142,10 @@ model User {
   subscriptionCodesCreated SubscriptionCode[]           @relation("SubscriptionCodeCreatedBy")
   codeAccessGrants         CodeAccessGrant[]            @relation("UserCodeAccessGrants")
   codeAccessEvents         CodeAccessEvent[]            @relation("CodeAccessEventActor")
+  telegramChannelsCreated  TelegramSubjectChannel[]     @relation("TelegramChannelCreatedBy")
+  telegramMemberships      TelegramMembership[]         @relation("TelegramMembershipUser")
+  telegramLinkTokens       TelegramLinkToken[]          @relation("TelegramLinkTokenUser")
+  telegramAuditEvents      TelegramAuditEvent[]         @relation("TelegramAuditActor")
 
   @@map("users")
 }
@@ -296,6 +300,8 @@ model Subject {
   paymentOrderItems  PaymentOrderItem[]
   codeRedemptions    PaymentCodeRedemptionEvent[]
   codeAccessGrants   CodeAccessGrant[]
+  telegramChannel    TelegramSubjectChannel?
+  telegramLinkTokens TelegramLinkToken[]
 
   @@unique([majorId, code])
   @@map("subjects")
@@ -989,12 +995,14 @@ model CodeAccessGrant {
   createdAt     DateTime                @default(now()) @db.Timestamptz(3)
   updatedAt     DateTime                @updatedAt @db.Timestamptz(3)
 
-  code     SubscriptionCode           @relation(fields: [codeId], references: [id], onDelete: NoAction)
-  plan     PaidAccessPlan             @relation(fields: [planId], references: [id], onDelete: NoAction)
-  subject  Subject                    @relation(fields: [subjectId], references: [id], onDelete: NoAction)
-  user     User?                      @relation("UserCodeAccessGrants", fields: [userId], references: [id], onDelete: NoAction)
-  sessions CodeAccessSessionBinding[]
-  events   CodeAccessEvent[]
+  code                SubscriptionCode           @relation(fields: [codeId], references: [id], onDelete: NoAction)
+  plan                PaidAccessPlan             @relation(fields: [planId], references: [id], onDelete: NoAction)
+  subject             Subject                    @relation(fields: [subjectId], references: [id], onDelete: NoAction)
+  user                User?                      @relation("UserCodeAccessGrants", fields: [userId], references: [id], onDelete: NoAction)
+  sessions            CodeAccessSessionBinding[]
+  events              CodeAccessEvent[]
+  telegramMemberships TelegramMembership[]
+  telegramLinkTokens  TelegramLinkToken[]
 
   @@index([userId, subjectId, isActive, expiresAt])
   @@index([subjectId, isActive, expiresAt])
@@ -1099,6 +1107,195 @@ model AccessEntitlement {
   @@index([expiresAt])
   @@index([isActive])
   @@map("access_entitlements")
+}
+
+// -----------------
+// Optional Telegram access for paid subjects
+// -----------------
+
+enum TelegramChannelStatus {
+  connected
+  degraded
+  disconnected
+}
+
+enum TelegramMembershipPrincipalType {
+  account
+  guest_grant
+}
+
+enum TelegramMembershipStatus {
+  pending_join
+  active
+  left
+  removal_pending
+  removed
+  error
+}
+
+enum TelegramLinkTokenPurpose {
+  admin_connect
+  student_link
+}
+
+enum TelegramLinkTokenState {
+  pending
+  claimed
+  consumed
+  cancelled
+  expired
+}
+
+enum TelegramSyncJobType {
+  reconcile_membership
+  verify_channel
+  mass_remove
+}
+
+enum TelegramSyncJobStatus {
+  pending
+  processing
+  completed
+  failed
+}
+
+model TelegramSubjectChannel {
+  id                    String                @id @default(uuid())
+  subjectId             String                @unique
+  telegramChatId        String                @unique @db.VarChar(32)
+  title                 String                @db.VarChar(255)
+  status                TelegramChannelStatus @default(disconnected)
+  isEnabled             Boolean               @default(false)
+  botCanInviteUsers     Boolean               @default(false)
+  botCanRestrictMembers Boolean               @default(false)
+  verifiedAt            DateTime?             @db.Timestamptz(3)
+  lastHealthCheckedAt   DateTime?             @db.Timestamptz(3)
+  createdBy             String
+  createdAt             DateTime              @default(now()) @db.Timestamptz(3)
+  updatedAt             DateTime              @updatedAt @db.Timestamptz(3)
+
+  subject     Subject              @relation(fields: [subjectId], references: [id], onDelete: NoAction)
+  creator     User                 @relation("TelegramChannelCreatedBy", fields: [createdBy], references: [id], onDelete: NoAction)
+  memberships TelegramMembership[]
+  linkTokens  TelegramLinkToken[]
+  auditEvents TelegramAuditEvent[]
+  syncJobs    TelegramSyncJob[]
+
+  @@index([isEnabled, status])
+  @@index([lastHealthCheckedAt])
+  @@map("telegram_subject_channels")
+}
+
+model TelegramMembership {
+  id                String                          @id @default(uuid())
+  channelId         String
+  principalType     TelegramMembershipPrincipalType
+  userId            String?
+  codeAccessGrantId String?
+  telegramUserId    String                          @db.VarChar(32)
+  status            TelegramMembershipStatus        @default(pending_join)
+  accessExpiresAt   DateTime?                       @db.Timestamptz(3)
+  nextCheckAt       DateTime?                       @db.Timestamptz(3)
+  joinedAt          DateTime?                       @db.Timestamptz(3)
+  leftAt            DateTime?                       @db.Timestamptz(3)
+  removedAt         DateTime?                       @db.Timestamptz(3)
+  lastVerifiedAt    DateTime?                       @db.Timestamptz(3)
+  lastErrorCode     String?                         @db.VarChar(100)
+  createdAt         DateTime                        @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime                        @updatedAt @db.Timestamptz(3)
+
+  channel         TelegramSubjectChannel @relation(fields: [channelId], references: [id], onDelete: NoAction)
+  user            User?                  @relation("TelegramMembershipUser", fields: [userId], references: [id], onDelete: NoAction)
+  codeAccessGrant CodeAccessGrant?       @relation(fields: [codeAccessGrantId], references: [id], onDelete: NoAction)
+  auditEvents     TelegramAuditEvent[]
+  syncJobs        TelegramSyncJob[]
+
+  @@unique([channelId, telegramUserId])
+  @@unique([channelId, userId])
+  @@unique([channelId, codeAccessGrantId])
+  @@index([status, nextCheckAt])
+  @@index([userId, status])
+  @@index([codeAccessGrantId, status])
+  @@map("telegram_memberships")
+}
+
+model TelegramLinkToken {
+  id                 String                   @id @default(uuid())
+  tokenHash          String                   @unique @db.VarChar(64)
+  purpose            TelegramLinkTokenPurpose
+  state              TelegramLinkTokenState   @default(pending)
+  activeKey          String?                  @unique @db.VarChar(160)
+  subjectId          String
+  channelId          String?
+  userId             String?
+  userSessionVersion Int?
+  codeAccessGrantId  String?
+  telegramUserId     String?                  @db.VarChar(32)
+  expiresAt          DateTime                 @db.Timestamptz(3)
+  claimedAt          DateTime?                @db.Timestamptz(3)
+  consumedAt         DateTime?                @db.Timestamptz(3)
+  createdAt          DateTime                 @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime                 @updatedAt @db.Timestamptz(3)
+
+  subject         Subject                 @relation(fields: [subjectId], references: [id], onDelete: NoAction)
+  channel         TelegramSubjectChannel? @relation(fields: [channelId], references: [id], onDelete: NoAction)
+  user            User?                   @relation("TelegramLinkTokenUser", fields: [userId], references: [id], onDelete: NoAction)
+  codeAccessGrant CodeAccessGrant?        @relation(fields: [codeAccessGrantId], references: [id], onDelete: NoAction)
+  auditEvents     TelegramAuditEvent[]
+
+  @@index([expiresAt, state])
+  @@index([subjectId, purpose, state])
+  @@index([channelId, state])
+  @@map("telegram_link_tokens")
+}
+
+model TelegramAuditEvent {
+  id               String   @id @default(uuid())
+  eventType        String   @db.VarChar(64)
+  actorType        String   @db.VarChar(32)
+  actorUserId      String?
+  telegramUserId   String?  @db.VarChar(32)
+  channelId        String?
+  membershipId     String?
+  linkTokenId      String?
+  telegramUpdateId String?  @unique @db.VarChar(32)
+  idempotencyKey   String   @unique @db.VarChar(100)
+  metadata         Json
+  createdAt        DateTime @default(now()) @db.Timestamptz(3)
+
+  actor      User?                   @relation("TelegramAuditActor", fields: [actorUserId], references: [id], onDelete: NoAction)
+  channel    TelegramSubjectChannel? @relation(fields: [channelId], references: [id], onDelete: NoAction)
+  membership TelegramMembership?     @relation(fields: [membershipId], references: [id], onDelete: NoAction)
+  linkToken  TelegramLinkToken?      @relation(fields: [linkTokenId], references: [id], onDelete: NoAction)
+
+  @@index([channelId, createdAt, id])
+  @@index([membershipId, createdAt, id])
+  @@index([actorUserId, createdAt, id])
+  @@index([eventType, createdAt])
+  @@map("telegram_audit_events")
+}
+
+model TelegramSyncJob {
+  id            String                @id @default(uuid())
+  type          TelegramSyncJobType
+  status        TelegramSyncJobStatus @default(pending)
+  channelId     String
+  membershipId  String?
+  dedupeKey     String                @unique @db.VarChar(160)
+  availableAt   DateTime              @default(now()) @db.Timestamptz(3)
+  attempts      Int                   @default(0)
+  lockedAt      DateTime?             @db.Timestamptz(3)
+  completedAt   DateTime?             @db.Timestamptz(3)
+  lastErrorCode String?               @db.VarChar(100)
+  createdAt     DateTime              @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime              @updatedAt @db.Timestamptz(3)
+
+  channel    TelegramSubjectChannel @relation(fields: [channelId], references: [id], onDelete: NoAction)
+  membership TelegramMembership?    @relation(fields: [membershipId], references: [id], onDelete: NoAction)
+
+  @@index([status, availableAt, createdAt])
+  @@index([membershipId, status])
+  @@map("telegram_sync_jobs")
 }
 
 model PaymentCodeRedemptionEvent {
