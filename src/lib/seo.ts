@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { getAdSenseRuntimeConfig } from "@/lib/adsense/config";
 import { prisma } from "@/lib/prisma";
 import {
   formatArabicList,
@@ -55,6 +56,7 @@ const DEFAULT_ROBOTS = {
 
 export function baseMetadata(): Metadata {
   const title = `${SITE_NAME} - منصة تعليمية للاختبارات والمراجعة`;
+  const adsenseIdentity = getAdSenseRuntimeConfig().identity;
 
   return {
     metadataBase: new URL(SITE_URL),
@@ -108,6 +110,9 @@ export function baseMetadata(): Metadata {
     },
     category: "education",
     referrer: "strict-origin-when-cross-origin",
+    ...(adsenseIdentity
+      ? { other: { "google-adsense-account": adsenseIdentity.clientId } }
+      : {}),
   };
 }
 
