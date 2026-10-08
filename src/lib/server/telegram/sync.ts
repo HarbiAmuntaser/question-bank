@@ -321,6 +321,28 @@ export async function reconcileTelegramMembership(
   return { outcome: "join_link_sent" as const };
 }
 
+export async function forceRemoveTelegramMembership(
+  membershipId: string,
+  operationKey: string,
+) {
+  const membership = await prisma.telegramMembership.findUnique({
+    where: { id: membershipId },
+    include: { channel: { select: {
+      id: true,
+      subjectId: true,
+      telegramChatId: true,
+      isEnabled: true,
+      status: true,
+      botCanInviteUsers: true,
+      botCanRestrictMembers: true,
+    } } },
+  }) as MembershipWithChannel | null;
+  if (!membership) return { outcome: "missing" as const };
+  if (membership.status === "removed") return { outcome: "already_removed" as const };
+  await removeTelegramMember(membership, operationKey);
+  return { outcome: "removed" as const };
+}
+
 async function claimSyncJob() {
   return telegramTransaction(async (tx) => {
     const rows = await tx.$queryRaw<Array<{ id: string }>>`
@@ -353,10 +375,16 @@ export async function processTelegramSyncJobs(limit = 25) {
     const job = await claimSyncJob();
     if (!job) break;
     try {
-      if (job.type !== "reconcile_membership" || !job.membershipId) {
+      if (!job.membershipId) {
         throw new TelegramAccessError("telegram_sync_job_unsupported", 409);
       }
-      await reconcileTelegramMembership(job.membershipId, "job:" + job.id + ":" + job.attempts);
+      if (job.type === "reconcile_membership" && job.dedupeKey.startsWith("mass-remove:")) {
+        await forceRemoveTelegramMembership(job.membershipId, "mass-job:" + job.id + ":" + job.attempts);
+      } else if (job.type === "reconcile_membership") {
+        await reconcileTelegramMembership(job.membershipId, "job:" + job.id + ":" + job.attempts);
+      } else {
+        throw new TelegramAccessError("telegram_sync_job_unsupported", 409);
+      }
       await prisma.telegramSyncJob.update({
         where: { id: job.id },
         data: { status: "completed", completedAt: new Date(), lastErrorCode: null },

@@ -115,7 +115,7 @@ export async function issueTelegramAdminConnectToken(input: {
       }),
       tx.telegramSubjectChannel.findUnique({
         where: { subjectId: input.subjectId },
-        select: { id: true },
+        select: { id: true, isEnabled: true, status: true },
       }),
     ]);
     if (!admin?.isActive || admin.role !== "admin" ||
@@ -123,7 +123,21 @@ export async function issueTelegramAdminConnectToken(input: {
       throw new TelegramAccessError("telegram_admin_forbidden", 403);
     }
     if (!subject) throw new TelegramAccessError("telegram_subject_unavailable", 409);
-    if (channel) throw new TelegramAccessError("telegram_channel_already_connected", 409);
+    if (channel) {
+      if (channel.isEnabled || channel.status !== "disconnected") {
+        throw new TelegramAccessError("telegram_channel_already_connected", 409);
+      }
+      const [memberships, jobs] = await Promise.all([
+        tx.telegramMembership.count({
+          where: { channelId: channel.id, status: { notIn: ["left", "removed"] } },
+        }),
+        tx.telegramSyncJob.count({
+          where: { channelId: channel.id, status: { in: ["pending", "processing", "failed"] } },
+        }),
+      ]);
+      if (memberships > 0) throw new TelegramAccessError("telegram_memberships_must_be_removed", 409);
+      if (jobs > 0) throw new TelegramAccessError("telegram_jobs_must_be_settled", 409);
+    }
     const now = await databaseNow(tx);
     const activeKey = "admin:" + input.admin.id;
     await retireExpiredActiveToken(tx, activeKey, now);
@@ -160,9 +174,17 @@ export async function issueTelegramStudentLinkToken(input: {
   const rawToken = generateLinkToken();
   const tokenHash = hashTelegramLinkToken(rawToken);
   return telegramTransaction(async (tx) => {
+    const channelCandidate = await tx.telegramSubjectChannel.findUnique({
+      where: { subjectId: input.subjectId },
+      select: { id: true },
+    });
+    if (!channelCandidate) throw new TelegramAccessError("telegram_channel_unavailable", 409);
+    await tx.$queryRaw(
+      Prisma.sql`SELECT id FROM telegram_subject_channels WHERE id = ${channelCandidate.id} FOR UPDATE`,
+    );
     const channel = await tx.telegramSubjectChannel.findFirst({
       where: {
-        subjectId: input.subjectId,
+        id: channelCandidate.id,
         isEnabled: true,
         status: "connected",
         botCanInviteUsers: true,
@@ -170,9 +192,6 @@ export async function issueTelegramStudentLinkToken(input: {
       },
     });
     if (!channel) throw new TelegramAccessError("telegram_channel_unavailable", 409);
-    await tx.$queryRaw(
-      Prisma.sql`SELECT id FROM telegram_subject_channels WHERE id = ${channel.id} FOR UPDATE`,
-    );
     const access = input.principal.type === "account"
       ? await resolveTelegramAccountAccess({
         userId: input.principal.user.id,
@@ -261,6 +280,33 @@ async function recheckTokenAccess(tx: Prisma.TransactionClient, token: TelegramL
       subjectId: token.subjectId,
     }, tx);
   return decision.allowed;
+}
+
+export async function expireTelegramLinkTokens(limit = 100) {
+  const bounded = Math.max(1, Math.min(500, Math.trunc(limit)));
+  return telegramTransaction(async (tx) => {
+    const rows = await tx.$queryRaw<Array<{ id: string }>>`
+      SELECT id FROM telegram_link_tokens
+      WHERE state IN ('pending', 'claimed') AND "expiresAt" <= clock_timestamp()
+      ORDER BY "expiresAt" ASC, id ASC
+      FOR UPDATE SKIP LOCKED LIMIT ${bounded}
+    `;
+    for (const row of rows) {
+      const token = await tx.telegramLinkToken.update({
+        where: { id: row.id },
+        data: { state: "expired", activeKey: null },
+      });
+      await appendTelegramAuditEvent(tx, {
+        eventType: "link_token_expired",
+        actorType: "system",
+        channelId: token.channelId,
+        linkTokenId: token.id,
+        idempotencyKey: "link-expired:" + token.id,
+        metadata: { purpose: token.purpose },
+      });
+    }
+    return { expired: rows.length };
+  });
 }
 
 export async function claimTelegramLinkToken(input: {

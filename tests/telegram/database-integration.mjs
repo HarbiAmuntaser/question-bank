@@ -505,6 +505,77 @@ try {
       metadata: { botToken: "must-not-be-stored" },
     })), /telegram_audit_metadata_sensitive/);
   });
+  await check("admin mass removal is audited and queues schema-valid per-membership jobs", async () => {
+    const management = load(prisma)("src/lib/server/telegram/admin-management.ts");
+    const initial = await prisma.telegramSubjectChannel.findUniqueOrThrow({
+      where: { id: channels.manual.id },
+    });
+    await management.setTelegramChannelEnabled({
+      channelId: initial.id,
+      enabled: false,
+      expectedUpdatedAt: initial.updatedAt.toISOString(),
+      idempotencyKey: "channel-disable:" + suffix,
+      reason: "Isolated mass removal preparation",
+      actor: { id: ids.admin, sessionVersion: 0 },
+    });
+    const disabled = await prisma.telegramSubjectChannel.findUniqueOrThrow({
+      where: { id: channels.manual.id },
+    });
+    const queued = await management.queueTelegramMassRemoval({
+      channelId: disabled.id,
+      expectedUpdatedAt: disabled.updatedAt.toISOString(),
+      idempotencyKey: "mass-remove:" + suffix,
+      reason: "Isolated controlled mass removal",
+      actor: { id: ids.admin, sessionVersion: 0 },
+    });
+    assert.equal(queued.queued >= 1, true);
+    assert.equal(await prisma.telegramSyncJob.count({
+      where: {
+        channelId: disabled.id,
+        membershipId: accountMembership.id,
+        type: "reconcile_membership",
+        dedupeKey: { startsWith: "mass-remove:" },
+      },
+    }), 1);
+    assert.equal((await prisma.telegramMembership.findUniqueOrThrow({
+      where: { id: accountMembership.id },
+    })).status, "removal_pending");
+    assert.equal(await prisma.telegramAuditEvent.count({
+      where: { channelId: disabled.id, eventType: "mass_removal_queued" },
+    }), 1);
+    await assert.rejects(management.disconnectTelegramChannel({
+      channelId: disabled.id,
+      expectedUpdatedAt: disabled.updatedAt.toISOString(),
+      idempotencyKey: "disconnect-blocked:" + suffix,
+      reason: "Must remain blocked with memberships",
+      actor: { id: ids.admin, sessionVersion: 0 },
+    }), /telegram_memberships_must_be_removed/);
+  });
+
+  await check("expired one-time link cleanup is bounded and audited", async () => {
+    const token = await prisma.telegramLinkToken.create({
+      data: {
+        tokenHash: createHash("sha256").update("expired-" + suffix).digest("hex"),
+        purpose: "student_link",
+        state: "pending",
+        activeKey: "expired-test:" + suffix,
+        subjectId: ids.accountCodeSubject,
+        channelId: channels.account.id,
+        userId: ids.codeStudent,
+        userSessionVersion: 0,
+        createdAt: new Date(Date.now() - 20 * 60_000),
+        expiresAt: new Date(Date.now() - 10 * 60_000),
+      },
+    });
+    const result = await links.expireTelegramLinkTokens(10);
+    assert.equal(result.expired >= 1, true);
+    assert.equal((await prisma.telegramLinkToken.findUniqueOrThrow({
+      where: { id: token.id },
+    })).state, "expired");
+    assert.equal(await prisma.telegramAuditEvent.count({
+      where: { linkTokenId: token.id, eventType: "link_token_expired" },
+    }), 1);
+  });
   await check("database rejects cross-principal guest membership", async () => {
     await assert.rejects(prisma.telegramMembership.create({
       data: {

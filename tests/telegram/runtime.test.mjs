@@ -143,6 +143,12 @@ test("inactive access removes the member through ban plus unban", async () => {
   assert.equal(harness.membership.status, "removed");
 });
 
+test("explicit mass removal bypasses still-active access and removes exactly one membership", async () => {
+  const harness = syncHarness({ status: "active", allowed: true, channelEnabled: false });
+  assert.equal((await harness.sync.forceRemoveTelegramMembership("membership-1", "mass-runtime-test")).outcome, "removed");
+  assert.deepEqual(harness.apiCalls.map((item) => item.method), ["banChatMember", "unbanChatMember"]);
+  assert.equal(harness.membership.status, "removed");
+});
 test("an unknown Telegram join request is declined and audited without approval", async () => {
   const apiCalls = [];
   const auditEvents = [];

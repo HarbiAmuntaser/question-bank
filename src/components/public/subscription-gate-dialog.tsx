@@ -203,6 +203,7 @@ export function SubscriptionGateDialog({
         idempotencyKeys.current = {};
         setCode("");
         onRedeemed();
+        window.dispatchEvent(new Event("mustawak:access-updated"));
         window.setTimeout(() => changeOpen(false), 1200);
       } catch {
         setMessage({

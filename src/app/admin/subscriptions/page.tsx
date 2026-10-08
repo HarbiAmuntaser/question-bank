@@ -13,10 +13,13 @@ import type {
   PlanRow,
   StatusFilter,
   SubscriptionFilters,
+  TelegramAdminData,
+  TelegramChannelRow,
 } from "@/components/admin/subscriptions/types";
 import { TableSkeleton } from "@/components/ui/table-skeleton";
 import { prisma } from "@/lib/prisma";
 import { paymentPlanWhere, paymentV1Enabled, paymentSalesEnabled, paymentCodesEnabled, paymentReviewEnabled, paymentLaunchPlanIds } from "@/lib/server/payment-scope";
+import { getTelegramRuntimeConfig } from "@/lib/server/telegram/config";
 
 export const dynamic = "force-dynamic";
 
@@ -47,8 +50,118 @@ function pagination(page: number, total: number): PaginationMeta {
   };
 }
 
+async function getTelegramAdminData(params: SearchParams): Promise<TelegramAdminData> {
+  const runtime = getTelegramRuntimeConfig();
+  const activeTab = one(params, "tab") === "telegram";
+  const query = (one(params, "telegramQuery") ?? "").trim().slice(0, 100);
+  const rawStatus = one(params, "telegramStatus") ?? "all";
+  const allowedStatuses = ["all", "enabled", "disabled", "connected", "degraded", "disconnected"] as const;
+  const status = allowedStatuses.includes(rawStatus as (typeof allowedStatuses)[number])
+    ? rawStatus as (typeof allowedStatuses)[number]
+    : "all";
+  const page = pageParam(params, "telegramPage");
+  if (!activeTab) {
+    return {
+      runtimeEnabled: runtime.enabled,
+      runtimeReason: runtime.reason,
+      query,
+      status,
+      channels: [],
+      pagination: pagination(1, 0),
+    };
+  }
+
+  const where: Prisma.TelegramSubjectChannelWhereInput = {
+    ...(status === "enabled" ? { isEnabled: true } : {}),
+    ...(status === "disabled" ? { isEnabled: false } : {}),
+    ...(["connected", "degraded", "disconnected"].includes(status) ? {
+      status: status as "connected" | "degraded" | "disconnected",
+    } : {}),
+    ...(query ? { OR: [
+      { title: { contains: query, mode: "insensitive" } },
+      { telegramChatId: { contains: query } },
+      { subject: { name: { contains: query, mode: "insensitive" } } },
+      { subject: { major: { name: { contains: query, mode: "insensitive" } } } },
+      { subject: { major: { college: { name: { contains: query, mode: "insensitive" } } } } },
+      { subject: { major: { university: { name: { contains: query, mode: "insensitive" } } } } },
+    ] } : {}),
+  };
+  const [total, channels] = await Promise.all([
+    prisma.telegramSubjectChannel.count({ where }),
+    prisma.telegramSubjectChannel.findMany({
+      where,
+      orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
+      skip: (page - 1) * PAGE_SIZE,
+      take: PAGE_SIZE,
+      include: {
+        subject: { select: {
+          id: true,
+          name: true,
+          major: { select: {
+            name: true,
+            college: { select: { name: true } },
+            university: { select: { name: true } },
+          } },
+        } },
+      },
+    }),
+  ]);
+  const channelIds = channels.map((channel) => channel.id);
+  const [membershipGroups, jobGroups] = channelIds.length ? await Promise.all([
+    prisma.telegramMembership.groupBy({
+      by: ["channelId", "status"],
+      where: { channelId: { in: channelIds } },
+      _count: { _all: true },
+    }),
+    prisma.telegramSyncJob.groupBy({
+      by: ["channelId"],
+      where: {
+        channelId: { in: channelIds },
+        status: { in: ["pending", "processing", "failed"] },
+      },
+      _count: { _all: true },
+    }),
+  ]) : [[], []];
+  const membershipMap = new Map<string, { total: number; active: number; attention: number }>();
+  for (const group of membershipGroups) {
+    const value = membershipMap.get(group.channelId) ?? { total: 0, active: 0, attention: 0 };
+    value.total += group._count._all;
+    if (group.status === "active") value.active += group._count._all;
+    if (["error", "removal_pending"].includes(group.status)) value.attention += group._count._all;
+    membershipMap.set(group.channelId, value);
+  }
+  const jobsMap = new Map(jobGroups.map((group) => [group.channelId, group._count._all]));
+  const rows: TelegramChannelRow[] = channels.map((channel) => ({
+    id: channel.id,
+    subjectId: channel.subjectId,
+    subjectName: channel.subject.name,
+    majorName: channel.subject.major.name,
+    collegeName: channel.subject.major.college?.name ?? null,
+    universityName: channel.subject.major.university.name,
+    title: channel.title,
+    status: channel.status,
+    isEnabled: channel.isEnabled,
+    botCanInviteUsers: channel.botCanInviteUsers,
+    botCanRestrictMembers: channel.botCanRestrictMembers,
+    verifiedAt: channel.verifiedAt?.toISOString() ?? null,
+    lastHealthCheckedAt: channel.lastHealthCheckedAt?.toISOString() ?? null,
+    updatedAt: channel.updatedAt.toISOString(),
+    memberships: membershipMap.get(channel.id) ?? { total: 0, active: 0, attention: 0 },
+    pendingJobs: jobsMap.get(channel.id) ?? 0,
+  }));
+  return {
+    runtimeEnabled: runtime.enabled,
+    runtimeReason: runtime.reason,
+    query,
+    status,
+    channels: rows,
+    pagination: pagination(page, total),
+  };
+}
+
 async function getSubscriptionAdminData(params: SearchParams) {
   const now = new Date();
+  const telegram = await getTelegramAdminData(params);
   const codesQuery = (one(params, "codesQuery") ?? "").trim().slice(0, 100);
   const plansPage = pageParam(params, "plansPage");
   const codesPage = pageParam(params, "codesPage");
@@ -349,6 +462,7 @@ async function getSubscriptionAdminData(params: SearchParams) {
     plansPagination: pagination(plansPage, plansTotal),
     codesPagination: pagination(codesPage, codesTotal),
     entitlementsPagination: pagination(entitlementsPage, entitlementsTotal),
+    telegram,
   };
 }
 

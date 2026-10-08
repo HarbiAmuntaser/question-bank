@@ -12,6 +12,7 @@ import {
   telegramPrincipalRateKey,
 } from "@/lib/server/telegram/request-principal";
 import { TelegramAccessError } from "@/lib/server/telegram/errors";
+import { getTelegramRuntimeConfig } from "@/lib/server/telegram/config";
 import { consumeAuthLimit, requestIdentity } from "@/lib/server/auth-rate-limit";
 
 export const runtime = "nodejs";
@@ -35,6 +36,9 @@ async function requireSubjectAccess(
 
 export async function GET(request: Request) {
   try {
+    if (!getTelegramRuntimeConfig().enabled) {
+      throw new TelegramAccessError("not_found", 404);
+    }
     const subjectId = subjectSchema.parse(new URL(request.url).searchParams.get("subjectId"));
     const principal = await resolveTelegramRequestPrincipal(request, subjectId);
     if (!principal) throw new TelegramAccessError("telegram_auth_required", 401);
@@ -48,6 +52,9 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    if (!getTelegramRuntimeConfig().enabled) {
+      throw new TelegramAccessError("not_found", 404);
+    }
     requireTelegramOrigin(request);
     const input = linkSchema.parse(await readTelegramJson(request, 4_096));
     const principal = await resolveTelegramRequestPrincipal(request, input.subjectId);

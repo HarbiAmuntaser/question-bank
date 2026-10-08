@@ -7,6 +7,7 @@ import type { InstitutionType } from "@/config/regions";
 import { ContextBackLink } from "@/components/public/context-back-link";
 import type { PublicQuizAccessItem } from "@/components/public/subscription-access";
 import { SubjectLearningSwitcher } from "@/components/public/subject-learning-switcher";
+import { TelegramSubjectAccess } from "@/components/public/telegram-subject-access";
 import {
   DirectSubjectLearningContent,
   SubjectChapterDirectory,
@@ -14,6 +15,7 @@ import {
 } from "@/components/public/subject-chapters";
 import { SubjectStudySummaries } from "@/components/public/study-summaries/subject-study-summaries";
 import { getPublishedSubjectSummaries } from "@/lib/server/study-summaries";
+import { telegramSubjectIsAvailable } from "@/lib/server/telegram/public";
 import { getSubjectChapterCatalog, type PublicSubjectQuiz } from "@/lib/server/subject-chapters";
 import { getPublicSubjectByRouteKey } from "@/lib/server/public-education-loaders";
 import { getPublicQuizzesBySubject } from "@/lib/server/public-quizzes";
@@ -137,9 +139,10 @@ export async function SubjectDetails({
     canonicalMajor,
   )}`;
 
-  const [summaries, chapterCatalog] = await Promise.all([
+  const [summaries, chapterCatalog, telegramAvailable] = await Promise.all([
     getPublishedSubjectSummaries(subject.id),
     typeNorm === "school" ? Promise.resolve(null) : getSubjectChapterCatalog(subject.id),
+    telegramSubjectIsAvailable(subject.id),
   ]);
 
   const quizzes: QuizLite[] = typeNorm === "school"
@@ -207,6 +210,8 @@ export async function SubjectDetails({
           ) : null}
         </CardHeader>
       </Card>
+
+      {telegramAvailable ? <TelegramSubjectAccess subjectId={subject.id} /> : null}
 
       {typeNorm === "school" ? (
         <SubjectLearningSwitcher

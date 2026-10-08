@@ -41,6 +41,36 @@ function connectionState(input: TelegramBotMembershipUpdate) {
   };
 }
 
+async function claimedConnectTokens(
+  tx: Prisma.TransactionClient,
+  telegramUserId: string,
+  now: Date,
+) {
+  return tx.telegramLinkToken.findMany({
+    where: {
+      purpose: "admin_connect",
+      state: "claimed",
+      telegramUserId,
+      expiresAt: { gt: now },
+    },
+    orderBy: [{ createdAt: "desc" }, { id: "asc" }],
+    take: 2,
+  });
+}
+
+async function assertRebindReady(tx: Prisma.TransactionClient, channelId: string) {
+  const [memberships, jobs] = await Promise.all([
+    tx.telegramMembership.count({
+      where: { channelId, status: { notIn: ["left", "removed"] } },
+    }),
+    tx.telegramSyncJob.count({
+      where: { channelId, status: { in: ["pending", "processing", "failed"] } },
+    }),
+  ]);
+  if (memberships > 0) throw new TelegramAccessError("telegram_memberships_must_be_removed", 409);
+  if (jobs > 0) throw new TelegramAccessError("telegram_jobs_must_be_settled", 409);
+}
+
 export async function applyTelegramBotMembershipUpdate(input: TelegramBotMembershipUpdate) {
   if (!/^[0-9]{1,32}$/.test(input.updateId) || !USER_ID.test(input.actorTelegramUserId) ||
     !CHAT_ID.test(input.chatId) || input.chatTitle.trim().length < 1 || input.chatTitle.trim().length > 255) {
@@ -59,7 +89,16 @@ export async function applyTelegramBotMembershipUpdate(input: TelegramBotMembers
       where: { telegramChatId: input.chatId },
     });
     const state = connectionState(input);
+
     if (existing) {
+      const tokens = existing.status === "disconnected" && state.connected
+        ? await claimedConnectTokens(tx, input.actorTelegramUserId, now)
+        : [];
+      if (tokens.length > 1) throw new TelegramAccessError("telegram_admin_connect_ambiguous", 409);
+      const reconnectToken = tokens[0]?.subjectId === existing.subjectId ? tokens[0] : null;
+      if (existing.status === "disconnected" && state.status !== "disconnected" && !reconnectToken) {
+        return { outcome: "ignored" as const, channel: existing };
+      }
       const channel = await tx.telegramSubjectChannel.update({
         where: { id: existing.id },
         data: {
@@ -71,32 +110,32 @@ export async function applyTelegramBotMembershipUpdate(input: TelegramBotMembers
           lastHealthCheckedAt: now,
         },
       });
+      if (reconnectToken) {
+        await tx.telegramLinkToken.update({
+          where: { id: reconnectToken.id },
+          data: { state: "consumed", activeKey: null, consumedAt: now },
+        });
+      }
       await appendTelegramAuditEvent(tx, {
-        eventType: "channel_health_changed",
-        actorType: "telegram",
+        eventType: reconnectToken ? "channel_reconnected" : "channel_health_changed",
+        actorType: reconnectToken ? "admin" : "telegram",
+        actorUserId: reconnectToken?.userId,
         telegramUserId: input.actorTelegramUserId,
         channelId: channel.id,
+        linkTokenId: reconnectToken?.id,
         telegramUpdateId: input.updateId,
-        idempotencyKey: "channel-health:" + input.updateId,
+        idempotencyKey: (reconnectToken ? "channel-reconnected:" : "channel-health:") + input.updateId,
         metadata: {
           status: channel.status,
+          enabled: channel.isEnabled,
           canInviteUsers: channel.botCanInviteUsers,
           canRestrictMembers: channel.botCanRestrictMembers,
         },
       });
-      return { outcome: "health_updated" as const, channel };
+      return { outcome: reconnectToken ? "reconnected" as const : "health_updated" as const, channel };
     }
 
-    const candidates = await tx.telegramLinkToken.findMany({
-      where: {
-        purpose: "admin_connect",
-        state: "claimed",
-        telegramUserId: input.actorTelegramUserId,
-        expiresAt: { gt: now },
-      },
-      orderBy: [{ createdAt: "desc" }, { id: "asc" }],
-      take: 2,
-    });
+    const candidates = await claimedConnectTokens(tx, input.actorTelegramUserId, now);
     if (candidates.length === 0) return { outcome: "ignored" as const, channel: null };
     if (candidates.length !== 1) throw new TelegramAccessError("telegram_admin_connect_ambiguous", 409);
     if (!state.privateChannel) throw new TelegramAccessError("telegram_private_channel_required", 409);
@@ -104,39 +143,68 @@ export async function applyTelegramBotMembershipUpdate(input: TelegramBotMembers
     const token = candidates[0];
     const subjectChannel = await tx.telegramSubjectChannel.findUnique({
       where: { subjectId: token.subjectId },
-      select: { id: true },
     });
-    if (subjectChannel) throw new TelegramAccessError("telegram_channel_already_connected", 409);
 
-    const channel = await tx.telegramSubjectChannel.create({
-      data: {
-        subjectId: token.subjectId,
-        telegramChatId: input.chatId,
-        title: input.chatTitle.trim(),
-        status: "connected",
-        isEnabled: false,
-        botCanInviteUsers: true,
-        botCanRestrictMembers: true,
-        verifiedAt: now,
-        lastHealthCheckedAt: now,
-        createdBy: token.userId!,
-      },
-    });
+    let channel;
+    let eventType: "channel_connected" | "channel_rebound";
+    let previousChatId: string | null = null;
+    if (subjectChannel) {
+      if (subjectChannel.isEnabled || subjectChannel.status !== "disconnected") {
+        throw new TelegramAccessError("telegram_channel_already_connected", 409);
+      }
+      await assertRebindReady(tx, subjectChannel.id);
+      previousChatId = subjectChannel.telegramChatId;
+      channel = await tx.telegramSubjectChannel.update({
+        where: { id: subjectChannel.id },
+        data: {
+          telegramChatId: input.chatId,
+          title: input.chatTitle.trim(),
+          status: "connected",
+          isEnabled: false,
+          botCanInviteUsers: true,
+          botCanRestrictMembers: true,
+          verifiedAt: now,
+          lastHealthCheckedAt: now,
+          createdBy: token.userId!,
+        },
+      });
+      eventType = "channel_rebound";
+    } else {
+      channel = await tx.telegramSubjectChannel.create({
+        data: {
+          subjectId: token.subjectId,
+          telegramChatId: input.chatId,
+          title: input.chatTitle.trim(),
+          status: "connected",
+          isEnabled: false,
+          botCanInviteUsers: true,
+          botCanRestrictMembers: true,
+          verifiedAt: now,
+          lastHealthCheckedAt: now,
+          createdBy: token.userId!,
+        },
+      });
+      eventType = "channel_connected";
+    }
     await tx.telegramLinkToken.update({
       where: { id: token.id },
       data: { state: "consumed", activeKey: null, consumedAt: now },
     });
     await appendTelegramAuditEvent(tx, {
-      eventType: "channel_connected",
+      eventType,
       actorType: "admin",
       actorUserId: token.userId,
       telegramUserId: input.actorTelegramUserId,
       channelId: channel.id,
       linkTokenId: token.id,
       telegramUpdateId: input.updateId,
-      idempotencyKey: "channel-connected:" + token.id,
-      metadata: { subjectId: token.subjectId, enabled: false },
+      idempotencyKey: (eventType === "channel_connected" ? "channel-connected:" : "channel-rebound:") + token.id,
+      metadata: {
+        subjectId: token.subjectId,
+        enabled: false,
+        ...(previousChatId ? { previousChatId, currentChatId: input.chatId } : {}),
+      },
     });
-    return { outcome: "connected" as const, channel };
+    return { outcome: eventType === "channel_connected" ? "connected" as const : "rebound" as const, channel };
   });
 }

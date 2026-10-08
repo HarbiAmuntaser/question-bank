@@ -105,3 +105,34 @@ export type EntitlementRow = {
   isActive: boolean;
   createdAt: string;
 };
+export type TelegramChannelRow = {
+  id: string;
+  subjectId: string;
+  subjectName: string;
+  majorName: string;
+  collegeName: string | null;
+  universityName: string;
+  title: string;
+  status: "connected" | "degraded" | "disconnected";
+  isEnabled: boolean;
+  botCanInviteUsers: boolean;
+  botCanRestrictMembers: boolean;
+  verifiedAt: string | null;
+  lastHealthCheckedAt: string | null;
+  updatedAt: string;
+  memberships: {
+    total: number;
+    active: number;
+    attention: number;
+  };
+  pendingJobs: number;
+};
+
+export type TelegramAdminData = {
+  runtimeEnabled: boolean;
+  runtimeReason: "enabled" | "disabled" | "invalid_configuration";
+  query: string;
+  status: "all" | "enabled" | "disabled" | "connected" | "degraded" | "disconnected";
+  channels: TelegramChannelRow[];
+  pagination: PaginationMeta;
+};

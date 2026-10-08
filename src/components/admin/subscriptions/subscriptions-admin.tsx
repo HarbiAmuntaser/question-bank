@@ -9,6 +9,7 @@ import { CodeAccessAdminDialog } from "@/components/admin/subscriptions/code-acc
 import { AdminTableShell } from "@/components/admin/admin-table-shell";
 import { CodeDialog } from "@/components/admin/subscriptions/code-dialog";
 import { PlanDialog } from "@/components/admin/subscriptions/plan-dialog";
+import { TelegramAdmin } from "@/components/admin/subscriptions/telegram-admin";
 import type {
   CodeRow,
   EntitlementRow,
@@ -16,6 +17,7 @@ import type {
   PlanRow,
   StatusFilter,
   SubscriptionFilters,
+  TelegramAdminData,
 } from "@/components/admin/subscriptions/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -43,7 +45,7 @@ function useAdminTableParams() {
   const searchParams = useSearchParams();
 
   return {
-    tab: ["plans", "codes", "entitlements"].includes(searchParams.get("tab") ?? "")
+    tab: ["plans", "codes", "entitlements", "telegram"].includes(searchParams.get("tab") ?? "")
       ? searchParams.get("tab") ?? "plans"
       : "plans",
     setParams(changes: Record<string, string | number | null>) {
@@ -153,6 +155,7 @@ export function SubscriptionsAdmin({
   plansPagination,
   codesPagination,
   entitlementsPagination,
+  telegram,
 }: {
   paymentsEnabled: boolean;
   codesEnabled: boolean;
@@ -166,6 +169,7 @@ export function SubscriptionsAdmin({
   plansPagination: PaginationMeta;
   codesPagination: PaginationMeta;
   entitlementsPagination: PaginationMeta;
+  telegram: TelegramAdminData;
 }) {
   const { tab, setParams } = useAdminTableParams();
   const [codeSearch, setCodeSearch] = useState(codesQuery);
@@ -177,8 +181,9 @@ export function SubscriptionsAdmin({
           <TabsTrigger value="plans">الخطط</TabsTrigger>
           <TabsTrigger value="codes">الأكواد</TabsTrigger>
           <TabsTrigger value="entitlements">التفعيلات</TabsTrigger>
+          <TabsTrigger value="telegram">تيليجرام</TabsTrigger>
         </TabsList>
-        <div className="flex flex-col gap-2 sm:flex-row">
+        {tab !== "telegram" ? <div className="flex flex-col gap-2 sm:flex-row">
           <PlanDialog paymentsEnabled={paymentsEnabled}>
             <Button className="h-10">
               <Plus className="ml-2 h-4 w-4" aria-hidden />
@@ -191,7 +196,7 @@ export function SubscriptionsAdmin({
               كود جديد
             </Button>
           </CodeDialog>
-        </div>
+        </div> : null}
       </div>
 
       <TabsContent value="plans" className="space-y-3">
@@ -354,6 +359,10 @@ export function SubscriptionsAdmin({
           </Table>
           <TablePager pagination={codesPagination} pageParam="codesPage" tab="codes" />
         </AdminTableShell>
+      </TabsContent>
+
+      <TabsContent value="telegram" className="space-y-3">
+        <TelegramAdmin data={telegram} />
       </TabsContent>
 
       <TabsContent value="entitlements" className="space-y-3">

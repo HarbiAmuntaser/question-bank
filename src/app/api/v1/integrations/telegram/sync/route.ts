@@ -2,6 +2,7 @@ import { getTelegramRuntimeConfig } from "@/lib/server/telegram/config";
 import { TelegramAccessError } from "@/lib/server/telegram/errors";
 import { telegramErrorResponse, telegramJson } from "@/lib/server/telegram/http";
 import { safeTelegramSecret } from "@/lib/server/telegram/security";
+import { expireTelegramLinkTokens } from "@/lib/server/telegram/link-tokens";
 import {
   processTelegramSyncJobs,
   sweepDueTelegramMemberships,
@@ -24,9 +25,10 @@ export async function POST(request: Request) {
     if (!safeTelegramSecret(config.syncSecret, provided)) {
       throw new TelegramAccessError("unauthorized", 401);
     }
+    const expiredTokens = await expireTelegramLinkTokens(100);
     const queued = await processTelegramSyncJobs(25);
     const due = await sweepDueTelegramMemberships(50);
-    return telegramJson({ data: { queued, due } });
+    return telegramJson({ data: { expiredTokens, queued, due } });
   } catch (error) {
     return telegramErrorResponse(error);
   }
