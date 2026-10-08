@@ -278,13 +278,17 @@ export async function claimTelegramLinkToken(input: {
     );
     const token = await tx.telegramLinkToken.findUnique({ where: { tokenHash } });
     const now = await databaseNow(tx);
-    if (!token || token.state !== "pending" || token.expiresAt <= now) {
+    if (!token || token.expiresAt <= now || !["pending", "claimed"].includes(token.state)) {
+      throw new TelegramAccessError("telegram_link_invalid", 404);
+    }
+    if (token.state === "claimed" && token.telegramUserId !== input.telegramUserId) {
       throw new TelegramAccessError("telegram_link_invalid", 404);
     }
     if (!await recheckTokenAccess(tx, token)) {
       throw new TelegramAccessError("telegram_access_required", 403);
     }
-    const claimed = await tx.telegramLinkToken.update({
+    const alreadyClaimed = token.state === "claimed";
+    const claimed = alreadyClaimed ? token : await tx.telegramLinkToken.update({
       where: { id: token.id },
       data: {
         state: "claimed",
@@ -292,17 +296,19 @@ export async function claimTelegramLinkToken(input: {
         claimedAt: now,
       },
     });
-    await appendTelegramAuditEvent(tx, {
-      eventType: token.purpose === "admin_connect"
-        ? "admin_identity_linked"
-        : "student_identity_linked",
-      actorType: "telegram",
-      telegramUserId: input.telegramUserId,
-      channelId: token.channelId,
-      linkTokenId: token.id,
-      idempotencyKey: "link-claimed:" + token.id,
-      metadata: { purpose: token.purpose, subjectId: token.subjectId },
-    });
+    if (!alreadyClaimed) {
+      await appendTelegramAuditEvent(tx, {
+        eventType: token.purpose === "admin_connect"
+          ? "admin_identity_linked"
+          : "student_identity_linked",
+        actorType: "telegram",
+        telegramUserId: input.telegramUserId,
+        channelId: token.channelId,
+        linkTokenId: token.id,
+        idempotencyKey: "link-claimed:" + token.id,
+        metadata: { purpose: token.purpose, subjectId: token.subjectId },
+      });
+    }
     return {
       id: claimed.id,
       purpose: claimed.purpose,
@@ -312,10 +318,10 @@ export async function claimTelegramLinkToken(input: {
       codeAccessGrantId: claimed.codeAccessGrantId,
       telegramUserId: claimed.telegramUserId!,
       expiresAt: claimed.expiresAt,
+      alreadyClaimed,
     };
   });
 }
-
 export async function consumeTelegramLinkToken(input: {
   tokenId: string;
   telegramUserId: string;

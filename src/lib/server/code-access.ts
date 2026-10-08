@@ -11,6 +11,8 @@ import {
   requirePaymentSubject,
 } from "@/lib/server/payment-scope";
 import { paymentTransaction } from "@/lib/server/payment-transaction";
+import { queueTelegramGrantReconciliation } from "@/lib/server/telegram/sync-queue";
+import { reconcileTelegramMembership } from "@/lib/server/telegram/sync";
 import {
   generateGuestAccessToken,
   hashGuestAccessToken,
@@ -415,7 +417,7 @@ export async function revokeCodeAccessGrant(input: {
 }) {
   validateAdminMutation(input.actor, input.idempotencyKey, input.reason);
   const requestHash = adminMutationHash({ grantId: input.grantId, reason: input.reason.trim() });
-  return paymentTransaction(async (tx) => {
+  const result = await paymentTransaction(async (tx) => {
     await lockPaymentUsers(tx, [input.actor.id]);
     await recheckAdminOverride(tx, input.actor);
     await tx.$queryRaw`SELECT id FROM code_access_grants WHERE id = ${input.grantId} FOR UPDATE`;
@@ -426,9 +428,9 @@ export async function revokeCodeAccessGrant(input: {
     });
     if (replay) {
       if (replay.requestHash !== requestHash) throw new PaymentError("payment_idempotency_conflict", 409);
-      return { alreadyRevoked: true };
+      return { alreadyRevoked: true, telegramMembershipId: null };
     }
-    if (!grant.isActive) return { alreadyRevoked: true };
+    if (!grant.isActive) return { alreadyRevoked: true, telegramMembershipId: null };
     const now = await databaseNow(tx);
     await tx.codeAccessGrant.update({ where: { id: grant.id }, data: { isActive: false, revokedAt: now } });
     await tx.codeAccessEvent.create({ data: {
@@ -436,6 +438,18 @@ export async function revokeCodeAccessGrant(input: {
       actorUserId: input.actor.id, actorSessionVersion: input.actor.sessionVersion,
       idempotencyKey: input.idempotencyKey, requestHash, metadata: { reason: input.reason.trim() },
     } });
-    return { alreadyRevoked: false };
+    const queued = await queueTelegramGrantReconciliation(tx, {
+      grant,
+      actorUserId: input.actor.id,
+    });
+    return { alreadyRevoked: false, telegramMembershipId: queued.membershipId };
   }, CODE_ACCESS_TRANSACTION);
+  if (result.telegramMembershipId) {
+    try {
+      await reconcileTelegramMembership(result.telegramMembershipId, "grant-revoke:" + input.grantId);
+    } catch {
+      // The transactional outbox retains the removal attempt for retry.
+    }
+  }
+  return { alreadyRevoked: result.alreadyRevoked };
 }

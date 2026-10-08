@@ -13,6 +13,7 @@ test("Telegram configuration is fail-closed and keeps the expiry bound configura
     botToken: null,
     botUsername: null,
     webhookSecret: null,
+    syncSecret: null,
     expiryMaxDelayMinutes: 15,
     reason: "disabled",
   });
@@ -21,6 +22,7 @@ test("Telegram configuration is fail-closed and keeps the expiry bound configura
     TELEGRAM_BOT_TOKEN: "12345:" + "a".repeat(40),
     TELEGRAM_BOT_USERNAME: "@MustawakAccessBot",
     TELEGRAM_WEBHOOK_SECRET: "s".repeat(32),
+    TELEGRAM_SYNC_SECRET: "y".repeat(32),
     TELEGRAM_EXPIRY_MAX_DELAY_MINUTES: "10",
   };
   const enabled = config.getTelegramRuntimeConfig(valid);
@@ -39,6 +41,7 @@ test("Telegram API adapter exposes classified errors without leaking token or ra
     TELEGRAM_BOT_TOKEN: "12345:" + "z".repeat(40),
     TELEGRAM_BOT_USERNAME: "MustawakAccessBot",
     TELEGRAM_WEBHOOK_SECRET: "w".repeat(32),
+    TELEGRAM_SYNC_SECRET: "x".repeat(32),
   };
   await assert.rejects(
     api.callTelegramApi("getMe", {}, {
@@ -134,14 +137,20 @@ test("inactive access and ineligible accounts fail closed", async () => {
   }, accessDb({ guestGrant: null }))).allowed, false);
 });
 
-test("foundation has no webhook, route, UI or production scheduler integration", () => {
+test("runtime foundation is wired without final UI or a production scheduler", () => {
   const files = [
-    "src/lib/server/telegram/config.ts",
-    "src/lib/server/telegram/api.ts",
-    "src/lib/server/telegram/access.ts",
-    "src/lib/server/telegram/link-tokens.ts",
-    "src/lib/server/telegram/audit.ts",
-  ].map((path) => readFileSync(path, "utf8")).join("\n");
-  assert.doesNotMatch(files, /app\/api|setWebhook|createChatInviteLink|approveChatJoinRequest|banChatMember/);
+    "src/app/api/v1/student/telegram/route.ts",
+    "src/app/api/v1/admin/telegram/route.ts",
+    "src/app/api/v1/integrations/telegram/webhook/route.ts",
+    "src/app/api/v1/integrations/telegram/sync/route.ts",
+  ];
+  for (const path of files) assert.equal(readFileSync(path, "utf8").length > 0, true);
+  assert.match(readFileSync("src/lib/server/telegram/sync.ts", "utf8"), /creates_join_request:\s*true/);
   assert.match(readFileSync(".env.example", "utf8"), /^TELEGRAM_ACCESS_ENABLED=false$/m);
+  assert.match(readFileSync(".env.example", "utf8"), /^TELEGRAM_SYNC_SECRET=$/m);
+  const repository = files.concat([
+    "src/lib/server/telegram/sync.ts",
+    "src/lib/server/telegram/webhook.ts",
+  ]).map((path) => readFileSync(path, "utf8")).join("\n");
+  assert.doesNotMatch(repository, /setWebhook|vercel\.json|cron/);
 });

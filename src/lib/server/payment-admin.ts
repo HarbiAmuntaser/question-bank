@@ -9,6 +9,8 @@ import { requirePaymentAdmin, recheckPaymentAdmin } from "@/lib/server/payment-a
 import { lockPaymentUsers } from "@/lib/server/payment-order-access";
 import { codePreviewFromPlainCode, generateCodeSupportReference, generateSubscriptionCode, hashSubscriptionCode } from "@/lib/server/subscription-code";
 import { assertPaymentPlanPrivateSummaryMedia } from "@/lib/server/payment-media";
+import { queueTelegramAccountReconciliation } from "@/lib/server/telegram/sync-queue";
+import { reconcileTelegramMembership } from "@/lib/server/telegram/sync";
 
 function snapshot(value: object): Prisma.InputJsonObject { return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonObject; }
 function codeSnapshot(row: SubscriptionCode) {
@@ -174,17 +176,32 @@ export async function enablePaymentCode(id: string, raw: unknown) {
 
 export async function revokePaymentEntitlement(id: string, raw: unknown) {
   paymentAdminTargetSchema.parse(id); const input = paymentAdminChangeSchema.parse(raw); const actor = await requirePaymentAdmin();
-  return paymentTransaction(async (tx) => {
+  const result = await paymentTransaction(async (tx) => {
     const target = await tx.accessEntitlement.findUnique({ where: { id }, select: { userId: true } });
     if (!target) throw new PaymentError("not_found", 404);
     await lockPaymentUsers(tx, [actor.id, ...(target.userId ? [target.userId] : [])]); await recheckPaymentAdmin(tx, actor);
     await tx.$queryRaw`SELECT id FROM access_entitlements WHERE id = ${id} FOR UPDATE`;
     const old = await tx.accessEntitlement.findUniqueOrThrow({ where: { id } });
-    if (!old.isActive) return { alreadyDisabled: true };
+    if (!old.isActive) return { alreadyDisabled: true, telegramMembershipId: null };
     assertUnchanged(old, input.expectedUpdatedAt);
     const grant = await tx.accessEntitlement.update({ where: { id }, data: { isActive: false, updatedAt: nextUpdate(old) } });
     await tx.paymentAdminEvent.create({ data: { actorId: actor.id, actorSessionVersion: actor.sessionVersion,
       action: "entitlement_revoked", entitlementId: id, reason: input.reason, before: grantSnapshot(old), after: grantSnapshot(grant) } });
-    return { alreadyDisabled: false };
+    const queued = await queueTelegramAccountReconciliation(tx, {
+      userId: old.userId,
+      subjectId: old.subjectId,
+      sourceType: "entitlement",
+      sourceId: old.id,
+      actorUserId: actor.id,
+    });
+    return { alreadyDisabled: false, telegramMembershipId: queued.membershipId };
   });
+  if (result.telegramMembershipId) {
+    try {
+      await reconcileTelegramMembership(result.telegramMembershipId, "entitlement-revoke:" + id);
+    } catch {
+      // The transactional outbox retains the removal attempt for retry.
+    }
+  }
+  return { alreadyDisabled: result.alreadyDisabled };
 }
