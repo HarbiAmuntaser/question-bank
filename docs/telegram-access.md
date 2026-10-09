@@ -73,7 +73,7 @@ Failed Telegram operations remain queued with retry metadata. With daily schedul
 
 1. Keep `TELEGRAM_ACCESS_ENABLED=false`; deploy schema and application, then run the closed-state smoke test.
 2. Configure all secrets, deploy the daily Cron definition, register the webhook, and verify both externally while still closed.
-3. Confirm an unauthorized GET and POST both return `401`, while correctly signed requests remain blocked by the global closed state until activation.
+3. Confirm signed and unsigned GET and POST requests all return `404` while the global release control is closed. Secret mismatches return `401` only after Telegram access is enabled.
 4. Enable the global control and connect one private channel to one test subject. Keep channel linking disabled.
 5. Run on-demand health verification and confirm invite/restrict permissions.
 6. Enable linking for that channel only.
