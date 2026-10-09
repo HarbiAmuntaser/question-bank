@@ -5,7 +5,8 @@ const BOT_USERNAME = /^[A-Za-z][A-Za-z0-9_]{4,31}$/;
 const RUNTIME_SECRET = /^[A-Za-z0-9_-]{32,256}$/;
 
 export const TELEGRAM_LINK_TOKEN_TTL_SECONDS = 10 * 60;
-export const DEFAULT_TELEGRAM_EXPIRY_MAX_DELAY_MINUTES = 15;
+export const DEFAULT_TELEGRAM_EXPIRY_MAX_DELAY_MINUTES = 24 * 60;
+export const MAX_TELEGRAM_EXPIRY_MAX_DELAY_MINUTES = 24 * 60;
 
 type TelegramEnvironment = {
   TELEGRAM_ACCESS_ENABLED?: string;
@@ -14,6 +15,7 @@ type TelegramEnvironment = {
   TELEGRAM_WEBHOOK_SECRET?: string;
   TELEGRAM_SYNC_SECRET?: string;
   TELEGRAM_EXPIRY_MAX_DELAY_MINUTES?: string;
+  CRON_SECRET?: string;
 };
 
 export type TelegramRuntimeConfig = {
@@ -23,6 +25,7 @@ export type TelegramRuntimeConfig = {
   botUsername: string | null;
   webhookSecret: string | null;
   syncSecret: string | null;
+  cronSecret: string | null;
   expiryMaxDelayMinutes: number;
   reason: "enabled" | "disabled" | "invalid_configuration";
 };
@@ -30,7 +33,8 @@ export type TelegramRuntimeConfig = {
 function expiryDelay(raw: string | undefined) {
   if (!raw?.trim()) return DEFAULT_TELEGRAM_EXPIRY_MAX_DELAY_MINUTES;
   const value = Number(raw);
-  return Number.isInteger(value) && value >= 1 && value <= 15 ? value : null;
+  return Number.isInteger(value) && value >= 1 &&
+    value <= MAX_TELEGRAM_EXPIRY_MAX_DELAY_MINUTES ? value : null;
 }
 
 export function getTelegramRuntimeConfig(
@@ -41,9 +45,11 @@ export function getTelegramRuntimeConfig(
   const botUsername = (env.TELEGRAM_BOT_USERNAME?.trim() ?? "").replace(/^@/, "");
   const webhookSecret = env.TELEGRAM_WEBHOOK_SECRET?.trim() ?? "";
   const syncSecret = env.TELEGRAM_SYNC_SECRET?.trim() ?? "";
+  const cronSecret = env.CRON_SECRET?.trim() ?? "";
   const delay = expiryDelay(env.TELEGRAM_EXPIRY_MAX_DELAY_MINUTES);
   const valid = BOT_TOKEN.test(botToken) && BOT_USERNAME.test(botUsername) &&
-    RUNTIME_SECRET.test(webhookSecret) && RUNTIME_SECRET.test(syncSecret) && delay !== null;
+    RUNTIME_SECRET.test(webhookSecret) && RUNTIME_SECRET.test(syncSecret) &&
+    RUNTIME_SECRET.test(cronSecret) && delay !== null;
 
   if (!requestedEnabled) {
     return {
@@ -53,6 +59,7 @@ export function getTelegramRuntimeConfig(
       botUsername: null,
       webhookSecret: null,
       syncSecret: null,
+      cronSecret: null,
       expiryMaxDelayMinutes: delay ?? DEFAULT_TELEGRAM_EXPIRY_MAX_DELAY_MINUTES,
       reason: "disabled",
     };
@@ -65,6 +72,7 @@ export function getTelegramRuntimeConfig(
       botUsername: null,
       webhookSecret: null,
       syncSecret: null,
+      cronSecret: null,
       expiryMaxDelayMinutes: delay ?? DEFAULT_TELEGRAM_EXPIRY_MAX_DELAY_MINUTES,
       reason: "invalid_configuration",
     };
@@ -76,6 +84,7 @@ export function getTelegramRuntimeConfig(
     botUsername,
     webhookSecret,
     syncSecret,
+    cronSecret,
     expiryMaxDelayMinutes: delay,
     reason: "enabled",
   };

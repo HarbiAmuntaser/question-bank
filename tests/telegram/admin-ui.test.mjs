@@ -101,4 +101,5 @@ test("Telegram readiness is fail-closed without printing configuration values", 
   assert.match(source, /externalVerificationRequired/);
   assert.doesNotMatch(source, /console\.log\([^)]*TELEGRAM_BOT_TOKEN/);
   assert.doesNotMatch(source, /console\.log\([^)]*TELEGRAM_.*SECRET/);
+  assert.doesNotMatch(source, /console\.log\([^)]*CRON_SECRET/);
 });

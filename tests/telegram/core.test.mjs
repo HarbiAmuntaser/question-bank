@@ -14,7 +14,8 @@ test("Telegram configuration is fail-closed and keeps the expiry bound configura
     botUsername: null,
     webhookSecret: null,
     syncSecret: null,
-    expiryMaxDelayMinutes: 15,
+    cronSecret: null,
+    expiryMaxDelayMinutes: 1440,
     reason: "disabled",
   });
   const valid = {
@@ -23,13 +24,14 @@ test("Telegram configuration is fail-closed and keeps the expiry bound configura
     TELEGRAM_BOT_USERNAME: "@MustawakAccessBot",
     TELEGRAM_WEBHOOK_SECRET: "s".repeat(32),
     TELEGRAM_SYNC_SECRET: "y".repeat(32),
-    TELEGRAM_EXPIRY_MAX_DELAY_MINUTES: "10",
+    CRON_SECRET: "c".repeat(32),
+    TELEGRAM_EXPIRY_MAX_DELAY_MINUTES: "1440",
   };
   const enabled = config.getTelegramRuntimeConfig(valid);
   assert.equal(enabled.enabled, true);
   assert.equal(enabled.botUsername, "MustawakAccessBot");
-  assert.equal(enabled.expiryMaxDelayMinutes, 10);
-  assert.equal(config.getTelegramRuntimeConfig({ ...valid, TELEGRAM_EXPIRY_MAX_DELAY_MINUTES: "16" }).enabled, false);
+  assert.equal(enabled.expiryMaxDelayMinutes, 1440);
+  assert.equal(config.getTelegramRuntimeConfig({ ...valid, TELEGRAM_EXPIRY_MAX_DELAY_MINUTES: "1441" }).enabled, false);
   assert.equal(config.getTelegramRuntimeConfig({ ...valid, TELEGRAM_BOT_TOKEN: "bad" }).enabled, false);
   assert.equal(config.TELEGRAM_LINK_TOKEN_TTL_SECONDS, 600);
 });
@@ -42,6 +44,7 @@ test("Telegram API adapter exposes classified errors without leaking token or ra
     TELEGRAM_BOT_USERNAME: "MustawakAccessBot",
     TELEGRAM_WEBHOOK_SECRET: "w".repeat(32),
     TELEGRAM_SYNC_SECRET: "x".repeat(32),
+    CRON_SECRET: "c".repeat(32),
   };
   await assert.rejects(
     api.callTelegramApi("getMe", {}, {
@@ -137,7 +140,7 @@ test("inactive access and ineligible accounts fail closed", async () => {
   }, accessDb({ guestGrant: null }))).allowed, false);
 });
 
-test("runtime foundation is wired without final UI or a production scheduler", () => {
+test("runtime foundation is wired with a fail-closed daily scheduler", () => {
   const files = [
     "src/app/api/v1/student/telegram/route.ts",
     "src/app/api/v1/admin/telegram/route.ts",
@@ -148,9 +151,10 @@ test("runtime foundation is wired without final UI or a production scheduler", (
   assert.match(readFileSync("src/lib/server/telegram/sync.ts", "utf8"), /creates_join_request:\s*true/);
   assert.match(readFileSync(".env.example", "utf8"), /^TELEGRAM_ACCESS_ENABLED=false$/m);
   assert.match(readFileSync(".env.example", "utf8"), /^TELEGRAM_SYNC_SECRET=$/m);
-  const repository = files.concat([
+  assert.match(readFileSync(".env.example", "utf8"), /^CRON_SECRET=$/m);
+  assert.match(readFileSync("src/app/api/v1/integrations/telegram/sync/route.ts", "utf8"), /config\.cronSecret/);
+  assert.doesNotMatch(files.concat([
     "src/lib/server/telegram/sync.ts",
     "src/lib/server/telegram/webhook.ts",
-  ]).map((path) => readFileSync(path, "utf8")).join("\n");
-  assert.doesNotMatch(repository, /setWebhook|vercel\.json|cron/);
+  ]).map((path) => readFileSync(path, "utf8")).join("\n"), /setWebhook/);
 });

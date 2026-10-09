@@ -17,8 +17,15 @@ process.env.TELEGRAM_WEBHOOK_SECRET = "s".repeat(32);
 process.env.TELEGRAM_SYNC_SECRET = "y".repeat(32);
 process.env.PAYMENT_CODES_ENABLED = "true";
 
-const prisma = new PrismaClient({ datasourceUrl: url.href });
-const second = new PrismaClient({ datasourceUrl: url.href });
+process.env.CRON_SECRET = 'c'.repeat(32);
+process.env.TELEGRAM_EXPIRY_MAX_DELAY_MINUTES = '1440';
+
+const clientOptions = {
+  datasourceUrl: url.href,
+  transactionOptions: { maxWait: 15_000, timeout: 60_000 },
+};
+const prisma = new PrismaClient(clientOptions);
+const second = new PrismaClient(clientOptions);
 const suffix = randomUUID().slice(0, 8);
 const telegramSeed = String(Date.now()).slice(-9);
 const telegramIds = {

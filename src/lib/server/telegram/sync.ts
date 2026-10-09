@@ -346,11 +346,22 @@ export async function forceRemoveTelegramMembership(
 async function claimSyncJob() {
   return telegramTransaction(async (tx) => {
     const rows = await tx.$queryRaw<Array<{ id: string }>>`
-      SELECT id FROM telegram_sync_jobs
-      WHERE (status IN ('pending', 'failed') AND "availableAt" <= clock_timestamp())
-         OR (status = 'processing' AND "lockedAt" <= clock_timestamp() - interval '2 minutes')
-      ORDER BY "availableAt" ASC, "createdAt" ASC
-      FOR UPDATE SKIP LOCKED LIMIT 1
+      SELECT job.id
+      FROM telegram_sync_jobs AS job
+      JOIN telegram_memberships AS membership ON membership.id = job."membershipId"
+      WHERE (
+        (job.status IN ('pending', 'failed') AND job."availableAt" <= clock_timestamp())
+        OR (job.status = 'processing' AND job."lockedAt" <= clock_timestamp() - interval '2 minutes')
+      )
+      AND NOT EXISTS (
+        SELECT 1 FROM telegram_sync_jobs AS active_job
+        WHERE active_job."membershipId" = job."membershipId"
+          AND active_job.id <> job.id
+          AND active_job.status = 'processing'
+          AND active_job."lockedAt" > clock_timestamp() - interval '2 minutes'
+      )
+      ORDER BY job."availableAt" ASC, job."createdAt" ASC
+      FOR UPDATE OF job, membership SKIP LOCKED LIMIT 1
     `;
     if (!rows[0]) return null;
     const job = await tx.telegramSyncJob.findUniqueOrThrow({ where: { id: rows[0].id } });
@@ -409,11 +420,18 @@ export async function processTelegramSyncJobs(limit = 25) {
 async function claimDueMemberships(limit: number) {
   return telegramTransaction(async (tx) => {
     const rows = await tx.$queryRaw<Array<{ id: string }>>`
-      SELECT id FROM telegram_memberships
-      WHERE "nextCheckAt" IS NOT NULL AND "nextCheckAt" <= clock_timestamp()
-        AND status IN ('active', 'pending_join', 'error', 'removal_pending')
-      ORDER BY "nextCheckAt" ASC, id ASC
-      FOR UPDATE SKIP LOCKED LIMIT ${limit}
+      SELECT membership.id
+      FROM telegram_memberships AS membership
+      WHERE membership."nextCheckAt" IS NOT NULL
+        AND membership."nextCheckAt" <= clock_timestamp()
+        AND membership.status IN ('active', 'pending_join', 'error', 'removal_pending')
+        AND NOT EXISTS (
+          SELECT 1 FROM telegram_sync_jobs AS job
+          WHERE job."membershipId" = membership.id
+            AND job.status IN ('pending', 'processing', 'failed')
+        )
+      ORDER BY membership."nextCheckAt" ASC, membership.id ASC
+      FOR UPDATE OF membership SKIP LOCKED LIMIT ${limit}
     `;
     const lease = new Date(Date.now() + getTelegramRuntimeConfig().expiryMaxDelayMinutes * 60_000);
     if (rows.length) {

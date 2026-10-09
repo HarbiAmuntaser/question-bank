@@ -4,15 +4,18 @@ const results = [];
 const BOT_TOKEN = /^[1-9][0-9]{4,15}:[A-Za-z0-9_-]{30,100}$/;
 const BOT_USERNAME = /^[A-Za-z][A-Za-z0-9_]{4,31}$/;
 const RUNTIME_SECRET = /^[A-Za-z0-9_-]{32,256}$/;
+const DEFAULT_EXPIRY_DELAY_MINUTES = 24 * 60;
 
 function check(id, pass, message) {
   results.push({ id, status: pass ? "pass" : "fail", message });
 }
 
 function parseDelay(value) {
-  if (!value?.trim()) return 15;
+  if (!value?.trim()) return DEFAULT_EXPIRY_DELAY_MINUTES;
   const parsed = Number(value);
-  return Number.isInteger(parsed) && parsed >= 1 && parsed <= 15 ? parsed : null;
+  return Number.isInteger(parsed) && parsed >= 1 && parsed <= DEFAULT_EXPIRY_DELAY_MINUTES
+    ? parsed
+    : null;
 }
 
 const requestedEnabled = env.TELEGRAM_ACCESS_ENABLED?.trim() === "true";
@@ -26,7 +29,7 @@ check(
 check(
   "telegram_expiry_window",
   delay !== null,
-  "TELEGRAM_EXPIRY_MAX_DELAY_MINUTES must be an integer between 1 and 15.",
+  "TELEGRAM_EXPIRY_MAX_DELAY_MINUTES must be an integer between 1 and 1440.",
 );
 
 if (requestedEnabled) {
@@ -39,6 +42,7 @@ if (requestedEnabled) {
   check("telegram_bot_username", BOT_USERNAME.test((env.TELEGRAM_BOT_USERNAME?.trim() ?? "").replace(/^@/, "")), "TELEGRAM_BOT_USERNAME has an invalid shape.");
   check("telegram_webhook_secret", RUNTIME_SECRET.test(env.TELEGRAM_WEBHOOK_SECRET?.trim() ?? ""), "TELEGRAM_WEBHOOK_SECRET must be a URL-safe secret of at least 32 characters.");
   check("telegram_sync_secret", RUNTIME_SECRET.test(env.TELEGRAM_SYNC_SECRET?.trim() ?? ""), "TELEGRAM_SYNC_SECRET must be a URL-safe secret of at least 32 characters.");
+  check("telegram_cron_secret", RUNTIME_SECRET.test(env.CRON_SECRET?.trim() ?? ""), "CRON_SECRET must be a URL-safe secret of at least 32 characters.");
   check("telegram_https_origin", authOriginValid, "NEXTAUTH_URL must be a root HTTPS origin when Telegram access is enabled.");
 }
 

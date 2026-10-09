@@ -195,23 +195,92 @@ test("an unknown Telegram join request is declined and audited without approval"
   assert.equal(auditEvents[0].eventType, "join_request_declined");
   assert.equal(auditEvents[0].metadata.reason, "channel_unknown");
 });
-test("runtime routes are fail-closed and no Production scheduler is configured", () => {
+test("daily Vercel Cron and manual Sync use the same protected runner", () => {
   const webhook = readFileSync("src/app/api/v1/integrations/telegram/webhook/route.ts", "utf8");
   const worker = readFileSync("src/app/api/v1/integrations/telegram/sync/route.ts", "utf8");
+  const runner = readFileSync("src/lib/server/telegram/sync-runner.ts", "utf8");
+  const sync = readFileSync("src/lib/server/telegram/sync.ts", "utf8");
   const student = readFileSync("src/app/api/v1/student/telegram/route.ts", "utf8");
   const admin = readFileSync("src/app/api/v1/admin/telegram/route.ts", "utf8");
+  const vercel = JSON.parse(readFileSync("vercel.json", "utf8"));
   assert.match(webhook, /x-telegram-bot-api-secret-token/);
   assert.match(webhook, /safeTelegramSecret/);
-  assert.match(worker, /authorization/);
-  assert.match(worker, /safeTelegramSecret/);
+  assert.match(worker, /export function GET/);
+  assert.match(worker, /export function POST/);
+  assert.match(worker, /config\.cronSecret/);
+  assert.match(worker, /config\.syncSecret/);
+  assert.match(worker, /runTelegramSync/);
+  assert.match(runner, /processTelegramSyncJobs/);
+  assert.match(runner, /sweepDueTelegramMemberships/);
+  assert.match(sync, /FOR UPDATE OF job, membership SKIP LOCKED/);
+  assert.match(sync, /FOR UPDATE OF membership SKIP LOCKED/);
   assert.match(student, /consumeAuthLimit/);
   assert.match(student, /requireTelegramOrigin/);
   assert.match(admin, /subscriptions:manage/);
+  assert.deepEqual(vercel.crons, [{
+    path: "/api/v1/integrations/telegram/sync",
+    schedule: "0 1 * * *",
+  }]);
+  assert.match(readFileSync(".env.example", "utf8"), /^CRON_SECRET=$/m);
+  assert.match(readFileSync(".env.example", "utf8"), /^TELEGRAM_EXPIRY_MAX_DELAY_MINUTES=1440$/m);
   assert.doesNotMatch([webhook, worker, student, admin].join("\n"), /console\.|tokenHash|botToken/);
-  const membershipEvents = readFileSync("src/lib/server/telegram/membership-events.ts", "utf8");
-  assert.match(membershipEvents, /membership.status !== "active"[\s\S]*!channel.isEnabled[\s\S]*banChatMember/);
 });
 
+test("GET Cron and manual POST reject missing or mismatched independent secrets", async () => {
+  class AccessError extends Error {
+    constructor(code, status = 400) { super(code); this.code = code; this.status = status; }
+  }
+  let runs = 0;
+  const config = {
+    enabled: true,
+    cronSecret: "c".repeat(32),
+    syncSecret: "s".repeat(32),
+  };
+  const worker = moduleLoader({
+    "@/lib/server/telegram/config": { getTelegramRuntimeConfig: () => config },
+    "@/lib/server/telegram/errors": { TelegramAccessError: AccessError },
+    "@/lib/server/telegram/http": {
+      telegramJson: (body, status = 200) => Response.json(body, { status }),
+      telegramErrorResponse: (error) => Response.json(
+        { error: error instanceof AccessError ? error.code : "telegram_unavailable" },
+        { status: error instanceof AccessError ? error.status : 503 },
+      ),
+    },
+    "@/lib/server/telegram/security": {
+      safeTelegramSecret: (expected, provided) => Boolean(expected && provided && expected === provided),
+    },
+    "@/lib/server/telegram/sync-runner": {
+      runTelegramSync: async () => { runs += 1; return { ok: true }; },
+    },
+  })("src/app/api/v1/integrations/telegram/sync/route.ts");
+
+  assert.equal((await worker.GET(new Request("https://example.test/sync"))).status, 401);
+  assert.equal((await worker.GET(new Request("https://example.test/sync", {
+    headers: { authorization: "Bearer wrong" },
+  }))).status, 401);
+  assert.equal(runs, 0);
+
+  assert.equal((await worker.GET(new Request("https://example.test/sync", {
+    headers: { authorization: "Bearer " + config.cronSecret },
+  }))).status, 200);
+  assert.equal(runs, 1);
+
+  assert.equal((await worker.POST(new Request("https://example.test/sync", {
+    method: "POST",
+    headers: { authorization: "Bearer " + config.cronSecret },
+  }))).status, 401);
+  assert.equal((await worker.POST(new Request("https://example.test/sync", {
+    method: "POST",
+    headers: { authorization: "Bearer " + config.syncSecret },
+  }))).status, 200);
+  assert.equal(runs, 2);
+
+  config.enabled = false;
+  assert.equal((await worker.GET(new Request("https://example.test/sync", {
+    headers: { authorization: "Bearer " + config.cronSecret },
+  }))).status, 404);
+  assert.equal(runs, 2);
+});
 test("only entitlement and Grant revocation enqueue Telegram reconciliation", () => {
   const payment = readFileSync("src/lib/server/payment-admin.ts", "utf8");
   const code = readFileSync("src/lib/server/code-access.ts", "utf8");
