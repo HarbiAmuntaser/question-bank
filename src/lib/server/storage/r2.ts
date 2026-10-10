@@ -3,6 +3,7 @@ import "server-only";
 import {
   DeleteObjectCommand,
   GetObjectCommand,
+  HeadBucketCommand,
   PutObjectCommand,
   S3Client,
   type PutObjectCommandInput,
@@ -118,4 +119,23 @@ export async function deleteObjectFromR2(input: DeleteObjectInput) {
       Key: normalizeStorageKey(input.storageKey),
     }),
   );
+}
+
+export async function verifyR2StorageConnection() {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8_000);
+  try {
+    await Promise.all([
+      getR2Client().send(
+        new HeadBucketCommand({ Bucket: getR2BucketName("public") }),
+        { abortSignal: controller.signal },
+      ),
+      getR2Client().send(
+        new HeadBucketCommand({ Bucket: getR2BucketName("private") }),
+        { abortSignal: controller.signal },
+      ),
+    ]);
+  } finally {
+    clearTimeout(timeout);
+  }
 }

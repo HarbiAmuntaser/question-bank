@@ -132,7 +132,7 @@ test("every handler declares a resource permission; every action/page starts wit
     for (const fn of ast.statements.filter((node) => ts.isFunctionDeclaration(node) &&
       node.modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword))) {
       if (routes.includes(path)) {
-        assert.match(fn.getText(ast), /verifyAdmin\(req, "[a-z-]+:(read|write|manage)"\)/, path);
+        assert.match(fn.getText(ast), /verifyAdmin\((req|request), "[a-z-]+:(read|write|manage)"\)/, path);
       } else {
         assert.match(fn.body.statements[0].getText(ast), /^(const admin = )?await requireAdmin(Page|Permission)\("/, path);
       }

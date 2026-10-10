@@ -4,7 +4,7 @@ export const CACHE_TTL = {
   publicStable: 3600,
   publicLong: 21600,
   adminList: 60,
-  adminDashboard: 300,
+  adminDashboard: 86400,
   adminAnalytics: 86400,
 } as const;
 
@@ -23,6 +23,7 @@ export const CACHE_TAGS = {
     chapters: "admin:chapters",
     colleges: "admin:colleges",
     dashboard: "admin:dashboard",
+    dashboardStats: "admin:dashboard:stats",
     majors: "admin:majors",
     questions: "admin:questions",
     quizzes: "admin:quizzes",

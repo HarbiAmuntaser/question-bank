@@ -8,6 +8,7 @@ export const CONTENT_RESOURCES = [
 
 export type AdminPermission =
   | "dashboard:read"
+  | "dashboard:refresh"
   | "analytics:read"
   | "users:manage"
   | "subscriptions:manage"
@@ -19,8 +20,8 @@ const contentPermissions: AdminPermission[] = CONTENT_RESOURCES.flatMap((resourc
   `${resource}:write` as const,
 ]);
 const rolePermissions: Record<AdminRole, ReadonlySet<AdminPermission>> = {
-  admin: new Set([...readOnlyPermissions, ...contentPermissions, "users:manage", "subscriptions:manage"]),
-  editor: new Set([...readOnlyPermissions, ...contentPermissions]),
+  admin: new Set([...readOnlyPermissions, ...contentPermissions, "dashboard:refresh", "users:manage", "subscriptions:manage"]),
+  editor: new Set([...readOnlyPermissions, ...contentPermissions, "dashboard:refresh"]),
   moderator: new Set(readOnlyPermissions),
 };
 

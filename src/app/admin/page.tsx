@@ -1,243 +1,120 @@
-import { requireAdminPage } from "@/lib/server/admin-page-auth";
-import { adminApiFetch } from "@/lib/server/admin-api-fetch";
-
-
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import type { DashboardData } from "@/types/dashboard"
 import {
-  Building2,
-  GraduationCap,
   BookOpen,
+  Building2,
   FileQuestion,
-  Users,
-  TrendingUp,
   FileText,
-  ClipboardList,
+  GraduationCap,
+  LibraryBig,
+  Newspaper,
+  ScrollText,
+  University,
+  Eye,
 } from "lucide-react"
 
-interface ApiResponse<T> {
-  data: T
-}
-
-async function getDashboardData(): Promise<DashboardData> {
-  const res = await adminApiFetch(`/api/v1/admin/dashboard`, {
-  })
-
-  if (!res.ok) {
-    throw new Error("فشل تحميل بيانات لوحة التحكم")
-  }
-
-  const payload = (await res.json()) as ApiResponse<DashboardData>
-  return payload.data
-}
+import { DashboardRefreshButton } from "@/components/admin/dashboard-refresh-button"
+import { SystemStatusPanel } from "@/components/admin/system-status-panel"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { getDashboardData } from "@/lib/admin/dashboard"
+import { requireAdminPage } from "@/lib/server/admin-page-auth"
+import type { DashboardActivityItem } from "@/types/dashboard"
 
 function formatRelativeTime(dateString: string): string {
-  const now = Date.now()
-  const then = new Date(dateString).getTime()
-  const diffMs = Math.max(0, now - then)
-
+  const diffMs = Math.max(0, Date.now() - new Date(dateString).getTime())
   const minute = 60 * 1000
   const hour = 60 * minute
   const day = 24 * hour
 
   if (diffMs < minute) return "الآن"
-  if (diffMs < hour) {
-    const minutes = Math.floor(diffMs / minute)
-    return minutes === 1 ? "منذ دقيقة" : `منذ ${minutes} دقائق`
-  }
-  if (diffMs < day) {
-    const hours = Math.floor(diffMs / hour)
-    return hours === 1 ? "منذ ساعة" : `منذ ${hours} ساعات`
-  }
-
-  const days = Math.floor(diffMs / day)
-  return days === 1 ? "منذ يوم" : `منذ ${days} أيام`
+  if (diffMs < hour) return `منذ ${Math.floor(diffMs / minute).toLocaleString("ar-SA")} دقيقة`
+  if (diffMs < day) return `منذ ${Math.floor(diffMs / hour).toLocaleString("ar-SA")} ساعة`
+  return `منذ ${Math.floor(diffMs / day).toLocaleString("ar-SA")} يوم`
 }
 
-function getActivityDotColor(type: DashboardData["recentActivity"][number]["type"]): string {
-  switch (type) {
-    case "quiz":
-      return "bg-primary"
-    case "question":
-      return "bg-[hsl(var(--brand-cyan))]"
-    case "chapter":
-      return "bg-[hsl(var(--brand-amber))]"
-  }
+function activityColor(type: DashboardActivityItem["type"]): string {
+  if (type === "quiz") return "bg-primary"
+  if (type === "question") return "bg-[hsl(var(--brand-cyan))]"
+  if (type === "chapter") return "bg-[hsl(var(--brand-amber))]"
+  if (type === "summary") return "bg-[hsl(var(--brand-emerald))]"
+  return "bg-sky-600"
 }
 
 export default async function AdminDashboard() {
-  await requireAdminPage("dashboard:read");
-
-  const { stats, recentActivity, health } = await getDashboardData()
+  await requireAdminPage("dashboard:read")
+  const { stats, recentActivity, system } = await getDashboardData()
 
   const statCards = [
-    {
-      title: "الجامعات",
-      value: stats.universities,
-      description: "إجمالي الجامعات المسجلة",
-      icon: Building2,
-      color: "text-primary",
-    },
-    {
-      title: "التخصصات",
-      value: stats.majors,
-      description: "البرامج الأكاديمية المتاحة",
-      icon: GraduationCap,
-      color: "text-green-600",
-    },
-    {
-      title: "المقررات",
-      value: stats.subjects,
-      description: "المقررات في النظام",
-      icon: BookOpen,
-      color: "text-[hsl(var(--brand-cyan))]",
-    },
-    {
-      title: "الفصول",
-      value: stats.chapters,
-      description: "فصول المقررات",
-      icon: FileText,
-      color: "text-[hsl(var(--brand-amber))]",
-    },
-    {
-      title: "الأسئلة",
-      value: stats.questions,
-      description: "إجمالي الأسئلة المنشأة",
-      icon: FileQuestion,
-      color: "text-primary",
-    },
-    {
-      title: "الاختبارات",
-      value: stats.quizzes,
-      description: "الاختبارات المُنشأة",
-      icon: ClipboardList,
-      color: "text-[hsl(var(--brand-cyan))]",
-    },
-    {
-      title: "محاولات الاختبار",
-      value: stats.quizAttempts,
-      description: "محاولات الطلاب في الاختبارات",
-      icon: Users,
-      color: "text-[hsl(var(--brand-emerald))]",
-    },
-    {
-      title: "الجلسات النشطة",
-      value: stats.activeSessions,
-      description: "آخر 24 ساعة",
-      icon: TrendingUp,
-      color: "text-primary",
-    },
+    { title: "الجامعات", value: stats.universities, icon: Building2 },
+    { title: "الكليات", value: stats.colleges, icon: University },
+    { title: "التخصصات", value: stats.majors, icon: GraduationCap },
+    { title: "المقررات", value: stats.subjects, icon: BookOpen },
+    { title: "الفصول", value: stats.chapters, icon: FileText },
+    { title: "الملخصات", value: stats.summaries, icon: ScrollText },
+    { title: "الأسئلة", value: stats.questions, icon: FileQuestion },
+    { title: "الاختبارات", value: stats.quizzes, icon: LibraryBig },
+    { title: "المقالات المنشورة", value: stats.publishedBlogPosts, icon: Newspaper },
+    { title: "مشاهدات المدونة", value: stats.blogViews, icon: Eye },
   ]
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-foreground">لوحة التحكم</h1>
-        <p className="mt-2 font-medium text-foreground/70">مرحباً بك في لوحة إدارة مستواك</p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">لوحة التحكم</h1>
+          <p className="mt-2 text-sm text-muted-foreground">ملخص المحتوى وحالة تشغيل مستواك.</p>
+        </div>
+        <div className="flex flex-col items-start gap-2 sm:items-end">
+          <DashboardRefreshButton />
+          <span className="text-xs text-muted-foreground">
+            آخر تحديث للإحصاءات: {new Intl.DateTimeFormat("ar-SA", { dateStyle: "medium", timeStyle: "short" }).format(new Date(stats.generatedAt))}
+          </span>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        {statCards.map((stat) => {
-          const Icon = stat.icon
-          return (
-            <Card key={stat.title}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
-                <Icon className={`h-4 w-4 ${stat.color}`} />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold arabic-numbers">{stat.value.toLocaleString("ar-SA")}</div>
-                <p className="text-xs font-medium text-foreground/65">{stat.description}</p>
-              </CardContent>
-            </Card>
-          )
-        })}
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
+        {statCards.map((stat) => (
+          <Card key={stat.title} className="overflow-hidden">
+            <CardHeader className="flex-row items-center justify-between gap-2 space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
+              <stat.icon className="h-4 w-4 shrink-0 text-primary" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold tabular-nums">{stat.value.toLocaleString("ar-SA")}</div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
         <Card>
           <CardHeader>
-            <CardTitle>النشاط الأخير</CardTitle>
-            <CardDescription className="text-foreground/70">آخر أنشطة النظام الفعلية</CardDescription>
+            <CardTitle className="text-base">النشاط الأخير</CardTitle>
+            <CardDescription>أحدث عمليات إنشاء المحتوى، وتُقرأ مباشرة دون كاش يومي.</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {recentActivity.length > 0 ? (
-                recentActivity.map((activity) => (
-                  <div key={`${activity.type}-${activity.id}`} className="flex items-center space-x-4 space-x-reverse">
-                    <div className={`h-2 w-2 rounded-full ${getActivityDotColor(activity.type)}`} />
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">{activity.title}</p>
-                      <p className="text-xs font-medium text-foreground/65">{activity.subtitle}</p>
+            {recentActivity.length ? (
+              <div className="divide-y">
+                {recentActivity.map((activity) => (
+                  <div key={`${activity.type}-${activity.id}`} className="flex items-start gap-3 py-3 first:pt-0 last:pb-0">
+                    <span className={`mt-2 h-2 w-2 shrink-0 rounded-full ${activityColor(activity.type)}`} />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium" title={activity.title}>{activity.title}</p>
+                      <p className="truncate text-xs text-muted-foreground" title={activity.subtitle}>{activity.subtitle}</p>
                     </div>
-                    <p className="text-xs font-medium text-foreground/65">{formatRelativeTime(activity.createdAt)}</p>
+                    <time className="shrink-0 text-xs text-muted-foreground" dateTime={activity.createdAt}>
+                      {formatRelativeTime(activity.createdAt)}
+                    </time>
                   </div>
-                ))
-              ) : (
-                <p className="text-sm text-foreground/70">لا توجد أنشطة حديثة لعرضها</p>
-              )}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <p className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
+                لا توجد أنشطة حديثة لعرضها.
+              </p>
+            )}
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>مؤشرات النظام</CardTitle>
-            <CardDescription className="text-foreground/70">مؤشرات تشغيل حقيقية من قاعدة البيانات</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">قاعدة البيانات</span>
-                <span className={health.databaseHealthy ? "text-sm text-green-600" : "text-sm text-red-600"}>
-                  {health.databaseHealthy ? "سليمة" : "غير متاحة"}
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">الجلسات النشطة آخر 24 ساعة</span>
-                <span className="text-sm text-green-600 arabic-numbers">
-                  {health.activeSessions24h.toLocaleString("ar-SA")}
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">محاولات مكتملة آخر 24 ساعة</span>
-                <span className="text-sm text-green-600 arabic-numbers">
-                  {health.completedAttempts24h.toLocaleString("ar-SA")}
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">أسئلة جديدة آخر 7 أيام</span>
-                <span className="text-sm text-green-600 arabic-numbers">
-                  {health.newQuestions7d.toLocaleString("ar-SA")}
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">اختبارات جديدة آخر 7 أيام</span>
-                <span className="text-sm text-green-600 arabic-numbers">
-                  {health.newQuizzes7d.toLocaleString("ar-SA")}
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">مستواك</span>
-                <span className="text-sm text-green-600 arabic-numbers">
-                  {health.questionsCount.toLocaleString("ar-SA")} سؤال
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">الاختبارات الحالية</span>
-                <span className="text-sm text-green-600 arabic-numbers">
-                  {health.quizzesCount.toLocaleString("ar-SA")} اختبار
-                </span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <SystemStatusPanel system={system} />
       </div>
     </div>
   )

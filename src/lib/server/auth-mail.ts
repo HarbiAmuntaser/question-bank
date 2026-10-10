@@ -15,3 +15,20 @@ export async function sendAuthMail(to: string, subject: string, text: string) {
     transport.close();
   }
 }
+
+export async function verifyAuthMailConnection() {
+  const { from: _from, ...config } = mailConfig();
+  const transport = nodemailer.createTransport({
+    ...config,
+    connectionTimeout: 8_000,
+    greetingTimeout: 8_000,
+    socketTimeout: 10_000,
+    disableFileAccess: true,
+    disableUrlAccess: true,
+  });
+  try {
+    await transport.verify();
+  } finally {
+    transport.close();
+  }
+}

@@ -7,7 +7,7 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "next lint",
-    "test:admin": "node --test tests/admin/authorization.test.mjs tests/admin/fetch.test.mjs tests/admin/users.test.mjs tests/admin/ui-foundations.test.mjs tests/admin/content-filters-quiz-generator.test.mjs",
+    "test:admin": "node --test tests/admin/authorization.test.mjs tests/admin/fetch.test.mjs tests/admin/users.test.mjs tests/admin/ui-foundations.test.mjs tests/admin/content-filters-quiz-generator.test.mjs tests/admin/dashboard-analytics.test.mjs",
     "test:adsense": "node --test tests/adsense/foundation.test.mjs",
     "test:telegram": "node --test tests/telegram/core.test.mjs tests/telegram/runtime.test.mjs tests/telegram/admin-ui.test.mjs tests/telegram/migration-check.test.mjs",
     "test:telegram:integration": "node tests/telegram/database-integration.mjs && node tests/telegram/daily-sync-integration.mjs",
