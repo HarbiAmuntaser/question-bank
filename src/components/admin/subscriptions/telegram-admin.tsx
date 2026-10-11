@@ -4,9 +4,8 @@ import { useCallback, useEffect, useId, useState, useTransition, type ReactNode 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Activity, ExternalLink, Link2, Loader2, Power, RefreshCw, Search, ShieldAlert, Unlink, Users } from "lucide-react";
 
-import { searchPaymentSubjectsAction } from "@/app/admin/subscriptions/actions";
 import { AdminTableShell } from "@/components/admin/admin-table-shell";
-import { AsyncCombobox, type ComboOption } from "@/components/admin/seo/AsyncCombobox";
+import { AdminContentPathPicker, emptyAdminContentPath, type AdminContentPathValue } from "@/components/admin/admin-content-path-picker";
 import type { TelegramAdminData, TelegramChannelRow } from "@/components/admin/subscriptions/types";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -61,14 +60,14 @@ function useTableParams() {
 }
 
 function ConnectDialog({ enabled }: { enabled: boolean }) {
-  const [open, setOpen] = useState(false); const [subject, setSubject] = useState<ComboOption | null>(null);
+  const [open, setOpen] = useState(false); const [path, setPath] = useState<AdminContentPathValue>({ ...emptyAdminContentPath });
   const [link, setLink] = useState<{ startUrl: string; expiresAt: string } | null>(null); const [pending, startTransition] = useTransition(); const { toast } = useToast();
-  function issue() { if (!subject) return; startTransition(async () => { try { setLink(await postTelegram({ subjectId: subject.id }) as { startUrl: string; expiresAt: string }); } catch (error) { toast({ title: "تعذر بدء الربط", description: errorMessage(error instanceof Error ? error.message : undefined), variant: "destructive" }); } }); }
-  return <Dialog open={open} onOpenChange={(next) => { setOpen(next); if (!next) { setSubject(null); setLink(null); } }}>
+  function issue() { if (!path.subjectId) return; startTransition(async () => { try { setLink(await postTelegram({ subjectId: path.subjectId }) as { startUrl: string; expiresAt: string }); } catch (error) { toast({ title: "تعذر بدء الربط", description: errorMessage(error instanceof Error ? error.message : undefined), variant: "destructive" }); } }); }
+  return <Dialog open={open} onOpenChange={(next) => { setOpen(next); if (!next) { setPath({ ...emptyAdminContentPath }); setLink(null); } }}>
     <DialogTrigger asChild><Button disabled={!enabled} className="gap-2"><Link2 className="h-4 w-4" />ربط قناة</Button></DialogTrigger>
     <DialogContent dir="rtl" className="sm:max-w-xl"><DialogHeader><DialogTitle>ربط قناة تيليجرام خاصة</DialogTitle><DialogDescription>وثّق هوية الإدارة عبر البوت، ثم أضف البوت إلى قناة خاصة كمسؤول بصلاحيتي دعوة المستخدمين وتقييد الأعضاء.</DialogDescription></DialogHeader>
-      <div className="space-y-4"><div className="space-y-2"><Label>المادة</Label><AsyncCombobox value={subject} onChange={(value) => { setSubject(value); setLink(null); }} fetcher={searchPaymentSubjectsAction} disablePortal placeholder="ابحث عن مادة جامعية سعودية" /></div>
-      {!link ? <Button type="button" onClick={issue} disabled={!subject || pending} className="w-full">{pending ? <Loader2 className="ml-2 h-4 w-4 animate-spin" /> : null}توثيق هوية الإدارة</Button> : <Alert><AlertDescription className="space-y-3"><p>الرابط صالح لمرة واحدة حتى {formatDate(link.expiresAt)}. بعد فتحه أضف البوت إلى القناة.</p><Button asChild><a href={link.startUrl} target="_blank" rel="noreferrer">فتح البوت <ExternalLink className="mr-2 h-4 w-4" /></a></Button></AlertDescription></Alert>}</div>
+      <div className="space-y-4"><AdminContentPathPicker value={path} onChange={(value) => { setPath(value); setLink(null); }} paymentScope disabled={pending || Boolean(link)} />
+      {!link ? <Button type="button" onClick={issue} disabled={!path.subjectId || pending} className="w-full">{pending ? <Loader2 className="ml-2 h-4 w-4 animate-spin" /> : null}توثيق هوية الإدارة</Button> : <Alert><AlertDescription className="space-y-3"><p>الرابط صالح لمرة واحدة حتى {formatDate(link.expiresAt)}. بعد فتحه أضف البوت إلى القناة.</p><Button asChild><a href={link.startUrl} target="_blank" rel="noreferrer">فتح البوت <ExternalLink className="mr-2 h-4 w-4" /></a></Button></AlertDescription></Alert>}</div>
     </DialogContent></Dialog>;
 }
 

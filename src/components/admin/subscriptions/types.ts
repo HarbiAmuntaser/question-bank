@@ -1,6 +1,7 @@
 import type { AccessScopeType } from "@prisma/client";
 
 export type StatusFilter = "all" | "active" | "disabled" | "used" | "expired";
+export type SubscriptionTab = "plans" | "codes" | "entitlements" | "telegram";
 
 export type PaginationMeta = {
   page: number;
@@ -34,12 +35,14 @@ export type PlanRow = {
   defaultMaxUses: number;
   createdAt: string;
   updatedAt: string;
-  major: { id: string; name: string; universityId: string; universityName: string | null } | null;
+  major: { id: string; name: string; collegeId: string | null; collegeName: string | null; universityId: string; universityName: string | null } | null;
   subject: {
     id: string;
     name: string;
     majorId: string;
     majorName: string | null;
+    collegeId: string | null;
+    collegeName: string | null;
     universityId: string | null;
     universityName: string | null;
   } | null;
@@ -51,6 +54,11 @@ export type CodeRow = {
   planId: string;
   planTitle: string;
   planScopeType: AccessScopeType;
+  subjectId: string | null;
+  subjectName: string | null;
+  majorName: string | null;
+  collegeName: string | null;
+  universityName: string | null;
   codePreview: string | null;
   supportReference: string | null;
   maxBrowserSessions: number;
@@ -63,6 +71,21 @@ export type CodeRow = {
   note: string | null;
   createdAt: string;
   accessGrant: {
+    id: string;
+    principalType: "account" | "guest";
+    userId: string | null;
+    userEmail: string | null;
+    startsAt: string;
+    expiresAt: string;
+    isActive: boolean;
+    revokedAt: string | null;
+    activeSessions: number;
+    totalSessions: number;
+  } | null;
+};
+
+export type CodeAccessDetails = {
+  grant: {
     id: string;
     principalType: "account" | "guest";
     userId: string | null;
@@ -95,8 +118,10 @@ export type EntitlementRow = {
   updatedAt: string;
   id: string;
   scopeType: AccessScopeType;
-  majorName: string | null;
   subjectName: string | null;
+  majorName: string | null;
+  collegeName: string | null;
+  universityName: string | null;
   userId: string | null;
   userEmail: string | null;
   codePreview: string | null;

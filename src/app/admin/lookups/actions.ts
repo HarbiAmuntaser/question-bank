@@ -25,7 +25,12 @@ function normalizeQuery(query?: string) {
 }
 
 export async function searchUniversitiesAction(
-  args: { query?: string; limit?: number; institutionType?: "university" | "school" | "academy" } = {},
+  args: {
+    query?: string
+    limit?: number
+    institutionType?: "university" | "school" | "academy"
+    countryCode?: string
+  } = {},
 ) {
   await requireAdminPermission("lookups:read");
   const query = normalizeQuery(args.query);
@@ -34,6 +39,7 @@ export async function searchUniversitiesAction(
   const rows = await prisma.university.findMany({
     where: {
       ...(args.institutionType ? { institutionType: args.institutionType } : {}),
+      ...(args.countryCode ? { countryCode: args.countryCode.trim().toUpperCase().slice(0, 2) } : {}),
       ...(query ? {
           OR: [
             { name: { contains: query, mode: "insensitive" } },

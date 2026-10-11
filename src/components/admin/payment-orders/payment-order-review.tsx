@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { Check, ChevronRight, Loader2, Pencil, RotateCw, Save } from "lucide-react";
+import { Check, ChevronRight, CircleDollarSign, Loader2, Pencil, ReceiptText, RotateCw, Save, UserRound, WalletCards } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -26,6 +26,13 @@ export function PaymentOrderReview({ order }: { order: AdminOrder }) {
   const disabled = busy || !order.reviewEnabled || order.status === "approved";
   const underReview = ["pending_review", "awaiting_additional_payment"].includes(order.status);
   const financial = ["receipt", "refund", "correction"].includes(action);
+  const statusTone = order.status === "approved"
+    ? "border-emerald-300 bg-emerald-50 text-emerald-800"
+    : ["rejected", "cancelled", "expired"].includes(order.status)
+      ? "border-red-300 bg-red-50 text-red-800"
+      : ["pending_review", "awaiting_additional_payment"].includes(order.status)
+        ? "border-amber-300 bg-amber-50 text-amber-900"
+        : "border-sky-300 bg-sky-50 text-sky-900";
   const date = (value: string) => new Date(value).toLocaleString("ar-SA", { timeZone: "Asia/Riyadh", dateStyle: "medium", timeStyle: "short" });
   function prepare(event: FormEvent) {
     event.preventDefault(); setError(""); setSuccess("");
@@ -60,17 +67,17 @@ export function PaymentOrderReview({ order }: { order: AdminOrder }) {
   return <div dir="rtl" className="min-w-0 space-y-6">
     <header className="space-y-3"><Link href="/admin/payment-orders" className="inline-flex items-center gap-1 text-sm text-muted-foreground"><ChevronRight className="h-4 w-4" />طلبات الدفع</Link>
       <div className="flex flex-wrap items-center justify-between gap-3"><h1 className="text-2xl font-semibold">مراجعة طلب الدفع</h1><Button variant="outline" size="icon" aria-label="تحديث الطلب" title="تحديث الطلب" disabled={busy} onClick={() => router.refresh()}><RotateCw className="h-4 w-4" /></Button></div>
-      <div className="flex flex-wrap items-center gap-3"><span dir="ltr" className="break-all font-mono text-sm">{order.reference}</span><Badge variant="secondary">{orderStatusLabels[order.status]}</Badge>{!order.reviewEnabled && <Badge variant="outline">المراجعة متوقفة</Badge>}</div>
+      <div className="flex flex-wrap items-center gap-3"><span dir="ltr" className="break-all font-mono text-sm">{order.reference}</span><Badge variant="outline" className={statusTone}>{orderStatusLabels[order.status]}</Badge>{!order.reviewEnabled && <Badge variant="outline">المراجعة متوقفة</Badge>}</div>
     </header>
-    <section className="grid min-w-0 gap-5 border-y py-5 text-sm sm:grid-cols-2 lg:grid-cols-4">
-      <div className="min-w-0"><h2 className="mb-1 text-muted-foreground">الطالب</h2><p className="break-words">{order.student.name || "طالب"}</p><p dir="ltr" className="break-all text-right">{order.student.email}</p>{!order.student.isActive && <p className="text-destructive">الحساب معطل</p>}</div>
-      <div><h2 className="mb-1 text-muted-foreground">الإجمالي</h2><p dir="ltr" className="text-right text-lg font-semibold tabular-nums">{orderMoney(order.total)}</p></div>
-      <div><h2 className="mb-1 text-muted-foreground">صافي المبلغ الموثق</h2><p dir="ltr" className="text-right text-lg font-semibold tabular-nums">{orderMoney(order.verifiedAmount)}</p></div>
-      <dl className="space-y-1"><div className="flex justify-between gap-3"><dt>المتبقي</dt><dd dir="ltr">{orderMoney(order.remainingAmount)}</dd></div><div className="flex justify-between gap-3"><dt>الزائد</dt><dd dir="ltr">{orderMoney(order.excessAmount)}</dd></div></dl>
+    <section className="grid min-w-0 overflow-hidden rounded-md border bg-card text-sm sm:grid-cols-2 lg:grid-cols-4">
+      <div className="min-w-0 border-b p-4 sm:border-l lg:border-b-0"><div className="mb-3 flex items-center gap-2 text-muted-foreground"><UserRound className="h-4 w-4" /><h2>الطالب</h2></div><p className="break-words font-medium">{order.student.name || "طالب"}</p><p dir="ltr" className="break-all text-right text-xs text-muted-foreground">{order.student.email}</p>{!order.student.isActive && <p className="mt-1 text-destructive">الحساب معطل</p>}</div>
+      <div className="border-b p-4 lg:border-b-0 lg:border-l"><div className="mb-3 flex items-center gap-2 text-muted-foreground"><CircleDollarSign className="h-4 w-4" /><h2>إجمالي الطلب</h2></div><p dir="ltr" className="text-right text-xl font-semibold tabular-nums">{orderMoney(order.total)}</p></div>
+      <div className="border-b p-4 sm:border-l lg:border-b-0"><div className="mb-3 flex items-center gap-2 text-muted-foreground"><ReceiptText className="h-4 w-4" /><h2>المبلغ الموثق</h2></div><p dir="ltr" className="text-right text-xl font-semibold tabular-nums">{orderMoney(order.verifiedAmount)}</p></div>
+      <dl className="space-y-3 p-4"><div className="mb-1 flex items-center gap-2 text-muted-foreground"><WalletCards className="h-4 w-4" /><span>التسوية</span></div><div className="flex justify-between gap-3"><dt>المتبقي</dt><dd dir="ltr" className="font-medium tabular-nums">{orderMoney(order.remainingAmount)}</dd></div><div className="flex justify-between gap-3"><dt>الزائد</dt><dd dir="ltr" className="font-medium tabular-nums">{orderMoney(order.excessAmount)}</dd></div></dl>
     </section>
     <section className="space-y-3"><h2 className="text-base font-semibold">مواد الطلب</h2><OrderItems items={order.items} /></section>
-    <dl className="flex flex-wrap gap-x-10 gap-y-3 text-sm text-muted-foreground"><div><dt>الإنشاء</dt><dd>{date(order.createdAt)}</dd></div><div><dt>مهلة الدفع الأصلية</dt><dd>{date(order.expiresAt)}</dd></div>{order.reviewStartedAt && <div><dt>بدء المراجعة</dt><dd>{date(order.reviewStartedAt)}</dd></div>}<div><dt>نسخة المراجعة</dt><dd>{order.reviewVersion}</dd></div></dl>
-    {order.status !== "approved" && <section className="border-y py-5"><h2 id="review-form-title" className="mb-4 text-base font-semibold">عملية المراجعة</h2>
+    <dl className="flex flex-wrap gap-x-10 gap-y-3 rounded-md border bg-muted/20 p-4 text-sm text-muted-foreground"><div><dt>الإنشاء</dt><dd className="mt-1 text-foreground">{date(order.createdAt)}</dd></div><div><dt>مهلة الدفع الأصلية</dt><dd className="mt-1 text-foreground">{date(order.expiresAt)}</dd></div>{order.reviewStartedAt && <div><dt>بدء المراجعة</dt><dd className="mt-1 text-foreground">{date(order.reviewStartedAt)}</dd></div>}<div><dt>نسخة المراجعة</dt><dd className="mt-1 text-foreground">{order.reviewVersion}</dd></div></dl>
+    {order.status !== "approved" && <section className="rounded-md border bg-muted/10 p-4 sm:p-5"><h2 id="review-form-title" className="mb-4 text-base font-semibold">عملية المراجعة</h2>
       <form onSubmit={prepare} aria-labelledby="review-form-title" className="grid min-w-0 gap-4 sm:grid-cols-2">
         <div><label htmlFor="review-action" className="mb-1 block text-sm">العملية</label><select id="review-action" value={action} disabled={disabled} onChange={(e) => setAction(e.target.value as Action)} className="h-10 w-full rounded-md border bg-background px-3 text-sm">
           <option value="receipt">توثيق دفعة مستلمة</option><option value="refund">توثيق رد مبلغ تم يدويًا</option>
@@ -86,10 +93,10 @@ export function PaymentOrderReview({ order }: { order: AdminOrder }) {
         <div className="sm:col-span-2"><Button type="submit" disabled={disabled} className="gap-2">{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : action === "approved" ? <Check className="h-4 w-4" /> : <Save className="h-4 w-4" />}مراجعة العملية وتأكيدها</Button></div>
       </form></section>}
     {error && <p role="alert" className="break-words text-sm text-destructive">{error}</p>}{success && <p role="status" className="text-sm text-emerald-700">{success}</p>}
-    {order.grants.length > 0 && <section className="space-y-3"><h2 className="text-base font-semibold">الاستحقاقات</h2>{order.grants.map((grant) => <div key={grant.entitlementId} className="flex flex-wrap justify-between gap-2 border-b pb-3 text-sm"><span>{order.items.find((item) => item.subjectId === grant.subjectId)?.subjectName}</span><span>{grant.isActive ? (grant.expiresAt ? date(grant.expiresAt) : "بلا انتهاء") : "معطل"}</span></div>)}</section>}
+    {order.grants.length > 0 && <section className="space-y-3 rounded-md border p-4"><h2 className="text-base font-semibold">الاستحقاقات</h2>{order.grants.map((grant) => <div key={grant.entitlementId} className="flex flex-wrap justify-between gap-2 border-t pt-3 text-sm"><span>{order.items.find((item) => item.subjectId === grant.subjectId)?.subjectName}</span><span className={grant.isActive ? "text-emerald-700" : "text-muted-foreground"}>{grant.isActive ? (grant.expiresAt ? date(grant.expiresAt) : "بلا انتهاء") : "معطل"}</span></div>)}</section>}
     <section className="space-y-4"><div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-base font-semibold">سجل المراجعات والدفعات</h2><Link href={`/admin/payment-orders/${order.id}`} className="text-sm text-primary">الأحدث</Link></div>
       {order.activity.length === 0 && <p className="py-6 text-sm text-muted-foreground">لا توجد مراجعات أو دفعات موثقة.</p>}
-      <ol className="divide-y">{order.activity.map((event) => <li key={event.id} className="min-w-0 space-y-3 py-4">
+      <ol className="space-y-0 border-r-2 border-muted pr-4">{order.activity.map((event) => <li key={event.id} className="relative min-w-0 space-y-3 border-b py-4 before:absolute before:-right-[1.35rem] before:top-6 before:h-2.5 before:w-2.5 before:rounded-full before:bg-primary">
         <div className="flex flex-wrap items-center justify-between gap-2 text-sm"><span className="font-semibold">{reviewActionLabels[event.action]}</span><time className="text-xs text-muted-foreground">{date(event.createdAt)}</time></div>
         <p className="break-words text-xs text-muted-foreground">{event.actor} / {event.version}</p>
         {event.internalNote && <div><p className="mb-1 text-xs text-muted-foreground">داخلي</p><p className="whitespace-pre-wrap break-words text-sm">{event.internalNote}</p></div>}

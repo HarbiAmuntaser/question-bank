@@ -57,10 +57,12 @@ function quote(plans: PlanRow[]): OrderQuote {
 export function effectiveOrderStatus(order: { status: PaymentOrderStatus; expiresAt: Date; reviewStartedAt?: Date | null; _count?: { ledger: number } }, now = new Date()): PaymentOrderStatus {
   return order.status === "pending_payment" && !order.reviewStartedAt && !order._count?.ledger && order.expiresAt <= now ? "expired" : order.status;
 }
-export async function serializeOrder(order: OrderRow, db: Db): Promise<StudentOrder> {
+export async function serializeOrder(order: OrderRow, db: Db, paidOverride?: Prisma.Decimal): Promise<StudentOrder> {
   const status = effectiveOrderStatus(order);
-  const sum = await db.paymentLedgerEntry.aggregate({ where: { orderId: order.id }, _sum: { amount: true } });
-  const paid = sum._sum.amount ?? new Prisma.Decimal(0);
+  const sum = paidOverride === undefined
+    ? await db.paymentLedgerEntry.aggregate({ where: { orderId: order.id }, _sum: { amount: true } })
+    : null;
+  const paid = paidOverride ?? sum?._sum.amount ?? new Prisma.Decimal(0);
   const difference = order.total.minus(paid);
   return { id: order.id, reference: order.reference, status, total: order.total.toFixed(2), currency: order.currency,
     contactMethod: order.contactMethod, createdAt: order.createdAt.toISOString(), expiresAt: order.expiresAt.toISOString(),

@@ -17,7 +17,17 @@ const descendants = {
   chapterId: [],
 } as const;
 
-export function AdminContentPathFilters({ through }: { through: FilterDepth }) {
+export function AdminContentPathFilters({
+  through,
+  resetPageParam = "page",
+  universityType,
+  countryCode,
+}: {
+  through: FilterDepth
+  resetPageParam?: string
+  universityType?: InstitutionType
+  countryCode?: string
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -40,11 +50,11 @@ export function AdminContentPathFilters({ through }: { through: FilterDepth }) {
       if (value) params.set(key, value);
       else params.delete(key);
       descendants[key].forEach((item) => params.delete(item));
-      params.delete("page");
+      params.delete(resetPageParam);
       const query = params.toString();
       startTransition(() => router.push(query ? `${pathname}?${query}` : pathname, { scroll: false }));
     },
-    [pathname, router, searchParams],
+    [pathname, resetPageParam, router, searchParams],
   );
 
   const handleUniversityOption = useCallback((option: AdminLookupOption | null) => {
@@ -69,6 +79,8 @@ export function AdminContentPathFilters({ through }: { through: FilterDepth }) {
         onValueChange={(value) => updateFilter("universityId", value)}
         onOptionChange={handleUniversityOption}
         placeholder="كل الجهات التعليمية"
+        universityType={universityType}
+        countryCode={countryCode}
       />
 
       {showCollege ? (

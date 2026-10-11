@@ -24,6 +24,7 @@ type LookupComboboxProps = {
   universityId?: string;
   collegeId?: string;
   universityType?: "university" | "school" | "academy";
+  countryCode?: string;
   majorId?: string;
   subjectId?: string;
   chapterId?: string;
@@ -53,6 +54,7 @@ export function AdminLookupCombobox({
   universityId,
   collegeId,
   universityType,
+  countryCode,
   majorId,
   subjectId,
   chapterId,
@@ -90,7 +92,7 @@ export function AdminLookupCombobox({
   const fetcher = useCallback(
     async (query: string) => {
       if (type === "university") {
-        return searchUniversitiesAction({ query, limit: 30, institutionType: universityType });
+        return searchUniversitiesAction({ query, limit: 30, institutionType: universityType, countryCode });
       }
       if (type === "college") {
         return searchCollegesAction({ universityId, query, limit: 30 });
@@ -106,10 +108,10 @@ export function AdminLookupCombobox({
       }
       return searchChaptersAction({ subjectId, query, limit: 30 });
     },
-    [chapterId, collegeId, majorId, subjectId, type, universityId, universityType],
+    [chapterId, collegeId, countryCode, majorId, subjectId, type, universityId, universityType],
   );
 
-  const depsKey = `${type}:${universityId ?? ""}:${collegeId ?? ""}:${universityType ?? ""}:${majorId ?? ""}:${subjectId ?? ""}:${chapterId ?? ""}`;
+  const depsKey = `${type}:${universityId ?? ""}:${collegeId ?? ""}:${universityType ?? ""}:${countryCode ?? ""}:${majorId ?? ""}:${subjectId ?? ""}:${chapterId ?? ""}`;
 
   return (
     <AsyncCombobox

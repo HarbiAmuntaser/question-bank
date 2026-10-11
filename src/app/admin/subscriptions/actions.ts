@@ -1,17 +1,18 @@
 "use server";
 
-import { ZodError } from "zod";
+import { z, ZodError } from "zod";
 import { requireAdminPermission } from "@/lib/admin-auth";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { CACHE_TAGS } from "@/lib/cache-tags";
 import { prisma } from "@/lib/prisma";
-import { PaymentError, paymentSubjectWhere } from "@/lib/server/payment-scope";
+import { PaymentError, paymentPlanWhere, paymentSubjectWhere } from "@/lib/server/payment-scope";
 import { disablePaymentPlan, disablePaymentCode, enablePaymentCode, revokePaymentEntitlement, issuePaymentCode, savePaymentPlan } from "@/lib/server/payment-admin";
 import { changeCodeBrowserLimit, revokeCodeAccessGrant, revokeCodeAccessSession } from "@/lib/server/code-access";
 import { requirePaymentAdmin } from "@/lib/server/payment-admin-auth";
 import { protectPaymentAdminAction } from "@/lib/server/payment-admin-action";
 import { AuthRateLimitError } from "@/lib/server/auth-rate-limit";
 import { parsePaymentDateTimeLocal } from "@/lib/payment-time";
+import type { CodeAccessDetails } from "@/components/admin/subscriptions/types";
 
 function text(form: FormData, key: string) { const value = form.get(key); return typeof value === "string" ? value.trim() : ""; }
 function nullableText(form: FormData, key: string) { return text(form, key) || null; }
@@ -139,4 +140,106 @@ export async function searchPaymentSubjectsAction(query = "") {
   const rows = await prisma.subject.findMany({ where: { ...paymentSubjectWhere(), name: { contains: query.trim().slice(0, 100), mode: "insensitive" } },
     take: 30, orderBy: [{ name: "asc" }, { id: "asc" }], select: { id: true, name: true, major: { select: { name: true, university: { select: { name: true } } } } } });
   return rows.map((row) => ({ id: row.id, label: row.name, subLabel: `${row.major.university.name} / ${row.major.name}` }));
+}
+
+const codePlanSearchSchema = z.object({
+  subjectId: z.string().uuid(),
+  query: z.string().trim().max(100).default(""),
+}).strict();
+
+export async function searchCodePlansAction(raw: unknown) {
+  const admin = await requireAdminPermission("subscriptions:manage");
+  await protectPaymentAdminAction(admin.userId, false);
+  const input = codePlanSearchSchema.parse(raw);
+  const rows = await prisma.paidAccessPlan.findMany({
+    where: {
+      ...paymentPlanWhere(),
+      subjectId: input.subjectId,
+      isActive: true,
+      activationCodesEnabled: true,
+      ...(input.query ? { title: { contains: input.query, mode: "insensitive" } } : {}),
+    },
+    take: 30,
+    orderBy: [{ updatedAt: "desc" }, { id: "asc" }],
+    select: { id: true, title: true, defaultDurationDays: true },
+  });
+  return rows.map((row) => ({
+    id: row.id,
+    label: row.title,
+    subLabel: row.defaultDurationDays ? `${row.defaultDurationDays} يوم` : "بدون مدة افتراضية",
+  }));
+}
+
+const codeAccessDetailsSchema = z.string().uuid();
+
+export async function getCodeAccessDetailsAction(rawId: string): Promise<CodeAccessDetails> {
+  const admin = await requireAdminPermission("subscriptions:manage");
+  await protectPaymentAdminAction(admin.userId, false);
+  const id = codeAccessDetailsSchema.parse(rawId);
+  const code = await prisma.subscriptionCode.findUnique({
+    where: { id },
+    select: {
+      accessGrant: {
+        select: {
+          id: true,
+          principalType: true,
+          userId: true,
+          startsAt: true,
+          expiresAt: true,
+          isActive: true,
+          revokedAt: true,
+          user: { select: { email: true } },
+          sessions: {
+            orderBy: [{ boundAt: "desc" }, { id: "desc" }],
+            take: 100,
+            select: { id: true, sessionId: true, boundAt: true, lastUsedAt: true, revokedAt: true },
+          },
+          events: {
+            orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+            take: 50,
+            select: {
+              id: true,
+              type: true,
+              actorType: true,
+              sessionId: true,
+              replacedSessionId: true,
+              metadata: true,
+              createdAt: true,
+              actorUser: { select: { email: true } },
+            },
+          },
+        },
+      },
+    },
+  });
+  if (!code) throw new PaymentError("not_found", 404);
+  return {
+    grant: code.accessGrant ? {
+      id: code.accessGrant.id,
+      principalType: code.accessGrant.principalType,
+      userId: code.accessGrant.userId,
+      userEmail: code.accessGrant.user?.email ?? null,
+      startsAt: code.accessGrant.startsAt.toISOString(),
+      expiresAt: code.accessGrant.expiresAt.toISOString(),
+      isActive: code.accessGrant.isActive,
+      revokedAt: code.accessGrant.revokedAt?.toISOString() ?? null,
+      sessions: code.accessGrant.sessions.map((session) => ({
+        id: session.id,
+        sessionId: session.sessionId,
+        boundAt: session.boundAt.toISOString(),
+        lastUsedAt: session.lastUsedAt.toISOString(),
+        revokedAt: session.revokedAt?.toISOString() ?? null,
+      })),
+      events: code.accessGrant.events.map((event) => ({
+        id: event.id,
+        type: event.type,
+        actorType: event.actorType,
+        actorEmail: event.actorUser?.email ?? null,
+        sessionId: event.sessionId,
+        replacedSessionId: event.replacedSessionId,
+        metadata: event.metadata,
+        createdAt: event.createdAt.toISOString(),
+      })),
+    } : null,
+  };
 }

@@ -10,6 +10,7 @@ import { liveSubjectGrantWhere, lockPaymentUsers, openSubjectOrderWhere, refresh
 import { adminOrderListSchema, adminReviewSchema, reviewHistorySchema, reviewSubmissionSchema } from "@/validations/payment-review";
 import { orderIdSchema } from "@/validations/payment-order";
 import type { AdminOrder } from "@/lib/payment-reviews";
+import { hasPaymentPathFilters, paymentSubjectPathWhere } from "@/lib/admin/payment-admin-filters";
 
 type Db = Prisma.TransactionClient;
 type Order = Prisma.PaymentOrderGetPayload<{ include: typeof includeOrder }>;
@@ -142,18 +143,40 @@ export async function reviewOrder(id: string, raw: unknown) {
 }
 
 export async function listAdminOrders(raw: unknown) {
-  await requireReviewer(); const { q, status, page } = adminOrderListSchema.parse(raw);
+  await requireReviewer(); const { q, status, page, universityId, collegeId, majorId, subjectId } = adminOrderListSchema.parse(raw);
   const now = new Date();
+  const filters = {
+    universityId: universityId ?? "",
+    collegeId: collegeId ?? "",
+    majorId: majorId ?? "",
+    subjectId: subjectId ?? "",
+  };
+  const subjectWhere = paymentSubjectPathWhere(filters);
   const state: Prisma.PaymentOrderWhereInput = status === "all" ? {} : status === "expired"
     ? { OR: [{ status: "expired" }, { status: "pending_payment", expiresAt: { lte: now }, ledger: { none: {} } }] }
     : status === "pending_payment" ? { status, expiresAt: { gt: now } } : { status };
   return prisma.$transaction(async (tx) => {
-    const rows = await tx.paymentOrder.findMany({ where: { AND: [state, { OR: [
-      { reference: { contains: q, mode: "insensitive" } }, { user: { email: { contains: q, mode: "insensitive" } } }, { user: { name: { contains: q, mode: "insensitive" } } },
-    ] }] }, include: { ...includeOrder, user: { select: { name: true, email: true } } },
+    const rows = await tx.paymentOrder.findMany({ where: { AND: [
+      state,
+      ...(hasPaymentPathFilters(filters) ? [{ items: { some: { subject: subjectWhere } } }] : []),
+      ...(q ? [{ OR: [
+        { reference: { contains: q, mode: "insensitive" as const } },
+        { user: { email: { contains: q, mode: "insensitive" as const } } },
+        { user: { name: { contains: q, mode: "insensitive" as const } } },
+      ] }] : []),
+    ] }, include: { ...includeOrder, user: { select: { name: true, email: true } } },
     orderBy: [{ updatedAt: "desc" }, { id: "desc" }], skip: (page - 1) * 30, take: 31 });
-    return { items: await Promise.all(rows.slice(0, 30).map(async (order) => ({ ...await serializeOrder(order, tx), student: order.user }))),
-      page, hasNext: rows.length > 30, q, status };
+    const visible = rows.slice(0, 30);
+    const ledgerGroups = visible.length ? await tx.paymentLedgerEntry.groupBy({
+      by: ["orderId"],
+      where: { orderId: { in: visible.map((order) => order.id) } },
+      _sum: { amount: true },
+    }) : [];
+    const paidByOrder = new Map(ledgerGroups.map((group) => [group.orderId, group._sum.amount ?? new Prisma.Decimal(0)]));
+    return { items: await Promise.all(visible.map(async (order) => ({
+      ...await serializeOrder(order, tx, paidByOrder.get(order.id) ?? new Prisma.Decimal(0)),
+      student: order.user,
+    }))), page, hasNext: rows.length > 30, q, status, filters };
   }, { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead });
 }
 export async function getAdminOrder(id: string, raw: unknown = {}): Promise<AdminOrder> {

@@ -9,10 +9,11 @@ import {
   changeCodeBrowserLimitAction,
   disableSubscriptionCodeAction,
   enableSubscriptionCodeAction,
+  getCodeAccessDetailsAction,
   revokeCodeAccessGrantAction,
   revokeCodeAccessSessionAction,
 } from "@/app/admin/subscriptions/actions";
-import type { CodeRow } from "@/components/admin/subscriptions/types";
+import type { CodeAccessDetails, CodeRow } from "@/components/admin/subscriptions/types";
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -56,6 +57,7 @@ function AdminCodeAction({
   confirmLabel,
   destructive = false,
   requireConfirmation = false,
+  onSuccess,
   run,
 }: {
   children: React.ReactNode;
@@ -64,6 +66,7 @@ function AdminCodeAction({
   confirmLabel: string;
   destructive?: boolean;
   requireConfirmation?: boolean;
+  onSuccess?: () => void;
   run: (reason: string, idempotencyKey: string) => Promise<ActionResult>;
 }) {
   const [open, setOpen] = useState(false);
@@ -88,6 +91,7 @@ function AdminCodeAction({
       toast({ title: "تم", description: result.message });
       setOpen(false);
       router.refresh();
+      onSuccess?.();
     });
   }
 
@@ -159,7 +163,7 @@ function BrowserLimitDialog({ code }: { code: CodeRow }) {
   const key = useRef("");
   const router = useRouter();
   const { toast } = useToast();
-  const activeSessions = code.accessGrant?.sessions.filter((session) => !session.revokedAt).length ?? 0;
+  const activeSessions = code.accessGrant?.activeSessions ?? 0;
   const parsed = Number(value);
 
   function submit() {
@@ -244,11 +248,30 @@ function BrowserLimitDialog({ code }: { code: CodeRow }) {
 }
 
 export function CodeAccessAdminDialog({ code }: { code: CodeRow }) {
-  const grant = code.accessGrant;
+  const [open, setOpen] = useState(false);
+  const [details, setDetails] = useState<CodeAccessDetails | null>(null);
+  const [loading, startLoading] = useTransition();
+  const [loadError, setLoadError] = useState("");
+  const grant = details?.grant ?? null;
   const activeSessions = grant?.sessions.filter((session) => !session.revokedAt) ?? [];
 
+  function loadDetails() {
+    startLoading(async () => {
+      setLoadError("");
+      try {
+        setDetails(await getCodeAccessDetailsAction(code.id));
+      } catch {
+        setLoadError("تعذر تحميل تفاصيل الوصول. أغلق النافذة وأعد المحاولة.");
+      }
+    });
+  }
+
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={(next) => {
+      setOpen(next);
+      if (next) loadDetails();
+      else { setDetails(null); setLoadError(""); }
+    }}>
       <DialogTrigger asChild>
         <Button type="button" variant="ghost" size="icon" title="تفاصيل وصول الكود" aria-label="تفاصيل وصول الكود">
           <Eye className="h-4 w-4" aria-hidden />
@@ -268,6 +291,9 @@ export function CodeAccessAdminDialog({ code }: { code: CodeRow }) {
           <div><dt className="text-muted-foreground">حالة الكود</dt><dd><Badge variant={code.isActive ? "default" : "secondary"}>{code.isActive ? "نشط" : "معطل"}</Badge></dd></div>
           <div><dt className="text-muted-foreground">حد المتصفحات</dt><dd>{code.maxBrowserSessions}</dd></div>
         </dl>
+
+        {loading && !details ? <p className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">جاري تحميل تفاصيل الوصول...</p> : null}
+        {loadError ? <p role="alert" className="text-sm text-destructive">{loadError}</p> : null}
 
         <div className="flex flex-wrap gap-2">
           {code.isActive ? (
@@ -313,6 +339,7 @@ export function CodeAccessAdminDialog({ code }: { code: CodeRow }) {
               confirmLabel="إلغاء المنحة"
               destructive
               requireConfirmation
+              onSuccess={loadDetails}
               run={(reason, key) => revokeCodeAccessGrantAction(grant.id, key, reason)}
             >
               <Button type="button" variant="destructive" size="sm" className="gap-2">
@@ -323,7 +350,7 @@ export function CodeAccessAdminDialog({ code }: { code: CodeRow }) {
           ) : null}
         </div>
 
-        <section className="space-y-3">
+        {!loading && !loadError ? <section className="space-y-3">
           <h3 className="text-base font-semibold">المنحة وصاحب الوصول</h3>
           {!grant ? (
             <p className="text-sm text-muted-foreground">لم يحدث First Activation لهذا الكود بعد.</p>
@@ -337,9 +364,9 @@ export function CodeAccessAdminDialog({ code }: { code: CodeRow }) {
               <div><dt className="text-muted-foreground">الجلسات الفعالة</dt><dd>{activeSessions.length}</dd></div>
             </dl>
           )}
-        </section>
+        </section> : null}
 
-        {grant?.principalType === "guest" ? (
+        {!loading && grant?.principalType === "guest" ? (
           <section className="space-y-3">
             <h3 className="text-base font-semibold">جلسات الضيف</h3>
             <div className="overflow-x-auto rounded-md border">
@@ -361,6 +388,7 @@ export function CodeAccessAdminDialog({ code }: { code: CodeRow }) {
                             description="سيُلغى Binding هذه المنحة فقط. لن تُلغى GuestAccessSession عالميًا."
                             confirmLabel="إلغاء الجلسة"
                             destructive
+                            onSuccess={loadDetails}
                             run={(reason, key) => revokeCodeAccessSessionAction(session.id, key, reason)}
                           >
                             <Button type="button" variant="ghost" size="sm" className="gap-2">
@@ -379,7 +407,7 @@ export function CodeAccessAdminDialog({ code }: { code: CodeRow }) {
           </section>
         ) : null}
 
-        <section className="space-y-3">
+        {!loading && !loadError ? <section className="space-y-3">
           <h3 className="text-base font-semibold">سجل أحداث الوصول</h3>
           <div className="overflow-x-auto rounded-md border">
             <Table>
@@ -401,7 +429,7 @@ export function CodeAccessAdminDialog({ code }: { code: CodeRow }) {
             </Table>
           </div>
           {grant && grant.events.length === 50 ? <p className="text-xs text-muted-foreground">يُعرض أحدث 50 حدثًا.</p> : null}
-        </section>
+        </section> : null}
       </DialogContent>
     </Dialog>
   );

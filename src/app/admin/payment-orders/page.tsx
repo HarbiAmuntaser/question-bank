@@ -7,15 +7,29 @@ import { orderMoney, orderStatusLabels } from "@/lib/payment-orders";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { AdminContentPathFilters } from "@/components/admin/admin-content-path-filters";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "طلبات الدفع", robots: { index: false, follow: false } };
 export default async function PaymentOrdersPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   await requireAdminPage("subscriptions:manage");
   const parsed = adminOrderListSchema.safeParse(await searchParams);
   const result = await listAdminOrders(parsed.success ? parsed.data : {});
-  const pageHref = (page: number) => `/admin/payment-orders?${new URLSearchParams({ q: result.q, status: result.status, page: String(page) })}`;
+  const pageHref = (page: number) => `/admin/payment-orders?${new URLSearchParams({
+    q: result.q,
+    status: result.status,
+    page: String(page),
+    ...(result.filters.universityId ? { universityId: result.filters.universityId } : {}),
+    ...(result.filters.collegeId ? { collegeId: result.filters.collegeId } : {}),
+    ...(result.filters.majorId ? { majorId: result.filters.majorId } : {}),
+    ...(result.filters.subjectId ? { subjectId: result.filters.subjectId } : {}),
+  })}`;
   return <div className="min-w-0 space-y-5" dir="rtl"><h1 className="text-2xl font-semibold">طلبات الدفع</h1>
+    <AdminContentPathFilters through="subject" universityType="university" countryCode="SA" />
     <form className="flex flex-wrap items-end gap-3 border-y py-4"><div className="min-w-0 flex-1 basis-56"><label className="mb-1 block text-sm" htmlFor="order-search">رقم الطلب أو الطالب</label><Input id="order-search" name="q" defaultValue={result.q} maxLength={160} /></div>
+      {result.filters.universityId && <input type="hidden" name="universityId" value={result.filters.universityId} />}
+      {result.filters.collegeId && <input type="hidden" name="collegeId" value={result.filters.collegeId} />}
+      {result.filters.majorId && <input type="hidden" name="majorId" value={result.filters.majorId} />}
+      {result.filters.subjectId && <input type="hidden" name="subjectId" value={result.filters.subjectId} />}
       <div><label htmlFor="order-status" className="mb-1 block text-sm">الحالة</label><select id="order-status" name="status" defaultValue={result.status} className="h-10 max-w-full rounded-md border bg-background px-3 text-sm"><option value="all">جميع الحالات</option>{Object.entries(orderStatusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></div>
       <Button type="submit" className="gap-2"><Search className="h-4 w-4" />بحث</Button></form>
     {!result.items.length && <p className="py-12 text-center text-sm text-muted-foreground">لا توجد طلبات مطابقة.</p>}

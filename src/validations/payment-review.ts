@@ -23,5 +23,9 @@ export const adminOrderListSchema = z.object({
   q: z.string().trim().max(160).default(""),
   status: z.enum(["all", "pending_payment", "pending_review", "awaiting_additional_payment", "approved", "rejected", "cancelled", "expired"]).default("all"),
   page: z.coerce.number().int().min(1).max(100000).default(1),
+  universityId: z.string().uuid().optional(),
+  collegeId: z.string().uuid().optional(),
+  majorId: z.string().uuid().optional(),
+  subjectId: z.string().uuid().optional(),
 }).strict();
 export const reviewHistorySchema = z.object({ before: z.coerce.number().int().positive().optional() }).strict();

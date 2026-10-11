@@ -3,8 +3,12 @@
 import type React from "react";
 import { useEffect, useState, useTransition } from "react";
 
-import { createPaidAccessPlanAction, updatePaidAccessPlanAction, searchPaymentSubjectsAction } from "@/app/admin/subscriptions/actions";
-import { AsyncCombobox, type ComboOption } from "@/components/admin/seo/AsyncCombobox";
+import { createPaidAccessPlanAction, updatePaidAccessPlanAction } from "@/app/admin/subscriptions/actions";
+import {
+  AdminContentPathPicker,
+  emptyAdminContentPath,
+  type AdminContentPathValue,
+} from "@/components/admin/admin-content-path-picker";
 import type { PlanRow } from "@/components/admin/subscriptions/types";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,18 +29,18 @@ import { useToast } from "@/hooks/use-toast";
 export function PlanDialog({ children, plan, paymentsEnabled = false }: { children: React.ReactNode; plan?: PlanRow; paymentsEnabled?: boolean }) {
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
-  const [subject, setSubject] = useState<ComboOption | null>(null);
+  const [path, setPath] = useState<AdminContentPathValue>({ ...emptyAdminContentPath });
   const { toast } = useToast();
 
   useEffect(() => {
     if (!open) return;
-    setSubject(plan?.subject ? { id: plan.subject.id, label: plan.subject.name, subLabel: plan.subject.universityName ?? undefined } : null);
+    setPath({ ...emptyAdminContentPath });
   }, [open, plan]);
 
   function handleSubmit(formData: FormData) {
     formData.set("scopeType", "subject");
-    formData.set("subjectId", subject?.id ?? "");
-    if (!subject) {
+    formData.set("subjectId", plan?.subjectId ?? path.subjectId);
+    if (!plan?.subjectId && !path.subjectId) {
       toast({ title: "خطأ", description: "اختيار المقرر مطلوب", variant: "destructive" });
       return;
     }
@@ -68,8 +72,17 @@ export function PlanDialog({ children, plan, paymentsEnabled = false }: { childr
           {plan && <input type="hidden" name="expectedUpdatedAt" value={plan.updatedAt} />}
           <div className="space-y-2">
             <Label>المادة</Label>
-            <AsyncCombobox value={subject} onChange={setSubject} fetcher={searchPaymentSubjectsAction}
-              disabled={Boolean(plan)} disablePortal placeholder="ابحث عن مادة جامعية سعودية" />
+            {plan?.subject ? (
+              <div className="rounded-md border p-3 text-sm">
+                <div className="font-medium">{plan.subject.name}</div>
+                <div className="text-xs text-muted-foreground">
+                  {[plan.subject.universityName, plan.subject.collegeName, plan.subject.majorName].filter(Boolean).join(" / ")}
+                </div>
+                <p className="mt-2 text-xs text-muted-foreground">هدف الخطة ثابت بعد الإنشاء.</p>
+              </div>
+            ) : (
+              <AdminContentPathPicker value={path} onChange={setPath} paymentScope disabled={pending} />
+            )}
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">

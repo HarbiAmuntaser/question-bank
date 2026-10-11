@@ -10,6 +10,7 @@ import { AdminTableShell } from "@/components/admin/admin-table-shell";
 import { CodeDialog } from "@/components/admin/subscriptions/code-dialog";
 import { PlanDialog } from "@/components/admin/subscriptions/plan-dialog";
 import { TelegramAdmin } from "@/components/admin/subscriptions/telegram-admin";
+import { AdminContentPathFilters } from "@/components/admin/admin-content-path-filters";
 import type {
   CodeRow,
   EntitlementRow,
@@ -17,6 +18,7 @@ import type {
   PlanRow,
   StatusFilter,
   SubscriptionFilters,
+  SubscriptionTab,
   TelegramAdminData,
 } from "@/components/admin/subscriptions/types";
 import { Badge } from "@/components/ui/badge";
@@ -143,12 +145,12 @@ function TablePager({
 }
 
 export function SubscriptionsAdmin({
+  activeTab,
   paymentsEnabled,
   codesEnabled,
   launchPlanIds,
   codesQuery,
   plans,
-  codePlanOptions,
   codes,
   entitlements,
   filters,
@@ -157,12 +159,12 @@ export function SubscriptionsAdmin({
   entitlementsPagination,
   telegram,
 }: {
+  activeTab: SubscriptionTab;
   paymentsEnabled: boolean;
   codesEnabled: boolean;
   launchPlanIds: string[];
   codesQuery: string;
   plans: PlanRow[];
-  codePlanOptions: PlanRow[];
   codes: CodeRow[];
   entitlements: EntitlementRow[];
   filters: SubscriptionFilters;
@@ -173,6 +175,10 @@ export function SubscriptionsAdmin({
 }) {
   const { tab, setParams } = useAdminTableParams();
   const [codeSearch, setCodeSearch] = useState(codesQuery);
+  const pageParam = activeTab === "plans" ? "plansPage"
+    : activeTab === "codes" ? "codesPage"
+      : activeTab === "entitlements" ? "entitlementsPage"
+        : "telegramPage";
 
   return (
     <Tabs value={tab} onValueChange={(value) => setParams({ tab: value })} className="space-y-4" dir="rtl">
@@ -183,21 +189,29 @@ export function SubscriptionsAdmin({
           <TabsTrigger value="entitlements">التفعيلات</TabsTrigger>
           <TabsTrigger value="telegram">تيليجرام</TabsTrigger>
         </TabsList>
-        {tab !== "telegram" ? <div className="flex flex-col gap-2 sm:flex-row">
+        {tab === "plans" ? <div className="flex flex-col gap-2 sm:flex-row">
           <PlanDialog paymentsEnabled={paymentsEnabled}>
             <Button className="h-10">
               <Plus className="ml-2 h-4 w-4" aria-hidden />
               خطة جديدة
             </Button>
           </PlanDialog>
-          <CodeDialog plans={codePlanOptions}>
-            <Button variant="outline" className="h-10" disabled={!codesEnabled || codePlanOptions.length === 0}>
+        </div> : tab === "codes" ? <div className="flex flex-col gap-2 sm:flex-row">
+          <CodeDialog>
+            <Button variant="outline" className="h-10" disabled={!codesEnabled}>
               <Ticket className="ml-2 h-4 w-4" aria-hidden />
               كود جديد
             </Button>
           </CodeDialog>
         </div> : null}
       </div>
+
+      <AdminContentPathFilters
+        through="subject"
+        resetPageParam={pageParam}
+        universityType="university"
+        countryCode="SA"
+      />
 
       <TabsContent value="plans" className="space-y-3">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
@@ -243,7 +257,10 @@ export function SubscriptionsAdmin({
                   <TableCell>{scopeLabel(plan.scopeType)}</TableCell>
                   <TableCell>
                     <div>{plan.scopeType === "major" ? plan.major?.name : plan.subject?.name}</div>
-                    <div className="text-xs text-muted-foreground">{plan.major?.universityName ?? plan.subject?.universityName ?? ""}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {[plan.major?.universityName ?? plan.subject?.universityName, plan.major?.collegeName ?? plan.subject?.collegeName, plan.subject?.majorName]
+                        .filter(Boolean).join(" / ")}
+                    </div>
                   </TableCell>
                   <TableCell>{plan.price ? `${plan.price} ${plan.currency ?? ""}` : "-"}</TableCell>
                   <TableCell>{plan.defaultDurationDays ? `${plan.defaultDurationDays} يوم` : "مفتوحة"}</TableCell>
@@ -329,7 +346,7 @@ export function SubscriptionsAdmin({
                   <TableCell dir="ltr" className="font-mono text-xs">{code.supportReference ?? "-"}</TableCell>
                   <TableCell>
                     <div>{code.planTitle}</div>
-                    <div className="text-xs text-muted-foreground">{scopeLabel(code.planScopeType)}</div>
+                    <div className="text-xs text-muted-foreground">{[code.universityName, code.collegeName, code.majorName, code.subjectName].filter(Boolean).join(" / ")}</div>
                   </TableCell>
                   <TableCell>
                     {code.accessGrant ? (
@@ -341,7 +358,7 @@ export function SubscriptionsAdmin({
                       </div>
                     ) : <span className="text-xs text-muted-foreground">غير مفعّل</span>}
                   </TableCell>
-                  <TableCell>{code.accessGrant?.sessions.filter((session) => !session.revokedAt).length ?? 0} / {code.maxBrowserSessions}</TableCell>
+                  <TableCell>{code.accessGrant?.activeSessions ?? 0} / {code.maxBrowserSessions}</TableCell>
                   <TableCell>{code.usedCount} / {code.maxUses}</TableCell>
                   <TableCell>{code.durationDays ? `${code.durationDays} يوم` : "افتراضي"}</TableCell>
                   <TableCell>
@@ -399,14 +416,17 @@ export function SubscriptionsAdmin({
               ) : entitlements.map((entitlement) => (
                 <TableRow key={entitlement.id}>
                   <TableCell>{scopeLabel(entitlement.scopeType)}</TableCell>
-                  <TableCell>{entitlement.scopeType === "major" ? entitlement.majorName : entitlement.subjectName}</TableCell>
+                  <TableCell>
+                    <div>{entitlement.subjectName}</div>
+                    <div className="text-xs text-muted-foreground">{[entitlement.universityName, entitlement.collegeName, entitlement.majorName].filter(Boolean).join(" / ")}</div>
+                  </TableCell>
                   <TableCell className="text-xs">{entitlement.userId ? <span dir="ltr">{entitlement.userEmail ?? entitlement.userId}</span> : <Badge variant="secondary">قديم غير منسوب</Badge>}</TableCell>
                   <TableCell dir="ltr" className="font-mono text-xs">{entitlement.codePreview ?? "-"}</TableCell>
                   <TableCell>{formatDate(entitlement.startsAt)}</TableCell>
                   <TableCell>{formatDate(entitlement.expiresAt)}</TableCell>
                   <TableCell>{statusBadge(entitlement.isActive)}</TableCell>
                   <TableCell className="text-left">
-                    <DisableSubscriptionDialog kind="entitlement" id={entitlement.id} updatedAt={entitlement.updatedAt} label={`${entitlement.subjectName ?? entitlement.majorName ?? entitlement.id} / ${entitlement.userEmail ?? "قديم غير منسوب"}`} disabled={!entitlement.isActive} />
+                    <DisableSubscriptionDialog kind="entitlement" id={entitlement.id} updatedAt={entitlement.updatedAt} label={`${entitlement.subjectName ?? entitlement.id} / ${entitlement.userEmail ?? "غير منسوب"}`} disabled={!entitlement.isActive} />
                   </TableCell>
                 </TableRow>
               ))}

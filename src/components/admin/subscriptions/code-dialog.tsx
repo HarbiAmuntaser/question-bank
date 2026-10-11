@@ -1,11 +1,16 @@
-"use client";
+"use client"
 
-import type React from "react";
-import { useRef, useState, useTransition } from "react";
+import type React from "react"
+import { useCallback, useRef, useState, useTransition } from "react"
 
-import { createSubscriptionCodeAction } from "@/app/admin/subscriptions/actions";
-import type { PlanRow } from "@/components/admin/subscriptions/types";
-import { Button } from "@/components/ui/button";
+import { createSubscriptionCodeAction, searchCodePlansAction } from "@/app/admin/subscriptions/actions"
+import {
+  AdminContentPathPicker,
+  emptyAdminContentPath,
+  type AdminContentPathValue,
+} from "@/components/admin/admin-content-path-picker"
+import { AsyncCombobox, type ComboOption } from "@/components/admin/seo/AsyncCombobox"
+import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
@@ -14,80 +19,100 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/hooks/use-toast";
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { useToast } from "@/hooks/use-toast"
 
-export function CodeDialog({ children, plans }: { children: React.ReactNode; plans: PlanRow[] }) {
-  const [open, setOpen] = useState(false);
-  const [planId, setPlanId] = useState("");
-  const [generatedCode, setGeneratedCode] = useState("");
-  const issuanceKey = useRef("");
-  const [pending, startTransition] = useTransition();
-  const { toast } = useToast();
+export function CodeDialog({ children }: { children: React.ReactNode }) {
+  const [open, setOpen] = useState(false)
+  const [path, setPath] = useState<AdminContentPathValue>({ ...emptyAdminContentPath })
+  const [plan, setPlan] = useState<ComboOption | null>(null)
+  const [generatedCode, setGeneratedCode] = useState("")
+  const issuanceKey = useRef("")
+  const [pending, startTransition] = useTransition()
+  const { toast } = useToast()
+
+  const fetchPlans = useCallback(
+    (query: string) => path.subjectId ? searchCodePlansAction({ subjectId: path.subjectId, query }) : Promise.resolve([]),
+    [path.subjectId],
+  )
+
+  function resetSelection(nextPath: AdminContentPathValue) {
+    if (nextPath.subjectId !== path.subjectId) setPlan(null)
+    issuanceKey.current = ""
+    setPath(nextPath)
+  }
 
   function handleSubmit(formData: FormData) {
-    formData.set("planId", planId);
-    issuanceKey.current ||= crypto.randomUUID();
-    formData.set("idempotencyKey", issuanceKey.current);
-    if (!planId) {
-      toast({ title: "خطأ", description: "اختيار الخطة مطلوب", variant: "destructive" });
-      return;
+    formData.set("planId", plan?.id ?? "")
+    issuanceKey.current ||= crypto.randomUUID()
+    formData.set("idempotencyKey", issuanceKey.current)
+    if (!path.subjectId || !plan) {
+      toast({ title: "تحقق من البيانات", description: "اختيار المادة والخطة مطلوب.", variant: "destructive" })
+      return
     }
 
     startTransition(async () => {
-      const result = await createSubscriptionCodeAction(formData);
+      const result = await createSubscriptionCodeAction(formData)
       if (result.success) {
         if (result.alreadyIssued) {
-          toast({ title: "تمت المعالجة", description: result.message });
-          issuanceKey.current = "";
-          setOpen(false);
-          return;
+          toast({ title: "تمت المعالجة", description: result.message })
+          issuanceKey.current = ""
+          setOpen(false)
+          return
         }
-        setGeneratedCode(result.plainCode ?? "");
-        toast({ title: "تم", description: result.message });
+        setGeneratedCode(result.plainCode ?? "")
+        toast({ title: "تم", description: result.message })
       } else {
-        toast({ title: "خطأ", description: result.message, variant: "destructive" });
+        toast({ title: "تعذر الإصدار", description: result.message, variant: "destructive" })
       }
-    });
+    })
   }
 
   return (
-    <Dialog open={open} onOpenChange={(next) => { if (!pending) { setOpen(next); if (!next) { setGeneratedCode(""); issuanceKey.current = ""; } } }}>
+    <Dialog open={open} onOpenChange={(next) => {
+      if (pending) return
+      setOpen(next)
+      if (!next) {
+        setGeneratedCode("")
+        setPath({ ...emptyAdminContentPath })
+        setPlan(null)
+        issuanceKey.current = ""
+      }
+    }}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl" dir="rtl">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl" dir="rtl">
         <DialogHeader>
           <DialogTitle>إنشاء كود اشتراك</DialogTitle>
-          <DialogDescription>سيظهر الكود الصريح مرة واحدة بعد الإنشاء حتى يتم نسخه وإرساله للطالب.</DialogDescription>
+          <DialogDescription>اختر المادة ثم خطة مفعلة للأكواد. سيظهر الكود الصريح مرة واحدة فقط.</DialogDescription>
         </DialogHeader>
 
         {generatedCode ? (
           <div className="space-y-3 rounded-md border bg-muted/40 p-4">
             <Label>الكود الصريح</Label>
-            <Input value={generatedCode} readOnly dir="ltr" className="font-mono text-base" onFocus={(e) => e.currentTarget.select()} />
-            <p className="text-sm text-muted-foreground">انسخ الكود الآن. بعد إغلاق النافذة سيظهر فقط جزء من الكود في الجدول.</p>
+            <Input value={generatedCode} readOnly dir="ltr" className="font-mono text-base" onFocus={(event) => event.currentTarget.select()} />
+            <p className="text-sm text-muted-foreground">انسخ الكود الآن. بعد إغلاق النافذة سيظهر جزء آمن منه فقط.</p>
             <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => { setGeneratedCode(""); issuanceKey.current = ""; }}>إنشاء كود آخر</Button>
-              <Button type="button" onClick={() => { setGeneratedCode(""); setOpen(false); }}>تم</Button>
+              <Button type="button" variant="outline" onClick={() => { setGeneratedCode(""); setPlan(null); issuanceKey.current = "" }}>إنشاء كود آخر</Button>
+              <Button type="button" onClick={() => { setGeneratedCode(""); setOpen(false) }}>تم</Button>
             </div>
           </div>
         ) : (
-          <form action={handleSubmit} onChangeCapture={() => { if (!pending) issuanceKey.current = ""; }} className="space-y-4">
+          <form action={handleSubmit} onChangeCapture={() => { if (!pending) issuanceKey.current = "" }} className="space-y-5">
+            <AdminContentPathPicker value={path} onChange={resetSelection} paymentScope disabled={pending} />
             <div className="space-y-2">
               <Label>الخطة</Label>
-              <Select value={planId} onValueChange={(value) => { setPlanId(value); issuanceKey.current = ""; }}>
-                <SelectTrigger><SelectValue placeholder="اختر خطة" /></SelectTrigger>
-                <SelectContent>
-                  {plans.map((plan) => (
-                    <SelectItem key={plan.id} value={plan.id}>
-                      {plan.title} - {plan.scopeType === "major" ? "تخصص" : "مقرر"}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <AsyncCombobox
+                value={plan}
+                onChange={(value) => { setPlan(value); issuanceKey.current = "" }}
+                fetcher={fetchPlans}
+                depsKey={path.subjectId}
+                placeholder={path.subjectId ? "اختر خطة مفعلة للأكواد" : "اختر المادة أولًا"}
+                disabled={!path.subjectId || pending}
+                disablePortal
+              />
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
@@ -109,13 +134,14 @@ export function CodeDialog({ children, plans }: { children: React.ReactNode; pla
               </div>
             </div>
 
-            <div className="space-y-2"><Label htmlFor="code-reason">سبب إصدار الكود (داخلي)</Label><Textarea id="code-reason" name="reason" required minLength={5} maxLength={1000} rows={2} /></div>
-            <DialogFooter>
-              <Button type="submit" disabled={pending || !planId}>{pending ? "جار الإنشاء..." : "إنشاء الكود"}</Button>
-            </DialogFooter>
+            <div className="space-y-2">
+              <Label htmlFor="code-reason">سبب إصدار الكود (داخلي)</Label>
+              <Textarea id="code-reason" name="reason" required minLength={5} maxLength={1000} rows={2} />
+            </div>
+            <DialogFooter><Button type="submit" disabled={pending || !plan}>{pending ? "جارٍ الإنشاء..." : "إنشاء الكود"}</Button></DialogFooter>
           </form>
         )}
       </DialogContent>
     </Dialog>
-  );
+  )
 }
