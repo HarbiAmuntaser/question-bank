@@ -1,7 +1,7 @@
 // src/components/admin/universities/universities-table.tsx
 import { UniversitiesFilters } from "@/components/admin/universities/universities-filters";
 
-import { adminApiFetch } from "@/lib/server/admin-api-fetch";
+import { listAdminUniversities } from "@/lib/server/admin-content-lists";
 import {
   Table,
   TableBody,
@@ -47,15 +47,6 @@ interface ListResponse {
   pagination: PaginationMeta;
 }
 
-function buildQuery(params: Record<string, string | number | undefined>) {
-  const usp = new URLSearchParams();
-  Object.entries(params).forEach(([k, v]) => {
-    if (v === undefined || v === "") return;
-    usp.set(k, String(v));
-  });
-  return usp.toString();
-}
-
 async function fetchUniversities({
   page,
   pageSize,
@@ -70,14 +61,13 @@ async function fetchUniversities({
   countryCode?: string;
   institutionType?: "" | "university" | "school" | "academy";
 }): Promise<ListResponse> {
-  const qs = buildQuery({ page, pageSize, query, countryCode, institutionType });
-  const res = await adminApiFetch(`/api/v1/admin/universities?${qs}`, {
-    next: { revalidate: 3600, tags: ["universities"] },
+  return listAdminUniversities({
+    page: String(page),
+    pageSize: String(pageSize),
+    query,
+    countryCode,
+    institutionType,
   });
-  if (!res.ok) {
-    throw new Error("فشل تحميل الجامعات");
-  }
-  return (await res.json()) as ListResponse;
 }
 
 export async function UniversitiesTable({

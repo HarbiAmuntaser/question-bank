@@ -38,7 +38,7 @@ export async function createUserAction(payload: {
 
   const res = await apiFetch("/api/v1/admin/users", { method: "POST", body: JSON.stringify(payload) });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) return { success: false, message: userError(data, "فشل إنشاء المستخدم") };
+  if (!res.ok) return { success: false, message: userError(data, "فشل إنشاء المستخدم"), details: data?.details };
   return { success: true, message: data?.message ?? "تم الإنشاء", user: data?.data };
 }
 
@@ -53,7 +53,7 @@ export async function updateUserAction(id: string, payload: {
 
   const res = await apiFetch(`/api/v1/admin/users/${id}`, { method: "PUT", body: JSON.stringify(payload) });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) return { success: false, message: userError(data, "فشل تحديث المستخدم") };
+  if (!res.ok) return { success: false, message: userError(data, "فشل تحديث المستخدم"), details: data?.details };
   return { success: true, message: data?.message ?? "تم التحديث", user: data?.data };
 }
 

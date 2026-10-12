@@ -6,51 +6,12 @@ import { verifyAdmin, adminAuthResponse } from "@/lib/admin-auth";
 import { CACHE_CONTROL } from "@/lib/cache-tags";
 import { revalidateUniversityCache } from "@/lib/cache-invalidation";
 import {
-  listQuerySchema,
   createUniversitySchema,
 } from "@/validations/university";
+import { AdminListQueryError, listAdminUniversities } from "@/lib/server/admin-content-lists";
 
 
 export const dynamic = "force-dynamic";
-
-// ---- Cached list helper ----
-const listUniversities = async (q: Record<string, string | null>) => {
-    const parsed = listQuerySchema.safeParse(q);
-    if (!parsed.success) throw new Error("bad_query");
-    const { page, pageSize, sortBy, sortOrder, query } = parsed.data;
-
-    const where = query
-      ? {
-          OR: [
-            { name: { contains: query, mode: "insensitive" as const } },
-            { code: { contains: query, mode: "insensitive" as const } },
-            { city: { contains: query, mode: "insensitive" as const } },
-            { region: { contains: query, mode: "insensitive" as const } },
-          ],
-        }
-      : {};
-
-    const [data, total] = await Promise.all([
-      prisma.university.findMany({
-        where,
-        skip: (page - 1) * pageSize,
-        take: pageSize,
-        orderBy: { [sortBy]: sortOrder },
-        include: { _count: { select: { majors: true } } },
-      }),
-      prisma.university.count({ where }),
-    ]);
-
-    return {
-      data,
-      pagination: {
-        page,
-        pageSize,
-        total,
-        totalPages: Math.ceil(total / pageSize),
-      },
-    };
-  };
 
 // ---- GET /api/v1/admin/universities ----
 // ---- GET /api/v1/admin/universities ----
@@ -60,53 +21,15 @@ export async function GET(req: Request) {
 
   const url = new URL(req.url);
 
-  // تحويل آمن + قيم افتراضية
-  const page = Math.max(1, Number(url.searchParams.get("page") ?? "1") || 1);
-  const pageSizeRaw = Number(url.searchParams.get("pageSize") ?? "20") || 20;
-  const pageSize = Math.min(Math.max(1, pageSizeRaw), 1000);
-  const sortByParam = url.searchParams.get("sortBy") ?? "createdAt";
-  const sortBy = sortByParam === "name" ? "name" : "createdAt";
-  const sortOrderParam = url.searchParams.get("sortOrder") ?? "desc";
-  const sortOrder = sortOrderParam === "asc" ? "asc" : "desc";
-  const query = (url.searchParams.get("query") ?? "").trim();
+  const query = Object.fromEntries(url.searchParams.entries());
 
-  // 👇 جديد
-  const countryCode = (url.searchParams.get("countryCode") ?? "").trim();
-  const institutionType = (url.searchParams.get("institutionType") ?? "").trim() as
-    | "university"
-    | "school"
-    | "academy"
-    | "";
-
-  // WHERE مرن يجمع البحث النصي + الفلاتر
-  const and: any[] = [];
-
-  if (query.length > 0) {
-    and.push({
-      OR: [
-        { name: { contains: query, mode: "insensitive" as const } },
-        { code: { contains: query, mode: "insensitive" as const } },
-        { city: { contains: query, mode: "insensitive" as const } },
-        { region: { contains: query, mode: "insensitive" as const } },
-      ],
-    });
+  let payload;
+  try {
+    payload = await listAdminUniversities(query);
+  } catch (error) {
+    if (!(error instanceof AdminListQueryError)) throw error;
+    return bad("bad_query_params");
   }
-
-  if (countryCode) and.push({ countryCode });
-  if (institutionType) and.push({ institutionType });
-
-  const where = and.length ? { AND: and } : {};
-
-  const [data, total] = await Promise.all([
-    prisma.university.findMany({
-      where,
-      skip: (page - 1) * pageSize,
-      take: pageSize,
-      orderBy: { [sortBy]: sortOrder },
-      include: { _count: { select: { majors: true } } },
-    }),
-    prisma.university.count({ where }),
-  ]);
 
   const headers = new Headers({
     "cache-control": CACHE_CONTROL.PRIVATE_NO_STORE,
@@ -114,13 +37,7 @@ export async function GET(req: Request) {
 
   return json(
     {
-      data,
-      pagination: {
-        page,
-        pageSize,
-        total,
-        totalPages: Math.ceil(total / pageSize),
-      },
+      ...payload,
     },
     { status: 200, headers }
   );

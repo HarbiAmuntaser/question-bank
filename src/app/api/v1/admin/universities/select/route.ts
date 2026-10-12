@@ -8,6 +8,7 @@ export const dynamic = "force-dynamic";
 
 const listUniversitiesForSelect = async (q: { q?: string | null }) => {
     const query = (q.q ?? "").trim();
+    if (query.length > 100) throw new Error("query_too_long");
     const where = query
       ? {
           AND: [
@@ -28,7 +29,7 @@ const listUniversitiesForSelect = async (q: { q?: string | null }) => {
       where,
       orderBy: { name: "asc" },
       select: { id: true, name: true, code: true },
-      take: 500,
+      take: 50,
     });
 
     return rows;

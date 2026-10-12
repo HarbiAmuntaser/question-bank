@@ -5,7 +5,7 @@ import { AdminTableShell } from "@/components/admin/admin-table-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { adminApiFetch } from "@/lib/server/admin-api-fetch";
+import { listAdminBlogPosts, listAdminBlogTaxonomy } from "@/lib/server/admin-editorial-lists";
 
 import { BlogPagination } from "./blog-pagination";
 import { BlogPostActions } from "./blog-post-actions";
@@ -72,29 +72,28 @@ function formatDate(value: string | null) {
 
 async function fetchPosts(searchParams?: BlogPostsSearchParams) {
   const qs = buildQuery(searchParams);
-  const res = await adminApiFetch(`/api/v1/admin/blog/posts?${qs}`, { cache: "no-store" });
-  if (!res.ok) {
-    const body = await res.text().catch(() => "");
-    throw new Error(body || "فشل تحميل المقالات");
-  }
-  return (await res.json()) as BlogPostListResponse;
+  return listAdminBlogPosts(Object.fromEntries(new URLSearchParams(qs))) as Promise<BlogPostListResponse>;
 }
 
 async function fetchTopics() {
-  const res = await adminApiFetch("/api/v1/admin/blog/topics?page=1&pageSize=100&status=active&sortBy=name&sortOrder=asc", {
-    cache: "no-store",
-  });
-  if (!res.ok) throw new Error("failed_to_load_blog_topics");
-  const payload = (await res.json()) as BlogTaxonomyListResponse;
+  const payload = (await listAdminBlogTaxonomy("topic", {
+    page: "1",
+    pageSize: "100",
+    status: "active",
+    sortBy: "name",
+    sortOrder: "asc",
+  })) as BlogTaxonomyListResponse;
   return payload.data.map((topic) => ({ id: topic.id, name: topic.name, slug: topic.slug })) satisfies BlogPostTopicOption[];
 }
 
 async function fetchTags() {
-  const res = await adminApiFetch("/api/v1/admin/blog/tags?page=1&pageSize=100&status=active&sortBy=name&sortOrder=asc", {
-    cache: "no-store",
-  });
-  if (!res.ok) throw new Error("failed_to_load_blog_tags");
-  const payload = (await res.json()) as BlogTaxonomyListResponse;
+  const payload = (await listAdminBlogTaxonomy("tag", {
+    page: "1",
+    pageSize: "100",
+    status: "active",
+    sortBy: "name",
+    sortOrder: "asc",
+  })) as BlogTaxonomyListResponse;
   return payload.data.map((tag) => ({ id: tag.id, name: tag.name, slug: tag.slug })) satisfies BlogPostTagOption[];
 }
 

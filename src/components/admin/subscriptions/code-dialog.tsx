@@ -9,6 +9,12 @@ import {
   emptyAdminContentPath,
   type AdminContentPathValue,
 } from "@/components/admin/admin-content-path-picker"
+import {
+  AdminFieldError,
+  AdminFormErrorSummary,
+  normalizeAdminFormErrors,
+  useAdminFormValidation,
+} from "@/components/admin/admin-form-validation"
 import { AsyncCombobox, type ComboOption } from "@/components/admin/seo/AsyncCombobox"
 import { Button } from "@/components/ui/button"
 import {
@@ -26,6 +32,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
 
 export function CodeDialog({ children }: { children: React.ReactNode }) {
+  const formId = "create-subscription-code"
   const [open, setOpen] = useState(false)
   const [path, setPath] = useState<AdminContentPathValue>({ ...emptyAdminContentPath })
   const [plan, setPlan] = useState<ComboOption | null>(null)
@@ -33,6 +40,7 @@ export function CodeDialog({ children }: { children: React.ReactNode }) {
   const issuanceKey = useRef("")
   const [pending, startTransition] = useTransition()
   const { toast } = useToast()
+  const validation = useAdminFormValidation(formId)
 
   const fetchPlans = useCallback(
     (query: string) => path.subjectId ? searchCodePlansAction({ subjectId: path.subjectId, query }) : Promise.resolve([]),
@@ -50,6 +58,12 @@ export function CodeDialog({ children }: { children: React.ReactNode }) {
     issuanceKey.current ||= crypto.randomUUID()
     formData.set("idempotencyKey", issuanceKey.current)
     if (!path.subjectId || !plan) {
+      validation.reportErrors({
+        fieldErrors: {
+          ...(!path.subjectId ? { subjectId: "اختيار المادة مطلوب." } : {}),
+          ...(!plan ? { planId: "اختيار الخطة مطلوب." } : {}),
+        },
+      })
       toast({ title: "تحقق من البيانات", description: "اختيار المادة والخطة مطلوب.", variant: "destructive" })
       return
     }
@@ -66,6 +80,7 @@ export function CodeDialog({ children }: { children: React.ReactNode }) {
         setGeneratedCode(result.plainCode ?? "")
         toast({ title: "تم", description: result.message })
       } else {
+        validation.reportErrors(normalizeAdminFormErrors("details" in result ? result.details : undefined, result.message))
         toast({ title: "تعذر الإصدار", description: result.message, variant: "destructive" })
       }
     })
@@ -75,6 +90,7 @@ export function CodeDialog({ children }: { children: React.ReactNode }) {
     <Dialog open={open} onOpenChange={(next) => {
       if (pending) return
       setOpen(next)
+      validation.resetErrors()
       if (!next) {
         setGeneratedCode("")
         setPath({ ...emptyAdminContentPath })
@@ -100,25 +116,41 @@ export function CodeDialog({ children }: { children: React.ReactNode }) {
             </div>
           </div>
         ) : (
-          <form action={handleSubmit} onChangeCapture={() => { if (!pending) issuanceKey.current = "" }} className="space-y-5">
-            <AdminContentPathPicker value={path} onChange={resetSelection} paymentScope disabled={pending} />
-            <div className="space-y-2">
+          <form
+            id={formId}
+            ref={validation.formRef}
+            action={handleSubmit}
+            onChangeCapture={(event) => {
+              if (!pending) issuanceKey.current = ""
+              const target = event.target as HTMLInputElement | HTMLTextAreaElement
+              if (target.name) validation.clearFieldError(target.name)
+            }}
+            className="space-y-5"
+          >
+            <AdminFormErrorSummary message={validation.formError} />
+            <div tabIndex={-1} {...validation.getFieldProps("subjectId")}>
+              <AdminContentPathPicker value={path} onChange={(value) => { resetSelection(value); validation.clearFieldError("subjectId") }} paymentScope disabled={pending} />
+              <AdminFieldError id={validation.errorId("subjectId")} message={validation.fieldErrors.subjectId} />
+            </div>
+            <div className="space-y-2" tabIndex={-1} {...validation.getFieldProps("planId")}>
               <Label>الخطة</Label>
               <AsyncCombobox
                 value={plan}
-                onChange={(value) => { setPlan(value); issuanceKey.current = "" }}
+                onChange={(value) => { setPlan(value); issuanceKey.current = ""; validation.clearFieldError("planId") }}
                 fetcher={fetchPlans}
                 depsKey={path.subjectId}
                 placeholder={path.subjectId ? "اختر خطة مفعلة للأكواد" : "اختر المادة أولًا"}
                 disabled={!path.subjectId || pending}
                 disablePortal
               />
+              <AdminFieldError id={validation.errorId("planId")} message={validation.fieldErrors.planId} />
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="durationDays">مدة الكود بالأيام</Label>
-                <Input id="durationDays" name="durationDays" type="number" min="1" />
+                <Input id="durationDays" name="durationDays" type="number" min="1" {...validation.getFieldProps("durationDays")} />
+                <AdminFieldError id={validation.errorId("durationDays")} message={validation.fieldErrors.durationDays} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="startsAt">يبدأ في (توقيت الرياض)</Label>
@@ -136,7 +168,8 @@ export function CodeDialog({ children }: { children: React.ReactNode }) {
 
             <div className="space-y-2">
               <Label htmlFor="code-reason">سبب إصدار الكود (داخلي)</Label>
-              <Textarea id="code-reason" name="reason" required minLength={5} maxLength={1000} rows={2} />
+              <Textarea id="code-reason" name="reason" required minLength={5} maxLength={1000} rows={2} {...validation.getFieldProps("reason")} />
+              <AdminFieldError id={validation.errorId("reason")} message={validation.fieldErrors.reason} />
             </div>
             <DialogFooter><Button type="submit" disabled={pending || !plan}>{pending ? "جارٍ الإنشاء..." : "إنشاء الكود"}</Button></DialogFooter>
           </form>

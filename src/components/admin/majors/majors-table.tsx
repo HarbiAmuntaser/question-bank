@@ -1,6 +1,6 @@
 // src/components/admin/majors/majors-table.tsx
 
-import { adminApiFetch } from "@/lib/server/admin-api-fetch";
+import { listAdminMajors } from "@/lib/server/admin-content-lists";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -37,15 +37,6 @@ interface ListResponse {
   pagination: PaginationMeta;
 }
 
-function buildQuery(params: Record<string, string | number | undefined>): string {
-  const usp = new URLSearchParams();
-  Object.entries(params).forEach(([k, v]) => {
-    if (typeof v === "undefined") return;
-    usp.set(k, String(v));
-  });
-  return usp.toString();
-}
-
 async function fetchMajors(args: {
   page: number;
   pageSize: number;
@@ -53,16 +44,13 @@ async function fetchMajors(args: {
   universityId?: string;
   collegeId?: string;
 }): Promise<ListResponse> {
-  const qs = buildQuery(args);
-  const res = await adminApiFetch(`/api/v1/admin/majors?${qs}`, {
-    next: { revalidate: 3600, tags: ["majors"] },
+  return listAdminMajors({
+    page: String(args.page),
+    pageSize: String(args.pageSize),
+    query: args.query,
+    universityId: args.universityId,
+    collegeId: args.collegeId,
   });
-  if (!res.ok) {
-    const body = await res.text().catch(() => "");
-    const info = body || `status=${res.status}`;
-    throw new Error(`فشل تحميل التخصصات: ${info}`);
-  }
-  return (await res.json()) as ListResponse;
 }
 
 export async function MajorsTable({

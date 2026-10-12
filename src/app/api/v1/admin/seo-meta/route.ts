@@ -8,6 +8,7 @@ import { Prisma } from "@prisma/client"; // ✅ ليس type
 import { createSeoMetaSchema, listSeoMetaQuerySchema } from "@/validations/seo-meta";
 import { prepareChapterSeoSlug, type PreparedChapterSeoSlug } from "@/lib/server/chapter-seo-slug";
 import { getCollegeSeoSlug } from "@/lib/server/college-seo-slug";
+import { parseSeoSchemaJson } from "@/lib/seo-schema-json";
 
 function cleanNullable(value: string | null | undefined) {
   if (typeof value === "string") {
@@ -19,29 +20,6 @@ function cleanNullable(value: string | null | undefined) {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-// ✅ Discriminated union -> يحل خط TS على schemaJsonResult.error
-type SchemaJsonParseResult =
-  | { ok: true; provided: false; value?: undefined }
-  | { ok: true; provided: true; value: any | null }
-  | { ok: false; error: "invalid_schema_json" };
-
-function parseSchemaJson(value: unknown): SchemaJsonParseResult {
-  if (typeof value === "undefined") return { ok: true, provided: false };
-  if (value === null) return { ok: true, provided: true, value: null };
-
-  if (typeof value === "string") {
-    const trimmed = value.trim();
-    if (!trimmed) return { ok: true, provided: true, value: null };
-    try {
-      return { ok: true, provided: true, value: JSON.parse(trimmed) };
-    } catch {
-      return { ok: false, error: "invalid_schema_json" };
-    }
-  }
-
-  return { ok: true, provided: true, value };
 }
 
 export const dynamic = "force-dynamic";
@@ -136,7 +114,7 @@ export async function POST(req: Request) {
   const parsed = createSeoMetaSchema.safeParse(body);
   if (!parsed.success) return bad("validation_error", parsed.error.flatten());
 
-  const schemaJsonResult = parseSchemaJson(parsed.data.schemaJson);
+  const schemaJsonResult = parseSeoSchemaJson(parsed.data.schemaJson);
   if (!schemaJsonResult.ok) return bad(schemaJsonResult.error);
 
   // ✅ Normalize slug حسب اللغة:
@@ -159,7 +137,10 @@ export async function POST(req: Request) {
       canonicalUrl: cleanNullable(parsed.data.canonicalUrl),
       noindex: parsed.data.noindex ?? false,
       nofollow: parsed.data.nofollow ?? false,
-      schemaJson: schemaJsonResult.provided ? schemaJsonResult.value ?? null : null,
+      schemaJson:
+        schemaJsonResult.provided && schemaJsonResult.value !== null
+          ? (schemaJsonResult.value as Prisma.InputJsonValue)
+          : Prisma.JsonNull,
     };
 
     const created = chapterSlugSync?.shouldPersist

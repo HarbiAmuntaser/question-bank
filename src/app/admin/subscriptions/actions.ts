@@ -37,7 +37,11 @@ function planInput(form: FormData) {
 }
 function failure(error: unknown) {
   if (error instanceof AuthRateLimitError) return { success: false, message: "محاولات كثيرة. انتظر قليلًا ثم أعد المحاولة." };
-  if (error instanceof ZodError) return { success: false, message: "تحقق من بيانات الخطة أو الكود. النطاق المتاح هو المادة فقط." };
+  if (error instanceof ZodError) return {
+    success: false,
+    message: "تحقق من بيانات الخطة أو الكود. النطاق المتاح هو المادة فقط.",
+    details: error.flatten(),
+  };
   if (error instanceof PaymentError) {
     const messages: Record<string, string> = { payments_unavailable: "تفعيل خطط البيع متوقف حاليًا.",
       payment_codes_unavailable: "إصدار الأكواد متوقف حاليًا.",

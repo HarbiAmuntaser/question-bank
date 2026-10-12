@@ -5,6 +5,12 @@ import { useEffect, useState, useTransition } from "react";
 
 import { createChapterAction, updateChapterAction } from "@/app/admin/chapters/actions";
 import { AdminLookupCombobox } from "@/components/admin/admin-lookup-combobox";
+import {
+  AdminFieldError,
+  AdminFormErrorSummary,
+  normalizeAdminFormErrors,
+  useAdminFormValidation,
+} from "@/components/admin/admin-form-validation";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -35,6 +41,8 @@ export function ChapterDialog({ children, chapter, open, onOpenChange }: Chapter
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
+  const validation = useAdminFormValidation("chapter-form");
+  const resetValidation = validation.resetErrors;
 
   const [selectedUniversity, setSelectedUniversity] = useState("");
   const [selectedCollege, setSelectedCollege] = useState("");
@@ -58,7 +66,8 @@ export function ChapterDialog({ children, chapter, open, onOpenChange }: Chapter
     setChapterName(chapter?.name ?? "");
     setChapterSlug(chapter?.slug ?? buildChapterSlug(chapter?.name ?? ""));
     setSlugEdited(Boolean(chapter?.slug));
-  }, [dialogOpen, chapter]);
+    resetValidation();
+  }, [dialogOpen, chapter, resetValidation]);
 
   const handleNameChange = (value: string) => {
     setChapterName(value);
@@ -84,6 +93,7 @@ export function ChapterDialog({ children, chapter, open, onOpenChange }: Chapter
 
   const handleSubmit = async (formData: FormData) => {
     if (!selectedSubject) {
+      validation.reportErrors({ fieldErrors: { subjectId: "يرجى اختيار المقرر" } });
       toast({ title: "خطأ", description: "يرجى اختيار المقرر", variant: "destructive" });
       return;
     }
@@ -102,6 +112,7 @@ export function ChapterDialog({ children, chapter, open, onOpenChange }: Chapter
           setSelectedMajor("");
           setSelectedSubject("");
         } else {
+          validation.reportErrors(normalizeAdminFormErrors("details" in result ? result.details : undefined, result.message));
           toast({ title: "خطأ", description: result.message, variant: "destructive" });
         }
       } catch {
@@ -121,7 +132,8 @@ export function ChapterDialog({ children, chapter, open, onOpenChange }: Chapter
           </DialogDescription>
         </DialogHeader>
 
-        <form action={handleSubmit}>
+        <form id="chapter-form" ref={validation.formRef} action={handleSubmit}>
+          <AdminFormErrorSummary message={validation.formError} className="mt-4" />
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label className="text-right">الجامعة</Label>
@@ -177,11 +189,15 @@ export function ChapterDialog({ children, chapter, open, onOpenChange }: Chapter
                 <AdminLookupCombobox
                   type="subject"
                   value={selectedSubject}
-                  onValueChange={setSelectedSubject}
+                  onValueChange={(value) => {
+                    setSelectedSubject(value);
+                    validation.clearFieldError("subjectId");
+                  }}
                   majorId={selectedMajor}
                   disabled={!selectedMajor}
                   placeholder={selectedMajor ? "ابحث عن مقرر" : "اختر التخصص أولاً"}
                 />
+                <AdminFieldError id={validation.errorId("subjectId")} message={validation.fieldErrors.subjectId} />
               </div>
             </div>
 
@@ -189,14 +205,20 @@ export function ChapterDialog({ children, chapter, open, onOpenChange }: Chapter
               <Label htmlFor="name" className="text-right">
                 اسم الفصل
               </Label>
-              <Input
-                id="name"
-                name="name"
-                value={chapterName}
-                onChange={(event) => handleNameChange(event.target.value)}
-                className="col-span-3"
-                required
-              />
+              <div className="col-span-3">
+                <Input
+                  id="name"
+                  name="name"
+                  value={chapterName}
+                  onChange={(event) => {
+                    handleNameChange(event.target.value);
+                    validation.clearFieldError("name");
+                  }}
+                  required
+                  {...validation.getFieldProps("name")}
+                />
+                <AdminFieldError id={validation.errorId("name")} message={validation.fieldErrors.name} />
+              </div>
             </div>
 
             <div className="grid grid-cols-4 items-start gap-4">
@@ -211,10 +233,12 @@ export function ChapterDialog({ children, chapter, open, onOpenChange }: Chapter
                   value={chapterSlug}
                   onChange={(event) => handleSlugChange(event.target.value)}
                   placeholder="python-basics"
+                  {...validation.getFieldProps("slug")}
                 />
                 <p className="text-xs leading-relaxed text-muted-foreground">
                   يُنشأ تلقائيًا من اسم الفصل، ويمكن تعديله قبل الحفظ.
                 </p>
+                <AdminFieldError id={validation.errorId("slug")} message={validation.fieldErrors.slug} />
               </div>
             </div>
 

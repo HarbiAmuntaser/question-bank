@@ -2,13 +2,13 @@ import { Prisma } from "@prisma/client";
 
 import { adminAuthResponse, verifyAdmin } from "@/lib/admin-auth";
 import { revalidateCollegeCache } from "@/lib/cache-invalidation";
-import { prisma } from "@/lib/prisma";
 import { bad, json } from "@/lib/server/admin-http";
 import {
   createCollege,
   EducationStructureError,
 } from "@/lib/server/education-structure";
-import { createCollegeSchema, listCollegesQuerySchema } from "@/validations/college";
+import { createCollegeSchema } from "@/validations/college";
+import { AdminListQueryError, listAdminColleges } from "@/lib/server/admin-content-lists";
 
 export const dynamic = "force-dynamic";
 
@@ -17,57 +17,12 @@ export async function GET(req: Request) {
   if (!auth.ok) return adminAuthResponse(auth);
 
   const url = new URL(req.url);
-  const parsed = listCollegesQuerySchema.safeParse({
-    page: url.searchParams.get("page"),
-    pageSize: url.searchParams.get("pageSize"),
-    sortBy: url.searchParams.get("sortBy") ?? undefined,
-    sortOrder: url.searchParams.get("sortOrder") ?? undefined,
-    query: url.searchParams.get("query") ?? "",
-    universityId: url.searchParams.get("universityId") ?? undefined,
-  });
-  if (!parsed.success) return bad("bad_query_params", parsed.error.flatten());
-
-  const { page, pageSize, sortBy, sortOrder, query, universityId } = parsed.data;
-  const where: Prisma.CollegeWhereInput = {
-    ...(universityId ? { universityId } : {}),
-    ...(query
-      ? {
-          OR: [
-            { name: { contains: query, mode: "insensitive" } },
-            { slug: { contains: query, mode: "insensitive" } },
-            { code: { contains: query, mode: "insensitive" } },
-            { university: { name: { contains: query, mode: "insensitive" } } },
-          ],
-        }
-      : {}),
-  };
-
-  const [rows, total] = await Promise.all([
-    prisma.college.findMany({
-      where,
-      skip: (page - 1) * pageSize,
-      take: pageSize,
-      orderBy: { [sortBy]: sortOrder },
-      select: {
-        id: true,
-        universityId: true,
-        name: true,
-        slug: true,
-        code: true,
-        isActive: true,
-        createdAt: true,
-        updatedAt: true,
-        university: { select: { id: true, name: true, code: true } },
-        _count: { select: { majors: true } },
-      },
-    }),
-    prisma.college.count({ where }),
-  ]);
-
-  return json({
-    data: rows.map((row) => ({ ...row, majorsCount: row._count.majors, _count: undefined })),
-    pagination: { page, pageSize, total, totalPages: Math.ceil(total / pageSize) },
-  });
+  try {
+    return json(await listAdminColleges(Object.fromEntries(url.searchParams.entries())));
+  } catch (error) {
+    if (!(error instanceof AdminListQueryError)) throw error;
+    return bad("bad_query_params");
+  }
 }
 
 export async function POST(req: Request) {

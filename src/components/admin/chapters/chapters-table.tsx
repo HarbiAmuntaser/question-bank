@@ -1,5 +1,5 @@
 // src/components/admin/chapters/chapters-table.tsx
-import { adminApiFetch } from "@/lib/server/admin-api-fetch";
+import { listAdminChapters } from "@/lib/server/admin-content-lists";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -40,14 +40,6 @@ type ChapterRow = {
 type PaginationMeta = { page: number; pageSize: number; total: number; totalPages: number };
 type ListResponse = { data: ChapterRow[]; pagination: PaginationMeta };
 
-function buildQuery(params: Record<string, string | number | undefined>): string {
-  const usp = new URLSearchParams();
-  Object.entries(params).forEach(([k, v]) => {
-    if (v !== undefined) usp.set(k, String(v));
-  });
-  return usp.toString();
-}
-
 async function fetchChapters(args: {
   page: number;
   pageSize: number;
@@ -57,15 +49,15 @@ async function fetchChapters(args: {
   majorId?: string;
   subjectId?: string;
 }): Promise<ListResponse> {
-  const qs = buildQuery(args);
-  const res = await adminApiFetch(`/api/v1/admin/chapters?${qs}`, {
-    next: { revalidate: 3600, tags: ["chapters"] },
+  return listAdminChapters({
+    page: String(args.page),
+    pageSize: String(args.pageSize),
+    query: args.query,
+    universityId: args.universityId,
+    collegeId: args.collegeId,
+    majorId: args.majorId,
+    subjectId: args.subjectId,
   });
-  if (!res.ok) {
-    const body = await res.text().catch(() => "");
-    throw new Error(body || "فشل تحميل الفصول");
-  }
-  return (await res.json()) as ListResponse;
 }
 
 export async function ChaptersTable({

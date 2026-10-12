@@ -4,7 +4,7 @@ import { AdminTableShell } from "@/components/admin/admin-table-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { adminApiFetch } from "@/lib/server/admin-api-fetch";
+import { listAdminSummaries } from "@/lib/server/admin-editorial-lists";
 
 import { SummariesFilters } from "./summaries-filters";
 import { SummariesPagination } from "./summaries-pagination";
@@ -91,12 +91,7 @@ function yesNo(value: boolean) {
 
 async function fetchSummaries(searchParams?: SummariesSearchParams) {
   const qs = buildQuery(searchParams);
-  const res = await adminApiFetch(`/api/v1/admin/summaries?${qs}`, { cache: "no-store" });
-  if (!res.ok) {
-    const body = await res.text().catch(() => "");
-    throw new Error(body || "failed_to_load_study_summaries");
-  }
-  return (await res.json()) as StudySummaryListResponse;
+  return listAdminSummaries(Object.fromEntries(new URLSearchParams(qs))) as Promise<StudySummaryListResponse>;
 }
 
 function SummariesErrorState() {

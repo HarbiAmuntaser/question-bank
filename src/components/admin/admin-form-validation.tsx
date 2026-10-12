@@ -11,6 +11,26 @@ export type AdminFormErrors = {
   fieldErrors?: AdminFieldErrors
 }
 
+export function normalizeAdminFormErrors(details: unknown, fallback?: string): AdminFormErrors {
+  if (!details || typeof details !== "object") return { formError: fallback }
+
+  const source = details as {
+    fieldErrors?: Record<string, unknown>
+    formErrors?: unknown
+  }
+  const fieldErrors: AdminFieldErrors = {}
+  for (const [field, messages] of Object.entries(source.fieldErrors ?? {})) {
+    if (Array.isArray(messages) && messages.length > 0) fieldErrors[field] = String(messages[0])
+    else if (typeof messages === "string") fieldErrors[field] = messages
+  }
+
+  const formError = Array.isArray(source.formErrors) && source.formErrors.length > 0
+    ? String(source.formErrors[0])
+    : fallback
+
+  return { formError, fieldErrors }
+}
+
 function fieldErrorId(formId: string, fieldName: string) {
   return `${formId}-${fieldName.replace(/[^a-zA-Z0-9_-]/g, "-")}-error`
 }

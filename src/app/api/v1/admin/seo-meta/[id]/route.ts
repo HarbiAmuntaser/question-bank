@@ -7,6 +7,7 @@ import { Prisma } from "@prisma/client";
 import { updateSeoMetaSchema } from "@/validations/seo-meta";
 import { prepareChapterSeoSlug, type PreparedChapterSeoSlug } from "@/lib/server/chapter-seo-slug";
 import { getCollegeSeoSlug } from "@/lib/server/college-seo-slug";
+import { parseSeoSchemaJson } from "@/lib/seo-schema-json";
 
 function cleanNullable(value: string | null | undefined) {
   if (typeof value === "string") {
@@ -22,28 +23,6 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 const asciiSlugRegex = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const unicodeSlugRegex = /^[\p{L}\p{N}]+(?:-[\p{L}\p{N}]+)*$/u;
-
-type SchemaJsonParseResult =
-  | { ok: true; provided: false; value?: undefined }
-  | { ok: true; provided: true; value: any | null }
-  | { ok: false; error: "invalid_schema_json" };
-
-function parseSchemaJson(value: unknown): SchemaJsonParseResult {
-  if (typeof value === "undefined") return { ok: true, provided: false };
-  if (value === null) return { ok: true, provided: true, value: null };
-
-  if (typeof value === "string") {
-    const trimmed = value.trim();
-    if (!trimmed) return { ok: true, provided: true, value: null };
-    try {
-      return { ok: true, provided: true, value: JSON.parse(trimmed) };
-    } catch {
-      return { ok: false, error: "invalid_schema_json" };
-    }
-  }
-
-  return { ok: true, provided: true, value };
-}
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -97,7 +76,7 @@ export async function PUT(req: Request, ctx: RouteParams) {
   const parsed = updateSeoMetaSchema.safeParse(body);
   if (!parsed.success) return bad("validation_error", parsed.error.flatten());
 
-  const schemaJsonResult = parseSchemaJson(parsed.data.schemaJson);
+  const schemaJsonResult = parseSeoSchemaJson(parsed.data.schemaJson);
   if (!schemaJsonResult.ok) return bad(schemaJsonResult.error);
 
   // ✅ locale النهائي (لو المرسل عدله نستخدمه، وإلا الحالي)
@@ -150,7 +129,12 @@ export async function PUT(req: Request, ctx: RouteParams) {
   if (typeof parsed.data.noindex !== "undefined") data.noindex = parsed.data.noindex;
   if (typeof parsed.data.nofollow !== "undefined") data.nofollow = parsed.data.nofollow;
 
-  if (schemaJsonResult.provided) data.schemaJson = schemaJsonResult.value ?? null;
+  if (schemaJsonResult.provided) {
+    data.schemaJson =
+      schemaJsonResult.value === null
+        ? Prisma.JsonNull
+        : (schemaJsonResult.value as Prisma.InputJsonValue);
+  }
 
   try {
     const updated = chapterSlugSync?.shouldPersist

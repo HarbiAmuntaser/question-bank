@@ -42,7 +42,11 @@ export async function createChapterAction(formData: FormData) {
         (body?.error as string) ||
         (body?.code as string) ||
         `HTTP ${res.status}`;
-      return { success: false, message: msg === "unauthorized" ? "غير مصرح" : msg };
+      return {
+        success: false,
+        message: msg === "unauthorized" ? "غير مصرح" : msg,
+        details: body?.details,
+      };
     }
 
     // إبطال الكاش
@@ -85,7 +89,11 @@ export async function updateChapterAction(id: string, formData: FormData) {
         (body?.error as string) ||
         (body?.code as string) ||
         `HTTP ${res.status}`;
-      return { success: false, message: msg === "unauthorized" ? "غير مصرح" : msg };
+      return {
+        success: false,
+        message: msg === "unauthorized" ? "غير مصرح" : msg,
+        details: body?.details,
+      };
     }
 
     revalidateTag("chapters");

@@ -1,7 +1,7 @@
 // src/components/admin/seo/SeoMetaDialog.tsx
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -13,6 +13,12 @@ import { useToast } from "@/hooks/use-toast";
 import { createSeoMetaAction, updateSeoMetaAction } from "@/app/admin/seo-meta/actions";
 import { SeoOwnerSelector } from "./SeoOwnerSelector";
 import type { ComboOption } from "./AsyncCombobox";
+import { SeoImportPanel } from "./SeoImportPanel";
+import type { SeoImportData } from "@/lib/admin/seo-import";
+import {
+  AdminFormErrorSummary,
+  useAdminFormValidation,
+} from "@/components/admin/admin-form-validation";
 
 const localeOptions = [
   { value: "ar", label: "العربية" },
@@ -62,6 +68,8 @@ function toArabicMsg(msg: string) {
     chapter_slug_already_exists: "رابط الفصل مستخدم داخل المقرر نفسه",
     reserved_chapter_slug: "هذا الرابط محجوز، اختر رابطًا آخر للفصل",
     invalid_schema_json: "Schema JSON غير صالح. تأكد أنه JSON صحيح",
+    schema_json_too_large: "Schema JSON-LD أكبر من الحد المسموح (64KB)",
+    schema_json_too_complex: "Schema JSON-LD متشعب أو معقد أكثر من الحد المسموح",
     bad_query_params: "قيم الفلترة غير صحيحة",
     no_fields_to_update: "لا توجد حقول للتحديث",
     invalid_string: "القيمة غير صحيحة",
@@ -106,14 +114,15 @@ export function SeoMetaDialog({
     schemaJson: "",
   });
 
-  const [errors, setErrors] = useState<FieldErrors>({});
+  const validation = useAdminFormValidation("seo-meta-form");
+  const resetValidation = validation.resetErrors;
   const [chapterSlugMissing, setChapterSlugMissing] = useState(false);
   const isEdit = Boolean(state.id);
 
   useEffect(() => {
     if (!open) return;
 
-    setErrors({});
+    resetValidation();
     setChapterSlugMissing(false);
 
     if (initialData) {
@@ -141,18 +150,19 @@ export function SeoMetaDialog({
         schemaJson: "",
       });
     }
-  }, [open, ownerType, ownerId, initialData]);
+  }, [open, ownerType, ownerId, initialData, resetValidation]);
 
   function updateField<Field extends keyof SeoRecord>(field: Field, value: SeoRecord[Field]) {
     setState((prev) => ({ ...prev, [field]: value }));
-    setErrors((prev) => {
-      const next = { ...prev };
-      delete next[field];
-      return next;
-    });
+    validation.clearFieldError(String(field));
   }
 
-  const ownerErrorText = useMemo(() => errors.ownerId, [errors.ownerId]);
+  function applyImportedFields(data: SeoImportData) {
+    setState((prev) => ({ ...prev, ...data }));
+    for (const field of Object.keys(data)) validation.clearFieldError(field);
+  }
+
+  const ownerErrorText = validation.fieldErrors.ownerId;
   const metaTitleLength = (state.metaTitle ?? "").trim().length;
   const metaDescriptionLength = (state.metaDescription ?? "").trim().length;
   const isChapterOwner = state.ownerType === "chapter";
@@ -165,12 +175,7 @@ export function SeoMetaDialog({
     const ownerSlug = option?.slug?.trim() ?? "";
     setChapterSlugMissing(Boolean(option?.slugMissing));
     setState((prev) => (prev.slug === ownerSlug ? prev : { ...prev, slug: ownerSlug }));
-    setErrors((prev) => {
-      if (!prev.slug) return prev;
-      const next = { ...prev };
-      delete next.slug;
-      return next;
-    });
+    validation.clearFieldError("slug");
   }
 
   function validateClient(): FieldErrors {
@@ -226,14 +231,16 @@ export function SeoMetaDialog({
       }
     }
 
-    if (formErrors.length > 0) next.form = toArabicMsg(String(formErrors[0]));
-    if (Object.keys(next).length > 0) setErrors(next);
+    validation.reportErrors({
+      fieldErrors: next,
+      formError: formErrors.length > 0 ? toArabicMsg(String(formErrors[0])) : undefined,
+    });
   }
 
   function submit() {
     const clientErrors = validateClient();
     if (Object.keys(clientErrors).length > 0) {
-      setErrors(clientErrors);
+      validation.reportErrors({ fieldErrors: clientErrors });
       toast({
         title: "تحقق من الحقول",
         description: "يرجى تصحيح الأخطاء الظاهرة أسفل الحقول.",
@@ -291,15 +298,21 @@ export function SeoMetaDialog({
           <DialogDescription>قم بتعبئة معلومات الميتا الخاصة بالصفحة (العناوين، الوصف، الروابط، إلخ).</DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-4">
-          {errors.form ? (
-            <div className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
-              {errors.form}
-            </div>
-          ) : null}
+        <form
+          id="seo-meta-form"
+          ref={validation.formRef}
+          className="grid gap-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            submit();
+          }}
+        >
+          <SeoImportPanel onApply={applyImportedFields} />
+
+          <AdminFormErrorSummary message={validation.formError} />
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="md:col-span-2">
+            <div className="md:col-span-2" tabIndex={-1} {...validation.getFieldProps("ownerId")}>
               <SeoOwnerSelector
                 ownerType={state.ownerType}
                 ownerId={state.ownerId}
@@ -315,7 +328,7 @@ export function SeoMetaDialog({
             <div className="space-y-2">
               <Label>اللغة</Label>
               <Select value={state.locale} onValueChange={(value) => updateField("locale", value)}>
-                <SelectTrigger>
+                <SelectTrigger {...validation.getFieldProps("locale")}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -326,7 +339,7 @@ export function SeoMetaDialog({
                   ))}
                 </SelectContent>
               </Select>
-              <ErrorText text={errors.locale} />
+              <ErrorText text={validation.fieldErrors.locale} />
             </div>
           </div>
 
@@ -339,6 +352,7 @@ export function SeoMetaDialog({
               readOnly={isOwnerSlugReadOnly}
               aria-readonly={isOwnerSlugReadOnly}
               className={isOwnerSlugReadOnly ? "bg-muted/50" : undefined}
+              {...validation.getFieldProps("slug")}
             />
             {isChapterOwner ? (
               <p className="text-xs leading-relaxed text-muted-foreground">
@@ -352,17 +366,21 @@ export function SeoMetaDialog({
                 رابط الكلية يُدار من صفحة الكليات ويُستخدم هنا تلقائيًا لمنع اختلاف رابط الصفحة عن بيانات SEO.
               </p>
             ) : null}
-            <ErrorText text={errors.slug} />
+            <ErrorText text={validation.fieldErrors.slug} />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Meta Title</Label>
-              <Input value={state.metaTitle ?? ""} onChange={(e) => updateField("metaTitle", e.target.value)} />
+              <Input
+                value={state.metaTitle ?? ""}
+                onChange={(e) => updateField("metaTitle", e.target.value)}
+                {...validation.getFieldProps("metaTitle")}
+              />
               <p className="text-xs text-muted-foreground arabic-numbers">
                 عنوان واضح وغير مكرر. الطول الحالي: {metaTitleLength}/160
               </p>
-              <ErrorText text={errors.metaTitle} />
+              <ErrorText text={validation.fieldErrors.metaTitle} />
             </div>
             <div className="space-y-2">
               <Label>Meta Description</Label>
@@ -370,19 +388,24 @@ export function SeoMetaDialog({
                 value={state.metaDescription ?? ""}
                 onChange={(e) => updateField("metaDescription", e.target.value)}
                 rows={3}
+                {...validation.getFieldProps("metaDescription")}
               />
               <p className="text-xs text-muted-foreground arabic-numbers">
                 وصف مختصر ومقنع بدون حشو كلمات مفتاحية. الطول الحالي: {metaDescriptionLength}/320
               </p>
-              <ErrorText text={errors.metaDescription} />
+              <ErrorText text={validation.fieldErrors.metaDescription} />
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>OG Title</Label>
-              <Input value={state.ogTitle ?? ""} onChange={(e) => updateField("ogTitle", e.target.value)} />
-              <ErrorText text={errors.ogTitle} />
+              <Input
+                value={state.ogTitle ?? ""}
+                onChange={(e) => updateField("ogTitle", e.target.value)}
+                {...validation.getFieldProps("ogTitle")}
+              />
+              <ErrorText text={validation.fieldErrors.ogTitle} />
             </div>
             <div className="space-y-2">
               <Label>OG Description</Label>
@@ -390,8 +413,9 @@ export function SeoMetaDialog({
                 value={state.ogDescription ?? ""}
                 onChange={(e) => updateField("ogDescription", e.target.value)}
                 rows={3}
+                {...validation.getFieldProps("ogDescription")}
               />
-              <ErrorText text={errors.ogDescription} />
+              <ErrorText text={validation.fieldErrors.ogDescription} />
             </div>
           </div>
 
@@ -402,8 +426,9 @@ export function SeoMetaDialog({
                 value={state.ogImageUrl ?? ""}
                 onChange={(e) => updateField("ogImageUrl", e.target.value)}
                 placeholder="https://..."
+                {...validation.getFieldProps("ogImageUrl")}
               />
-              <ErrorText text={errors.ogImageUrl} />
+              <ErrorText text={validation.fieldErrors.ogImageUrl} />
             </div>
             <div className="space-y-2">
               <Label>Canonical URL</Label>
@@ -411,8 +436,9 @@ export function SeoMetaDialog({
                 value={state.canonicalUrl ?? ""}
                 onChange={(e) => updateField("canonicalUrl", e.target.value)}
                 placeholder="https://..."
+                {...validation.getFieldProps("canonicalUrl")}
               />
-              <ErrorText text={errors.canonicalUrl} />
+              <ErrorText text={validation.fieldErrors.canonicalUrl} />
             </div>
           </div>
 
@@ -448,19 +474,20 @@ export function SeoMetaDialog({
               value={state.schemaJson ?? ""}
               onChange={(e) => updateField("schemaJson", e.target.value)}
               placeholder='{"@context": "https://schema.org", "@type": "Article"}'
+              {...validation.getFieldProps("schemaJson")}
             />
-            <ErrorText text={errors.schemaJson} />
+            <ErrorText text={validation.fieldErrors.schemaJson} />
           </div>
 
           <div className="flex justify-end gap-2 pt-2">
-            <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>
               إلغاء
             </Button>
-            <Button onClick={submit} disabled={isPending}>
+            <Button type="submit" disabled={isPending}>
               {isPending ? "جاري الحفظ..." : isEdit ? "تحديث" : "حفظ"}
             </Button>
           </div>
-        </div>
+        </form>
       </DialogContent>
     </Dialog>
   );

@@ -1,5 +1,5 @@
 // src/components/admin/questions/questions-table.tsx
-import { adminApiFetch } from "@/lib/server/admin-api-fetch";
+import { listAdminQuestions } from "@/lib/server/admin-editorial-lists";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -42,12 +42,6 @@ type QuestionRow = {
 interface PaginationMeta { page: number; pageSize: number; total: number; totalPages: number }
 interface ListResponse { data: QuestionRow[]; pagination: PaginationMeta }
 
-function buildQuery(params: Record<string, string | number | undefined>) {
-  const usp = new URLSearchParams();
-  Object.entries(params).forEach(([k, v]) => { if (v !== undefined) usp.set(k, String(v)); });
-  return usp.toString();
-}
-
 async function fetchQuestions(args: {
   page: number;
   pageSize: number;
@@ -58,15 +52,16 @@ async function fetchQuestions(args: {
   subjectId?: string;
   chapterId?: string;
 }): Promise<ListResponse> {
-  const qs = buildQuery(args);
-  const res = await adminApiFetch(`/api/v1/admin/questions?${qs}`, {
-    next: { revalidate: 3600, tags: ["questions"] },
+  return listAdminQuestions({
+    page: String(args.page),
+    pageSize: String(args.pageSize),
+    query: args.query,
+    universityId: args.universityId,
+    collegeId: args.collegeId,
+    majorId: args.majorId,
+    subjectId: args.subjectId,
+    chapterId: args.chapterId,
   });
-  if (!res.ok) {
-    const body = await res.text().catch(() => "");
-    throw new Error(body || "فشل تحميل الأسئلة");
-  }
-  return (await res.json()) as ListResponse;
 }
 
 const questionTypeIcons = {

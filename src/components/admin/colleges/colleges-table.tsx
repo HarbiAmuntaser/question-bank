@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { adminApiFetch } from "@/lib/server/admin-api-fetch";
+import { listAdminColleges } from "@/lib/server/admin-content-lists";
 import { CollegeActions } from "./college-actions";
 
 type CollegeRow = {
@@ -39,12 +39,12 @@ export async function CollegesTable({
   const page = Number(searchParams.page ?? 1) || 1;
   const query = searchParams.query ?? "";
   const universityId = searchParams.universityId || undefined;
-  const params = new URLSearchParams({ page: String(page), pageSize: "10", query });
-  if (universityId) params.set("universityId", universityId);
-
-  const response = await adminApiFetch(`/api/v1/admin/colleges?${params}`, { cache: "no-store" });
-  if (!response.ok) throw new Error("failed_to_load_colleges");
-  const { data, pagination } = (await response.json()) as ListResponse;
+  const { data, pagination } = (await listAdminColleges({
+    page: String(page),
+    pageSize: "10",
+    query,
+    universityId,
+  })) as ListResponse;
 
   return (
     <div className="space-y-4">

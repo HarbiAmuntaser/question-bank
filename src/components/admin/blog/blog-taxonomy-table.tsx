@@ -4,7 +4,7 @@ import { AdminTableShell } from "@/components/admin/admin-table-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { adminApiFetch } from "@/lib/server/admin-api-fetch";
+import { listAdminBlogTaxonomy } from "@/lib/server/admin-editorial-lists";
 
 import { BlogPagination } from "./blog-pagination";
 import { BlogTaxonomyActions } from "./blog-taxonomy-actions";
@@ -72,16 +72,8 @@ function formatDate(value: string) {
 }
 
 async function fetchTaxonomy(kind: BlogTaxonomyKind, searchParams?: BlogSearchParams) {
-  const meta = tableMeta[kind];
   const qs = buildQuery(kind, searchParams);
-  const res = await adminApiFetch(`${meta.endpoint}?${qs}`, { cache: "no-store" });
-
-  if (!res.ok) {
-    const body = await res.text().catch(() => "");
-    throw new Error(body || `فشل تحميل ${meta.title}`);
-  }
-
-  return (await res.json()) as BlogTaxonomyListResponse;
+  return listAdminBlogTaxonomy(kind, Object.fromEntries(new URLSearchParams(qs))) as Promise<BlogTaxonomyListResponse>;
 }
 
 function BlogTaxonomyErrorState({
