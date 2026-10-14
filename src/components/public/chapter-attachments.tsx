@@ -1,4 +1,4 @@
-import { Download, FileText } from "lucide-react";
+import { ExternalLink, FileText } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { chapterAttachmentPurposeLabels } from "@/lib/chapter-attachments";
@@ -45,11 +45,11 @@ export function ChapterAttachments({
               </div>
               <Button asChild variant="outline" className="h-10 w-full sm:w-auto">
                 <a
-                  href={`/api/v1/student/chapters/${chapterId}/attachments/${attachment.id}`}
+                  href={`/pdf-viewer/chapter/${chapterId}/${attachment.id}`}
                   target="_blank"
                   rel="noreferrer"
                 >
-                  <Download className="ml-2 h-4 w-4" aria-hidden />
+                  <ExternalLink className="ml-2 h-4 w-4" aria-hidden />
                   فتح الملف
                 </a>
               </Button>

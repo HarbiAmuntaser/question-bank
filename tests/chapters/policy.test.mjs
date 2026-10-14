@@ -91,10 +91,7 @@ test("Admin upload and delete routes enforce chapter policy and invalidate chapt
 
 test("Public chapter metadata excludes storage details and download is access checked", () => {
   const loader = readFileSync("src/lib/server/subject-chapters.ts", "utf8");
-  const download = readFileSync(
-    "src/app/api/v1/student/chapters/[chapterId]/attachments/[attachmentId]/route.ts",
-    "utf8",
-  );
+  const source = readFileSync("src/lib/server/pdf-viewer.ts", "utf8");
 
   const selectStart = loader.indexOf("const attachmentRows");
   const selectEnd = loader.indexOf("const attachments", selectStart);
@@ -104,71 +101,24 @@ test("Public chapter metadata excludes storage details and download is access ch
   assert.ok(!attachmentSelect.includes("storageKey: true"));
   assert.ok(!attachmentSelect.includes("bucket: true"));
   assert.ok(!attachmentSelect.includes("url: true"));
-  assert.match(download, /checkScopeAccess\([\s\S]*subjectId: chapter\.subjectId[\s\S]*guestSessionToken:/);
-  assert.ok(download.includes("createPresignedGetUrl"));
-  assert.ok(download.includes(`visibility: "private"`));
-  assert.ok(download.includes(`storageProvider: "r2"`));
-  assert.ok(download.includes("CACHE_CONTROL.PRIVATE_NO_STORE"));
+  assert.match(source, /checkScopeAccess\([\s\S]*subjectId: chapter\.subjectId[\s\S]*guestSessionToken:/);
+  assert.ok(source.includes("createPresignedGetUrl"));
+  assert.ok(source.includes(`visibility: "private"`));
+  assert.ok(source.includes(`storageProvider: "r2"`));
 });
 
-function downloadRouteHarness({ allowed }) {
-  const state = { signedCalls: 0, accessTokens: [] };
-  const prisma = {
-    chapter: {
-      findFirst: async () => ({ id: "11111111-1111-4111-8111-111111111111", subjectId: "subject-a" }),
-    },
-    attachment: {
-      findFirst: async () => ({
-        bucket: "private-bucket",
-        storageKey: "chapters/attachments/file.pdf",
-        meta: { purpose: "chapter-question-bank" },
-      }),
-    },
-  };
-  const load = moduleLoader({
-    "@/lib/prisma": { prisma },
-    "@/lib/server/payment-scope": { publishedSubjectWhere: () => ({ isActive: true }) },
-    "@/lib/server/access-control": {
-      checkScopeAccess: async (input) => { state.accessTokens.push(input.guestSessionToken); return { allowed }; },
-    },
-    "@/lib/server/code-access-cookie": { guestAccessTokenFromRequest: () => "A".repeat(43) },
-    "@/lib/server/storage": {
-      createPresignedGetUrl: async () => {
-        state.signedCalls += 1;
-        return "https://signed.example/file.pdf";
-      },
-    },
-  });
-
-  return {
-    state,
-    route: load("src/app/api/v1/student/chapters/[chapterId]/attachments/[attachmentId]/route.ts"),
-  };
-}
-
-test("Protected Chapter PDF redirects only after access is allowed", async () => {
+test("legacy Chapter PDF links redirect to the protected viewer", async () => {
   const ids = {
     chapterId: "11111111-1111-4111-8111-111111111111",
     attachmentId: "22222222-2222-4222-8222-222222222222",
   };
-
-  const allowed = downloadRouteHarness({ allowed: true });
-  const allowedResponse = await allowed.route.GET(new Request("https://example.test"), {
+  const route = moduleLoader({})("src/app/api/v1/student/chapters/[chapterId]/attachments/[attachmentId]/route.ts");
+  const response = await route.GET(new Request("https://example.test"), {
     params: Promise.resolve(ids),
   });
-  assert.equal(allowedResponse.status, 302);
-  assert.equal(allowedResponse.headers.get("location"), "https://signed.example/file.pdf");
-  assert.match(allowedResponse.headers.get("cache-control"), /no-store/);
-  assert.equal(allowed.state.signedCalls, 1);
-  assert.deepEqual(allowed.state.accessTokens, ["A".repeat(43)]);
-
-  const denied = downloadRouteHarness({ allowed: false });
-  const deniedResponse = await denied.route.GET(new Request("https://example.test"), {
-    params: Promise.resolve(ids),
-  });
-  assert.equal(deniedResponse.status, 403);
-  assert.equal(denied.state.signedCalls, 0);
-  assert.deepEqual(denied.state.accessTokens, ["A".repeat(43)]);
+  assert.equal(response.status, 302);
+  assert.equal(response.headers.get("location"), `https://example.test/pdf-viewer/chapter/${ids.chapterId}/${ids.attachmentId}`);
+  assert.match(response.headers.get("cache-control"), /no-store/);
 });
 
 test("Chapter extensions remain outside Payment Scope, SEO ownership and public routes", () => {

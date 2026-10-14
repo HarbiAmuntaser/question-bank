@@ -234,8 +234,10 @@ test("all protected runtime entry points forward the guest token and keep signed
     "src/app/api/v1/student/quizzes/by-id/[id]/route.ts": [/checkQuizAccess\(\{ quizId: id, guestSessionToken:/],
     "src/app/api/v1/student/quizzes/by-id-context/[id]/route.ts": [/checkQuizAccess\(\{ quizId: id, guestSessionToken:/],
     "src/app/api/v1/student/quizzes/grade/route.ts": [/checkQuizAccess\(\{ quizId, guestSessionToken:/],
-    "src/app/api/v1/student/summaries/[id]/pdf/route.ts": [/checkStudySummaryAccess\([\s\S]*guestSessionToken:/],
-    "src/app/api/v1/student/chapters/[chapterId]/attachments/[attachmentId]/route.ts": [/checkScopeAccess\([\s\S]*guestSessionToken:/],
+    "src/lib/server/pdf-viewer.ts": [
+      /checkStudySummaryAccess\([\s\S]*guestSessionToken:/,
+      /checkScopeAccess\([\s\S]*guestSessionToken:/,
+    ],
     "src/components/public/study-summaries/study-summary-details.tsx": [/guestAccessTokenFromServerCookies/, /getPublishedStudySummaryContent\(summary\.id, guestSessionToken\)/],
   };
   for (const [file, patterns] of Object.entries(expected)) {
@@ -243,13 +245,8 @@ test("all protected runtime entry points forward the guest token and keep signed
     for (const pattern of patterns) assert.match(source, pattern, `${file}: ${pattern}`);
   }
 
-  for (const file of [
-    "src/app/api/v1/student/summaries/[id]/pdf/route.ts",
-    "src/app/api/v1/student/chapters/[chapterId]/attachments/[attachmentId]/route.ts",
-  ]) {
-    const source = readFileSync(file, "utf8");
-    assert.ok(source.indexOf("if (!access.allowed)") < source.indexOf("await createPresignedGetUrl"), file);
-  }
+  const source = readFileSync("src/lib/server/pdf-viewer.ts", "utf8");
+  assert.ok(source.indexOf("if (!access.allowed)") < source.indexOf("sourceForAttachment(attachment)"));
 });
 
 test("runtime ignores the retired code-plan allowlist and exposes neither guest tokens nor raw errors", () => {

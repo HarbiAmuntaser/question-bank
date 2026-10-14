@@ -84,6 +84,10 @@ export function evaluateClosedReadiness(env = process.env) {
   const secretReady = authSecret.length >= 32 && !/^(test|change|replace|secret|example)/i.test(authSecret);
   add("auth_secret", secretReady ? "pass" : "fail", "NEXTAUTH_SECRET must be a non-placeholder secret of at least 32 characters.");
 
+  const watermarkSecret = value(env, "DOCUMENT_WATERMARK_SECRET");
+  const watermarkSecretReady = watermarkSecret.length >= 32 && !/^(test|change|replace|secret|example)/i.test(watermarkSecret);
+  add("document_watermark_secret", watermarkSecretReady ? "pass" : "fail", "DOCUMENT_WATERMARK_SECRET must be a non-placeholder secret of at least 32 characters.");
+
   const googleEnabled = value(env, "GOOGLE_AUTH_ENABLED") === "true";
   const googleReady = !googleEnabled || Boolean(value(env, "GOOGLE_CLIENT_ID") && value(env, "GOOGLE_CLIENT_SECRET"));
   add("google_oauth_configuration", googleReady ? "pass" : "fail", "Enabled Google authentication requires both GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.");

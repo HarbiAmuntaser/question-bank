@@ -7,13 +7,15 @@ const url = new URL(process.env.P2_TEST_DATABASE_URL);
 assert.equal(url.hostname, "127.0.0.1"); assert.equal(url.pathname, "/p2_test");
 const queries = [];
 const prisma = new PrismaClient({ datasourceUrl: url.href, log: [{ emit: "event", level: "query" }] });
+process.env.DOCUMENT_WATERMARK_SECRET = "payments-integration-watermark-secret-32-bytes";
 prisma.$on("query", (event) => queries.push(event.query));
 let actorId = f.alice;
 function forUser(getId) {
   return moduleLoader({ "@/lib/prisma": { prisma }, "@/lib/auth-helpers": { getCurrentUser: async () => {
     const userId = getId(); return userId ? prisma.user.findUnique({ where: { id: userId } }) : null;
   } }, "next/cache": { unstable_cache: (fn) => fn },
-    "@/lib/server/storage": { createPresignedGetUrl: async () => "https://private.example.test/short-lived-signature" } });
+    "@/lib/server/storage": { createPresignedGetUrl: async () => "https://private.example.test/short-lived-signature" },
+    "@/lib/server/storage/config": { getR2StorageConfig: () => ({ signedUrlTtlSeconds: 300 }) } });
 }
 const load = forUser(() => actorId);
 const access = load("src/lib/server/access-control.ts");
@@ -113,10 +115,10 @@ try {
   await check("HTML and private PDF delivery enforce the same entitlement after R3 cleanup", async () => {
     const content = load("src/lib/server/study-summaries.ts");
     assert.ok((await content.getPublishedStudySummaryContent(f.saSummary)).contentHtml);
-    const pdf = load("src/app/api/v1/student/summaries/[id]/pdf/route.ts");
-    const req = new Request(`${origin}/api/v1/student/summaries/${f.saSummary}/pdf`);
+    const pdf = load("src/app/api/v1/student/pdf-viewer/summaries/[id]/route.ts");
+    const req = new Request(`${origin}/api/v1/student/pdf-viewer/summaries/${f.saSummary}`);
     const params = { params: Promise.resolve({ id: f.saSummary }) };
-    assert.equal((await pdf.GET(req, params)).status, 302);
+    assert.equal((await pdf.GET(req, params)).status, 200);
     actorId = f.unverified;
     assert.equal(await content.getPublishedStudySummaryContent(f.saSummary), null);
     assert.equal((await pdf.GET(req, params)).status, 403);

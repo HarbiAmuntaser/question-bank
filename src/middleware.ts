@@ -19,7 +19,7 @@ const LEGACY_PUBLIC_HOSTS = new Set(["question-bank-ebon.vercel.app"]);
 function applySecurityHeaders(res: NextResponse) {
   res.headers.set("X-Content-Type-Options", "nosniff");
   res.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
-  res.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  res.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=(), display-capture=()");
   res.headers.set("X-Frame-Options", "SAMEORIGIN");
   if (process.env.VERCEL_ENV === "preview") {
     res.headers.set("X-Robots-Tag", "noindex, nofollow, noarchive");
@@ -191,6 +191,15 @@ export default function middleware(req: NextRequest) {
     res.headers.set("Cache-Control", "private, no-store");
     res.headers.set("Referrer-Policy", "no-referrer");
     res.headers.set("X-Robots-Tag", "noindex, nofollow");
+    return res;
+  }
+
+  if (req.nextUrl.pathname === "/pdf-viewer" || req.nextUrl.pathname.startsWith("/pdf-viewer/")) {
+    const res = NextResponse.next();
+    applySecurityHeaders(res);
+    res.headers.set("Cache-Control", "private, no-store");
+    res.headers.set("Referrer-Policy", "no-referrer");
+    res.headers.set("X-Robots-Tag", "noindex, nofollow, noarchive");
     return res;
   }
 

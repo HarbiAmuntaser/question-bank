@@ -100,7 +100,7 @@ try {
     }
     assert.deepEqual(statusRequests, []); guestPage.off("request", track);
     assert.equal((await guest.request.get(`/api/v1/student/quizzes/by-id/${f.hiddenQuiz}`)).status(), 404);
-    assert.equal((await guest.request.get(`/api/v1/student/summaries/${f.draft}/pdf`)).status(), 404);
+    assert.equal((await guest.request.get(`/api/v1/student/pdf-viewer/summaries/${f.draft}`)).status(), 404);
   });
   const admin = await browser.newContext({ baseURL: origin });
   const adminPage = await newPage(admin);
@@ -177,7 +177,7 @@ try {
     assert.equal((await unrelated.request.get(`/api/v1/student/quizzes/by-id/${f.paid}`)).status(), 403);
     assert.equal((await unrelated.request.get("/api/v1/admin/users")).status(), 403);
     assert.equal((await unrelated.request.post("/api/v1/student/quizzes/grade", { data: { quizId: f.paid, answers: {} } })).status(), 403);
-    assert.equal((await unrelated.request.get(`/api/v1/student/summaries/${f.saSummary}/pdf`)).status(), 403);
+    assert.equal((await unrelated.request.get(`/api/v1/student/pdf-viewer/summaries/${f.saSummary}`)).status(), 403);
     const paidPage = await unrelatedPage.goto(`/quiz/${f.paid}`);
     assert.equal((await paidPage.text()).includes("PROTECTED SA university"), false);
     await prisma.user.update({ where: { id: f.alice }, data: { sessionVersion: { increment: 1 } } });

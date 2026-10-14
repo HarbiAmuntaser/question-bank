@@ -349,7 +349,7 @@ function QuestionReviewGuidance({ question }: { question: ReviewQuestion }) {
     const href = summaryTopicHref(summary.href, topic);
     const pdfHref =
       page && summary.hasPdf
-        ? `/api/v1/student/summaries/${encodeURIComponent(summary.id)}/pdf?page=${page}`
+        ? `/pdf-viewer/summary/${encodeURIComponent(summary.id)}?page=${page}`
         : null;
 
     return (

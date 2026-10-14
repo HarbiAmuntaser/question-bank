@@ -211,63 +211,22 @@ test("Each Final Quiz question resolves its own published Summary target", () =>
   assert.equal(review.publicQuestionReviewData(unpublished).reviewSummary, null);
 });
 
-function pdfRouteHarness({ allowed = true } = {}) {
-  const state = { signedCalls: 0 };
-  const prisma = {
-    studySummary: {
-      findUnique: async () => ({
-        id: summaryId,
-        status: "published",
-        publishedAt: new Date("2026-09-01T00:00:00Z"),
-        subjectId: "subject-a",
-        chapterId,
-        pdfAttachmentId: attachmentId,
-        pdfAttachment: privatePdf(),
-        subject: { majorId: "major-a" },
-        chapter: { id: chapterId },
-      }),
-    },
-  };
-  const load = moduleLoader({
-    "@/lib/prisma": { prisma },
-    "@/lib/server/public-content-visibility": { isPublicStudySummaryId: async () => true },
-    "@/lib/server/access-control": {
-      checkStudySummaryAccess: async () => ({ allowed, effectiveAccessType: "paid" }),
-    },
-    "@/lib/server/storage": {
-      createPresignedGetUrl: async () => {
-        state.signedCalls += 1;
-        return "https://signed.example/reference.pdf?signature=safe";
-      },
-    },
-  });
-
-  return {
-    state,
-    route: load("src/app/api/v1/student/summaries/[id]/pdf/route.ts"),
-  };
-}
-
-test("PDF page redirect is best-effort and still access checked", async () => {
-  const allowed = pdfRouteHarness();
-  const response = await allowed.route.GET(
+test("legacy PDF page links redirect to the protected viewer and preserve the page", async () => {
+  const route = moduleLoader({})("src/app/api/v1/student/summaries/[id]/pdf/route.ts");
+  const response = await route.GET(
     new Request(`https://example.test/api/v1/student/summaries/${summaryId}/pdf?page=8`),
     { params: Promise.resolve({ id: summaryId }) },
   );
   assert.equal(response.status, 302);
   assert.equal(
     response.headers.get("location"),
-    "https://signed.example/reference.pdf?signature=safe#page=8",
+    `https://example.test/pdf-viewer/summary/${summaryId}?page=8`,
   );
-  assert.equal(allowed.state.signedCalls, 1);
-
-  const denied = pdfRouteHarness({ allowed: false });
-  const deniedResponse = await denied.route.GET(
-    new Request(`https://example.test/api/v1/student/summaries/${summaryId}/pdf?page=8`),
+  const invalid = await route.GET(
+    new Request(`https://example.test/api/v1/student/summaries/${summaryId}/pdf?page=invalid`),
     { params: Promise.resolve({ id: summaryId }) },
   );
-  assert.equal(deniedResponse.status, 403);
-  assert.equal(denied.state.signedCalls, 0);
+  assert.equal(invalid.status, 400);
 });
 
 test("Detailed target stays in Wrong Answers Review and PDF mutations are guarded", () => {

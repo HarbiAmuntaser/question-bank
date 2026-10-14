@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ArrowRight, BookOpenText, Clock, Download, FileText, GraduationCap, Layers3, Lock, Star } from "lucide-react";
+import { ArrowRight, BookOpenText, Clock, FileText, GraduationCap, Layers3, Lock, Star } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -156,7 +156,7 @@ export async function StudySummaryDetails({
   )}/subjects/${encodeSlugPath(canonicalSubject)}`;
   const majorLink = `/${ccNorm}/${type}/universities/${encodeSlugPath(canonicalUni)}/majors/${encodeSlugPath(canonicalMajor)}`;
   const uniLink = `/${ccNorm}/${type}/universities/${encodeSlugPath(canonicalUni)}`;
-  const pdfDownloadHref = `/api/v1/student/summaries/${summary.id}/pdf`;
+  const pdfViewerHref = `/pdf-viewer/summary/${summary.id}`;
 
   return (
     <div className="space-y-6 lg:space-y-8">
@@ -279,8 +279,8 @@ export async function StudySummaryDetails({
           <div className="flex flex-col justify-center gap-3 sm:flex-row">
             {summary.hasPdf && access.allowed ? (
               <Button asChild className="h-11 rounded-lg sm:w-auto">
-                <a href={pdfDownloadHref} target="_blank" rel="noopener noreferrer" className="gap-2">
-                  <Download className="h-4 w-4" aria-hidden />
+                <a href={pdfViewerHref} target="_blank" rel="noopener noreferrer" className="gap-2">
+                  <FileText className="h-4 w-4" aria-hidden />
                   فتح ملف PDF
                 </a>
               </Button>

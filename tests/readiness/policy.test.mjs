@@ -16,6 +16,7 @@ const readyEnv = {
   PAYMENT_LAUNCH_PLAN_IDS: "[]",
   NEXTAUTH_URL: "https://mustawak.example",
   NEXTAUTH_SECRET: "r4-test-secret-with-more-than-32-characters",
+  DOCUMENT_WATERMARK_SECRET: "wm-test-secret-with-more-than-32-characters",
   DATABASE_URL: "postgresql://app:password@ep-r4-pooler.us-east-2.aws.neon.tech/app?sslmode=require",
   DIRECT_URL: "postgresql://migrator:password@ep-r4.us-east-2.aws.neon.tech/app?sslmode=require",
   SMTP_HOST: "smtp.example",
@@ -41,7 +42,7 @@ test("closed-state production preflight passes synthetic configuration without e
   assert.equal(report.externalVerificationRequired, true);
   assert.ok(report.manualGates.every((gate) => gate.status === "pending"));
   const serialized = JSON.stringify(report);
-  for (const secret of [readyEnv.NEXTAUTH_SECRET, readyEnv.DATABASE_URL, readyEnv.SMTP_PASSWORD, readyEnv.R2_SECRET_ACCESS_KEY]) {
+  for (const secret of [readyEnv.NEXTAUTH_SECRET, readyEnv.DOCUMENT_WATERMARK_SECRET, readyEnv.DATABASE_URL, readyEnv.SMTP_PASSWORD, readyEnv.R2_SECRET_ACCESS_KEY]) {
     assert.equal(serialized.includes(secret), false);
   }
 });

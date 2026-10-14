@@ -6,11 +6,13 @@ import { f } from "../payments/fixtures.mjs";
 const url = new URL(process.env.P2_TEST_DATABASE_URL);
 assert.equal(url.hostname, "127.0.0.1"); assert.equal(url.pathname, "/p2_test");
 const prisma = new PrismaClient({ datasourceUrl: url.href });
+process.env.DOCUMENT_WATERMARK_SECRET = "release-integration-watermark-secret-32-bytes";
 function loadFor(id) {
   const current = async () => id ? prisma.user.findUnique({ where: { id } }) : null;
   return moduleLoader({ "@/lib/prisma": { prisma }, "@/lib/auth-helpers": { getCurrentUser: current },
     "next/cache": { unstable_cache: (fn) => fn },
     "@/lib/server/storage": { createPresignedGetUrl: async () => "https://private.example.test/r1-signed" },
+    "@/lib/server/storage/config": { getR2StorageConfig: () => ({ signedUrlTtlSeconds: 300 }) },
     "@/lib/auth": { authOptions: {} }, "next-auth": { getServerSession: async () => { const user = await current(); return user ? { user } : null; } } });
 }
 const admin = loadFor("legacy-admin"); const reviews = admin("src/lib/server/payment-reviews.ts");
@@ -73,10 +75,10 @@ try {
     for (const quizId of [f.paid, f.inherited]) assert.equal((await buyer.access.checkQuizAccess({ quizId })).reason, "entitled");
     assert.equal((await buyer.access.checkStudySummaryAccess({ summaryId: f.saSummary })).allowed, true);
     await prisma.attachment.update({ where: { id: `pdf-${f.saSummary}` }, data: { storageProvider: "r2", visibility: "private", bucket: "test", storageKey: "test.pdf" } });
-    const request = new Request(`${process.env.NEXTAUTH_URL}/api/v1/student/summaries/${f.saSummary}/pdf`);
+    const request = new Request(`${process.env.NEXTAUTH_URL}/api/v1/student/pdf-viewer/summaries/${f.saSummary}`);
     const params = { params: Promise.resolve({ id: f.saSummary }) };
-    assert.equal((await buyer.load("src/app/api/v1/student/summaries/[id]/pdf/route.ts").GET(request, params)).status, 302);
-    assert.equal((await other.load("src/app/api/v1/student/summaries/[id]/pdf/route.ts").GET(request, params)).status, 403);
+    assert.equal((await buyer.load("src/app/api/v1/student/pdf-viewer/summaries/[id]/route.ts").GET(request, params)).status, 200);
+    assert.equal((await other.load("src/app/api/v1/student/pdf-viewer/summaries/[id]/route.ts").GET(request, params)).status, 403);
     assert.ok((await buyer.load("src/lib/server/study-summaries.ts").getPublishedStudySummaryContent(f.saSummary)).contentHtml);
     assert.equal(await other.load("src/lib/server/study-summaries.ts").getPublishedStudySummaryContent(f.saSummary), null);
     assert.equal((await other.access.checkQuizAccess({ quizId: f.paid })).allowed, false);
