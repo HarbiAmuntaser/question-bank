@@ -4,7 +4,11 @@ import { SUPPORTED_COUNTRIES, type CountryCode, type InstitutionType } from "@/c
 import { prisma } from "@/lib/prisma";
 import { getCanonicalInstitutionCountry } from "@/lib/public/institution-routing";
 import { encodeSlugPath, stripPrefix } from "@/lib/public/slug-utils";
-import { BLOG_TOPIC_INDEX_MIN_POSTS, getSearchIndexingMode } from "@/lib/search-indexing";
+import {
+  BLOG_TOPIC_INDEX_MIN_POSTS,
+  getSearchIndexingMode,
+  isCanonicalSitemapUrl,
+} from "@/lib/search-indexing";
 import {
   getEnabledPublicTypes,
   isPublicInstitutionTypeEnabled,
@@ -32,7 +36,7 @@ function absoluteUrl(path: string) {
 function entry(path: string, input: Omit<SitemapEntry, "url"> = {}): SitemapEntry {
   return {
     url: absoluteUrl(path),
-    lastModified: input.lastModified ?? new Date(),
+    ...(input.lastModified ? { lastModified: input.lastModified } : {}),
     changeFrequency: input.changeFrequency,
     priority: input.priority,
   };
@@ -724,13 +728,14 @@ async function blogEntries(): Promise<SitemapEntry[]> {
           locale: "ar",
           ownerId: { in: posts.map((post) => post.id) },
         },
-        select: { ownerId: true, noindex: true },
+        select: { ownerId: true, noindex: true, canonicalUrl: true },
       })
     : [];
-  const noindexPostIds = new Set(seoRows.filter((seo) => seo.noindex).map((seo) => seo.ownerId));
+  const postSeo = new Map(seoRows.map((seo) => [seo.ownerId, seo]));
 
   return posts.flatMap((post) => {
-    if (noindexPostIds.has(post.id)) return [];
+    const seo = postSeo.get(post.id);
+    if (seo?.noindex) return [];
 
     const countries = post.visibility === "global"
       ? Object.keys(SUPPORTED_COUNTRIES)
@@ -738,13 +743,16 @@ async function blogEntries(): Promise<SitemapEntry[]> {
           .map((country) => supportedCountry(country.countryCode))
           .filter((cc): cc is CountryCode => Boolean(cc));
 
-    return countries.map((cc) =>
-      entry(`/${cc}/blog/${encodeURIComponent(post.slug)}`, {
+    return countries.flatMap((cc) => {
+      const path = `/${cc}/blog/${encodeURIComponent(post.slug)}`;
+      if (!isCanonicalSitemapUrl(path, seo?.canonicalUrl, SITE_URL)) return [];
+
+      return [entry(path, {
         lastModified: latestDate(post.updatedAt, post.publishedAt, post.createdAt),
         changeFrequency: "weekly",
         priority: 0.65,
-      }),
-    );
+      })];
+    });
   });
 }
 
@@ -808,10 +816,10 @@ async function blogTopicEntries(): Promise<SitemapEntry[]> {
           locale: "ar",
           ownerId: { in: topicIds },
         },
-        select: { ownerId: true, noindex: true },
+        select: { ownerId: true, noindex: true, canonicalUrl: true },
       })
     : [];
-  const noindexTopicIds = new Set(seoRows.filter((seo) => seo.noindex).map((seo) => seo.ownerId));
+  const topicSeo = new Map(seoRows.map((seo) => [seo.ownerId, seo]));
 
   const topicCountryMap = new Map<
     string,
@@ -840,7 +848,7 @@ async function blogTopicEntries(): Promise<SitemapEntry[]> {
           .filter((topic): topic is NonNullable<typeof post.primaryTopic> => Boolean(topic))
           .map((topic) => [topic.id, topic]),
       ).values(),
-    ).filter((topic) => !noindexTopicIds.has(topic.id));
+    ).filter((topic) => !topicSeo.get(topic.id)?.noindex);
 
     for (const topic of topics) {
       for (const cc of countries) {
@@ -868,13 +876,16 @@ async function blogTopicEntries(): Promise<SitemapEntry[]> {
 
   return Array.from(topicCountryMap.values())
     .filter((item) => item.postIds.size >= BLOG_TOPIC_INDEX_MIN_POSTS)
-    .map((item) =>
-      entry(`/${item.cc}/blog/topics/${encodeURIComponent(item.slug)}`, {
+    .flatMap((item) => {
+      const path = `/${item.cc}/blog/topics/${encodeURIComponent(item.slug)}`;
+      if (!isCanonicalSitemapUrl(path, topicSeo.get(item.topicId)?.canonicalUrl, SITE_URL)) return [];
+
+      return [entry(path, {
         lastModified: item.lastModified,
         changeFrequency: "weekly",
         priority: 0.55,
-      }),
-    );
+      })];
+    });
 }
 
 async function safeDynamicEntries(label: string, loader: () => Promise<SitemapEntry[]>) {
@@ -887,19 +898,18 @@ async function safeDynamicEntries(label: string, loader: () => Promise<SitemapEn
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const now = new Date();
   const indexingMode = getSearchIndexingMode();
   const staticEntries: MetadataRoute.Sitemap = [
     ...Object.keys(SUPPORTED_COUNTRIES).flatMap((cc) => [
-      entry(`/${cc}`, { lastModified: now, changeFrequency: "daily", priority: 0.9 }),
-      entry(`/${cc}/blog`, { lastModified: now, changeFrequency: "daily", priority: 0.7 }),
+      entry(`/${cc}`, { changeFrequency: "daily", priority: 0.9 }),
+      entry(`/${cc}/blog`, { changeFrequency: "daily", priority: 0.7 }),
     ]),
-    entry("/public/privacy", { lastModified: now, changeFrequency: "monthly", priority: 0.5 }),
-    entry("/public/terms", { lastModified: now, changeFrequency: "monthly", priority: 0.5 }),
-    entry("/public/cookies", { lastModified: now, changeFrequency: "monthly", priority: 0.4 }),
-    entry("/public/faq", { lastModified: now, changeFrequency: "monthly", priority: 0.5 }),
-    entry("/public/help", { lastModified: now, changeFrequency: "monthly", priority: 0.5 }),
-    entry("/public/contact", { lastModified: now, changeFrequency: "monthly", priority: 0.4 }),
+    entry("/public/privacy", { changeFrequency: "monthly", priority: 0.5 }),
+    entry("/public/terms", { changeFrequency: "monthly", priority: 0.5 }),
+    entry("/public/cookies", { changeFrequency: "monthly", priority: 0.4 }),
+    entry("/public/faq", { changeFrequency: "monthly", priority: 0.5 }),
+    entry("/public/help", { changeFrequency: "monthly", priority: 0.5 }),
+    entry("/public/contact", { changeFrequency: "monthly", priority: 0.4 }),
   ];
 
   const dynamicEntries = await Promise.all(

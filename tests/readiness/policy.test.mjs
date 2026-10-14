@@ -10,6 +10,7 @@ const readyEnv = {
   NODE_ENV: "production",
   STUDENT_REGISTRATION_ENABLED: "false",
   GOOGLE_AUTH_ENABLED: "false",
+  SEARCH_INDEXING_MODE: "blog_only",
   PAYMENT_V1_ENABLED: "false",
   PAYMENT_REVIEW_ENABLED: "false",
   PAYMENT_CODES_ENABLED: "false",
@@ -66,6 +67,19 @@ test("preflight fails closed for launch flags, unsafe origins, shared databases,
   }
 });
 
+test("preflight requires an explicit supported search indexing mode", () => {
+  for (const mode of ["blog_only", "full"]) {
+    const report = evaluateClosedReadiness({ ...readyEnv, SEARCH_INDEXING_MODE: mode });
+    assert.equal(report.checks.find((check) => check.id === "search_indexing_mode")?.status, "pass");
+  }
+
+  for (const mode of ["", "FULL", "enabled"]) {
+    const report = evaluateClosedReadiness({ ...readyEnv, SEARCH_INDEXING_MODE: mode });
+    assert.equal(report.automatedReady, false);
+    assert.equal(report.checks.find((check) => check.id === "search_indexing_mode")?.status, "fail");
+  }
+});
+
 test("runtime R2 config enforces HTTPS, separate buckets and short signed URLs", () => {
   const load = (env) => moduleLoader({}, { process: { env } })("src/lib/server/storage/config.ts");
   const valid = load(readyEnv).getR2StorageConfig();
@@ -103,5 +117,6 @@ test("R4 package commands remain read-only and keep every release switch closed 
     assert.match(example, new RegExp(`^${key}=false$`, "m"));
   }
   assert.match(example, /^PAYMENT_LAUNCH_PLAN_IDS=\[\]$/m);
+  assert.match(example, /^SEARCH_INDEXING_MODE=blog_only$/m);
   assert.doesNotMatch(example, /^PAYMENT_CODE_PLAN_IDS=/m);
 });

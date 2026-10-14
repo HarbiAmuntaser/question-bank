@@ -129,6 +129,13 @@ export function evaluateClosedReadiness(env = process.env) {
   const vercelEnv = value(env, "VERCEL_ENV");
   add("vercel_environment", !vercelEnv || vercelEnv === "production" ? "pass" : "fail", "When present, VERCEL_ENV must be production for this check.");
 
+  const searchIndexingMode = value(env, "SEARCH_INDEXING_MODE");
+  add(
+    "search_indexing_mode",
+    ["blog_only", "full"].includes(searchIndexingMode) ? "pass" : "fail",
+    "SEARCH_INDEXING_MODE must be explicitly set to blog_only or full.",
+  );
+
   const manualGates = [
     "neon_restore_rehearsal",
     "neon_least_privilege_review",
