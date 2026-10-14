@@ -87,7 +87,7 @@ async function screenshot(page, name, viewport) {
 }
 const post = (context, path, data) => context.request.post(path, { headers: { origin }, data });
 async function submitReview(page) {
-  await page.getByRole("button", { name: "إرسال للمراجعة", exact: true }).click();
+  await page.getByRole("button", { name: "تم التحويل، إرسال للمراجعة", exact: true }).click();
   await page.getByRole("button", { name: "تأكيد الإرسال", exact: true }).click();
   await page.getByText("بانتظار المراجعة", { exact: true }).waitFor();
 }
@@ -142,7 +142,7 @@ try {
     await page.goto(`/account/orders/new?planId=${f.plan}&planId=${plan2.id}`);
     await page.getByText("150.00 SAR", { exact: true }).waitFor();
     const response = page.waitForResponse((r) => r.url().endsWith("/api/v1/student/orders") && r.status() === 201);
-    await page.getByRole("button", { name: "تأكيد وإنشاء الطلب", exact: true }).click();
+    await page.getByRole("button", { name: /تأكيد وإنشاء الطلب/ }).click();
     const order = (await (await response).json()).data.order; id = order.id; reference = order.reference;
     await page.waitForURL(`${origin}/account/orders/${id}`, { waitUntil: "commit" });
     await submitReview(page);

@@ -80,7 +80,7 @@ try {
   await check("closed launch has no create form; verified student history remains private and readable", async () => {
     await signin(page, studentEmail, `/account/orders/new?planId=${f.plan}`);
     await page.getByText("إنشاء الطلبات غير متاح حاليًا.", { exact: true }).waitFor();
-    assert.equal(await page.getByRole("button", { name: "تأكيد وإنشاء الطلب" }).count(), 0);
+    assert.equal(await page.getByRole("button", { name: /تأكيد وإنشاء الطلب/ }).count(), 0);
     assert.equal((await post(student, "", {})).status(), 503);
     const response = await student.request.get("/api/v1/student/orders"); assert.equal(response.status(), 200);
     assert.match(response.headers()["cache-control"], /private.*no-store/);
@@ -118,11 +118,11 @@ try {
       return route.continue();
     });
     const countBefore = await prisma.paymentOrder.count();
-    await page.getByRole("button", { name: "تأكيد وإنشاء الطلب", exact: true }).click();
+    await page.getByRole("button", { name: /تأكيد وإنشاء الطلب/ }).click();
     await page.locator('main [role="alert"]').waitFor(); assert.equal(await prisma.paymentOrder.count(), countBefore);
     assert.equal(await page.locator('main a[target="_blank"]').count(), 0);
     const response = page.waitForResponse((r) => r.url().endsWith("/api/v1/student/orders") && r.status() === 201);
-    await page.getByRole("button", { name: "تأكيد وإنشاء الطلب", exact: true }).click();
+    await page.getByRole("button", { name: /تأكيد وإنشاء الطلب/ }).click();
     const saved = (await (await response).json()).data.order; orderId = saved.id; reference = saved.reference;
     await page.waitForURL(`${origin}/account/orders/${orderId}`);
     await page.getByRole("heading", { name: "تفاصيل الطلب", exact: true }).waitFor();
@@ -133,7 +133,7 @@ try {
     await screenshot(page, "p4-order-mobile", { width: 390, height: 844 });
   });
   await check("contact prepares an audited reference message after save, without treating it as a payment", async () => {
-    await page.getByRole("button", { name: "متابعة عبر واتساب", exact: true }).click();
+    await page.getByRole("button", { name: "فتح واتساب وإرسال التفاصيل", exact: true }).click();
     await page.getByRole("link", { name: "فتح واتساب", exact: true }).waitFor();
     const message = await page.locator("#order-contact-message").inputValue(); assert.ok(message.includes(reference)); assert.ok(message.includes("65.00 SAR"));
     assert.ok(!message.includes("alice")); assert.ok(!message.includes(f.alice));
@@ -166,14 +166,14 @@ try {
   await check("duplicate cart links to original order; cancellation updates history and prevents contact", async () => {
     await page.goto(`/account/orders/new?planId=${f.plan}&planId=${plan2.id}`);
     await page.getByText("65.00 SAR", { exact: true }).waitFor();
-    await page.getByRole("button", { name: "تأكيد وإنشاء الطلب", exact: true }).click();
+    await page.getByRole("button", { name: /تأكيد وإنشاء الطلب/ }).click();
     const existing = page.getByRole("link", { name: "عرض الطلب الموجود", exact: true }); await existing.waitFor();
     assert.equal(await existing.getAttribute("href"), `/account/orders/${orderId}`); await existing.click();
     await page.getByRole("button", { name: "إلغاء الطلب", exact: true }).click();
     await screenshot(page, "p4-cancel-mobile", { width: 390, height: 844 });
     await page.getByRole("button", { name: "تأكيد الإلغاء", exact: true }).click();
     await page.getByText("ملغي", { exact: true }).waitFor();
-    assert.equal(await page.getByRole("button", { name: "متابعة عبر واتساب", exact: true }).count(), 0);
+    assert.equal(await page.getByRole("button", { name: "فتح واتساب وإرسال التفاصيل", exact: true }).count(), 0);
     await page.getByRole("link", { name: "جميع الطلبات", exact: true }).click();
     await page.waitForURL(`${origin}/account/orders`);
     await page.getByRole("heading", { name: "طلبات الاشتراك", exact: true }).waitFor();

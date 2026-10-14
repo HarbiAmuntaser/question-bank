@@ -5,6 +5,7 @@ import { SubjectQuizzesSection } from "@/components/public/subject-chapters";
 import type { PublicQuizAccessItem } from "@/components/public/subscription-access";
 import { SubjectStudySummaries } from "@/components/public/study-summaries/subject-study-summaries";
 import { ChapterAttachments } from "@/components/public/chapter-attachments";
+import { ChapterContentTabs } from "@/components/public/chapter-content-tabs";
 import { ContextBackLink } from "@/components/public/context-back-link";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader } from "@/components/ui/card";
@@ -167,26 +168,30 @@ export async function ChapterDetails({
         </section>
       ) : null}
 
-      <SubjectStudySummaries
-        summaries={chapterSummaries}
-        basePath={subjectPath}
-        subjectId={subject.id}
-        majorId={subject.major.id}
-        heading="ملخصات الفصل"
-        description="ملخصات مرتبطة بهذا الفصل مباشرة."
-        headingId="chapter-summaries-heading"
+      <ChapterContentTabs
+        hasTests={chapterQuizzes.length > 0 || chapter.attachments.length > 0}
+        hasSummaries={chapterSummaries.length > 0}
+        tests={<>
+          <SubjectQuizzesSection
+            quizzes={chapterQuizzes}
+            subjectId={subject.id}
+            majorId={subject.major.id}
+            heading="اختبارات الفصل"
+            description="اختبارات تعتمد أسئلتها على هذا الفصل فقط."
+            headingId="chapter-quizzes-heading"
+          />
+          <ChapterAttachments chapterId={chapter.id} subjectId={subject.id} majorId={subject.major.id} attachments={chapter.attachments} />
+        </>}
+        summaries={<SubjectStudySummaries
+          summaries={chapterSummaries}
+          basePath={subjectPath}
+          subjectId={subject.id}
+          majorId={subject.major.id}
+          heading="ملخصات الفصل"
+          description="ملخصات مرتبطة بهذا الفصل مباشرة."
+          headingId="chapter-summaries-heading"
+        />}
       />
-
-      <SubjectQuizzesSection
-        quizzes={chapterQuizzes}
-        subjectId={subject.id}
-        majorId={subject.major.id}
-        heading="اختبارات الفصل"
-        description="اختبارات تعتمد أسئلتها على هذا الفصل فقط."
-        headingId="chapter-quizzes-heading"
-      />
-
-      <ChapterAttachments chapterId={chapter.id} attachments={chapter.attachments} />
 
       {!chapterSummaries.length && !chapterQuizzes.length && !chapter.attachments.length ? (
         <div className="rounded-lg border border-dashed px-4 py-10 text-center text-sm text-muted-foreground">

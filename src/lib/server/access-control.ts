@@ -9,6 +9,7 @@ import {
   publishedPaymentQuizWhere, publishedSubjectWhere, type PaymentSubject,
 } from "@/lib/server/payment-scope";
 import { hashGuestAccessToken, isGuestAccessToken } from "@/lib/server/subscription-code";
+import { openSubjectOrderWhere } from "@/lib/server/payment-order-access";
 
 export type StudySummaryAccessStatus = AccessStatus & {
   summaryId: string | null;
@@ -19,17 +20,29 @@ export type StudySummaryAccessStatus = AccessStatus & {
 export const accessPlanSelect = {
   id: true, scopeType: true, title: true, description: true, price: true, currency: true,
   whatsappNumber: true, telegramUsername: true, contactMessage: true, majorId: true, subjectId: true,
+  defaultDurationDays: true,
+  subject: { select: { name: true, major: { select: { name: true, college: { select: { name: true } },
+    university: { select: { name: true } } } } } },
 } satisfies Prisma.PaidAccessPlanSelect;
 
 export function serializeAccessPlan(plan: Prisma.PaidAccessPlanGetPayload<{ select: typeof accessPlanSelect }>): AccessPlan {
-  return { ...plan, scopeType: "subject", price: plan.price?.toString() ?? null };
+  return {
+    id: plan.id, scopeType: "subject", title: plan.title, description: plan.description,
+    price: plan.price?.toString() ?? null, currency: plan.currency,
+    whatsappNumber: plan.whatsappNumber, telegramUsername: plan.telegramUsername,
+    contactMessage: plan.contactMessage, majorId: plan.majorId, subjectId: plan.subjectId,
+    durationDays: plan.defaultDurationDays, subjectName: plan.subject?.name ?? null,
+    majorName: plan.subject?.major.name ?? null, collegeName: plan.subject?.major.college?.name ?? null,
+    universityName: plan.subject?.major.university.name ?? null,
+  };
 }
 
 function status(reason: AccessStatus["reason"], subject?: PaymentSubject | null): AccessStatus {
   const allowed = ["free", "free_preview", "no_paid_plan", "out_of_scope", "entitled"].includes(reason);
   return { allowed, reason, canPurchase: false, canRedeemCode: false, requiresSubscription: reason === "paid_access_required" || reason === "student_signin_required",
     scopeType: subject && isPaymentSubject(subject) ? "subject" : null,
-    subjectId: subject?.id ?? null, majorId: subject?.majorId ?? null, plan: null, entitlementId: null,
+    subjectId: subject?.id ?? null, majorId: subject?.majorId ?? null, plan: null, codePlan: null,
+    activeOrder: null, entitlementId: null,
     codeGrantId: null, accessSource: null, expiresAt: null };
 }
 
@@ -37,7 +50,8 @@ function status(reason: AccessStatus["reason"], subject?: PaymentSubject | null)
 function accessReader(guestSessionToken?: string | null) {
   let student: ReturnType<typeof getPaymentStudent> | undefined;
   const plans = new Map<string, ReturnType<typeof loadPlans>>();
-  const codePlans = new Map<string, Promise<boolean>>();
+  const codePlans = new Map<string, Promise<Prisma.PaidAccessPlanGetPayload<{ select: typeof accessPlanSelect }> | null>>();
+  const openOrders = new Map<string, ReturnType<typeof loadOpenOrder>>();
   const guestTokenHash = guestSessionToken && isGuestAccessToken(guestSessionToken)
     ? hashGuestAccessToken(guestSessionToken)
     : null;
@@ -61,11 +75,24 @@ function accessReader(guestSessionToken?: string | null) {
   }
   function codePlanFor(subjectId: string) {
     if (!codePlans.has(subjectId)) {
-      codePlans.set(subjectId, !paymentCodesEnabled() ? Promise.resolve(false) : prisma.paidAccessPlan.findFirst({
-        where: { ...paymentCodePlanEligibilityWhere(), isActive: true, subjectId, ...paymentPlanWhere() }, select: { id: true },
-      }).then(Boolean));
+      codePlans.set(subjectId, !paymentCodesEnabled() ? Promise.resolve(null) : prisma.paidAccessPlan.findFirst({
+        where: { ...paymentCodePlanEligibilityWhere(), isActive: true, subjectId, ...paymentPlanWhere() },
+        orderBy: [{ updatedAt: "desc" }, { id: "asc" }], select: accessPlanSelect,
+      }));
     }
     return codePlans.get(subjectId)!;
+  }
+  async function loadOpenOrder(userId: string, subjectId: string) {
+    return prisma.paymentOrder.findFirst({
+      where: openSubjectOrderWhere(userId, [subjectId]),
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      select: { id: true, reference: true, status: true },
+    });
+  }
+  function openOrderFor(userId: string, subjectId: string) {
+    const key = `${userId}:${subjectId}`;
+    if (!openOrders.has(key)) openOrders.set(key, loadOpenOrder(userId, subjectId));
+    return openOrders.get(key)!;
   }
   return async (subject: PaymentSubject, accessType: QuizAccessType, preview = false): Promise<AccessStatus> => {
     // Publication is checked by the resolver before reaching this payment-only policy.
@@ -74,8 +101,10 @@ function accessReader(guestSessionToken?: string | null) {
     if (preview) return status("free_preview", subject);
     const availablePlans = await plansFor(subject.id);
     if (accessType === "inherit" && !availablePlans.policy) return status("no_paid_plan", subject);
-    const options = { canPurchase: Boolean(availablePlans.commerce), canRedeemCode: await codePlanFor(subject.id),
-      plan: availablePlans.display ? serializeAccessPlan(availablePlans.display) : null };
+    const availableCodePlan = await codePlanFor(subject.id);
+    const options = { canPurchase: Boolean(availablePlans.commerce), canRedeemCode: Boolean(availableCodePlan),
+      plan: availablePlans.display ? serializeAccessPlan(availablePlans.display) : null,
+      codePlan: availableCodePlan ? serializeAccessPlan(availableCodePlan) : null };
     student ??= getPaymentStudent();
     const user = await student;
     const now = new Date();
@@ -97,7 +126,13 @@ function accessReader(guestSessionToken?: string | null) {
     if (source) return { ...status("entitled", subject), ...options, entitlementId: entitlement?.id ?? null,
       codeGrantId: grant?.id ?? null, accessSource: source, expiresAt: (entitlement?.expiresAt ?? grant?.expiresAt)?.toISOString() ?? null };
     if (!user && !guestTokenHash) return { ...status("student_signin_required", subject), ...options };
-    return { ...status(options.canPurchase || options.canRedeemCode ? "paid_access_required" : "payments_unavailable", subject), ...options };
+    const activeOrder = user ? await openOrderFor(user.id, subject.id) : null;
+    return { ...status(options.canPurchase || options.canRedeemCode ? "paid_access_required" : "payments_unavailable", subject),
+      ...options,
+      activeOrder: activeOrder && ["pending_payment", "pending_review", "awaiting_additional_payment"].includes(activeOrder.status)
+        ? { id: activeOrder.id, reference: activeOrder.reference,
+          status: activeOrder.status as "pending_payment" | "pending_review" | "awaiting_additional_payment" }
+        : null };
   };
 }
 

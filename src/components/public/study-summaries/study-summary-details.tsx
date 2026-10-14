@@ -244,14 +244,25 @@ export async function StudySummaryDetails({
               <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-lg bg-background text-amber-700 dark:text-amber-300">
                 <Lock className="h-5 w-5" aria-hidden />
               </div>
-              <h2 className="text-lg font-bold text-foreground">هذا الملخص يحتاج اشتراكًا</h2>
+              <h2 className="text-lg font-bold text-foreground">
+                {access.activeOrder?.status === "pending_review"
+                  ? "طلب الاشتراك قيد المراجعة"
+                  : access.activeOrder?.status === "awaiting_additional_payment"
+                    ? "الطلب بانتظار استكمال المبلغ"
+                    : access.activeOrder?.status === "pending_payment"
+                      ? "طلب الاشتراك بانتظار الدفع"
+                      : "هذا الملخص يحتاج اشتراكًا"}
+              </h2>
               <p className="mx-auto mt-2 max-w-2xl text-sm leading-7 text-muted-foreground">
-                يمكنك قراءة وصف الملخص ومعلوماته العامة، لكن المحتوى الكامل ورابط PDF لا يظهران إلا بعد تفعيل الوصول لهذا المتصفح.
+                {access.activeOrder
+                  ? "يمكنك متابعة الطلب الحالي من هنا. سيظهر المحتوى الكامل بعد توثيق الدفع واعتماد الإدارة."
+                  : "يمكنك قراءة وصف الملخص ومعلوماته العامة، لكن المحتوى الكامل ورابط PDF لا يظهران إلا بعد تفعيل الوصول لهذا المتصفح."}
               </p>
               <div className="mt-5 flex flex-col justify-center gap-3 sm:flex-row">
                 <StudySummarySubscribeButton
                   access={access}
                   targetTitle={summary.title}
+                  summaryId={summary.id}
                   subjectId={access.subjectId ?? subject.id}
                   majorId={access.majorId ?? subject.major.id}
                 />

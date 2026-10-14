@@ -1,14 +1,17 @@
 "use client";
 
+import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { Lock } from "lucide-react";
+import { useCallback, useState } from "react";
+import { Clock, Lock } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { AccessStatus } from "@/components/public/subscription-access";
 import type { SubscriptionGateDialogProps } from "@/components/public/subscription-gate-dialog";
+import { useSubscriptionReturn } from "@/components/public/use-subscription-return";
+import { subscriptionReturnKey } from "@/lib/subscription-return";
 
 const LazySubscriptionGateDialog = dynamic<SubscriptionGateDialogProps>(
   () => import("@/components/public/subscription-gate-dialog").then((mod) => mod.SubscriptionGateDialog),
@@ -27,6 +30,7 @@ const LazySubscriptionGateDialog = dynamic<SubscriptionGateDialogProps>(
 export function StudySummarySubscribeButton({
   access,
   targetTitle,
+  summaryId,
   subjectId,
   majorId,
   onRedeemed,
@@ -35,6 +39,7 @@ export function StudySummarySubscribeButton({
 }: {
   access: AccessStatus | null;
   targetTitle: string;
+  summaryId: string;
   subjectId?: string | null;
   majorId?: string | null;
   onRedeemed?: () => void;
@@ -44,6 +49,29 @@ export function StudySummarySubscribeButton({
   const [open, setOpen] = useState(false);
   const router = useRouter();
   const unavailable = access && ["payments_unavailable", "missing_context", "not_found"].includes(access.reason);
+  const returnKey = subscriptionReturnKey("summary", summaryId);
+  const matchesReturn = useCallback((value: string) => value === returnKey, [returnKey]);
+  const reopenDialog = useCallback(() => setOpen(true), []);
+  useSubscriptionReturn(matchesReturn, !disabled && Boolean(access), reopenDialog);
+
+  if (access?.activeOrder) {
+    const label = access.activeOrder.status === "pending_review"
+      ? "متابعة الطلب قيد المراجعة"
+      : access.activeOrder.status === "awaiting_additional_payment"
+        ? "استكمال الطلب"
+        : "متابعة طلب الاشتراك";
+    return (
+      <Button asChild variant="outline" className={cn(
+        "h-11 w-full rounded-lg gap-2 border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200 sm:w-auto",
+        className,
+      )}>
+        <Link href={`/account/orders/${encodeURIComponent(access.activeOrder.id)}`}>
+          <Clock className="h-4 w-4" aria-hidden />
+          {label}
+        </Link>
+      </Button>
+    );
+  }
 
   return (
     <>
@@ -74,6 +102,7 @@ export function StudySummarySubscribeButton({
           targetTitle={targetTitle}
           subjectId={subjectId ?? access?.subjectId ?? null}
           majorId={majorId ?? access?.majorId ?? null}
+          returnKey={returnKey}
           onRedeemed={onRedeemed ?? (() => router.refresh())}
         />
       ) : null}

@@ -18,6 +18,8 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import type { SubscriptionGateDialogProps } from "./subscription-gate-dialog";
 import type { AccessStatus } from "@/lib/payment-access";
+import { subscriptionReturnKey } from "@/lib/subscription-return";
+import { useSubscriptionReturn } from "./use-subscription-return";
 export type { AccessStatus } from "@/lib/payment-access";
 
 const listCardClass =
@@ -53,8 +55,20 @@ function accessStateLabel(quiz: Pick<PublicQuizAccessItem, "accessType" | "isFre
   if (quiz.accessType === "free") return "مجاني";
   if (quiz.isFreePreview) return "تجربة مجانية";
   if (access?.allowed) return access.reason === "entitled" ? "مشترك" : "مجاني";
+  if (access?.activeOrder?.status === "pending_review") return "قيد المراجعة";
+  if (access?.activeOrder?.status === "awaiting_additional_payment") return "بانتظار استكمال المبلغ";
+  if (access?.activeOrder?.status === "pending_payment") return "بانتظار الدفع";
   if (access?.reason === "payments_unavailable" || access?.reason === "missing_context") return "غير متاح حاليًا";
   return "يتطلب اشتراك";
+}
+
+function activeOrderActionLabel(access?: AccessStatus | null) {
+  switch (access?.activeOrder?.status) {
+    case "pending_review": return "متابعة الطلب قيد المراجعة";
+    case "awaiting_additional_payment": return "استكمال الطلب";
+    case "pending_payment": return "متابعة طلب الاشتراك";
+    default: return null;
+  }
 }
 
 function accessStateClass(label: string) {
@@ -80,7 +94,7 @@ export function QuizAccessBadges({
   loading?: boolean;
 }) {
   const label = accessStateLabel(quiz, access);
-  const Icon = label === "يتطلب اشتراك" ? Lock : label === "مشترك" ? Unlock : ShieldCheck;
+  const Icon = access?.activeOrder ? Clock : label === "يتطلب اشتراك" ? Lock : label === "مشترك" ? Unlock : ShieldCheck;
 
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -125,6 +139,10 @@ export function QuizAccessAction({
   onRedeemed: () => void;
 }) {
   const [open, setOpen] = useState(false);
+  const returnKey = subscriptionReturnKey("quiz", quiz.id);
+  const matchesReturn = useCallback((value: string) => value === returnKey, [returnKey]);
+  const reopenDialog = useCallback(() => setOpen(true), []);
+  useSubscriptionReturn(matchesReturn, !loading && Boolean(access), reopenDialog);
   const openByDefault = isOpenWithoutStatus(quiz);
   const allowed = openByDefault || access?.allowed;
   const isLocked = !allowed;
@@ -142,6 +160,18 @@ export function QuizAccessAction({
 
   if (access?.reason === "payments_unavailable" || access?.reason === "missing_context" || access?.reason === "not_found") {
     return <Button disabled className={actionButtonClass}><Lock className="h-4 w-4" aria-hidden />غير متاح حاليًا</Button>;
+  }
+
+  const orderLabel = activeOrderActionLabel(access);
+  if (access?.activeOrder && orderLabel) {
+    return (
+      <Button asChild variant="outline" className={cn(actionButtonClass, "border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200")}>
+        <Link href={`/account/orders/${encodeURIComponent(access.activeOrder.id)}`}>
+          <Clock className="h-4 w-4" aria-hidden />
+          {orderLabel}
+        </Link>
+      </Button>
+    );
   }
 
   return (
@@ -169,6 +199,7 @@ export function QuizAccessAction({
           quizId={quiz.id}
           subjectId={subjectId}
           majorId={majorId}
+          returnKey={returnKey}
           onRedeemed={onRedeemed}
         />
       ) : null}
@@ -262,7 +293,13 @@ export function SubjectQuizzesAccessGrid({
 
               {locked ? (
                 <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
-                  يتطلب اشتراكًا في المادة.
+                  {access?.activeOrder?.status === "pending_review"
+                    ? "طلبك قيد المراجعة، وسيظهر الوصول بعد اعتماد الإدارة."
+                    : access?.activeOrder?.status === "awaiting_additional_payment"
+                      ? "الطلب بانتظار استكمال المبلغ المطلوب."
+                      : access?.activeOrder?.status === "pending_payment"
+                        ? "لديك طلب اشتراك محفوظ بانتظار إكمال الدفع."
+                        : "يتطلب اشتراكًا في المادة."}
                 </p>
               ) : q.isFreePreview ? (
                 <p className="rounded-lg bg-[hsl(var(--brand-cyan)_/_0.08)] px-3 py-2 text-xs leading-relaxed text-[hsl(var(--brand-cyan))] dark:bg-[hsl(var(--brand-cyan)_/_0.14)]">

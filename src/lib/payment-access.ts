@@ -3,6 +3,17 @@ export type AccessPlan = {
   price: string | null; currency: string | null; whatsappNumber: string | null;
   telegramUsername: string | null; contactMessage: string | null;
   majorId: string | null; subjectId: string | null;
+  durationDays: number | null;
+  universityName: string | null;
+  collegeName: string | null;
+  majorName: string | null;
+  subjectName: string | null;
+};
+
+export type ActivePaymentOrder = {
+  id: string;
+  reference: string;
+  status: "pending_payment" | "pending_review" | "awaiting_additional_payment";
 };
 
 export type AccessStatus = {
@@ -16,6 +27,8 @@ export type AccessStatus = {
   majorId: string | null;
   subjectId: string | null;
   plan: AccessPlan | null;
+  codePlan: AccessPlan | null;
+  activeOrder: ActivePaymentOrder | null;
   entitlementId: string | null;
   codeGrantId: string | null;
   accessSource: "manual" | "account_code" | "guest_code" | null;

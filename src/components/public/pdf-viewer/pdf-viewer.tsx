@@ -42,7 +42,7 @@ type FindMatchesEvent = { matchesCount?: { current?: number; total?: number } };
 
 const errorMessages: Record<string, string> = {
   summary_pdf_access_denied: "لا تملك صلاحية فتح هذا الملف.",
-  chapter_attachment_access_denied: "لا تملك صلاحية فتح هذا الملف.",
+  chapter_attachment_access_denied: "يتطلب هذا الملف اشتراكًا فعالًا في المادة.",
   pdf_watermark_configuration_unavailable: "عارض الملفات المدفوعة غير متاح مؤقتًا.",
   pdf_watermark_principal_unavailable: "تعذر التحقق من هوية الوصول لهذا الملف.",
   summary_not_found: "الملخص غير موجود أو غير منشور.",

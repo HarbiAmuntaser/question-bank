@@ -7,7 +7,7 @@ function subject(countryCode = "SA", institutionType = "university") {
   return { id: f.sa, majorId: "real-major", isActive: true, major: { isActive: true, university: { isActive: true, countryCode, institutionType } } };
 }
 function harness({ country = "SA", type = "university", enabled = "true", accessType = "paid", preview = false,
-  identity = null, policyPlan = null, entitlement = null, accountGrant = null, guestGrant = null } = {}) {
+  identity = null, policyPlan = null, entitlement = null, accountGrant = null, guestGrant = null, activeOrder = null } = {}) {
   const counts = { auth: 0, plan: 0, entitlement: 0, accountGrant: 0, guestGrant: 0 };
   const data = subject(country, type);
   const prisma = {
@@ -21,6 +21,7 @@ function harness({ country = "SA", type = "university", enabled = "true", access
     accessEntitlement: { findFirst: async (query) => { counts.entitlement++; assert.equal(query.where.userId, identity.id); return entitlement; } },
     codeAccessGrant: { findFirst: async () => { counts.accountGrant++; return accountGrant; } },
     codeAccessSessionBinding: { findFirst: async () => { counts.guestGrant++; return guestGrant ? { grant: guestGrant } : null; } },
+    paymentOrder: { findFirst: async () => activeOrder },
   };
   const load = moduleLoader({ "@/lib/prisma": { prisma }, "@/lib/auth-helpers": { getCurrentUser: async () => { counts.auth++; return identity; } } },
     { process: { env: { PAYMENT_V1_ENABLED: enabled } } });
@@ -86,6 +87,23 @@ test("plan existence defines inherit policy while inactive commerce never remove
     guestGrant: { id: "guest-grant", expiresAt: new Date(Date.now() + 60_000) } });
   const guestAccess = await guest.access.checkQuizAccess({ quizId: "q", guestSessionToken: "A".repeat(43) });
   assert.equal(guestAccess.allowed, true); assert.equal(guestAccess.accessSource, "guest_code");
+});
+
+test("an open payment order is informational and never grants content access", async () => {
+  const plan = { id: "plan", scopeType: "subject", title: "Policy", description: null, price: "1", currency: "SAR",
+    whatsappNumber: null, telegramUsername: null, contactMessage: null, majorId: null, subjectId: f.sa, isActive: true };
+  const user = { id: "student", role: "student", isActive: true, emailVerified: new Date(), sessionVersion: 0 };
+  const h = harness({ identity: user, policyPlan: plan,
+    activeOrder: { id: "order", reference: "MW-TEST", status: "pending_review" } });
+  const access = await h.access.checkQuizAccess({ quizId: "q" });
+  assert.equal(access.allowed, false);
+  assert.equal(access.reason, "payments_unavailable");
+  assert.deepEqual(access.activeOrder, { id: "order", reference: "MW-TEST", status: "pending_review" });
+
+  const entitled = harness({ identity: user, policyPlan: plan,
+    entitlement: { id: "entitlement", expiresAt: new Date(Date.now() + 60_000) },
+    activeOrder: { id: "order", reference: "MW-TEST", status: "pending_review" } });
+  assert.equal((await entitled.access.checkQuizAccess({ quizId: "q" })).activeOrder, null);
 });
 test("payment schemas reject client authority and the retired manual-request schema is absent", () => {
   const schemas = moduleLoader()("src/validations/payment.ts");

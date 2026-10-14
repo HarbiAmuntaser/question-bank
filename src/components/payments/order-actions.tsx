@@ -14,14 +14,22 @@ export function OrderActions({ order }: { order: StudentOrder }) {
   const [copied, setCopied] = useState(false);
   const reviewAttempt = useRef<{ expectedVersion: number; idempotencyKey: string } | null>(null);
   async function act(action: "cancel" | "contact" | "review") {
+    const contactWindow = action === "contact" ? window.open("about:blank", "_blank") : null;
+    if (contactWindow) contactWindow.document.title = "جاري فتح قناة التواصل...";
     setBusy(true); setError(""); setHandoff(null);
     try {
       if (action === "review" && !reviewAttempt.current) reviewAttempt.current = { expectedVersion: order.reviewVersion, idempotencyKey: crypto.randomUUID() };
       const result = await orderRequest<{ href: string; message: string }>(`/${order.id}/${action}`, action === "review" ? reviewAttempt.current : {});
-      if (action === "contact") setHandoff(result);
+      if (action === "contact") {
+        setHandoff(result);
+        if (contactWindow) {
+          contactWindow.opener = null;
+          contactWindow.location.replace(result.href);
+        } else window.location.assign(result.href);
+      }
       if (action === "review") reviewAttempt.current = null;
       router.refresh();
-    } catch (e) { if ((e as OrderClientError).code === "order_changed") reviewAttempt.current = null;
+    } catch (e) { contactWindow?.close(); if ((e as OrderClientError).code === "order_changed") reviewAttempt.current = null;
       setError(orderErrorMessage((e as OrderClientError).code)); router.refresh(); }
     finally { setBusy(false); }
   }
@@ -32,9 +40,9 @@ export function OrderActions({ order }: { order: StudentOrder }) {
   }
   return <div className="space-y-4">
     <div className="flex flex-wrap gap-3">{order.canContact && <Button className="gap-2" disabled={busy} onClick={() => act("contact")}>
-      {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageCircle className="h-4 w-4" />}متابعة عبر {contactMethodLabels[order.contactMethod]}</Button>}
-      {order.canSubmitReview && <AlertDialog><AlertDialogTrigger asChild><Button variant="outline" disabled={busy} className="gap-2"><Send className="h-4 w-4" />إرسال للمراجعة</Button></AlertDialogTrigger>
-        <AlertDialogContent dir="rtl"><AlertDialogHeader><AlertDialogTitle>إرسال الطلب للمراجعة؟</AlertDialogTitle><AlertDialogDescription>أؤكد إرسال تفاصيل التحويل عبر قناة التواصل. يبقى تفعيل المواد بانتظار اعتماد الإدارة.</AlertDialogDescription></AlertDialogHeader>
+      {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageCircle className="h-4 w-4" />}فتح {contactMethodLabels[order.contactMethod]} وإرسال التفاصيل</Button>}
+      {order.canSubmitReview && <AlertDialog><AlertDialogTrigger asChild><Button variant="outline" disabled={busy} className="gap-2"><Send className="h-4 w-4" />تم التحويل، إرسال للمراجعة</Button></AlertDialogTrigger>
+        <AlertDialogContent dir="rtl"><AlertDialogHeader><AlertDialogTitle>هل أرسلت التحويل وتفاصيله؟</AlertDialogTitle><AlertDialogDescription>هذه الخطوة تبلغ الإدارة بأن التحويل تم وترسل الطلب للمراجعة. لا تمنح وصولًا قبل توثيق المبلغ واعتماد الإدارة.</AlertDialogDescription></AlertDialogHeader>
           <AlertDialogFooter><AlertDialogCancel>رجوع</AlertDialogCancel><AlertDialogAction onClick={() => act("review")}>تأكيد الإرسال</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>}
       {order.canCancel && <AlertDialog><AlertDialogTrigger asChild><Button variant="outline" disabled={busy} className="gap-2"><X className="h-4 w-4" />إلغاء الطلب</Button></AlertDialogTrigger>
         <AlertDialogContent dir="rtl"><AlertDialogHeader><AlertDialogTitle>إلغاء الطلب؟</AlertDialogTitle><AlertDialogDescription>{order.reference}</AlertDialogDescription></AlertDialogHeader>

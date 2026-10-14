@@ -91,3 +91,44 @@ export function whatsappCodeSupportUrl(input: {
   ].join("\n");
   return "https://wa.me/" + phone + "?text=" + encodeURIComponent(message);
 }
+
+function safeMessageLine(value: string | null | undefined, max = 200) {
+  return (value ?? "").replace(/[\r\n\u0000-\u001f\u007f]+/g, " ").trim().slice(0, max);
+}
+
+export function whatsappActivationCodeRequestUrl(input: {
+  whatsappNumber: string | null | undefined;
+  universityName: string | null | undefined;
+  collegeName: string | null | undefined;
+  majorName: string | null | undefined;
+  subjectName: string | null | undefined;
+  planTitle: string;
+  price: string | null | undefined;
+  currency: string | null | undefined;
+  durationDays: number | null | undefined;
+}) {
+  const phone = input.whatsappNumber?.trim().replace(/^\+/, "") ?? "";
+  const university = safeMessageLine(input.universityName);
+  const college = safeMessageLine(input.collegeName);
+  const major = safeMessageLine(input.majorName);
+  const subject = safeMessageLine(input.subjectName);
+  const plan = safeMessageLine(input.planTitle);
+  if (!/^\d{6,20}$/.test(phone) || !university || !major || !subject || !plan) return null;
+  const price = safeMessageLine(input.price, 30);
+  const currency = safeMessageLine(input.currency, 10);
+  const durationDays = Number.isInteger(input.durationDays) && Number(input.durationDays) >= 1
+    ? Math.min(Number(input.durationDays), 36500)
+    : null;
+  const message = [
+    "مرحبًا، أريد طلب كود تفعيل لمادة.",
+    "نوع الطلب: إصدار كود تفعيل جديد",
+    "الجامعة: " + university,
+    ...(college ? ["الكلية: " + college] : []),
+    "التخصص: " + major,
+    "المادة: " + subject,
+    "الخطة: " + plan,
+    ...(price ? ["السعر: " + price + (currency ? " " + currency : "")] : []),
+    ...(durationDays ? ["مدة الوصول: " + durationDays + " يوم"] : []),
+  ].join("\n");
+  return "https://wa.me/" + phone + "?text=" + encodeURIComponent(message);
+}

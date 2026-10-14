@@ -52,6 +52,25 @@ test("WhatsApp support uses a safe reference and never requires the activation s
   }), null);
 });
 
+test("a new activation-code request identifies the academic path without exposing a code", () => {
+  const href = helpers.whatsappActivationCodeRequestUrl({
+    whatsappNumber: "+966531297661",
+    universityName: "جامعة نجران",
+    collegeName: "كلية الحاسب",
+    majorName: "تقنية المعلومات",
+    subjectName: "تطوير تطبيقات الإنترنت والويب",
+    planTitle: "خطة سبعة أيام",
+    price: "1.00",
+    currency: "SAR",
+    durationDays: 7,
+  });
+  const message = new URL(href).searchParams.get("text");
+  for (const value of ["طلب كود تفعيل", "جامعة نجران", "كلية الحاسب", "تقنية المعلومات", "تطوير تطبيقات الإنترنت والويب", "1.00 SAR", "7 يوم"]) {
+    assert.match(message, new RegExp(value));
+  }
+  assert.doesNotMatch(message, /QB-|token|session/i);
+});
+
 test("dialog keeps secrets ephemeral, retries idempotently and refreshes access after success", () => {
   const dialog = readFileSync("src/components/public/subscription-gate-dialog.tsx", "utf8");
   const access = readFileSync("src/components/public/subscription-access.tsx", "utf8");
@@ -65,7 +84,8 @@ test("dialog keeps secrets ephemeral, retries idempotently and refreshes access 
   assert.match(dialog, /aria-live="polite"/);
   assert.match(dialog, /<form/);
   assert.doesNotMatch(dialog, /localStorage|sessionStorage/);
-  assert.doesNotMatch(dialog, /supportUrl[\s\S]{0,500}code/);
+  const supportBuilder = dialog.slice(dialog.indexOf("whatsappCodeSupportUrl({"), dialog.indexOf("}) : null", dialog.indexOf("whatsappCodeSupportUrl({")));
+  assert.doesNotMatch(supportBuilder, /\bcode\s*[:,]/);
   assert.match(access, /onRedeemed=\{refreshAccess\}/);
   assert.match(summary, /onRedeemed \?\? \(\(\) => router\.refresh\(\)\)/);
 });

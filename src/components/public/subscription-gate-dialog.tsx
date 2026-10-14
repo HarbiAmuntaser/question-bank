@@ -18,8 +18,10 @@ import {
   codeAccessSuccessMessage,
   type CodeAccessOutcome,
   type CodeAccessSupport,
+  whatsappActivationCodeRequestUrl,
   whatsappCodeSupportUrl,
 } from "@/lib/code-access-public";
+import { callbackWithSubscriptionReturn } from "@/lib/subscription-return";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -48,6 +50,7 @@ export type SubscriptionGateDialogProps = {
   quizId?: string;
   subjectId?: string | null;
   majorId?: string | null;
+  returnKey?: string | null;
   onRedeemed: () => void;
 };
 
@@ -84,6 +87,7 @@ export function SubscriptionGateDialog({
   targetTitle,
   quizId,
   subjectId,
+  returnKey,
   onRedeemed,
 }: SubscriptionGateDialogProps) {
   const [code, setCode] = useState("");
@@ -97,21 +101,35 @@ export function SubscriptionGateDialog({
   const [pending, startTransition] = useTransition();
   const idempotencyKeys = useRef<Partial<Record<CodeAccessOperation, string>>>({});
   const plan = access?.plan ?? null;
+  const codePlan = access?.codePlan ?? plan;
   const planTitle = plan?.title ?? "خطة الاشتراك";
+  const codePlanTitle = codePlan?.title ?? planTitle;
   const scopeText = scopeLabel(plan?.scopeType);
   const targetSubjectId = access?.subjectId ?? subjectId ?? null;
   const needsLogin = access?.reason === "student_signin_required";
   const unavailable = !access || ["payments_unavailable", "missing_context", "not_found"].includes(access.reason);
-  const callback = safeCallbackPath(
-    typeof window === "undefined" ? "/account" : window.location.pathname + window.location.search,
+  const callback = callbackWithSubscriptionReturn(
+    safeCallbackPath(typeof window === "undefined" ? "/account" : window.location.pathname + window.location.search),
+    returnKey,
   );
   const supportUrl = useMemo(() => support ? whatsappCodeSupportUrl({
     whatsappNumber: support.whatsappNumber,
     supportReference: support.supportReference,
     targetTitle,
-    planTitle,
+    planTitle: codePlanTitle,
     maxBrowserSessions: support.maxBrowserSessions,
-  }) : null, [planTitle, support, targetTitle]);
+  }) : null, [codePlanTitle, support, targetTitle]);
+  const codeRequestUrl = useMemo(() => codePlan ? whatsappActivationCodeRequestUrl({
+    whatsappNumber: codePlan.whatsappNumber,
+    universityName: codePlan.universityName,
+    collegeName: codePlan.collegeName,
+    majorName: codePlan.majorName,
+    subjectName: codePlan.subjectName,
+    planTitle: codePlan.title,
+    price: codePlan.price,
+    currency: codePlan.currency,
+    durationDays: codePlan.durationDays,
+  }) : null, [codePlan]);
 
   useEffect(() => {
     if (cooldownSeconds <= 0) return;
@@ -336,6 +354,15 @@ export function SubscriptionGateDialog({
                   {pending ? "جاري التحقق..." : "تفعيل أو استعادة"}
                 </Button>
               </form>
+
+              {codeRequestUrl ? (
+                <Button asChild type="button" variant="outline" className="h-11 w-full gap-2">
+                  <a href={codeRequestUrl} target="_blank" rel="noopener noreferrer">
+                    <MessageCircle className="h-4 w-4" aria-hidden />
+                    طلب كود تفعيل عبر WhatsApp
+                  </a>
+                </Button>
+              ) : null}
 
               {message ? (
                 <Alert

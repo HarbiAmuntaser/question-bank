@@ -34,6 +34,9 @@ function accessLabel(summary: PublicStudySummaryCard, access?: AccessStatus | nu
   if (summary.accessType === "free") return "مجاني";
   if (access?.allowed) return "مشترك";
   if (loading) return "جاري التحقق";
+  if (access?.activeOrder?.status === "pending_review") return "قيد المراجعة";
+  if (access?.activeOrder?.status === "awaiting_additional_payment") return "بانتظار استكمال المبلغ";
+  if (access?.activeOrder?.status === "pending_payment") return "بانتظار الدفع";
   return "يتطلب اشتراك";
 }
 
@@ -60,7 +63,7 @@ function SummaryAccessBadge({
   loading?: boolean;
 }) {
   const label = accessLabel(summary, access, loading);
-  const Icon = label === "يتطلب اشتراك" ? Lock : label === "مشترك" ? Unlock : ShieldCheck;
+  const Icon = access?.activeOrder ? Clock : label === "يتطلب اشتراك" ? Lock : label === "مشترك" ? Unlock : ShieldCheck;
 
   return (
     <Badge variant="outline" className={cn(accessBadgeClass, accessClass(label))}>
@@ -148,6 +151,7 @@ function SummaryCard({
             <StudySummarySubscribeButton
               access={access ?? null}
               targetTitle={summary.title}
+              summaryId={summary.id}
               subjectId={access?.subjectId ?? subjectId}
               majorId={access?.majorId ?? majorId}
               disabled={loading}

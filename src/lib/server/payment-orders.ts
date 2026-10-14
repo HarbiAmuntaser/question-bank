@@ -7,6 +7,7 @@ import { paymentTransaction } from "@/lib/server/payment-mutations";
 import { PaymentError, paymentLaunchPlanIds, paymentPlanWhere, paymentReviewEnabled, recheckPaymentStudent, requirePaymentStudent, requirePaymentSales, requirePaymentReview } from "@/lib/server/payment-scope";
 import { createOrderSchema, orderCatalogSchema, orderCursorSchema, orderIdSchema, orderListSchema, orderQuoteSchema } from "@/validations/payment-order";
 import { liveSubjectGrantWhere, lockPaymentUsers, openSubjectOrderWhere, refreshPaymentAccount } from "@/lib/server/payment-order-access";
+import { buildOrderContactMessage, orderContactHref } from "@/lib/payment-order-messages";
 
 const QUOTE_HOURS = 24;
 export const includeOrder = { items: { orderBy: { subjectId: "asc" as const } }, _count: { select: { ledger: true } },
@@ -16,7 +17,8 @@ type OrderRow = Prisma.PaymentOrderGetPayload<{ include: typeof includeOrder }>;
 const planSelect = {
   id: true, subjectId: true, title: true, price: true, currency: true, defaultDurationDays: true,
   whatsappNumber: true, telegramUsername: true,
-  subject: { select: { name: true, major: { select: { university: { select: { name: true } } } } } },
+  subject: { select: { name: true, major: { select: { name: true, college: { select: { name: true } },
+    university: { select: { name: true } } } } } },
 } satisfies Prisma.PaidAccessPlanSelect;
 type PlanRow = Prisma.PaidAccessPlanGetPayload<{ select: typeof planSelect }>;
 type Db = Prisma.TransactionClient;
@@ -179,11 +181,14 @@ export async function contactOrder(id: string) {
     if (plans.length !== order.items.length || commonDestination(plans, order.contactMethod) !== order.contactValue) throw new OrderError("contact_changed");
     if (!order.contactRequestedAt) await tx.paymentOrder.update({ where: { id }, data: { contactRequestedAt: new Date(),
       events: { create: { type: "contact_requested", actorId: user.id } } } });
-    const message = ["طلب اشتراك مواد", `رقم الطلب: ${order.reference}`,
-      ...order.items.map((item) => `${item.subjectName.slice(0, 160)}: ${item.price.toFixed(2)} SAR`),
-      `الإجمالي: ${order.total.toFixed(2)} SAR`,
-      ...(order.status === "pending_payment" ? [`صلاحية الطلب (بتوقيت الرياض): ${order.expiresAt.toLocaleString("ar-SA-u-ca-gregory", { timeZone: "Asia/Riyadh", dateStyle: "short", timeStyle: "short" })}`] : ["الطلب قيد المراجعة"])].join("\n");
-    return { method: order.contactMethod, message, href: order.contactMethod === "whatsapp"
-      ? `https://wa.me/${order.contactValue}?text=${encodeURIComponent(message)}` : `https://t.me/${order.contactValue}` };
+    const plansById = new Map(plans.map((plan) => [plan.id, plan]));
+    const message = buildOrderContactMessage({ reference: order.reference, total: order.total.toFixed(2), currency: order.currency,
+      status: order.status, expiresAt: order.expiresAt, items: order.items.map((item) => {
+        const plan = plansById.get(item.planId);
+        return { subjectName: item.subjectName, universityName: item.universityName,
+          collegeName: plan?.subject?.major.college?.name ?? null, majorName: plan?.subject?.major.name ?? null,
+          planTitle: item.planTitle, price: item.price.toFixed(2) };
+      }) });
+    return { method: order.contactMethod, message, href: orderContactHref(order.contactMethod, order.contactValue, message) };
   });
 }
