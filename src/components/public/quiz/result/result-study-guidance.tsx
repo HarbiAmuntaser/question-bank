@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft, BookOpen, FileText, Lightbulb, Tags } from "lucide-react";
+import { ArrowLeft, BookOpen, Lightbulb, Tags } from "lucide-react";
 
 import type { QuestionOption, QuestionWithOptions, QuizAnswer, QuizWithQuestions } from "@/types";
 import { Badge } from "@/components/ui/badge";
@@ -182,27 +182,6 @@ function accessLabel(accessType: ResultStudySummaryReference["accessType"]) {
   return "حسب المادة";
 }
 
-function difficultyLabel(value: GuidanceQuestion["difficultyLevel"]) {
-  if (value === "easy") return "السهل";
-  if (value === "hard") return "المتقدم";
-  return "المتوسط";
-}
-
-function buildDifficultyNotes(items: GuidanceItem[]) {
-  const missedByDifficulty = new Map<GuidanceQuestion["difficultyLevel"], number>();
-
-  for (const item of items) {
-    if (item.isCorrect) continue;
-    const level = item.question.difficultyLevel;
-    missedByDifficulty.set(level, (missedByDifficulty.get(level) ?? 0) + 1);
-  }
-
-  return Array.from(missedByDifficulty.entries())
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 2)
-    .map(([difficulty, count]) => `${count} من الأخطاء كانت في مستوى ${difficultyLabel(difficulty)}`);
-}
-
 function SummaryLink({ summary }: { summary: ResultStudySummaryReference }) {
   return (
     <div className="rounded-lg border bg-background/80 p-3">
@@ -261,17 +240,6 @@ export function ResultStudyGuidance({
   const items = buildGuidanceItems(quiz, completedAnswers);
   const focusAreas = buildChapterFocus(items);
   const missedItems = items.filter((item) => !item.isCorrect);
-  const missedTagCounts = new Map<string, number>();
-
-  for (const item of missedItems) {
-    for (const tag of item.question.tags ?? []) {
-      const normalized = String(tag).trim();
-      if (normalized) missedTagCounts.set(normalized, (missedTagCounts.get(normalized) ?? 0) + 1);
-    }
-  }
-
-  const topTags = topEntries(missedTagCounts, 6);
-  const difficultyNotes = buildDifficultyNotes(items);
   const isPerfect = missedItems.length === 0 && current.totalQuestions > 0;
 
   return (
@@ -359,39 +327,6 @@ export function ResultStudyGuidance({
               })}
             </div>
 
-            {topTags.length || difficultyNotes.length ? (
-              <div className="grid gap-3 md:grid-cols-2">
-                {topTags.length ? (
-                  <div className="rounded-lg border bg-background/70 p-4">
-                    <div className="mb-2 flex items-center gap-2 text-sm font-semibold">
-                      <Tags className="h-4 w-4 text-primary" aria-hidden />
-                      وسوم تحتاج انتباه
-                    </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {topTags.map((tag) => (
-                        <Badge key={tag.name} variant="outline" className="rounded-md">
-                          {tag.name} × {tag.count}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
-
-                {difficultyNotes.length ? (
-                  <div className="rounded-lg border bg-background/70 p-4">
-                    <div className="mb-2 flex items-center gap-2 text-sm font-semibold">
-                      <FileText className="h-4 w-4 text-primary" aria-hidden />
-                      ملاحظة على مستوى الأسئلة
-                    </div>
-                    <ul className="space-y-1 text-sm leading-relaxed text-foreground/75">
-                      {difficultyNotes.map((note) => (
-                        <li key={note}>{note}</li>
-                      ))}
-                    </ul>
-                  </div>
-                ) : null}
-              </div>
-            ) : null}
           </>
         )}
       </CardContent>

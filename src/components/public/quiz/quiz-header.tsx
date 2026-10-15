@@ -16,8 +16,10 @@ export function QuizHeader({
   answeredCount,
   progress,
   timeRemaining,
+  timerEnabled,
   onTimeUp,
   onTimeUpdate,
+  onTimerEnabledChange,
   onOpenSubmit,
 }: {
   title: string;
@@ -27,8 +29,10 @@ export function QuizHeader({
   answeredCount: number;
   progress: number;
   timeRemaining: number;
+  timerEnabled: boolean;
   onTimeUp: () => void;
   onTimeUpdate: (t: number) => void;
+  onTimerEnabledChange: (enabled: boolean) => void;
   onOpenSubmit: () => void;
 }) {
   return (
@@ -47,7 +51,13 @@ export function QuizHeader({
           </div>
 
           <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center lg:w-auto">
-            <QuizTimer initialTime={timeRemaining} onTimeUp={onTimeUp} onTimeUpdate={onTimeUpdate} />
+            <QuizTimer
+              initialTime={timeRemaining}
+              enabled={timerEnabled}
+              onEnabledChange={onTimerEnabledChange}
+              onTimeUp={onTimeUp}
+              onTimeUpdate={onTimeUpdate}
+            />
 
             <Button onClick={onOpenSubmit} variant="outline" className="flex h-11 w-full items-center justify-center gap-2 rounded-lg sm:w-auto" aria-label="تسليم الاختبار">
               <CheckCircle className="h-4 w-4" />

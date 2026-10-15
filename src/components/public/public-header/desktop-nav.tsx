@@ -17,9 +17,16 @@ type Props = {
   nav: NavItem[];
   currentCC: CountryCode;
   onChangeCountry: (cc: CountryCode) => void;
+  showCountrySwitcher: boolean;
 };
 
-export function DesktopNav({ pathname, nav, currentCC, onChangeCountry }: Props) {
+export function DesktopNav({
+  pathname,
+  nav,
+  currentCC,
+  onChangeCountry,
+  showCountrySwitcher,
+}: Props) {
   return (
     <NavigationMenu className="hidden lg:flex" aria-label="القائمة الرئيسية">
       <NavigationMenuList className="flex-row-reverse items-center gap-1">
@@ -48,9 +55,11 @@ export function DesktopNav({ pathname, nav, currentCC, onChangeCountry }: Props)
           );
         })}
 
-        <NavigationMenuItem>
-          <CountrySwitcher cc={currentCC} onChange={onChangeCountry} />
-        </NavigationMenuItem>
+        {showCountrySwitcher ? (
+          <NavigationMenuItem>
+            <CountrySwitcher cc={currentCC} onChange={onChangeCountry} />
+          </NavigationMenuItem>
+        ) : null}
       </NavigationMenuList>
     </NavigationMenu>
   );

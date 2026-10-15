@@ -5,6 +5,7 @@ import { readFileSync } from "node:fs";
 import { moduleLoader } from "../admin/load-module.mjs";
 
 const subscriptionReturn = moduleLoader()("src/lib/subscription-return.ts");
+const countryVisibility = moduleLoader()("src/lib/public-country-visibility.ts");
 
 test("student sign-in returns only to a safe, exact subscription target", () => {
   const key = subscriptionReturn.subscriptionReturnKey("quiz", "11111111-1111-4111-8111-111111111111");
@@ -45,4 +46,53 @@ test("Google sign-in uses the recognizable Google mark, not a browser icon", () 
   assert.match(button, /function GoogleMark/);
   assert.match(button, /#4285F4/);
   assert.doesNotMatch(button, /\bChrome\b/);
+});
+
+test("quiz play hides question tags and persists an optional timer per attempt", () => {
+  const question = readFileSync("src/components/public/quiz/question-display.tsx", "utf8");
+  const timer = readFileSync("src/components/public/quiz/quiz-timer.tsx", "utf8");
+  const runtime = readFileSync("src/components/public/quiz/use-quiz-runtime.ts", "utf8");
+  const quizInterface = readFileSync("src/components/public/quiz/quiz-interface.tsx", "utf8");
+
+  assert.doesNotMatch(question, /question\.tags/);
+  assert.match(timer, /if \(!enabled \|\| remainingRef\.current <= 0\) return/);
+  assert.match(timer, /لن يتم التسليم تلقائيًا/);
+  assert.match(runtime, /initialTimerEnabled = source\.timerEnabled \?\? true/);
+  assert.match(runtime, /timerEnabled: true/);
+  assert.match(runtime, /setTimerEnabledState\(resumeCandidate\.timerEnabled \?\? true\)/);
+  assert.match(runtime, /typeof x\.timerEnabled === "boolean"/);
+  assert.match(runtime, /localStorage\.setItem\([\s\S]*timerEnabled: enabled/);
+  assert.match(quizInterface, /completedSession\.endTime/);
+  assert.match(quizInterface, /completedSession\.startTime/);
+});
+
+test("quiz results omit the two requested aggregate guidance cards", () => {
+  const guidance = readFileSync(
+    "src/components/public/quiz/result/result-study-guidance.tsx",
+    "utf8"
+  );
+
+  assert.doesNotMatch(guidance, /وسوم تحتاج انتباه/);
+  assert.doesNotMatch(guidance, /ملاحظة على مستوى الأسئلة/);
+  assert.match(guidance, /reviewWrongHref/);
+  assert.match(guidance, /buildChapterFocus/);
+});
+
+test("country switcher hides only for a Saudi-detected visitor on a Saudi route", () => {
+  assert.equal(countryVisibility.shouldShowCountrySwitcher("/SA", "SA"), false);
+  assert.equal(countryVisibility.shouldShowCountrySwitcher("/SA/university", "SA"), false);
+  assert.equal(countryVisibility.shouldShowCountrySwitcher("/YE", "SA"), true);
+  assert.equal(countryVisibility.shouldShowCountrySwitcher("/SA", "YE"), true);
+  assert.equal(countryVisibility.shouldShowCountrySwitcher("/SA", null), true);
+  assert.equal(countryVisibility.shouldShowCountrySwitcher("/quiz/example", "SA"), true);
+  assert.equal(countryVisibility.detectedCountryFromCookie("foo=1; detected_cc=SA"), "SA");
+  assert.equal(countryVisibility.detectedCountryFromCookie("detected_cc=US"), null);
+});
+
+test("middleware keeps detected geography separate from the selected country", () => {
+  const middleware = readFileSync("src/middleware.ts", "utf8");
+  assert.match(middleware, /DETECTED_COUNTRY_COOKIE/);
+  assert.match(middleware, /detectedCountry/);
+  assert.match(middleware, /res\.cookies\.delete\(DETECTED_COUNTRY_COOKIE\)/);
+  assert.match(middleware, /res\.cookies\.set\("cc", cc/);
 });

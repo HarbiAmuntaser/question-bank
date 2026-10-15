@@ -1,71 +1,79 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Clock, AlertTriangle } from "lucide-react";
+import { AlertTriangle, Clock, PauseCircle } from "lucide-react";
+
+import { Switch } from "@/components/ui/switch";
 
 interface QuizTimerProps {
-  initialTime: number; // seconds (قيمة بدء/استئناف)
+  initialTime: number;
+  enabled: boolean;
+  onEnabledChange: (enabled: boolean) => void;
   onTimeUp: () => void;
-  onTimeUpdate: (timeRemaining: number) => void; // لحفظ التقدم في الـ runtime
+  onTimeUpdate: (timeRemaining: number) => void;
 }
 
-/**
- * Timer داخلي لعرض الثواني بسلاسة،
- * مع تقليل تحديثات الأب (performance) والحفظ (localStorage).
- */
-export function QuizTimer({ initialTime, onTimeUp, onTimeUpdate }: QuizTimerProps) {
-  const [timeRemaining, setTimeRemaining] = useState(() => Math.max(0, Math.floor(initialTime)));
+export function QuizTimer({
+  initialTime,
+  enabled,
+  onEnabledChange,
+  onTimeUp,
+  onTimeUpdate,
+}: QuizTimerProps) {
+  const normalizedInitialTime = Math.max(0, Math.floor(initialTime));
+  const [timeRemaining, setTimeRemaining] = useState(normalizedInitialTime);
 
   const intervalRef = useRef<number | null>(null);
-  const endAtRef = useRef<number>(Date.now() + Math.max(0, Math.floor(initialTime)) * 1000);
+  const endAtRef = useRef(Date.now() + normalizedInitialTime * 1000);
+  const remainingRef = useRef(normalizedInitialTime);
   const firedUpRef = useRef(false);
+  const lastExternalRef = useRef(normalizedInitialTime);
+  const onTimeUpRef = useRef(onTimeUp);
+  const onTimeUpdateRef = useRef(onTimeUpdate);
 
-  // لمنع إعادة الضبط كل ثانية: نعيد الضبط فقط إذا كانت قيمة initialTime مختلفة "بشكل واضح"
-  const lastExternalRef = useRef<number>(Math.max(0, Math.floor(initialTime)));
+  useEffect(() => {
+    onTimeUpRef.current = onTimeUp;
+  }, [onTimeUp]);
+
+  useEffect(() => {
+    onTimeUpdateRef.current = onTimeUpdate;
+  }, [onTimeUpdate]);
 
   useEffect(() => {
     const nextExternal = Math.max(0, Math.floor(initialTime));
-
-    // إذا زاد الوقت أو اختلف كثيرًا، نعتبره استئناف/ضبط حقيقي
     const shouldReset =
-      nextExternal > lastExternalRef.current + 1 || Math.abs(nextExternal - timeRemaining) > 2;
+      nextExternal > lastExternalRef.current + 1 ||
+      Math.abs(nextExternal - remainingRef.current) > 2;
 
-    if (shouldReset) {
-      lastExternalRef.current = nextExternal;
-      firedUpRef.current = false;
-      setTimeRemaining(nextExternal);
-      endAtRef.current = Date.now() + nextExternal * 1000;
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialTime]);
+    if (!shouldReset) return;
 
-  // عدّاد مع تصحيح drift
+    lastExternalRef.current = nextExternal;
+    remainingRef.current = nextExternal;
+    firedUpRef.current = false;
+    setTimeRemaining(nextExternal);
+    if (enabled) endAtRef.current = Date.now() + nextExternal * 1000;
+  }, [enabled, initialTime]);
+
   useEffect(() => {
     if (intervalRef.current) window.clearInterval(intervalRef.current);
+    intervalRef.current = null;
 
+    if (!enabled || remainingRef.current <= 0) return;
+
+    endAtRef.current = Date.now() + remainingRef.current * 1000;
     intervalRef.current = window.setInterval(() => {
-      const msLeft = endAtRef.current - Date.now();
-      const next = Math.max(0, Math.ceil(msLeft / 1000));
+      const next = Math.max(0, Math.ceil((endAtRef.current - Date.now()) / 1000));
 
-      setTimeRemaining((prev) => {
-        if (prev === next) return prev;
+      setTimeRemaining((previous) => {
+        if (previous === next) return previous;
 
-        // ✅ تحديث الأب بحكمة:
-        // - كل 5 ثواني لتخفيف الرندر + الحفظ
-        // - وفي آخر دقيقة: كل ثانية (للدقة)
-        // - وعند الصفر
-        const shouldNotify =
-          next === 0 || next <= 60 || next % 5 === 0;
+        remainingRef.current = next;
+        const shouldNotify = next === 0 || next <= 60 || next % 5 === 0;
+        if (shouldNotify) queueMicrotask(() => onTimeUpdateRef.current(next));
 
-        if (shouldNotify) {
-          // لا نريد ربط setState متداخل؛ نسلمه للأب async
-          queueMicrotask(() => onTimeUpdate(next));
-        }
-
-        // time up مرة واحدة
         if (next === 0 && !firedUpRef.current) {
           firedUpRef.current = true;
-          queueMicrotask(() => onTimeUp());
+          queueMicrotask(() => onTimeUpRef.current());
         }
 
         return next;
@@ -74,102 +82,131 @@ export function QuizTimer({ initialTime, onTimeUp, onTimeUpdate }: QuizTimerProp
 
     return () => {
       if (intervalRef.current) window.clearInterval(intervalRef.current);
+      intervalRef.current = null;
     };
-  }, [onTimeUp, onTimeUpdate]);
+  }, [enabled]);
+
+  const handleEnabledChange = (nextEnabled: boolean) => {
+    if (!nextEnabled) onTimeUpdateRef.current(remainingRef.current);
+    onEnabledChange(nextEnabled);
+  };
 
   const formatTime = (seconds: number) => {
-    const s = Math.max(0, seconds);
-    const hours = Math.floor(s / 3600);
-    const minutes = Math.floor((s % 3600) / 60);
-    const secs = s % 60;
+    const safeSeconds = Math.max(0, seconds);
+    const hours = Math.floor(safeSeconds / 3600);
+    const minutes = Math.floor((safeSeconds % 3600) / 60);
+    const secs = safeSeconds % 60;
 
     if (hours > 0) {
-      return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${secs
+      return `${hours.toString().padStart(2, "0")}:${minutes
         .toString()
-        .padStart(2, "0")}`;
+        .padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
     }
     return `${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
   const { colorClass, bgClass } = useMemo(() => {
-    const c =
-      timeRemaining <= 300
-        ? "text-red-600 dark:text-red-400"
-        : timeRemaining <= 600
-        ? "text-yellow-600 dark:text-yellow-400"
-        : "text-green-600 dark:text-green-400";
+    if (!enabled) {
+      return {
+        colorClass: "text-muted-foreground",
+        bgClass: "border-border bg-muted/40",
+      };
+    }
 
-    const b =
-      timeRemaining <= 300
-        ? "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800"
-        : timeRemaining <= 600
-        ? "bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800"
-        : "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800";
+    return {
+      colorClass:
+        timeRemaining <= 300
+          ? "text-red-600 dark:text-red-400"
+          : timeRemaining <= 600
+            ? "text-yellow-600 dark:text-yellow-400"
+            : "text-green-600 dark:text-green-400",
+      bgClass:
+        timeRemaining <= 300
+          ? "border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20"
+          : timeRemaining <= 600
+            ? "border-yellow-200 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-900/20"
+            : "border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20",
+    };
+  }, [enabled, timeRemaining]);
 
-    return { colorClass: c, bgClass: b };
-  }, [timeRemaining]);
-
-  // إعلان مساعد عند العتبات (مرة واحدة)
   const lastAnnouncedRef = useRef<number | null>(null);
   const srMessage =
     timeRemaining <= 10
       ? "بقي أقل من 10 ثوانٍ."
       : timeRemaining <= 60
-      ? "بقي أقل من دقيقة."
-      : timeRemaining <= 300
-      ? "بقي أقل من خمس دقائق."
-      : "";
-
+        ? "بقي أقل من دقيقة."
+        : timeRemaining <= 300
+          ? "بقي أقل من خمس دقائق."
+          : "";
   const shouldAnnounce =
-    (timeRemaining === 300 && lastAnnouncedRef.current !== 300) ||
-    (timeRemaining === 60 && lastAnnouncedRef.current !== 60) ||
-    (timeRemaining === 10 && lastAnnouncedRef.current !== 10);
+    enabled &&
+    ((timeRemaining === 300 && lastAnnouncedRef.current !== 300) ||
+      (timeRemaining === 60 && lastAnnouncedRef.current !== 60) ||
+      (timeRemaining === 10 && lastAnnouncedRef.current !== 10));
 
   useEffect(() => {
-    if (shouldAnnounce) {
-      lastAnnouncedRef.current = timeRemaining;
-    }
+    if (shouldAnnounce) lastAnnouncedRef.current = timeRemaining;
   }, [shouldAnnounce, timeRemaining]);
 
   return (
-    <div
-      className={`${bgClass} w-full rounded-lg border p-3 transition-colors duration-300 sm:w-auto sm:px-4`}
-      role="timer"
-      aria-live="polite"
-    >
-        {shouldAnnounce && srMessage ? (
-          <div aria-live="assertive" className="sr-only">
-            {srMessage}
-          </div>
-        ) : null}
+    <div className={`${bgClass} w-full rounded-lg border p-3 transition-colors duration-300 sm:w-auto sm:min-w-64 sm:px-4`}>
+      {shouldAnnounce && srMessage ? (
+        <div aria-live="assertive" className="sr-only">
+          {srMessage}
+        </div>
+      ) : null}
 
-        <div className="flex items-center justify-between gap-3 sm:justify-start">
-          <div className="flex items-center gap-2">
-            {timeRemaining <= 300 ? (
-              <AlertTriangle className={`h-5 w-5 ${colorClass}`} aria-hidden />
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex min-w-0 items-center gap-2">
+          {enabled ? (
+            timeRemaining <= 300 ? (
+              <AlertTriangle className={`h-5 w-5 shrink-0 ${colorClass}`} aria-hidden />
             ) : (
-              <Clock className={`h-5 w-5 ${colorClass}`} aria-hidden />
+              <Clock className={`h-5 w-5 shrink-0 ${colorClass}`} aria-hidden />
+            )
+          ) : (
+            <PauseCircle className={`h-5 w-5 shrink-0 ${colorClass}`} aria-hidden />
+          )}
+          <div className="min-w-0">
+            <div className="text-sm font-medium text-foreground/75">
+              {enabled ? "الوقت المتبقي" : "المؤقت متوقف"}
+            </div>
+            {enabled ? (
+              <div
+                className={`text-xl font-bold tabular-nums ${colorClass}`}
+                role="timer"
+                aria-live="polite"
+                aria-label={`الوقت المتبقي ${formatTime(timeRemaining)}`}
+              >
+                {formatTime(timeRemaining)}
+              </div>
+            ) : (
+              <div className="text-xs text-muted-foreground">لن يتم التسليم تلقائيًا</div>
             )}
-            <span className="text-sm font-medium text-foreground/75">الوقت المتبقي</span>
-          </div>
-
-          <div className={`text-xl font-bold tabular-nums ${colorClass}`} aria-label={`الوقت المتبقي ${formatTime(timeRemaining)}`}>
-            {formatTime(timeRemaining)}
           </div>
         </div>
 
-        {timeRemaining <= 600 ? (
-          <div className="mt-2" aria-hidden>
-            <div className="h-1 w-full rounded-full bg-muted">
-              <div
-                className={`h-1 rounded-full transition-all duration-1000 ${
-                  timeRemaining <= 300 ? "bg-red-500" : "bg-yellow-500"
-                }`}
-                style={{ width: `${Math.min(100, (timeRemaining / 600) * 100)}%` }}
-              />
-            </div>
+        <Switch
+          id="quiz-timer-toggle"
+          checked={enabled}
+          disabled={timeRemaining <= 0}
+          onCheckedChange={handleEnabledChange}
+          aria-label={enabled ? "إيقاف مؤقت الاختبار" : "تفعيل مؤقت الاختبار"}
+        />
+      </div>
+
+      {enabled && timeRemaining <= 600 ? (
+        <div className="mt-2" aria-hidden>
+          <div className="h-1 w-full rounded-full bg-muted">
+            <div
+              className={`h-1 rounded-full transition-all duration-1000 ${
+                timeRemaining <= 300 ? "bg-red-500" : "bg-yellow-500"
+              }`}
+              style={{ width: `${Math.min(100, (timeRemaining / 600) * 100)}%` }}
+            />
           </div>
-        ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }

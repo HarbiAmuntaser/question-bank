@@ -9,6 +9,7 @@ type StoredCompleted = {
   id: string;
   quizId: string;
   startTime: string; // ISO
+  endTime?: string;
   answers: Record<string, QuizAnswer>;
   currentIndex?: number;
   timeRemaining?: number; // seconds
@@ -101,6 +102,12 @@ function calculateLocalResult(session: StoredCompleted, quiz: QuizWithQuestions)
   const percentage = totalQuestions ? (correct / totalQuestions) * 100 : 0;
 
   const timeSpent = (() => {
+    const startedAt = new Date(session.startTime).getTime();
+    const endedAt = session.endTime ? new Date(session.endTime).getTime() : Number.NaN;
+    if (Number.isFinite(startedAt) && Number.isFinite(endedAt) && endedAt >= startedAt) {
+      return Math.floor((endedAt - startedAt) / 1000);
+    }
+
     const limit = Math.max(0, quiz.timeLimit * 60);
     const remaining = typeof session.timeRemaining === "number" ? Math.max(0, session.timeRemaining) : 0;
     return clamp(limit - remaining, 0, limit);

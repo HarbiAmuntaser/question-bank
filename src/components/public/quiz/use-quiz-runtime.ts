@@ -18,9 +18,11 @@ type ActivePayload = {
   id: string;
   quizId: string;
   startTime: string; // ISO
+  endTime?: string;
   answers: Record<string, QuizAnswer>;
   currentIndex: number;
   timeRemaining: number;
+  timerEnabled?: boolean;
   isCompleted: boolean;
 };
 
@@ -36,6 +38,7 @@ function isValidActivePayload(x: any, quizId: string): x is ActivePayload {
     typeof x.id === "string" &&
     typeof x.startTime === "string" &&
     typeof x.timeRemaining === "number" &&
+    (typeof x.timerEnabled === "undefined" || typeof x.timerEnabled === "boolean") &&
     typeof x.currentIndex === "number" &&
     typeof x.isCompleted === "boolean" &&
     x.answers &&
@@ -48,6 +51,7 @@ export function useQuizRuntime(quiz: QuizWithQuestions) {
   const [answers, setAnswers] = useState<Record<string, QuizAnswer>>({});
   const [session, setSession] = useState<QuizSession | null>(null);
   const [timeRemaining, setTimeRemaining] = useState(quiz.timeLimit * 60);
+  const [timerEnabled, setTimerEnabledState] = useState(true);
 
   // ✅ قرار الاستئناف
   const [resumeCandidate, setResumeCandidate] = useState<ActivePayload | null>(null);
@@ -82,6 +86,7 @@ export function useQuizRuntime(quiz: QuizWithQuestions) {
       setAnswers({});
       setCurrentQuestionIndex(0);
       setTimeRemaining(quiz.timeLimit * 60);
+      setTimerEnabledState(true);
       setIsReady(true);
       return;
     }
@@ -98,6 +103,7 @@ export function useQuizRuntime(quiz: QuizWithQuestions) {
     let initialIndex = 0;
     let initialAnswers: Record<string, QuizAnswer> = {};
     let initialTime = quiz.timeLimit * 60;
+    let initialTimerEnabled = true;
 
     const initialSession: QuizSession = {
       id: source?.id || freshId,
@@ -111,6 +117,7 @@ export function useQuizRuntime(quiz: QuizWithQuestions) {
       initialAnswers = source.answers || {};
       initialIndex = Number.isFinite(source.currentIndex) ? source.currentIndex : 0;
       initialTime = typeof source.timeRemaining === "number" ? source.timeRemaining : initialTime;
+      initialTimerEnabled = source.timerEnabled ?? true;
     } else {
       // fallback: answers فقط (قديمة) — لكن نستخدمها فقط إذا لم توجد جلسة مكتملة
       const answersOnly = safeJsonParse<Record<string, QuizAnswer>>(localStorage.getItem(keys.answers));
@@ -123,6 +130,7 @@ export function useQuizRuntime(quiz: QuizWithQuestions) {
     setAnswers(initialAnswers);
     setCurrentQuestionIndex(safeIndex);
     setTimeRemaining(Math.max(0, initialTime));
+    setTimerEnabledState(initialTimerEnabled);
     setResumeCandidate(null);
 
     // خزّن active للاستئناف لاحقًا
@@ -133,6 +141,7 @@ export function useQuizRuntime(quiz: QuizWithQuestions) {
       answers: initialAnswers,
       currentIndex: safeIndex,
       timeRemaining: Math.max(0, initialTime),
+      timerEnabled: initialTimerEnabled,
       isCompleted: false,
     };
     localStorage.setItem(keys.active, JSON.stringify(payload));
@@ -169,6 +178,7 @@ export function useQuizRuntime(quiz: QuizWithQuestions) {
       answers,
       currentIndex: currentQuestionIndex,
       timeRemaining,
+      timerEnabled,
       isCompleted: false,
     };
 
@@ -184,7 +194,7 @@ export function useQuizRuntime(quiz: QuizWithQuestions) {
     return () => {
       if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
     };
-  }, [session, resumeCandidate, answers, currentQuestionIndex, timeRemaining, quiz.id]);
+  }, [session, resumeCandidate, answers, currentQuestionIndex, timeRemaining, timerEnabled, quiz.id]);
 
   // ✅ معلومات مختصرة للـ Dialog
   const resumeInfo = useMemo(() => {
@@ -223,6 +233,27 @@ export function useQuizRuntime(quiz: QuizWithQuestions) {
     setAnswers((prev) => ({ ...prev, [questionId]: answer }));
   }, []);
 
+  const setTimerEnabled = useCallback(
+    (enabled: boolean) => {
+      setTimerEnabledState(enabled);
+      if (!session || resumeCandidate) return;
+
+      const keys = makeQuizKeys(quiz.id);
+      const active = safeJsonParse<ActivePayload>(localStorage.getItem(keys.active));
+      if (!isValidActivePayload(active, quiz.id) || active.id !== session.id) return;
+
+      localStorage.setItem(
+        keys.active,
+        JSON.stringify({
+          ...active,
+          timeRemaining,
+          timerEnabled: enabled,
+        })
+      );
+    },
+    [quiz.id, resumeCandidate, session, timeRemaining]
+  );
+
   const cleanupActive = useCallback(() => {
     const keys = makeQuizKeys(quiz.id);
     localStorage.removeItem(keys.answers);
@@ -236,9 +267,14 @@ export function useQuizRuntime(quiz: QuizWithQuestions) {
         id: completedSession.id,
         quizId: quiz.id,
         startTime: completedSession.startTime instanceof Date ? completedSession.startTime.toISOString() : new Date().toISOString(),
+        endTime:
+          completedSession.endTime instanceof Date
+            ? completedSession.endTime.toISOString()
+            : undefined,
         answers: completedSession.answers,
         currentIndex: currentQuestionIndex,
         timeRemaining,
+        timerEnabled,
         isCompleted: true,
       };
 
@@ -246,7 +282,7 @@ export function useQuizRuntime(quiz: QuizWithQuestions) {
       localStorage.setItem(`quiz_session_${quiz.id}_${completedSession.id}`, JSON.stringify(payload));
       localStorage.setItem(`quiz_session_${completedSession.id}`, JSON.stringify(payload));
     },
-    [quiz.id, currentQuestionIndex, timeRemaining]
+    [quiz.id, currentQuestionIndex, timeRemaining, timerEnabled]
   );
 
   // ✅ بدء محاولة جديدة (يمسح active/answers فقط، ولا يمسح سجل النتائج لاحقًا)
@@ -270,6 +306,7 @@ export function useQuizRuntime(quiz: QuizWithQuestions) {
     setAnswers({});
     setCurrentQuestionIndex(0);
     setTimeRemaining(quiz.timeLimit * 60);
+    setTimerEnabledState(true);
     setResumeCandidate(null);
 
     // خزّن active جديد
@@ -280,6 +317,7 @@ export function useQuizRuntime(quiz: QuizWithQuestions) {
       answers: {},
       currentIndex: 0,
       timeRemaining: quiz.timeLimit * 60,
+      timerEnabled: true,
       isCompleted: false,
     };
     localStorage.setItem(keys.active, JSON.stringify(payload));
@@ -308,6 +346,7 @@ export function useQuizRuntime(quiz: QuizWithQuestions) {
     setAnswers(resumeCandidate.answers || {});
     setCurrentQuestionIndex(safeIndex);
     setTimeRemaining(safeTime);
+    setTimerEnabledState(resumeCandidate.timerEnabled ?? true);
     setResumeCandidate(null);
 
     // تأكيد أن active محفوظ
@@ -318,6 +357,7 @@ export function useQuizRuntime(quiz: QuizWithQuestions) {
         ...resumeCandidate,
         currentIndex: safeIndex,
         timeRemaining: safeTime,
+        timerEnabled: resumeCandidate.timerEnabled ?? true,
         isCompleted: false,
       })
     );
@@ -335,6 +375,8 @@ export function useQuizRuntime(quiz: QuizWithQuestions) {
     setCurrentQuestionIndex,
     timeRemaining,
     setTimeRemaining,
+    timerEnabled,
+    setTimerEnabled,
     currentQuestion,
     answeredCount,
     progress,

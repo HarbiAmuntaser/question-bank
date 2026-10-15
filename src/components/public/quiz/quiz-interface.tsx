@@ -95,6 +95,8 @@ export function QuizInterface({ quiz }: { quiz: QuizWithQuestions }) {
     setCurrentQuestionIndex,
     timeRemaining,
     setTimeRemaining,
+    timerEnabled,
+    setTimerEnabled,
     currentQuestion,
     answeredCount,
     progress,
@@ -225,8 +227,10 @@ export function QuizInterface({ quiz }: { quiz: QuizWithQuestions }) {
         answeredCount={answeredCount}
         progress={progress}
         timeRemaining={timeRemaining}
+        timerEnabled={timerEnabled}
         onTimeUp={handleTimeUp}
         onTimeUpdate={setTimeRemaining}
+        onTimerEnabledChange={setTimerEnabled}
         onOpenSubmit={() => setShowSubmissionDialog(true)}
       />
 

@@ -24,9 +24,16 @@ type Props = {
   nav: NavItem[];
   currentCC: CountryCode;
   onChangeCountry: (cc: CountryCode) => void;
+  showCountrySwitcher: boolean;
 };
 
-export function MobileNav({ pathname, nav, currentCC, onChangeCountry }: Props) {
+export function MobileNav({
+  pathname,
+  nav,
+  currentCC,
+  onChangeCountry,
+  showCountrySwitcher,
+}: Props) {
   return (
     <Sheet>
       <SheetTrigger asChild className="lg:hidden">
@@ -45,10 +52,12 @@ export function MobileNav({ pathname, nav, currentCC, onChangeCountry }: Props) 
         </SheetHeader>
 
         <div className="mt-6 flex flex-col gap-4">
-          <div className="grid gap-3 rounded-lg border bg-muted/30 p-3">
-            <div className="text-xs font-semibold text-foreground/75">الدولة</div>
-            <CountrySwitcher cc={currentCC} onChange={onChangeCountry} compact />
-          </div>
+          {showCountrySwitcher ? (
+            <div className="grid gap-3 rounded-lg border bg-muted/30 p-3">
+              <div className="text-xs font-semibold text-foreground/75">الدولة</div>
+              <CountrySwitcher cc={currentCC} onChange={onChangeCountry} compact />
+            </div>
+          ) : null}
 
           {nav.map(({ key, href, label }) => {
             const active = isActiveLink(pathname, href, key);

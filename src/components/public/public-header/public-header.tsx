@@ -11,7 +11,7 @@
 
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { UserRound } from "lucide-react";
@@ -26,10 +26,17 @@ import { MobileNav } from "./mobile-nav";
 
 import type { CountryCode } from "@/config/regions";
 import { getDefaultPublicType, getEnabledPublicTypes } from "@/config/public-features";
+import {
+  detectedCountryFromCookie,
+  shouldShowCountrySwitcher,
+} from "@/lib/public-country-visibility";
 
 export function PublicHeader() {
   const pathname = usePathname() || "/";
   const router = useRouter();
+  const [detectedCountry, setDetectedCountry] = useState<
+    CountryCode | null | undefined
+  >(undefined);
 
   // استخراج cc + النوع الحالي (إن وجد) من المسار
   const { currentCC, currentType, secondSegment } = useMemo(
@@ -39,6 +46,11 @@ export function PublicHeader() {
 
   const nav = useMemo(() => buildNavItems(currentCC), [currentCC]);
   const homeHref = `/${currentCC}`;
+  const showCountrySwitcher = shouldShowCountrySwitcher(pathname, detectedCountry);
+
+  useEffect(() => {
+    setDetectedCountry(detectedCountryFromCookie(document.cookie));
+  }, [pathname]);
 
   /**
    * تغيير الدولة:
@@ -87,6 +99,7 @@ export function PublicHeader() {
           nav={nav}
           currentCC={currentCC as CountryCode}
           onChangeCountry={changeCountry}
+          showCountrySwitcher={showCountrySwitcher}
         />
 
         {/* يمين الهيدر: ثيم + قائمة جوال */}
@@ -99,6 +112,7 @@ export function PublicHeader() {
             nav={nav}
             currentCC={currentCC as CountryCode}
             onChangeCountry={changeCountry}
+            showCountrySwitcher={showCountrySwitcher}
           />
         </div>
       </div>

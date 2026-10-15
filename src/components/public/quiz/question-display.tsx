@@ -85,17 +85,6 @@ export function QuestionDisplay({ question, questionNumber, answer, onAnswerChan
           </figure>
         ) : null}
 
-        {/* الوسوم */}
-        {question.tags?.length ? (
-          <div className="flex flex-wrap gap-2">
-            {question.tags.map((tag, index) => (
-              <Badge key={`${question.id}-tag-${index}`} variant="secondary" className="text-xs" dir={detectTextDir(tag)}>
-                {tag}
-              </Badge>
-            ))}
-          </div>
-        ) : null}
-
         {/* خيارات الإجابة (مفصولة بملف مستقل) */}
         <div className="space-y-4">
           <QuestionOptions question={question} answer={answer} onAnswerChange={onAnswerChange} dir={dir} />
