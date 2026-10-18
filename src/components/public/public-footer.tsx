@@ -12,6 +12,7 @@ import {
   getEnabledPublicTypes,
   PUBLIC_INSTITUTION_TYPE_LABELS,
 } from "@/config/public-features";
+import { OFFICIAL_SUPPORT_EMAIL } from "@/config/public-support";
 
 type Props = {
   cc?: string;
@@ -23,6 +24,7 @@ type FooterLink = {
 };
 
 const supportLinks: FooterLink[] = [
+  { label: "عن مستواك", href: "/public/about" },
   { label: "مركز المساعدة", href: "/public/help" },
   { label: "الأسئلة الشائعة", href: "/public/faq" },
   { label: "التواصل", href: "/public/contact" },
@@ -32,6 +34,8 @@ const policyLinks: FooterLink[] = [
   { label: "الخصوصية", href: "/public/privacy" },
   { label: "الشروط", href: "/public/terms" },
   { label: "ملفات الارتباط", href: "/public/cookies" },
+  { label: "المحتوى والملكية", href: "/public/content-policy" },
+  { label: "الإلغاء والاسترداد", href: "/public/refund-policy" },
 ];
 
 export function PublicFooter({ cc: ccProp }: Props) {
@@ -84,16 +88,16 @@ export function PublicFooter({ cc: ccProp }: Props) {
           <div className="space-y-4">
             <h3 className="text-base font-bold text-foreground">التواصل</h3>
             <p className="text-sm font-medium leading-7 text-foreground/80">
-              قنوات التواصل الرسمية ستتوفر قريبًا عبر موقع{" "}
-              <span dir="ltr" className="whitespace-nowrap">
-                mustawak.com
-              </span>
-              . لا نعرض بريدًا أو رقمًا غير مفعل.
+              للدعم وطلبات الخصوصية وحذف البيانات وبلاغات الملكية الفكرية والاسترداد، تواصل عبر البريد الرسمي.
             </p>
 
-            <p className="rounded-lg border bg-muted/30 p-3 text-sm font-medium leading-6 text-foreground/80">
-              تابع هذه الصفحة لاحقًا لمعرفة وسائل الدعم المعتمدة وخيارات المتابعة الرسمية.
-            </p>
+            <a
+              dir="ltr"
+              href={`mailto:${OFFICIAL_SUPPORT_EMAIL}`}
+              className="inline-flex min-h-10 items-center rounded-md border bg-muted/30 px-3 text-sm font-semibold text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              {OFFICIAL_SUPPORT_EMAIL}
+            </a>
           </div>
         </div>
 

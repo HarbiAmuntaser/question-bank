@@ -1,0 +1,34 @@
+[
+  {
+    "questionText": "{{MCQ_QUESTION_TEXT}}",
+    "questionType": "multiple_choice",
+    "difficultyLevel": "medium",
+    "points": 1,
+    "explanation": "{{SOURCE_GROUNDED_EXPLANATION}}",
+    "imageUrl": null,
+    "tags": ["{{CHAPTER_TAG}}"],
+    "reviewTopic": "{{REVIEW_TOPIC_OR_NULL}}",
+    "reviewPage": null,
+    "isActive": false,
+    "options": [
+      { "text": "{{CORRECT_OPTION}}", "isCorrect": true },
+      { "text": "{{DISTRACTOR_1}}", "isCorrect": false },
+      { "text": "{{DISTRACTOR_2}}", "isCorrect": false },
+      { "text": "{{DISTRACTOR_3}}", "isCorrect": false }
+    ]
+  },
+  {
+    "questionText": "{{TRUE_FALSE_STATEMENT}}",
+    "questionType": "true_false",
+    "difficultyLevel": "easy",
+    "points": 1,
+    "explanation": "{{SOURCE_GROUNDED_EXPLANATION}}",
+    "imageUrl": null,
+    "tags": ["{{CHAPTER_TAG}}"],
+    "reviewTopic": "{{REVIEW_TOPIC_OR_NULL}}",
+    "reviewPage": null,
+    "isActive": false,
+    "tfAnswer": true
+  }
+]
+

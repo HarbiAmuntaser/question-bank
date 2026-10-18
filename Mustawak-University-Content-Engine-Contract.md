@@ -607,7 +607,6 @@ Admin Actions المقابلة موجودة في `src/app/admin/{universities,ma
 - `src/lib/server/access-control.ts`: Quiz وSummary access.
 - `src/lib/server/storage/`: R2 keys/client/signed URLs.
 - `src/app/api/v1/student/quizzes/by-id/[id]/route.ts`: Runtime payload.
-- `src/app/api/v1/student/quizzes/grade/route.ts`: التصحيح والمحاولة.
 - `src/app/api/v1/student/summaries/[id]/pdf/route.ts`: PDF الآمن.
 - `src/app/sitemap.ts`: شروط الإدراج ووضع الفهرسة.
 - `src/lib/search-indexing.ts`: `blog_only/full` وrobots.
@@ -616,5 +615,6 @@ Admin Actions المقابلة موجودة في `src/app/admin/{universities,ma
 - `docs/cache-vercel-checklist.md`: توقعات الكاش التشغيلية.
 
 ---
+- `src/app/api/v1/student/quizzes/grade/route.ts`: التصحيح والمحاولة.
 
 **حد هذا العقد:** يوثق ما يستطيع النظام الحالي تخزينه والتحقق منه وعرضه. لا يعني وجود field أو enum أن له UI إنتاج مكتمل أو Public route. أي نظام محتوى قادم يجب أن يبني على الحقائق المثبتة أعلاه، ويعامل عناصر القسم 15 كفجوات، وعناصر القسم 16 كقرارات تنتظر الاعتماد.

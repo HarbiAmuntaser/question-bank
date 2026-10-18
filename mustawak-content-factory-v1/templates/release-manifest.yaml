@@ -1,0 +1,48 @@
+schemaVersion: 1
+factoryVersion: 1.0.0
+packageVersion: 1.0.0
+templateVersion: 4.2
+templateSha256: 2D981A49C06FE9412B1ACBE9A4753BC52384D5A1ACB655C510AC353AEA703E3C
+
+subject: REPLACE_ME
+chapter:
+  localId: CH01
+  number: 1
+  name: REPLACE_ME
+  slug: replace-me
+
+sourceVersions:
+  - sourceId: SRC-001
+    fileName: REPLACE_ME.pdf
+    versionOrDate: null
+
+artifacts:
+  - path: chapter-package.md
+    sha256: CALCULATE_AFTER_FINALIZATION
+  - path: questions.import.json
+    sha256: CALCULATE_AFTER_FINALIZATION
+  - path: summary.print.html
+    sha256: CALCULATE_AFTER_FINALIZATION
+
+quality:
+  hardGates: PASS
+  score: null
+  selfCheckAt: null
+  independentReviewAt: null
+  reviewer: null
+  blockers: 0
+  majors: 0
+  acceptedMinors: []
+
+pdf:
+  generatedByOwner: false
+  fileName: null
+  pageCount: null
+  reviewPagesRechecked: false
+
+release:
+  decision: DRAFT # DRAFT | APPROVED | REJECTED
+  approvedBy: null
+  approvedAt: null
+  supersedes: null
+  supersededBy: null

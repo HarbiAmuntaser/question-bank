@@ -1,0 +1,12 @@
+{
+  "metaTitle": "{{META_TITLE_MAX_160}}",
+  "metaDescription": "{{META_DESCRIPTION_MAX_320}}",
+  "ogTitle": "{{OG_TITLE_MAX_160}}",
+  "ogDescription": "{{OG_DESCRIPTION_MAX_320}}",
+  "ogImageUrl": null,
+  "canonicalUrl": null,
+  "noindex": true,
+  "nofollow": false,
+  "schemaJson": null
+}
+

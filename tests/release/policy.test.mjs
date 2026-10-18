@@ -57,6 +57,7 @@ function accessHarness({ sales = false, codes = false, user = true, grant = fals
     accessEntitlement: { findFirst: async () => { counts.grants++; return grant ? { id: "grant" } : null; } },
     codeAccessGrant: { findFirst: async () => null },
     codeAccessSessionBinding: { findFirst: async () => null },
+    paymentOrder: { findFirst: async () => null },
   };
   const load = moduleLoader({ "@/lib/prisma": { prisma }, "@/lib/auth-helpers": { getCurrentUser: async () => {
     counts.auth++; return user ? { id: "student", role: "student", isActive: true, emailVerified: new Date() } : null;

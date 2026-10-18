@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useId, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import {
   AlertCircle,
@@ -91,6 +91,8 @@ export function SubscriptionGateDialog({
   onRedeemed,
 }: SubscriptionGateDialogProps) {
   const [code, setCode] = useState("");
+  const [codeEntryOpen, setCodeEntryOpen] = useState(false);
+  const codeEntryId = useId();
   const [flow, setFlow] = useState<FlowState>("entry");
   const [support, setSupport] = useState<CodeAccessSupport | null>(null);
   const [cooldownSeconds, setCooldownSeconds] = useState(0);
@@ -100,7 +102,7 @@ export function SubscriptionGateDialog({
   } | null>(null);
   const [pending, startTransition] = useTransition();
   const idempotencyKeys = useRef<Partial<Record<CodeAccessOperation, string>>>({});
-  const plan = access?.plan ?? null;
+  const plan = (!access?.canPurchase ? access?.codePlan : access?.plan) ?? access?.plan ?? null;
   const codePlan = access?.codePlan ?? plan;
   const planTitle = plan?.title ?? "خطة الاشتراك";
   const codePlanTitle = codePlan?.title ?? planTitle;
@@ -147,7 +149,10 @@ export function SubscriptionGateDialog({
   }
 
   function changeOpen(next: boolean) {
-    if (!next) resetAttempt(true);
+    if (!next) {
+      resetAttempt(true);
+      setCodeEntryOpen(false);
+    }
     onOpenChange(next);
   }
 
@@ -162,6 +167,7 @@ export function SubscriptionGateDialog({
   }
 
   function submitCode(operation: CodeAccessOperation) {
+    if (pending || flow === "success") return;
     const value = code.trim();
     if (!value) {
       setMessage({ type: "error", text: "أدخل كود التفعيل أولًا." });
@@ -254,7 +260,9 @@ export function SubscriptionGateDialog({
           </Badge>
           <DialogTitle className="text-xl leading-snug sm:text-2xl">{planTitle}</DialogTitle>
           <DialogDescription className="leading-relaxed">
-            اختر طلب الاشتراك، أو فعّل كود الوصول مباشرة.
+            {access?.canRedeemCode
+              ? "اطلب كود التفعيل للمادة، أو استخدم كودًا لديك للوصول إلى المحتوى."
+              : "اطّلع على تفاصيل الخطة وخيارات الوصول المتاحة."}
           </DialogDescription>
         </DialogHeader>
 
@@ -268,9 +276,15 @@ export function SubscriptionGateDialog({
                 <span className="text-sm text-muted-foreground">المحتوى: {targetTitle}</span>
               </div>
               <div className="text-base font-semibold">{planTitle}</div>
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                {[plan?.universityName, plan?.collegeName, plan?.majorName, plan?.subjectName].filter(Boolean).join(" / ")}
+              </p>
               <p className="line-clamp-3 text-sm leading-relaxed text-muted-foreground">
                 {plan?.description ?? "اشتراك المادة"}
               </p>
+              {plan?.durationDays ? (
+                <p className="text-sm">مدة الوصول: {plan.durationDays} يومًا من التفعيل.</p>
+              ) : null}
             </div>
             <div className="px-4 py-3 text-center">
               <CreditCard className="mx-auto mb-1 h-4 w-4 text-muted-foreground" aria-hidden />
@@ -288,13 +302,18 @@ export function SubscriptionGateDialog({
             </Alert>
           ) : null}
 
-          {needsLogin ? (
-            <Alert>
-              <LogIn className="h-4 w-4" aria-hidden />
-              <AlertDescription className="leading-relaxed">
-                يمكنك تسجيل الدخول لربط الوصول بحسابك، أو استخدام كود التفعيل أدناه دون إنشاء حساب.
-              </AlertDescription>
-            </Alert>
+          {access?.canRedeemCode && codeRequestUrl ? (
+            <div className="space-y-2">
+              <Button asChild className="h-11 w-full gap-2">
+                <a href={codeRequestUrl} target="_blank" rel="noopener noreferrer">
+                  <MessageCircle className="h-4 w-4" aria-hidden />
+                  طلب كود تفعيل عبر WhatsApp
+                </a>
+              </Button>
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                أرسل الرسالة واتفق على الدفع عبر وسيلة الخطة، ثم ارجع لإدخال الكود بعد استلامه.
+              </p>
+            </div>
           ) : null}
 
           {plan && access?.canPurchase ? (
@@ -320,112 +339,121 @@ export function SubscriptionGateDialog({
 
           {access?.canRedeemCode ? (
             <div className="space-y-3 border-t pt-4">
-              <div className="space-y-1">
-                <Label htmlFor="subscriptionCode">كود التفعيل</Label>
-                <p id="subscriptionCodeHelp" className="text-xs leading-relaxed text-muted-foreground">
-                  عند تسجيل الدخول يرتبط الوصول بحسابك. بدون تسجيل دخول يبقى الوصول محفوظًا في هذا المتصفح.
-                </p>
-              </div>
-              <form
-                className="flex flex-col gap-2 sm:flex-row"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  submitCode("activate");
-                }}
-              >
-                <Input
-                  id="subscriptionCode"
-                  value={code}
-                  onChange={(event) => updateCode(event.target.value)}
-                  placeholder="QB-XXXX-XXXX-XXXX"
-                  dir="ltr"
-                  autoComplete="off"
-                  spellCheck={false}
-                  aria-describedby="subscriptionCodeHelp"
-                  className="h-11 rounded-lg font-mono text-base"
-                  disabled={pending || flow === "success"}
-                />
-                <Button
-                  type="submit"
-                  className="h-11 gap-2 rounded-lg sm:min-w-36"
-                  disabled={pending || flow === "success"}
-                >
-                  <Ticket className="h-4 w-4" aria-hidden />
-                  {pending ? "جاري التحقق..." : "تفعيل أو استعادة"}
-                </Button>
-              </form>
-
               {codeRequestUrl ? (
-                <Button asChild type="button" variant="outline" className="h-11 w-full gap-2">
-                  <a href={codeRequestUrl} target="_blank" rel="noopener noreferrer">
-                    <MessageCircle className="h-4 w-4" aria-hidden />
-                    طلب كود تفعيل عبر WhatsApp
-                  </a>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="min-h-11 h-auto w-full gap-2 whitespace-normal"
+                  aria-expanded={codeEntryOpen}
+                  aria-controls={codeEntryId}
+                  onClick={() => setCodeEntryOpen((value) => !value)}
+                >
+                  <Ticket className="h-4 w-4 shrink-0" aria-hidden />
+                  لدي كود تفعيل أو أريد استعادة الوصول
                 </Button>
               ) : null}
-
-              {message ? (
-                <Alert
-                  aria-live="polite"
-                  className={cn(
-                    "rounded-lg",
-                    message.type === "success"
-                      ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-300"
-                      : message.type === "info"
-                        ? "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200"
-                        : "border-destructive/25 bg-destructive/10 text-destructive",
-                  )}
-                >
-                  {message.type === "success" ? (
-                    <CheckCircle2 className="h-4 w-4" aria-hidden />
-                  ) : (
-                    <AlertCircle className="h-4 w-4" aria-hidden />
-                  )}
-                  <AlertDescription className="leading-relaxed">{message.text}</AlertDescription>
-                </Alert>
-              ) : null}
-
-              {flow === "limit" || flow === "cooldown" ? (
-                <div className="space-y-3 border-t pt-3">
-                  <p className="text-sm leading-relaxed text-muted-foreground">
-                    نقل الوصول يوقفه في أقدم متصفح مرتبط، ولا يغير تاريخ انتهاء الاشتراك.
+              <div id={codeEntryId} hidden={Boolean(codeRequestUrl) && !codeEntryOpen} className="space-y-3">
+                <div className="space-y-1">
+                  <Label htmlFor="subscriptionCode">كود التفعيل</Label>
+                  <p id="subscriptionCodeHelp" className="text-xs leading-relaxed text-muted-foreground">
+                    عند تفعيل كود جديد وأنت مسجل الدخول يرتبط الوصول بحسابك. التفعيل كضيف يحفظ الوصول في هذا المتصفح؛ تسجيل الدخول لاحقًا لا ينقله إلى الحساب.
                   </p>
+                  <p className="text-xs leading-relaxed text-muted-foreground">
+                    احتفظ بالكود لنفسك. عند تغيير المتصفح أو مسح بياناته، أدخله للاستعادة أو النقل دون تمديد مدة الاشتراك. يفضّل استخدام متصفح عادي بدل التصفح الخاص.
+                  </p>
+                </div>
+                <form
+                  className="flex flex-col gap-2 sm:flex-row"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    submitCode("activate");
+                  }}
+                >
+                  <Input
+                    id="subscriptionCode"
+                    value={code}
+                    onChange={(event) => updateCode(event.target.value)}
+                    placeholder="QB-XXXX-XXXX-XXXX"
+                    dir="ltr"
+                    autoComplete="off"
+                    spellCheck={false}
+                    aria-describedby="subscriptionCodeHelp"
+                    className="h-11 rounded-lg font-mono text-base"
+                    disabled={pending || flow === "success"}
+                  />
                   <Button
-                    type="button"
-                    variant="outline"
-                    className="h-11 w-full gap-2"
-                    onClick={() => submitCode("transfer")}
-                    disabled={pending || cooldownSeconds > 0}
+                    type="submit"
+                    className="h-11 gap-2 rounded-lg sm:min-w-36"
+                    disabled={pending || flow === "success"}
                   >
-                    <ArrowLeftRight className="h-4 w-4" aria-hidden />
-                    {cooldownSeconds > 0
-                      ? "إعادة المحاولة بعد " + formatCooldown(cooldownSeconds)
-                      : "نقل الوصول إلى هذا المتصفح"}
+                    <Ticket className="h-4 w-4" aria-hidden />
+                    {pending ? "جاري التحقق..." : "تفعيل أو استعادة"}
                   </Button>
-                </div>
-              ) : null}
+                </form>
 
-              {(flow === "limit" || flow === "cooldown" || flow === "support") && support ? (
-                <div className="space-y-2 border-t pt-3 text-sm">
-                  {support.supportReference ? (
-                    <p className="text-muted-foreground">
-                      مرجع الدعم: <code dir="ltr" className="font-mono text-foreground">{support.supportReference}</code>
+                {message ? (
+                  <Alert
+                    aria-live="polite"
+                    className={cn(
+                      "rounded-lg",
+                      message.type === "success"
+                        ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-300"
+                        : message.type === "info"
+                          ? "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200"
+                          : "border-destructive/25 bg-destructive/10 text-destructive",
+                    )}
+                  >
+                    {message.type === "success" ? (
+                      <CheckCircle2 className="h-4 w-4" aria-hidden />
+                    ) : (
+                      <AlertCircle className="h-4 w-4" aria-hidden />
+                    )}
+                    <AlertDescription className="leading-relaxed">{message.text}</AlertDescription>
+                  </Alert>
+                ) : null}
+
+                {flow === "limit" || flow === "cooldown" ? (
+                  <div className="space-y-3 border-t pt-3">
+                    <p className="text-sm leading-relaxed text-muted-foreground">
+                      نقل الوصول يوقفه في أقدم متصفح مرتبط، ولا يغير تاريخ انتهاء الاشتراك.
                     </p>
-                  ) : null}
-                  {supportUrl ? (
-                    <Button asChild type="button" variant="outline" className="h-11 w-full gap-2">
-                      <a href={supportUrl} target="_blank" rel="noreferrer">
-                        <MessageCircle className="h-4 w-4" aria-hidden />
-                        طلب متصفح إضافي عبر WhatsApp
-                      </a>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="h-11 w-full gap-2"
+                      onClick={() => submitCode("transfer")}
+                      disabled={pending || cooldownSeconds > 0}
+                    >
+                      <ArrowLeftRight className="h-4 w-4" aria-hidden />
+                      {cooldownSeconds > 0
+                        ? "إعادة المحاولة بعد " + formatCooldown(cooldownSeconds)
+                        : "نقل الوصول إلى هذا المتصفح"}
                     </Button>
-                  ) : flow === "support" ? (
-                    <p className="leading-relaxed text-muted-foreground">
-                      تعذر تجهيز رابط الدعم تلقائيًا. تواصل مع إدارة المنصة واذكر مرجع الدعم الظاهر أعلاه.
-                    </p>
-                  ) : null}
-                </div>
-              ) : null}
+                  </div>
+                ) : null}
+
+                {(flow === "limit" || flow === "cooldown" || flow === "support") && support ? (
+                  <div className="space-y-2 border-t pt-3 text-sm">
+                    {support.supportReference ? (
+                      <p className="text-muted-foreground">
+                        مرجع الدعم: <code dir="ltr" className="font-mono text-foreground">{support.supportReference}</code>
+                      </p>
+                    ) : null}
+                    {supportUrl ? (
+                      <Button asChild type="button" variant="outline" className="h-11 w-full gap-2">
+                        <a href={supportUrl} target="_blank" rel="noreferrer">
+                          <MessageCircle className="h-4 w-4" aria-hidden />
+                          طلب متصفح إضافي عبر WhatsApp
+                        </a>
+                      </Button>
+                    ) : flow === "support" ? (
+                      <p className="leading-relaxed text-muted-foreground">
+                        تعذر تجهيز رابط الدعم تلقائيًا. تواصل مع إدارة المنصة واذكر مرجع الدعم الظاهر أعلاه.
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
             </div>
           ) : null}
         </div>

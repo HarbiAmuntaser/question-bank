@@ -1,0 +1,31 @@
+schemaVersion: 1
+subject: REPLACE_ME
+currentFactoryVersion: 1.0.0
+currentTemplateVersion: 4.2
+lastUpdatedAt: null
+status: PLANNED
+
+approvedDecisions: []
+openDecisions: []
+sourceConflicts: []
+
+chapters:
+  - localId: CH01
+    chapterNumber: 1
+    name: REPLACE_ME
+    slug: replace-me
+    kind: theory
+    status: PLANNED
+    summaryMode: print_attachment
+    packageVersion: 0.1.0
+    sourceIds: [SRC-001]
+    qaDecision: null
+    enteredInAdminAt: null
+    publishedAt: null
+
+changeLog:
+  - at: null
+    actor: REPLACE_ME
+    action: ledger_created
+    reason: Initial subject setup
+

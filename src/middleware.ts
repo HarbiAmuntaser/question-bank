@@ -11,6 +11,10 @@ import {
 } from "@/lib/route-helpers";
 
 import { DEFAULT_COUNTRY, type CountryCode, type InstitutionType } from "@/config/regions";
+import {
+  DETECTED_COUNTRY_COOKIE,
+  DETECTED_COUNTRY_MAX_AGE,
+} from "@/lib/public-country-visibility";
 
 const SECURE_MAX_AGE = 60 * 60 * 24 * 365;
 const CANONICAL_HOST = "mustawak.com";
@@ -27,6 +31,30 @@ function applySecurityHeaders(res: NextResponse) {
   if (process.env.NODE_ENV === "production") {
     res.headers.set("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload");
   }
+}
+
+function finalizePublicResponse(
+  req: NextRequest,
+  res: NextResponse,
+  detectedCountry: CountryCode | undefined
+) {
+  const storedCountry = req.cookies.get(DETECTED_COUNTRY_COOKIE)?.value;
+
+  if (detectedCountry) {
+    if (storedCountry !== detectedCountry) {
+      res.cookies.set(DETECTED_COUNTRY_COOKIE, detectedCountry, {
+        path: "/",
+        maxAge: DETECTED_COUNTRY_MAX_AGE,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+      });
+    }
+  } else if (storedCountry) {
+    res.cookies.delete(DETECTED_COUNTRY_COOKIE);
+  }
+
+  applySecurityHeaders(res);
+  return res;
 }
 
 function redirectLegacyPublicHost(req: NextRequest) {
@@ -102,8 +130,7 @@ function publicMiddleware(req: NextRequest) {
 
       const res = NextResponse.redirect(url);
       res.cookies.set("cc", chosenCC, { path: "/", maxAge: SECURE_MAX_AGE, sameSite: "lax" });
-      applySecurityHeaders(res);
-      return res;
+      return finalizePublicResponse(req, res, geoCC);
     }
 
     const { ccRaw, seg2, rest } = parsePublicPath(pathname);
@@ -111,8 +138,7 @@ function publicMiddleware(req: NextRequest) {
     // ✅ لو أول جزء ليس دولة (مثل /quiz أو /admin) → لا نطبّق منطق الدول إطلاقاً
     if (!isCountrySegment(ccRaw)) {
       const res = NextResponse.next();
-      applySecurityHeaders(res);
-      return res;
+      return finalizePublicResponse(req, res, geoCC);
     }
 
     // 5) الآن نحن متأكدين أن المسار يبدأ بـ cc صحيح
@@ -127,8 +153,7 @@ function publicMiddleware(req: NextRequest) {
 
       const res = NextResponse.redirect(url);
       res.cookies.set("cc", cc, { path: "/", maxAge: SECURE_MAX_AGE, sameSite: "lax" });
-      applySecurityHeaders(res);
-      return res;
+      return finalizePublicResponse(req, res, geoCC);
     }
 
     // (ب) تطبيع type فقط لو كان نوع مؤسسة فعلاً
@@ -140,8 +165,7 @@ function publicMiddleware(req: NextRequest) {
       const res = NextResponse.redirect(url);
       res.cookies.set("cc", cc, { path: "/", maxAge: SECURE_MAX_AGE, sameSite: "lax" });
       res.cookies.set("inst", typeNorm, { path: "/", maxAge: SECURE_MAX_AGE, sameSite: "lax" });
-      applySecurityHeaders(res);
-      return res;
+      return finalizePublicResponse(req, res, geoCC);
     }
 
     // (ج) مسار طبيعي → نثبت الكوكيز
@@ -152,8 +176,7 @@ function publicMiddleware(req: NextRequest) {
       res.cookies.set("inst", seg2.toLowerCase(), { path: "/", maxAge: SECURE_MAX_AGE, sameSite: "lax" });
     }
 
-    applySecurityHeaders(res);
-    return res;
+    return finalizePublicResponse(req, res, geoCC);
 }
 
 async function adminMiddleware(req: NextRequest) {

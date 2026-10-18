@@ -1,147 +1,88 @@
-
 import type { Metadata } from "next";
 import Link from "next/link";
+import { BookOpen, CircleUserRound, CreditCard, FileWarning } from "lucide-react";
 
 import { StaticPageShell, StaticSectionCard } from "@/components/public/static-page-shell";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { OFFICIAL_SUPPORT_EMAIL } from "@/config/public-support";
 
 export const metadata: Metadata = {
   title: "مركز المساعدة",
-  description:
-    "إرشادات مختصرة تساعدك على استخدام منصة مستواك، الوصول إلى الاختبارات، فهم الاشتراكات اليدوية، ومراجعة الأسئلة الشائعة.",
-  alternates: {
-    canonical: "/public/help",
-  },
-  openGraph: {
-    title: "مركز المساعدة | مستواك",
-    description:
-      "دليل مختصر لاستخدام منصة مستواك والوصول إلى الاختبارات وفهم المحتوى المجاني والمدفوع.",
-    type: "website",
-  },
-  twitter: {
-    card: "summary",
-    title: "مركز المساعدة | مستواك",
-    description: "إرشادات تساعدك على استخدام مستواك والوصول إلى الاختبارات المناسبة.",
-  },
-  robots: {
-    index: true,
-    follow: true,
-  },
+  description: "إرشادات استخدام مستواك والحساب والاختبارات والاشتراكات والوصول إلى الملفات.",
+  alternates: { canonical: "/public/help" },
+  openGraph: { title: "مركز المساعدة | مستواك", description: "إرشادات عملية لاستخدام منصة مستواك.", type: "website" },
+  twitter: { card: "summary", title: "مركز المساعدة | مستواك", description: "إرشادات عملية لاستخدام منصة مستواك." },
+  robots: { index: true, follow: true },
 };
+
+const guides = [
+  {
+    title: "العثور على المحتوى",
+    icon: BookOpen,
+    steps: [
+      "اختر الدولة ونوع الجهة ثم الجامعة أو المسار.",
+      "انتقل إلى الكلية - إن وجدت - ثم التخصص والمقرر والفصل.",
+      "توضح البطاقة ما إذا كان المحتوى مجانيًا أو يحتاج إلى وصول.",
+    ],
+  },
+  {
+    title: "الحساب وتسجيل الدخول",
+    icon: CircleUserRound,
+    steps: [
+      "تحقق من بريدك عند إنشاء الحساب قبل تسجيل الدخول.",
+      "استخدم استعادة كلمة المرور إذا فقدتها، ولا ترسلها إلى الدعم.",
+      "نتائج الاختبار المحفوظة محليًا لا تنتقل حاليًا بين الأجهزة.",
+    ],
+  },
+  {
+    title: "الاشتراك والدفع",
+    icon: CreditCard,
+    steps: [
+      "راجع الخطة والسعر والمدة والمقرر، ثم اختر طلب كود تفعيل عبر واتساب.",
+      "بعد التحقق من الدفع واستلام الكود، أدخله في نافذة المادة. إرسال الرسالة وحده لا يمنح الوصول.",
+      "فعّل الكود كضيف في المتصفح أو داخل حساب موثق. تظل طلباتك السابقة متاحة للمتابعة من حسابك.",
+    ],
+  },
+  {
+    title: "الملفات والوصول",
+    icon: FileWarning,
+    steps: [
+      "سجل الدخول بالحساب الذي فُعّل الكود داخله، أو أدخل كود الضيف للاستعادة أو النقل. تسجيل الدخول لاحقًا لا ينقل وصول الضيف للحساب.",
+      "تُفتح الملفات المحمية داخل عارض الموقع بعد فحص الصلاحية.",
+      "إذا استمر المنع، أرسل رابط الصفحة ومرجع الطلب دون إرسال أسرار.",
+    ],
+  },
+];
 
 export default function HelpCenterPage() {
   return (
-    <StaticPageShell
-      eyebrow="الدعم"
-      title="مركز المساعدة"
-      description="إرشادات مختصرة تساعدك على استخدام مستواك والوصول إلى الاختبارات المناسبة وفهم آلية الاشتراكات."
-      width="wide"
-    >
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
-        <StaticSectionCard
-          title="إرشادات سريعة"
-          description="خطوات عملية لحل أكثر الأسئلة شيوعًا قبل استخدام المنصة."
-          className="lg:min-h-full"
-        >
-          <Accordion type="single" collapsible className="w-full">
-            <AccordionItem value="item-1">
-              <AccordionTrigger className="text-right text-base font-semibold hover:no-underline">
-                كيف أجد اختبارًا مناسبًا؟
-              </AccordionTrigger>
-              <AccordionContent className="text-base leading-8 text-muted-foreground">
-                ابدأ من الصفحة الرئيسية، ثم اختر الدولة ونوع الجهة التعليمية. بعد ذلك اختر المؤسسة، ثم التخصص أو
-                الصف، ثم المقرر للوصول إلى الاختبارات المتاحة. قد تختلف الاختبارات حسب المحتوى المنشور في كل مقرر.
-              </AccordionContent>
-            </AccordionItem>
-
-            <AccordionItem value="item-2">
-              <AccordionTrigger className="text-right text-base font-semibold hover:no-underline">
-                كيف أعرف أن الاختبار مجاني أو يحتاج اشتراكًا؟
-              </AccordionTrigger>
-              <AccordionContent className="text-base leading-8 text-muted-foreground">
-                تظهر شارات أو رسائل واضحة على بطاقات الاختبارات لتوضيح الاختبارات المجانية، والاختبارات التجريبية،
-                والمحتوى الذي يتطلب كود اشتراك يدوي. إذا كان الاختبار مقفلًا، ستظهر لك طريقة التفعيل المتاحة.
-              </AccordionContent>
-            </AccordionItem>
-
-            <AccordionItem value="item-3">
-              <AccordionTrigger className="text-right text-base font-semibold hover:no-underline">
-                هل يتم حفظ نتيجتي؟
-              </AccordionTrigger>
-              <AccordionContent className="text-base leading-8 text-muted-foreground">
-                قد يتم حفظ محاولة الاختبار ونتيجتها لتحسين التحليلات التعليمية وجودة الأسئلة وتجربة الطالب. لا يحتاج
-                الطالب إلى حساب كامل، وقد ترتبط بعض البيانات بجلسة مجهولة محفوظة في المتصفح.
-              </AccordionContent>
-            </AccordionItem>
-
-            <AccordionItem value="item-4">
-              <AccordionTrigger className="text-right text-base font-semibold hover:no-underline">
-                ماذا أفعل إذا لم يظهر المحتوى بعد التفعيل؟
-              </AccordionTrigger>
-              <AccordionContent className="text-base leading-8 text-muted-foreground">
-                تأكد من إدخال كود الاشتراك بشكل صحيح، ومن استخدام نفس المتصفح الذي تم التفعيل عليه. إذا استمرت
-                المشكلة، يمكن مراجعة صفحة الأسئلة الشائعة، وسيتم توضيح قنوات الدعم الرسمية عند تفعيل صفحة التواصل.
-              </AccordionContent>
-            </AccordionItem>
-
-            <AccordionItem value="item-5">
-              <AccordionTrigger className="text-right text-base font-semibold hover:no-underline">
-                كيف أبلغ عن مشكلة في سؤال أو اختبار؟
-              </AccordionTrigger>
-              <AccordionContent className="text-base leading-8 text-muted-foreground">
-                سيتم توضيح قنوات الإبلاغ الرسمية عند اعتماد وسائل التواصل الخاصة بالمنصة. إلى ذلك الوقت، يُنصح
-                باستخدام الاختبارات كأداة تدريبية، والرجوع إلى المصادر الرسمية عند وجود اختلاف في الإجابة أو الصياغة.
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
-
-          <div className="mt-6 rounded-xl border bg-muted/20 p-4 text-center">
-            <Link
-              href="/public/faq"
-              className="font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              عرض جميع الأسئلة الشائعة
-            </Link>
-          </div>
-        </StaticSectionCard>
-
-        <Card className="border-border/70 shadow-sm">
-          <CardHeader className="border-b bg-muted/20 p-5 sm:p-6">
-            <CardTitle className="text-xl font-bold leading-8">تحتاج مساعدة إضافية؟</CardTitle>
-            <CardDescription className="leading-7">
-              قنوات التواصل الرسمية ستتوفر قريبًا عبر موقع مستواك.
-            </CardDescription>
-          </CardHeader>
-
-          <CardContent className="space-y-4 p-5 text-base leading-8 text-muted-foreground sm:p-6">
-            <p>
-              لا نعرض حاليًا بريدًا إلكترونيًا أو رقم هاتف غير مفعّل. عند اعتماد قنوات الدعم الرسمية، ستظهر هنا بوضوح
-              عبر موقع{" "}
-              <span dir="ltr" className="whitespace-nowrap font-medium text-foreground">
-                mustawak.com
-              </span>
-              .
-            </p>
-
-            <p>
-              يمكنك حاليًا الاستفادة من صفحة الأسئلة الشائعة وصفحات السياسات لمعرفة طريقة استخدام المنصة، آلية
-              الاشتراكات اليدوية، وحفظ الجلسة المجهولة.
-            </p>
-
-            <div className="space-y-3">
-              <Button asChild className="h-11 w-full">
-                <Link href="/public/contact">انتقل إلى صفحة التواصل</Link>
-              </Button>
-
-              <Button asChild variant="outline" className="h-11 w-full">
-                <Link href="/public/terms">شروط الاستخدام</Link>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+    <StaticPageShell eyebrow="الدعم" title="مركز المساعدة" description="خطوات مختصرة لحل المشكلات الشائعة قبل التواصل مع الدعم." width="wide">
+      <div className="grid gap-5 md:grid-cols-2">
+        {guides.map(({ title, icon: Icon, steps }) => (
+          <StaticSectionCard key={title} title={title} className="h-full">
+            <Icon className="mb-4 h-6 w-6 text-primary" aria-hidden="true" />
+            <ol className="list-decimal space-y-3 pe-5 text-base leading-8 text-foreground/80">
+              {steps.map((step) => <li key={step}>{step}</li>)}
+            </ol>
+          </StaticSectionCard>
+        ))}
       </div>
+
+      <StaticSectionCard title="عند الحاجة إلى متابعة" description="أرسل معلومات تكفي لفهم المشكلة من دون كشف بيانات حساسة.">
+        <div className="space-y-4 text-base leading-8 text-foreground/80">
+          <p>
+            اذكر رابط الصفحة، واسم المقرر، ووصف الخطأ، ومرجع الطلب عند ارتباط المشكلة بالدفع. لا ترسل كلمة مرور أو
+            رمز تحقق أو كود تفعيل كامل أو بيانات دفع حساسة.
+          </p>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <Button asChild>
+              <a href={`mailto:${OFFICIAL_SUPPORT_EMAIL}?subject=${encodeURIComponent("طلب دعم")}`}>مراسلة الدعم بالبريد</a>
+            </Button>
+            <Button asChild variant="outline"><Link href="/public/faq">الأسئلة الشائعة</Link></Button>
+            <Button asChild variant="outline"><Link href="/public/contact">بيانات التواصل</Link></Button>
+          </div>
+        </div>
+      </StaticSectionCard>
     </StaticPageShell>
   );
 }

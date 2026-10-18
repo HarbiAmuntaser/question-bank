@@ -1,0 +1,68 @@
+schemaVersion: 1
+factoryVersion: 1.0.0
+
+institution:
+  countryCode: SA
+  institutionType: university # university | academy | school
+  universityName: REPLACE_ME
+  collegeName: null
+  majorName: REPLACE_ME
+
+subject:
+  name: REPLACE_ME
+  code: null
+  year: null
+  semester: null
+  creditHours: null
+  description: null
+  scopeIncluded: []
+  scopeExcluded: []
+
+production:
+  summaryMode: print_attachment # print_attachment | platform_html | hybrid
+  contentLanguage: ar # ar | en | bilingual
+  primaryLanguage: ar # ar | en
+  questionLanguage: ar # ar | en | bilingual
+  explanationLanguage: same_as_question # same_as_question | ar | en | bilingual
+  explainStrongestDistractor: false
+  preserveTechnicalTerms: true
+  allowExternalKnowledge: false
+  a4TemplateVersion: 4.2
+
+questionPolicy:
+  mcqOptions: 4
+  exactlyOneCorrect: true
+  includeTrueFalse: true
+  difficultyMix:
+    easy: 30
+    medium: 50
+    hard: 20
+  maxSingleStylePercent: 35
+  defaultPoints: 1
+  importIsActive: false
+
+summaryDefaults:
+  status: draft
+  accessType: inherit # inherit | free | paid
+  language: ar # DB supports ar | en
+  sortOrder: 0
+  isFeatured: false
+
+quizDefaults:
+  accessType: inherit
+  isFreePreview: false
+  randomize: true
+  timeLimitMinutes: 30
+
+seoDefaults:
+  locale: ar
+  noindexDuringProduction: true
+  nofollow: false
+  canonicalUrlUntilPublished: null
+
+approvals:
+  subjectPlanApprovedBy: null
+  subjectPlanApprovedAt: null
+  languagePolicyApprovedBy: null
+  sourcesApprovedBy: null
+
