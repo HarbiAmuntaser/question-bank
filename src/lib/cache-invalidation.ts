@@ -53,6 +53,7 @@ export type StudySummaryCacheSnapshot = {
   slug?: string | null;
   subjectId?: string | null;
   chapterId?: string | null;
+  chapterPath?: string | null;
   subjectPath?: string | null;
   summaryPath?: string | null;
 };
@@ -247,7 +248,7 @@ export function revalidateStudySummaryCache(input: StudySummaryCacheInput = {}) 
   const paths = Array.from(
     new Set(
       snapshots
-        .flatMap((item) => [item.subjectPath, item.summaryPath])
+        .flatMap((item) => [item.subjectPath, item.chapterPath, item.summaryPath])
         .map((path) => path?.trim())
         .filter((path): path is string => Boolean(path)),
     ),

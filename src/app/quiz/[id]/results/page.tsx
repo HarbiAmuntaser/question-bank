@@ -7,6 +7,7 @@ import type { Metadata } from "next";
 import type { QuizWithQuestions } from "@/types";
 import { fetchAuthenticatedStudentJSON } from "@/lib/server/student-fetch";
 import { encodeSlugPath, stripPrefix } from "@/lib/public/slug-utils";
+import { summaryQuery } from "@/lib/public/study-summary-routes";
 import { QuizResults } from "@/components/public/quiz/result/quiz-results";
 import type { ResultStudySummaryReference } from "@/components/public/quiz/result/result-study-guidance";
 import { PublicHeader } from "@/components/public/public-header/public-header";
@@ -114,7 +115,7 @@ export default async function QuizResultsPage({
               chapter: summary.chapter,
               hasReadableContent: summary.hasReadableContent,
               hasPdf: summary.hasPdf,
-              href: `${backToSubjectUrl}/summaries/${encodeSlugPath(summary.slug)}`,
+              href: `${backToSubjectUrl}/summaries/${encodeSlugPath(summary.slug)}${summaryQuery(summary.language)}`,
             })),
           )
           .catch(() => [])

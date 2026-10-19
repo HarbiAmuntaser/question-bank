@@ -18,6 +18,12 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  pdfViewerLoadErrorMessage,
+  pdfViewerSourceError,
+  PdfViewerResponseError,
+  type PdfViewerLoadStage,
+} from "@/lib/public/pdf-viewer-errors";
 
 type PdfViewerSource = {
   title: string;
@@ -39,24 +45,6 @@ type PageChangingEvent = { pageNumber: number };
 type ScaleChangingEvent = { scale: number };
 type PageRenderedEvent = { pageNumber: number };
 type FindMatchesEvent = { matchesCount?: { current?: number; total?: number } };
-
-const errorMessages: Record<string, string> = {
-  summary_pdf_access_denied: "لا تملك صلاحية فتح هذا الملف.",
-  chapter_attachment_access_denied: "يتطلب هذا الملف اشتراكًا فعالًا في المادة.",
-  pdf_watermark_configuration_unavailable: "عارض الملفات المدفوعة غير متاح مؤقتًا.",
-  pdf_watermark_principal_unavailable: "تعذر التحقق من هوية الوصول لهذا الملف.",
-  summary_not_found: "الملخص غير موجود أو غير منشور.",
-  summary_pdf_not_found: "لا يوجد ملف PDF لهذا الملخص.",
-  chapter_attachment_not_found: "الملف غير موجود أو لم يعد متاحًا.",
-  pdf_storage_unavailable: "تعذر الوصول إلى الملف المخزن.",
-};
-
-function sourceError(code: string | undefined, status: number) {
-  if (code && errorMessages[code]) return errorMessages[code];
-  if (status === 403) return "لا تملك صلاحية فتح هذا الملف.";
-  if (status === 404) return "الملف غير موجود أو لم يعد متاحًا.";
-  return "تعذر تحميل الملف. حاول مرة أخرى.";
-}
 
 function paintWatermark(container: HTMLElement, pageNumber: number, source: PdfViewerSource) {
   const page = container.querySelector<HTMLElement>(`.page[data-page-number="${pageNumber}"]`);
@@ -141,6 +129,7 @@ export function ProtectedPdfViewer({
 
   useEffect(() => {
     let disposed = false;
+    let loadingStage: PdfViewerLoadStage = "source";
     let refreshTimer: ReturnType<typeof setTimeout> | null = null;
     let fullyDownloaded = false;
     const container = containerRef.current;
@@ -162,15 +151,17 @@ export function ProtectedPdfViewer({
         headers: { Accept: "application/json" },
       });
       const body = (await response.json().catch(() => ({}))) as SourceResponse;
-      if (!response.ok || !body.data) throw new Error(sourceError(body.error, response.status));
+      if (!response.ok || !body.data) {
+        throw new PdfViewerResponseError(pdfViewerSourceError(body.error, response.status));
+      }
       const source = body.data;
       if (disposed) return;
       setTitle(source.title);
 
-      const [pdfjs, viewerModule] = await Promise.all([
-        import("pdfjs-dist/webpack.mjs"),
-        import("pdfjs-dist/web/pdf_viewer.mjs"),
-      ]);
+      loadingStage = "viewer";
+      const pdfjs = await import("pdfjs-dist/webpack.mjs");
+      if (disposed) return;
+      const viewerModule = await import("pdfjs-dist/web/pdf_viewer.mjs");
       if (disposed) return;
 
       const eventBus = new viewerModule.EventBus();
@@ -226,6 +217,7 @@ export function ProtectedPdfViewer({
       eventBus.on("updatefindmatchescount", onMatches);
       eventBus.on("pagesinit", onPagesInit);
 
+      loadingStage = "document";
       const loadingTask = pdfjs.getDocument({
         url: source.sourceUrl,
         rangeChunkSize: 128 * 1024,
@@ -277,7 +269,7 @@ export function ProtectedPdfViewer({
       .catch((reason: unknown) => {
         if (disposed) return;
         setLoading(false);
-        setError(reason instanceof Error ? reason.message : "تعذر تحميل الملف. حاول مرة أخرى.");
+        setError(pdfViewerLoadErrorMessage(reason, loadingStage));
       });
 
     return () => {

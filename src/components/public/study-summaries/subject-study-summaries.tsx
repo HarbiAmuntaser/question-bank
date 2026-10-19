@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { encodeSlugPath } from "@/lib/public/slug-utils";
+import { summaryQuery } from "@/lib/public/study-summary-routes";
 import { cn } from "@/lib/utils";
 
 import { StudySummarySubscribeButton } from "./study-summary-subscribe-button";
@@ -17,6 +18,7 @@ export type PublicStudySummaryCard = {
   id: string;
   title: string;
   slug: string;
+  language: "ar" | "en";
   excerpt: string | null;
   accessType: "inherit" | "free" | "paid";
   publishedAt: string;
@@ -90,7 +92,7 @@ function SummaryCard({
   majorId: string;
   onRedeemed: () => void;
 }) {
-  const summaryHref = `${basePath}/summaries/${encodeSlugPath(summary.slug)}`;
+  const summaryHref = `${basePath}/summaries/${encodeSlugPath(summary.slug)}${summaryQuery(summary.language)}`;
   const allowed = summary.accessType === "free" || Boolean(access?.allowed);
 
   return (

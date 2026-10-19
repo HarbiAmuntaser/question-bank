@@ -152,3 +152,27 @@ test("public links use the viewer and expose no download or print controls", () 
   assert.doesNotMatch(viewer, /<Download|window\.print|download=/);
   assert.match(viewer, /data-mustawak-watermark/);
 });
+
+test("PDF.js core finishes loading before the viewer module is imported", () => {
+  const viewer = readFileSync("src/components/public/pdf-viewer/pdf-viewer.tsx", "utf8");
+  const core = viewer.indexOf('const pdfjs = await import("pdfjs-dist/webpack.mjs")');
+  const ui = viewer.indexOf('const viewerModule = await import("pdfjs-dist/web/pdf_viewer.mjs")');
+  assert.ok(core >= 0 && ui > core);
+  assert.doesNotMatch(viewer, /Promise\.all\(\s*\[\s*import\("pdfjs-dist\/webpack\.mjs"\)/);
+});
+
+test("PDF loading errors remain Arabic and never display raw network or library errors", () => {
+  const { PdfViewerResponseError, pdfViewerSourceError, pdfViewerLoadErrorMessage } =
+    moduleLoader()("src/lib/public/pdf-viewer-errors.ts");
+  assert.equal(pdfViewerSourceError("summary_pdf_access_denied", 403), "لا تملك صلاحية فتح هذا الملف.");
+  assert.equal(pdfViewerSourceError("chapter_attachment_access_denied", 403), "يتطلب هذا الملف اشتراكًا فعالًا في المادة.");
+  assert.equal(pdfViewerSourceError(undefined, 404), "الملف غير موجود أو لم يعد متاحًا.");
+
+  const known = new PdfViewerResponseError(pdfViewerSourceError("summary_pdf_access_denied", 403));
+  assert.equal(pdfViewerLoadErrorMessage(known, "source"), known.message);
+  for (const stage of ["source", "viewer", "document"]) {
+    const message = pdfViewerLoadErrorMessage(new Error("Failed to fetch: signed-url-secret"), stage);
+    assert.match(message, /تعذر/);
+    assert.doesNotMatch(message, /Failed to fetch|signed-url-secret/);
+  }
+});

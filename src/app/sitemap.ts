@@ -4,6 +4,7 @@ import { SUPPORTED_COUNTRIES, type CountryCode, type InstitutionType } from "@/c
 import { prisma } from "@/lib/prisma";
 import { getCanonicalInstitutionCountry } from "@/lib/public/institution-routing";
 import { encodeSlugPath, stripPrefix } from "@/lib/public/slug-utils";
+import { summaryQuery } from "@/lib/public/study-summary-routes";
 import {
   BLOG_TOPIC_INDEX_MIN_POSTS,
   getSearchIndexingMode,
@@ -620,7 +621,6 @@ async function studySummaryEntries(): Promise<SitemapEntry[]> {
     where: {
       status: "published",
       publishedAt: { not: null, lte: new Date() },
-      language: "ar",
       subject: {
         isActive: true,
         major: {
@@ -638,6 +638,7 @@ async function studySummaryEntries(): Promise<SitemapEntry[]> {
     select: {
       id: true,
       slug: true,
+      language: true,
       publishedAt: true,
       createdAt: true,
       updatedAt: true,
@@ -693,7 +694,7 @@ async function studySummaryEntries(): Promise<SitemapEntry[]> {
     if (!universitySlug || !majorSlug || !subjectSlug || !summarySlug || hasUuidSegment(summary.slug)) return [];
 
     return [
-      entry(`/${cc}/${type}/universities/${universitySlug}/majors/${majorSlug}/subjects/${subjectSlug}/summaries/${summarySlug}`, {
+      entry(`/${cc}/${type}/universities/${universitySlug}/majors/${majorSlug}/subjects/${subjectSlug}/summaries/${summarySlug}${summaryQuery(summary.language)}`, {
         lastModified: latestDate(summary.updatedAt, summary.publishedAt, summary.createdAt, subject.updatedAt),
         changeFrequency: "weekly",
         priority: 0.55,

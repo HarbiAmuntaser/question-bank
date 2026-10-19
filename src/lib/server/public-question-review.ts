@@ -3,6 +3,7 @@ import "server-only";
 import type { Prisma } from "@prisma/client";
 
 import { encodeSlugPath } from "@/lib/public/slug-utils";
+import { summaryQuery } from "@/lib/public/study-summary-routes";
 
 export const publicQuestionReviewSelect = {
   reviewSummaryId: true,
@@ -13,6 +14,7 @@ export const publicQuestionReviewSelect = {
       id: true,
       title: true,
       slug: true,
+      language: true,
       status: true,
       publishedAt: true,
       chapterId: true,
@@ -61,7 +63,7 @@ function summaryHref(summary: NonNullable<QuestionReviewRow["reviewSummary"]>) {
     `/universities/${encodeSlugPath(university.code || university.id)}` +
     `/majors/${encodeSlugPath(summary.subject.major.id)}` +
     `/subjects/${encodeSlugPath(summary.subject.id)}` +
-    `/summaries/${encodeSlugPath(summary.slug)}`
+    `/summaries/${encodeSlugPath(summary.slug)}${summaryQuery(summary.language)}`
   );
 }
 

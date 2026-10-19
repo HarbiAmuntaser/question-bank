@@ -67,6 +67,7 @@ import {
   parseAcademicPeriodRouteKey,
 } from "@/lib/academic-periods";
 import { buildCollegeMajorGroups } from "@/lib/public/college-major-groups";
+import { summaryLanguageFromQuery, summaryQuery } from "@/lib/public/study-summary-routes";
 
 export const revalidate = 21600;
 
@@ -75,6 +76,7 @@ type PageSearchParams = {
   degree?: string | string[];
   college?: string | string[];
   reviewTopic?: string | string[];
+  lang?: string | string[];
 };
 
 function getFirstSearchValue(value: string | string[] | undefined) {
@@ -289,8 +291,14 @@ function parseUniversitiesCatchAll(segs: string[]) {
 // Metadata
 // -------------------------
 
-export async function generateMetadata({ params }: { params: Promise<PageParams> }): Promise<Metadata> {
-  const p = await params;
+export async function generateMetadata({
+  params,
+  searchParams,
+}: {
+  params: Promise<PageParams>;
+  searchParams: Promise<PageSearchParams>;
+}): Promise<Metadata> {
+  const [p, sp] = await Promise.all([params, searchParams]);
 
   const cc = normalizeCountry(p.cc);
   const typeRaw = (p.type || "").toLowerCase();
@@ -502,7 +510,11 @@ export async function generateMetadata({ params }: { params: Promise<PageParams>
       return { title: "ملخص غير موجود", robots: { index: false, follow: false } };
     }
 
-    const summary = await getPublishedSubjectSummaryBySlug(subject.id, stripPrefix(summarySlugPath, "ملخصات"));
+    const summary = await getPublishedSubjectSummaryBySlug(
+      subject.id,
+      stripPrefix(summarySlugPath, "ملخصات"),
+      summaryLanguageFromQuery(getFirstSearchValue(sp.lang)),
+    );
     if (!summary) {
       return { title: "ملخص غير موجود", robots: { index: false, follow: false } };
     }
@@ -526,7 +538,7 @@ export async function generateMetadata({ params }: { params: Promise<PageParams>
     const canonicalPath = `/${canonicalCountry}/${canonicalType}/universities/${encodeSlugPath(canonicalUni)}/majors/${encodeSlugPath(
       canonicalMajor,
     )}/subjects/${encodeSlugPath(canonicalSubject)}/summaries/${encodeSlugPath(canonicalSummary)}`;
-    const canonical = `${SITE_URL}${canonicalPath}`;
+    const canonical = `${SITE_URL}${canonicalPath}${summaryQuery(summary.language)}`;
     const title = stripSiteNameFromTitle(seo?.metaTitle) || summary.title;
     const socialTitle = seo?.ogTitle || withSiteName(title);
     const description =
@@ -924,6 +936,7 @@ export default async function UniversitiesCatchAllPage({
             majorSlugPath={majorSlugPath}
             subjectSlugPath={subjectSlugPath}
             summarySlugPath={summarySlugPath}
+            language={summaryLanguageFromQuery(getFirstSearchValue(sp.lang))}
             reviewTopic={typeof sp.reviewTopic === "string" ? sp.reviewTopic : undefined}
           />
         </main>

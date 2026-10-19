@@ -9,6 +9,7 @@ import { ContextBackLink } from "@/components/public/context-back-link";
 import { Separator } from "@/components/ui/separator";
 import type { InstitutionType } from "@/config/regions";
 import { encodeSlugPath, stripPrefix } from "@/lib/public/slug-utils";
+import { summaryQuery } from "@/lib/public/study-summary-routes";
 import { checkStudySummaryAccess } from "@/lib/server/access-control";
 import { guestAccessTokenFromServerCookies } from "@/lib/server/code-access-cookie";
 import { getPublicSubjectByRouteKey } from "@/lib/server/public-education-loaders";
@@ -75,6 +76,7 @@ export async function StudySummaryDetails({
   majorSlugPath,
   subjectSlugPath,
   summarySlugPath,
+  language,
   reviewTopic,
 }: {
   cc: string;
@@ -83,6 +85,7 @@ export async function StudySummaryDetails({
   majorSlugPath: string;
   subjectSlugPath: string;
   summarySlugPath: string;
+  language: "ar" | "en";
   reviewTopic?: string;
 }) {
   const ccNorm = (cc || "SA").toUpperCase();
@@ -91,7 +94,7 @@ export async function StudySummaryDetails({
   const { subject } = await fetchSubjectBySlugOrCode(subjectSlugPath);
   if (!subject || !summarySlug) notFound();
 
-  const summary = await getPublishedSubjectSummaryBySlug(subject.id, summarySlug);
+  const summary = await getPublishedSubjectSummaryBySlug(subject.id, summarySlug, language);
   if (!summary) notFound();
 
   const guestSessionToken = await guestAccessTokenFromServerCookies();
@@ -109,9 +112,7 @@ export async function StudySummaryDetails({
   const canonicalSubject = stripPrefix(subject.seo?.slug || subjectSlugPath, "مواد");
   const canonicalSummary = stripPrefix(summary.slug, "ملخصات");
   const normalizedReviewTopic = reviewTopic?.trim().slice(0, 200) || null;
-  const reviewTopicQuery = normalizedReviewTopic
-    ? `?reviewTopic=${encodeURIComponent(normalizedReviewTopic)}`
-    : "";
+  const reviewTopicQuery = summaryQuery(language, normalizedReviewTopic);
 
   const currentUni = stripPrefix(universitySlugPath, "جامعات");
   const currentMajor = stripPrefix(majorSlugPath, "تخصصات");

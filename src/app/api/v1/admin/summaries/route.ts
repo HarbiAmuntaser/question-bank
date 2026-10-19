@@ -70,6 +70,7 @@ const summaryRouteSelect = {
   slug: true,
   subjectId: true,
   chapterId: true,
+  chapter: { select: { slug: true } },
   subject: {
     select: {
       id: true,
@@ -187,6 +188,9 @@ async function toCacheSnapshot(row: SummaryRouteRecord | null): Promise<StudySum
     subjectId: row.subjectId,
     chapterId: row.chapterId,
     subjectPath,
+    chapterPath: row.chapterId
+      ? `${subjectPath}/chapters/${encodeURIComponent(row.chapter?.slug?.trim() || row.chapterId)}`
+      : null,
     summaryPath: `${subjectPath}/summaries/${encodeSlugPath(summarySlug)}`,
   };
 }

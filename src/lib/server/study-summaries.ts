@@ -13,6 +13,7 @@ export type PublicStudySummary = {
   id: string;
   title: string;
   slug: string;
+  language: "ar" | "en";
   excerpt: string | null;
   accessType: "inherit" | "free" | "paid";
   publishedAt: string;
@@ -42,6 +43,7 @@ type PublicStudySummaryQueryRow = {
   id: string;
   title: string;
   slug: string;
+  language: "ar" | "en";
   excerpt: string | null;
   accessType: "inherit" | "free" | "paid";
   pdfAttachmentId: string | null;
@@ -59,6 +61,7 @@ function serializeSummary(summary: PublicStudySummaryQueryRow): PublicStudySumma
     id: summary.id,
     title: summary.title,
     slug: summary.slug,
+    language: summary.language,
     excerpt: summary.excerpt,
     accessType: summary.accessType,
     publishedAt: summary.publishedAt.toISOString(),
@@ -80,6 +83,7 @@ function serializeSummaryDetail(summary: {
   id: string;
   title: string;
   slug: string;
+  language: "ar" | "en";
   excerpt: string | null;
   accessType: "inherit" | "free" | "paid";
   contentHtml: string | null;
@@ -96,6 +100,7 @@ function serializeSummaryDetail(summary: {
     id: summary.id,
     title: summary.title,
     slug: summary.slug,
+    language: summary.language,
     excerpt: summary.excerpt,
     accessType: summary.accessType,
     publishedAt: summary.publishedAt.toISOString(),
@@ -117,6 +122,7 @@ async function queryPublishedSubjectSummaries(subjectId: string): Promise<Public
       summary."id",
       summary."title",
       summary."slug",
+      summary."language",
       summary."excerpt",
       summary."accessType",
       summary."pdfAttachmentId",
@@ -136,7 +142,6 @@ async function queryPublishedSubjectSummaries(subjectId: string): Promise<Public
       AND summary."status" = 'published'::"StudySummaryStatus"
       AND summary."publishedAt" IS NOT NULL
       AND summary."publishedAt" <= ${now}
-      AND summary."language" = 'ar'::"ContentLanguage"
     ORDER BY summary."isFeatured" DESC, summary."sortOrder" ASC, summary."publishedAt" DESC
   `);
 }
@@ -149,7 +154,11 @@ async function loadPublishedSubjectSummaries(subjectId: string): Promise<PublicS
   return rows.map((row) => serializeSummary({ ...row, accessType: isPaymentSubject(subject) ? row.accessType : "free" }));
 }
 
-async function loadPublishedSubjectSummaryBySlug(subjectId: string, slug: string): Promise<PublicStudySummary | null> {
+async function loadPublishedSubjectSummaryBySlug(
+  subjectId: string,
+  slug: string,
+  language: "ar" | "en",
+): Promise<PublicStudySummary | null> {
   const subject = await prisma.subject.findFirst({ where: { id: subjectId, ...publishedSubjectWhere() }, select: paymentSubjectSelect });
   if (!subject) return null;
   const now = new Date();
@@ -159,12 +168,13 @@ async function loadPublishedSubjectSummaryBySlug(subjectId: string, slug: string
       slug,
       status: "published",
       publishedAt: { not: null, lte: now },
-      language: "ar",
+      language,
     },
     select: {
       id: true,
       title: true,
       slug: true,
+      language: true,
       excerpt: true,
       accessType: true,
       contentHtml: true,
@@ -191,7 +201,6 @@ export async function getPublishedStudySummaryContent(
       id: summaryId,
       status: "published",
       publishedAt: { not: null, lte: now },
-      language: "ar",
     },
     select: {
       contentHtml: true,
@@ -218,7 +227,7 @@ async function loadStudySummarySeoMeta(summaryId: string): Promise<StudySummaryS
 export const getPublishedSubjectSummaries = cache(async (subjectId: string): Promise<PublicStudySummary[]> => {
   return unstable_cache(
     () => loadPublishedSubjectSummaries(subjectId),
-    ["public-study-summaries-safe-v3", "payment-v1-scope", subjectId],
+    ["public-study-summaries-safe-v4", "payment-v1-scope", subjectId],
     {
       revalidate: CACHE_TTL.publicLong,
       tags: cacheTags(
@@ -231,10 +240,10 @@ export const getPublishedSubjectSummaries = cache(async (subjectId: string): Pro
 });
 
 export const getPublishedSubjectSummaryBySlug = cache(
-  async (subjectId: string, slug: string): Promise<PublicStudySummary | null> => {
+  async (subjectId: string, slug: string, language: "ar" | "en" = "ar"): Promise<PublicStudySummary | null> => {
     return unstable_cache(
-      () => loadPublishedSubjectSummaryBySlug(subjectId, slug),
-      ["public-study-summary-detail-safe-v2", "payment-v1-scope", subjectId, slug],
+      () => loadPublishedSubjectSummaryBySlug(subjectId, slug, language),
+      ["public-study-summary-detail-safe-v3", "payment-v1-scope", subjectId, slug, language],
       {
         revalidate: CACHE_TTL.publicLong,
         tags: cacheTags(
