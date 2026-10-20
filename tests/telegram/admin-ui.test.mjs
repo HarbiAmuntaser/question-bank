@@ -79,6 +79,11 @@ test("Phase 3 UI is database-backed by default and external verification is expl
   const admin = readFileSync("src/components/admin/subscriptions/telegram-admin.tsx", "utf8");
   const student = readFileSync("src/components/public/telegram-subject-access.tsx", "utf8");
   const subject = readFileSync("src/components/public/subject-details.tsx", "utf8");
+  assert.ok(student.includes('import { CheckCircle2, Loader2, Send } from "lucide-react"'));
+  assert.equal(student.includes("MessageCircle"), false);
+  assert.equal(student.includes("ExternalLink"), false);
+  assert.equal(student.includes("RefreshCw"), false);
+  assert.ok(student.includes('<Send className="h-4 w-4" aria-hidden />'));
   const route = readFileSync("src/app/api/v1/admin/telegram/route.ts", "utf8");
   assert.match(page, /if \(!activeTab\)/);
   assert.match(admin, /action: "verify_channel"/);

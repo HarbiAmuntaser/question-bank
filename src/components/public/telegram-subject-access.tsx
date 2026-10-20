@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, useTransition } from "react";
-import { CheckCircle2, ExternalLink, Loader2, MessageCircle, RefreshCw } from "lucide-react";
+import { CheckCircle2, Loader2, Send } from "lucide-react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -144,7 +144,7 @@ export function TelegramSubjectAccess({ subjectId }: { subjectId: string }) {
       <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
         <div className="flex min-w-0 items-start gap-3">
           <div className="grid h-10 w-10 shrink-0 place-items-center rounded-md bg-sky-100 text-sky-700 dark:bg-sky-900/60 dark:text-sky-200">
-            <MessageCircle className="h-5 w-5" aria-hidden />
+            <Send className="h-5 w-5" aria-hidden />
           </div>
           <div className="min-w-0 space-y-1">
             <div className="flex flex-wrap items-center gap-2">
@@ -158,8 +158,11 @@ export function TelegramSubjectAccess({ subjectId }: { subjectId: string }) {
         </div>
         {!active && membershipStatus !== "removal_pending" ? (
           <Button type="button" onClick={requestLink} disabled={pending} className="shrink-0 gap-2">
-            {pending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> :
-              membershipStatus ? <RefreshCw className="h-4 w-4" aria-hidden /> : <ExternalLink className="h-4 w-4" aria-hidden />}
+            {pending ? (
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+            ) : (
+              <Send className="h-4 w-4" aria-hidden />
+            )}
             {pending ? "جار إنشاء الرابط..." : membershipStatus ? "طلب رابط جديد" : "الربط مع تيليجرام"}
           </Button>
         ) : null}
