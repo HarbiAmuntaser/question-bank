@@ -36,7 +36,7 @@ function applySecurityHeaders(res: NextResponse) {
 function finalizePublicResponse(
   req: NextRequest,
   res: NextResponse,
-  detectedCountry: CountryCode | undefined
+  detectedCountry: string | undefined
 ) {
   const storedCountry = req.cookies.get(DETECTED_COUNTRY_COOKIE)?.value;
 
@@ -121,7 +121,9 @@ function publicMiddleware(req: NextRequest) {
     const geoCC = detectCountryFromHeaders(req);
 
     // 3) الدولة النهائية
-    const chosenCC = normalizeCountry(cookieCC || geoCC || DEFAULT_COUNTRY);
+    const chosenCC = geoCC === "SA"
+      ? "SA"
+      : normalizeCountry(cookieCC || geoCC || DEFAULT_COUNTRY);
 
     // 4) "/" → "/{cc}"
     if (pathname === "/") {

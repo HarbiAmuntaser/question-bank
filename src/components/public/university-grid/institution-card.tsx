@@ -72,7 +72,7 @@ export function InstitutionGridCard({
               <Badge variant="secondary" className="rounded-full px-2.5 py-1 text-xs font-semibold">
                 {typeLabel}
               </Badge>
-              {code?.trim() ? (
+              {type !== "university" && code?.trim() ? (
                 <Badge variant="outline" className="rounded-full px-2.5 py-1 text-xs" dir="ltr">
                   {code.trim()}
                 </Badge>

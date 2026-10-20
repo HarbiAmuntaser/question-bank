@@ -6,6 +6,8 @@ import { moduleLoader } from "../admin/load-module.mjs";
 
 const subscriptionReturn = moduleLoader()("src/lib/subscription-return.ts");
 const countryVisibility = moduleLoader()("src/lib/public-country-visibility.ts");
+const routeHelpers = moduleLoader()("src/lib/route-helpers.ts");
+const routeState = moduleLoader()("src/components/public/public-header/route-state.ts");
 
 test("student sign-in returns only to a safe, exact subscription target", () => {
   const key = subscriptionReturn.subscriptionReturnKey("quiz", "11111111-1111-4111-8111-111111111111");
@@ -78,15 +80,41 @@ test("quiz results omit the two requested aggregate guidance cards", () => {
   assert.match(guidance, /buildChapterFocus/);
 });
 
-test("country switcher hides only for a Saudi-detected visitor on a Saudi route", () => {
-  assert.equal(countryVisibility.shouldShowCountrySwitcher("/SA", "SA"), false);
-  assert.equal(countryVisibility.shouldShowCountrySwitcher("/SA/university", "SA"), false);
-  assert.equal(countryVisibility.shouldShowCountrySwitcher("/YE", "SA"), true);
-  assert.equal(countryVisibility.shouldShowCountrySwitcher("/SA", "YE"), true);
-  assert.equal(countryVisibility.shouldShowCountrySwitcher("/SA", null), true);
-  assert.equal(countryVisibility.shouldShowCountrySwitcher("/quiz/example", "SA"), true);
+test("country switcher stays hidden for Saudi or unverified geography on every route", () => {
+  assert.equal(countryVisibility.shouldShowCountrySwitcher("SA"), false);
+  assert.equal(countryVisibility.shouldShowCountrySwitcher(null), false);
+  assert.equal(countryVisibility.shouldShowCountrySwitcher(undefined), false);
+  assert.equal(countryVisibility.shouldShowCountrySwitcher("YE"), true);
+  assert.equal(countryVisibility.shouldShowCountrySwitcher("US"), true);
   assert.equal(countryVisibility.detectedCountryFromCookie("foo=1; detected_cc=SA"), "SA");
-  assert.equal(countryVisibility.detectedCountryFromCookie("detected_cc=US"), null);
+  assert.equal(countryVisibility.detectedCountryFromCookie("detected_cc=US"), "US");
+  assert.equal(countryVisibility.detectedCountryFromCookie("detected_cc=unknown"), null);
+});
+
+test("Vercel geography takes precedence and unsupported headers do not hide valid fallbacks", () => {
+  const request = (values) => ({ headers: { get: (name) => values[name] ?? null } });
+  assert.equal(routeHelpers.detectCountryFromHeaders(request({
+    "x-vercel-ip-country": "SA",
+    "cf-ipcountry": "YE",
+  })), "SA");
+  assert.equal(routeHelpers.detectCountryFromHeaders(request({
+    "x-vercel-ip-country": "unknown",
+    "cf-ipcountry": "SA",
+  })), "SA");
+  assert.equal(routeHelpers.detectCountryFromHeaders(request({
+    "x-vercel-ip-country": "US",
+  })), "US");
+});
+
+test("country switch navigation does not treat quiz or account IDs as country paths", () => {
+  const header = readFileSync("src/components/public/public-header/public-header.tsx", "utf8");
+  assert.equal(routeState.getRouteState("/SA/university/example").isCountryScoped, true);
+  assert.equal(routeState.getRouteState("/SA/university/example").currentType, "university");
+  assert.equal(routeState.getRouteState("/quiz/quiz-id").isCountryScoped, false);
+  assert.equal(routeState.getRouteState("/quiz/quiz-id").secondSegment, undefined);
+  assert.equal(routeState.getRouteState("/account/orders/order-id").isCountryScoped, false);
+  assert.match(header, /if \(!isCountryScoped\) \{\s*router\.push\(`\/\$\{nextCC\}`\)/);
+  assert.match(header, /detectedCountry === "SA" \? "SA" : currentCC/);
 });
 
 test("middleware keeps detected geography separate from the selected country", () => {
@@ -95,4 +123,5 @@ test("middleware keeps detected geography separate from the selected country", (
   assert.match(middleware, /detectedCountry/);
   assert.match(middleware, /res\.cookies\.delete\(DETECTED_COUNTRY_COOKIE\)/);
   assert.match(middleware, /res\.cookies\.set\("cc", cc/);
+  assert.match(middleware, /geoCC === "SA"[\s\S]*?normalizeCountry\(cookieCC \|\| geoCC \|\| DEFAULT_COUNTRY\)/);
 });

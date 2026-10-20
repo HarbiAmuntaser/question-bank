@@ -20,12 +20,12 @@ const TYPES: Array<{ key: InstitutionType; label: string; Icon: LucideIcon }> = 
 export function buildNavItems(cc: string): NavItem[] {
   return [
     { key: "home", label: "الصفحة الرئيسية", href: `/${cc}`, Icon: Home },
-    { key: "blog", label: "المدونة", href: `/${cc}/blog`, Icon: BookOpenText },
     ...TYPES.filter((type) => isPublicInstitutionTypeEnabled(type.key)).map((t) => ({
       key: t.key,
       label: t.label,
       href: `/${cc}/${t.key}`,
       Icon: t.Icon,
     })),
+    { key: "blog", label: "المدونة", href: `/${cc}/blog`, Icon: BookOpenText },
   ];
 }

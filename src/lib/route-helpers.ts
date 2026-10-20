@@ -60,15 +60,10 @@ export function buildPath(cc: CountryCode, type?: InstitutionType | null, path?:
 }
 
 // محاولة تحديد الدولة من هيدرز الشبكة (Vercel/Cloudflare...)
-export function detectCountryFromHeaders(req: NextRequest): CountryCode | undefined {
-  const fromEdge =
-    req.headers.get("x-geo-country") ||
-    req.headers.get("cf-ipcountry") ||
-    req.headers.get("x-vercel-ip-country");
-
-  if (!fromEdge) return undefined;
-
-  const cc = fromEdge.trim().toUpperCase();
-  if (cc in SUPPORTED_COUNTRIES) return cc as CountryCode;
+export function detectCountryFromHeaders(req: NextRequest): string | undefined {
+  for (const header of ["x-vercel-ip-country", "cf-ipcountry", "x-geo-country"]) {
+    const cc = req.headers.get(header)?.trim().toUpperCase();
+    if (cc && /^[A-Z]{2}$/.test(cc)) return cc;
+  }
   return undefined;
 }

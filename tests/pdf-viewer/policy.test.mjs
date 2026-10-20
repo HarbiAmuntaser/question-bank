@@ -161,6 +161,14 @@ test("PDF.js core finishes loading before the viewer module is imported", () => 
   assert.doesNotMatch(viewer, /Promise\.all\(\s*\[\s*import\("pdfjs-dist\/webpack\.mjs"\)/);
 });
 
+test("PDF viewer starts at 100 percent without resetting zoom on retry", () => {
+  const viewer = readFileSync("src/components/public/pdf-viewer/pdf-viewer.tsx", "utf8");
+  assert.match(viewer, /const preservedScaleRef = useRef\("1"\)/);
+  assert.match(viewer, /preservedScaleRef\.current = viewerRef\.current\?\.currentScaleValue \|\| "1"/);
+  assert.match(viewer, /viewer\.currentScaleValue = preservedScaleRef\.current \|\| "1"/);
+  assert.doesNotMatch(viewer, /page-width/);
+});
+
 test("PDF loading errors remain Arabic and never display raw network or library errors", () => {
   const { PdfViewerResponseError, pdfViewerSourceError, pdfViewerLoadErrorMessage } =
     moduleLoader()("src/lib/public/pdf-viewer-errors.ts");

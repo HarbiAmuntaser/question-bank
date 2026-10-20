@@ -34,19 +34,18 @@ import {
 export function PublicHeader() {
   const pathname = usePathname() || "/";
   const router = useRouter();
-  const [detectedCountry, setDetectedCountry] = useState<
-    CountryCode | null | undefined
-  >(undefined);
+  const [detectedCountry, setDetectedCountry] = useState<string | null | undefined>(undefined);
 
   // استخراج cc + النوع الحالي (إن وجد) من المسار
-  const { currentCC, currentType, secondSegment } = useMemo(
+  const { currentCC, currentType, secondSegment, isCountryScoped } = useMemo(
     () => getRouteState(pathname),
     [pathname]
   );
 
-  const nav = useMemo(() => buildNavItems(currentCC), [currentCC]);
-  const homeHref = `/${currentCC}`;
-  const showCountrySwitcher = shouldShowCountrySwitcher(pathname, detectedCountry);
+  const navigationCC = detectedCountry === "SA" ? "SA" : currentCC;
+  const nav = useMemo(() => buildNavItems(navigationCC), [navigationCC]);
+  const homeHref = `/${navigationCC}`;
+  const showCountrySwitcher = shouldShowCountrySwitcher(detectedCountry);
 
   useEffect(() => {
     setDetectedCountry(detectedCountryFromCookie(document.cookie));
@@ -60,6 +59,10 @@ export function PublicHeader() {
    */
   const changeCountry = useCallback(
     (nextCC: CountryCode) => {
+      if (!isCountryScoped) {
+        router.push(`/${nextCC}`);
+        return;
+      }
       if (currentType) {
         const nextType = getEnabledPublicTypes(nextCC).includes(currentType)
           ? currentType
@@ -75,7 +78,7 @@ export function PublicHeader() {
 
       router.push(`/${nextCC}`);
     },
-    [router, currentType, secondSegment]
+    [router, currentType, secondSegment, isCountryScoped]
   );
 
   return (
@@ -97,7 +100,7 @@ export function PublicHeader() {
         <DesktopNav
           pathname={pathname}
           nav={nav}
-          currentCC={currentCC as CountryCode}
+          currentCC={navigationCC as CountryCode}
           onChangeCountry={changeCountry}
           showCountrySwitcher={showCountrySwitcher}
         />
@@ -110,7 +113,7 @@ export function PublicHeader() {
           <MobileNav
             pathname={pathname}
             nav={nav}
-            currentCC={currentCC as CountryCode}
+            currentCC={navigationCC as CountryCode}
             onChangeCountry={changeCountry}
             showCountrySwitcher={showCountrySwitcher}
           />

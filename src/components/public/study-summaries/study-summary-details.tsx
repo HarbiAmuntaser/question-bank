@@ -1,12 +1,10 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ArrowRight, BookOpenText, Clock, FileText, GraduationCap, Layers3, Lock, Star } from "lucide-react";
+import { BookOpenText, FileText, Lock } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
 import { ContextBackLink } from "@/components/public/context-back-link";
-import { Separator } from "@/components/ui/separator";
 import type { InstitutionType } from "@/config/regions";
 import { encodeSlugPath, stripPrefix } from "@/lib/public/slug-utils";
 import { summaryQuery } from "@/lib/public/study-summary-routes";
@@ -155,8 +153,6 @@ export async function StudySummaryDetails({
   const subjectLink = `/${ccNorm}/${type}/universities/${encodeSlugPath(canonicalUni)}/majors/${encodeSlugPath(
     canonicalMajor,
   )}/subjects/${encodeSlugPath(canonicalSubject)}`;
-  const majorLink = `/${ccNorm}/${type}/universities/${encodeSlugPath(canonicalUni)}/majors/${encodeSlugPath(canonicalMajor)}`;
-  const uniLink = `/${ccNorm}/${type}/universities/${encodeSlugPath(canonicalUni)}`;
   const pdfViewerHref = `/pdf-viewer/summary/${summary.id}`;
 
   return (
@@ -189,54 +185,6 @@ export async function StudySummaryDetails({
             </CardDescription>
           ) : null}
 
-          <div className="mt-3 flex flex-wrap justify-center gap-2">
-            {summary.isFeatured ? (
-              <Badge className="gap-1">
-                <Star className="h-3.5 w-3.5" aria-hidden />
-                مميز
-              </Badge>
-            ) : null}
-            {summary.chapter ? (
-              <Badge variant="outline" className="gap-1">
-                <Layers3 className="h-3.5 w-3.5" aria-hidden />
-                {summary.chapter.name}
-              </Badge>
-            ) : null}
-            {summary.readingMinutes ? (
-              <Badge variant="secondary" className="gap-1 arabic-numbers">
-                <Clock className="h-3.5 w-3.5" aria-hidden />
-                {summary.readingMinutes} د
-              </Badge>
-            ) : null}
-            {summary.hasPdf && access.allowed ? (
-              <Badge variant="outline" className="gap-1">
-                <FileText className="h-3.5 w-3.5" aria-hidden />
-                PDF
-              </Badge>
-            ) : null}
-          </div>
-
-          <Separator className="mx-auto my-4 max-w-md" />
-
-          <div className="flex flex-wrap justify-center gap-3 text-sm leading-relaxed text-muted-foreground">
-            <Link
-              href={uniLink}
-              prefetch={false}
-              className="flex min-h-9 items-center gap-2 rounded-md px-1 transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-            >
-              <GraduationCap className="h-4 w-4" aria-hidden />
-              {subject.major.university.name}
-            </Link>
-            <span>•</span>
-            <Link
-              href={majorLink}
-              prefetch={false}
-              className="flex min-h-9 items-center gap-2 rounded-md px-1 transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-            >
-              <ArrowRight className="h-4 w-4" aria-hidden />
-              {subject.major.name}
-            </Link>
-          </div>
         </CardHeader>
 
         <CardContent className="space-y-6 px-5 pb-6 sm:px-6">

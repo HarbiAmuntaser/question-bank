@@ -109,7 +109,7 @@ export function ProtectedPdfViewer({
   const loadingTaskRef = useRef<PDFDocumentLoadingTask | null>(null);
   const documentRef = useRef<PDFDocumentProxy | null>(null);
   const preservedPageRef = useRef(Math.max(1, initialPage));
-  const preservedScaleRef = useRef("page-width");
+  const preservedScaleRef = useRef("1");
   const [reloadKey, setReloadKey] = useState(0);
   const [title, setTitle] = useState("عارض مستواك");
   const [loading, setLoading] = useState(true);
@@ -123,7 +123,7 @@ export function ProtectedPdfViewer({
 
   const retry = useCallback(() => {
     preservedPageRef.current = viewerRef.current?.currentPageNumber ?? preservedPageRef.current;
-    preservedScaleRef.current = viewerRef.current?.currentScaleValue || "page-width";
+    preservedScaleRef.current = viewerRef.current?.currentScaleValue || "1";
     setReloadKey((value) => value + 1);
   }, []);
 
@@ -204,7 +204,7 @@ export function ProtectedPdfViewer({
         const document = documentRef.current;
         if (!document) return;
         const requestedPage = Math.min(Math.max(1, preservedPageRef.current), document.numPages);
-        viewer.currentScaleValue = preservedScaleRef.current || "page-width";
+        viewer.currentScaleValue = preservedScaleRef.current || "1";
         viewer.currentPageNumber = requestedPage;
         setPageNumber(requestedPage);
         setScale(viewer.currentScale || 1);

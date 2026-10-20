@@ -1,4 +1,4 @@
-import { MapPin } from "lucide-react";
+import { Info, MapPin } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -61,7 +61,15 @@ export function UniversityHero({ university }: UniversityHeroProps) {
                 {copy.description}
               </p>
 
-              {location || university.code?.trim() ? (
+              {institutionType === "university" ? (
+                <div className="mt-4 flex max-w-3xl items-start gap-2 rounded-md border border-primary/20 bg-primary/5 px-3 py-2.5 text-sm leading-6 text-foreground/80">
+                  <Info className="mt-1 h-4 w-4 shrink-0 text-primary" aria-hidden />
+                  <p>
+                    المحتوى التعليمي والاختبارات من إعداد منصة مستواك المستقلة، ولا تتبع المنصة{" "}
+                    {university.name} أو تمثلها رسميًا.
+                  </p>
+                </div>
+              ) : location || university.code?.trim() ? (
                 <div className="mt-4 flex flex-wrap items-center gap-2">
                   {location ? (
                     <Badge variant="outline" className="gap-1.5 rounded-full px-3 py-1 text-xs font-medium">
