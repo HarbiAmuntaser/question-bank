@@ -97,6 +97,7 @@ test("subscription dialog keeps the initial mobile view compact without repeated
   assert.match(dialog, /w-\[calc\(100%-1rem\)\]/);
   assert.match(dialog, /<Clock3/);
   assert.match(dialog, /formatPrice\(plan\)/);
+  assert.ok(dialog.includes("\u0641\u0635\u0644 \u062f\u0631\u0627\u0633\u064a \u0643\u0627\u0645\u0644"));
   assert.doesNotMatch(dialog, /sm:grid-cols-\[1fr_auto\]/);
   assert.doesNotMatch(dialog, /\[plan\?\.universityName,\s*plan\?\.collegeName/);
   assert.doesNotMatch(dialog, /line-clamp-3/);

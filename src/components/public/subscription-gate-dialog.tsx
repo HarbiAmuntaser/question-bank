@@ -278,13 +278,11 @@ export function SubscriptionGateDialog({
                 <span className="text-muted-foreground">السعر</span>
                 <strong className="font-semibold text-foreground">{formatPrice(plan)}</strong>
               </div>
-              {plan.durationDays ? (
-                <div className="flex min-w-0 items-center gap-2">
-                  <Clock3 className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
-                  <span className="text-muted-foreground">مدة الوصول</span>
-                  <strong className="font-semibold text-foreground">{plan.durationDays} يومًا</strong>
-                </div>
-              ) : null}
+              <div className="flex min-w-0 items-center gap-2">
+                <Clock3 className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+                <span className="text-muted-foreground">مدة الوصول</span>
+                <strong className="font-semibold text-foreground">فصل دراسي كامل</strong>
+              </div>
             </div>
           ) : null}
 
