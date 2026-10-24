@@ -89,3 +89,15 @@ test("dialog keeps secrets ephemeral, retries idempotently and refreshes access 
   assert.match(access, /onRedeemed=\{refreshAccess\}/);
   assert.match(summary, /onRedeemed \?\? \(\(\) => router\.refresh\(\)\)/);
 });
+
+test("subscription dialog keeps the initial mobile view compact without repeated plan details", () => {
+  const dialog = readFileSync("src/components/public/subscription-gate-dialog.tsx", "utf8");
+
+  assert.match(dialog, /max-h-\[calc\(100dvh-1rem\)\]/);
+  assert.match(dialog, /w-\[calc\(100%-1rem\)\]/);
+  assert.match(dialog, /<Clock3/);
+  assert.match(dialog, /formatPrice\(plan\)/);
+  assert.doesNotMatch(dialog, /sm:grid-cols-\[1fr_auto\]/);
+  assert.doesNotMatch(dialog, /\[plan\?\.universityName,\s*plan\?\.collegeName/);
+  assert.doesNotMatch(dialog, /line-clamp-3/);
+});

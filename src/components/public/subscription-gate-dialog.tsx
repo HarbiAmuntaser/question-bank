@@ -6,6 +6,7 @@ import {
   AlertCircle,
   ArrowLeftRight,
   CheckCircle2,
+  Clock3,
   CreditCard,
   LogIn,
   MessageCircle,
@@ -253,8 +254,11 @@ export function SubscriptionGateDialog({
 
   return (
     <Dialog open={open} onOpenChange={changeOpen}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto text-right sm:max-w-xl" dir="rtl">
-        <DialogHeader className="space-y-2 text-right">
+      <DialogContent
+        className="max-h-[calc(100dvh-1rem)] w-[calc(100%-1rem)] gap-4 overflow-y-auto rounded-lg p-4 text-right sm:max-h-[90vh] sm:max-w-xl sm:gap-5 sm:p-6"
+        dir="rtl"
+      >
+        <DialogHeader className="space-y-1.5 pe-7 text-right sm:space-y-2">
           <Badge variant="secondary" className="w-fit rounded-md">
             {scopeText}
           </Badge>
@@ -266,32 +270,23 @@ export function SubscriptionGateDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-5">
-          <div className="grid gap-3 border-y py-4 sm:grid-cols-[1fr_auto] sm:items-center">
-            <div className="space-y-2">
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge variant="outline" className="rounded-md bg-background">
-                  {scopeText}
-                </Badge>
-                <span className="text-sm text-muted-foreground">المحتوى: {targetTitle}</span>
+        <div className="space-y-3 sm:space-y-4">
+          {plan ? (
+            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-md border bg-muted/25 px-3 py-2.5 text-sm">
+              <div className="flex min-w-0 items-center gap-2">
+                <CreditCard className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+                <span className="text-muted-foreground">السعر</span>
+                <strong className="font-semibold text-foreground">{formatPrice(plan)}</strong>
               </div>
-              <div className="text-base font-semibold">{planTitle}</div>
-              <p className="text-xs leading-relaxed text-muted-foreground">
-                {[plan?.universityName, plan?.collegeName, plan?.majorName, plan?.subjectName].filter(Boolean).join(" / ")}
-              </p>
-              <p className="line-clamp-3 text-sm leading-relaxed text-muted-foreground">
-                {plan?.description ?? "اشتراك المادة"}
-              </p>
-              {plan?.durationDays ? (
-                <p className="text-sm">مدة الوصول: {plan.durationDays} يومًا من التفعيل.</p>
+              {plan.durationDays ? (
+                <div className="flex min-w-0 items-center gap-2">
+                  <Clock3 className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+                  <span className="text-muted-foreground">مدة الوصول</span>
+                  <strong className="font-semibold text-foreground">{plan.durationDays} يومًا</strong>
+                </div>
               ) : null}
             </div>
-            <div className="px-4 py-3 text-center">
-              <CreditCard className="mx-auto mb-1 h-4 w-4 text-muted-foreground" aria-hidden />
-              <div className="text-xs text-muted-foreground">السعر</div>
-              <div className="text-base font-bold">{formatPrice(plan)}</div>
-            </div>
-          </div>
+          ) : null}
 
           {!plan ? (
             <Alert className="border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200">
@@ -303,15 +298,15 @@ export function SubscriptionGateDialog({
           ) : null}
 
           {access?.canRedeemCode && codeRequestUrl ? (
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Button asChild className="h-11 w-full gap-2">
                 <a href={codeRequestUrl} target="_blank" rel="noopener noreferrer">
                   <MessageCircle className="h-4 w-4" aria-hidden />
                   طلب كود تفعيل عبر WhatsApp
                 </a>
               </Button>
-              <p className="text-xs leading-relaxed text-muted-foreground">
-                أرسل الرسالة واتفق على الدفع عبر وسيلة الخطة، ثم ارجع لإدخال الكود بعد استلامه.
+              <p className="text-xs leading-5 text-muted-foreground">
+                سيُفتح WhatsApp برسالة جاهزة. ارجع بعد استلام الكود لإدخاله هنا.
               </p>
             </div>
           ) : null}
@@ -338,7 +333,7 @@ export function SubscriptionGateDialog({
           ) : null}
 
           {access?.canRedeemCode ? (
-            <div className="space-y-3 border-t pt-4">
+            <div className="space-y-3 border-t pt-3">
               {codeRequestUrl ? (
                 <Button
                   type="button"
